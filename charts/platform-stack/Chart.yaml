@@ -1,0 +1,15 @@
+apiVersion: v2
+name: platform-stack
+description: Umbrella Helm chart for platform services
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+dependencies:
+  - name: openclaw
+    version: 0.1.0
+    repository: file://../openclaw
+    condition: openclaw.enabled
+  - name: openhands
+    version: 0.1.0
+    repository: file://../openhands
+    condition: openhands.enabled

@@ -12,6 +12,15 @@ The repository is organized by responsibility:
 - `examples/` — sample values files and reference manifests.
 - `.github/workflows/` — CI/CD workflow definitions.
 
+## Helm charts
+The `charts/` directory includes:
+
+- `openclaw/` — API/runtime service chart with optional ingress, persistence, autoscaling, disruption budget, and network policy controls.
+- `openhands/` — orchestration service chart with optional workspace PVC, autoscaling, disruption budget, queue-ready environment values, and internal service defaults.
+- `platform-stack/` — umbrella chart that composes `openclaw` and `openhands`, with platform-level placeholders for ingress, external secrets, observability, persistence, autoscaling, and worker isolation.
+
+Each chart supports shared `global` values for common labels, pod annotations, image pull secrets, storage class defaults, host/domain conventions, and scheduling defaults.
+
 ## Prerequisites
 Before using this repository, install:
 
@@ -24,4 +33,7 @@ Before using this repository, install:
 - Read documentation: [`docs/`](./docs/)
 - Explore helper scripts: [`scripts/`](./scripts/)
 - Review chart layout: [`charts/`](./charts/)
-
+- Validate charts:
+  - `helm lint charts/openclaw`
+  - `helm lint charts/openhands`
+  - `helm dependency update charts/platform-stack && helm lint charts/platform-stack`

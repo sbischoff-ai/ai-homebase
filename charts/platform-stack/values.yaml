@@ -1,0 +1,73 @@
+global:
+  imagePullSecrets: []
+  storageClass: ""
+  domain: homebase.local
+  hosts:
+    openclaw: openclaw.homebase.local
+    openhands: openhands.homebase.local
+  commonLabels: {}
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  env: []
+
+openclaw:
+  enabled: true
+  ingress:
+    enabled: false
+  persistence:
+    enabled: false
+  autoscaling:
+    enabled: false
+
+openhands:
+  enabled: true
+  service:
+    enabled: true
+  workspace:
+    enabled: false
+  autoscaling:
+    enabled: false
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  tls: []
+
+externalSecrets:
+  enabled: false
+  secretStoreRef:
+    name: ""
+    kind: ClusterSecretStore
+  refreshInterval: 1h
+  mappings: []
+
+observability:
+  enabled: false
+  serviceMonitor:
+    enabled: false
+    interval: 30s
+  logging:
+    enabled: false
+    destination: ""
+
+persistence:
+  enabled: false
+  snapshots:
+    enabled: false
+  backups:
+    enabled: false
+    schedule: ""
+
+autoscaling:
+  enabled: false
+  profile: balanced
+
+workerIsolation:
+  enabled: false
+  runtimeClassName: ""
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
