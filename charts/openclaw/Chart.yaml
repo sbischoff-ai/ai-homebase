@@ -1,0 +1,10 @@
+apiVersion: v2
+name: openclaw
+description: Helm chart for deploying the OpenClaw API service
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - ai
+  - platform
+  - openclaw
