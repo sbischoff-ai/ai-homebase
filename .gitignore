@@ -1,0 +1,23 @@
+# Helm render/package output
+*.tgz
+*.tar.gz
+rendered/
+helm-template-output/
+
+# Local environment files
+.env
+.env.*
+*.local
+
+# Editor and OS files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# Temporary artifacts
+tmp/
+temp/
+*.tmp
+*.bak
