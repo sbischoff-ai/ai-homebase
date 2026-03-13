@@ -105,12 +105,11 @@ helm upgrade --install platform-stack charts/platform-stack \
 
 ## Ingress configuration
 
-`openclaw.ingress.enabled` is the single source of truth for ingress enablement in `platform-stack`.
+`platform-stack` defines ingress blocks per service (`openclaw`, `openhands`, `nextcloud`, `gitea`, `paperlessNgx`, `infisical`, `wgEasy`).
 
-- Enable ingress: `openclaw.ingress.enabled: true`
-- Disable ingress: `openclaw.ingress.enabled: false`
-
-Set all ingress behavior (class, annotations, hosts, TLS) under `openclaw.ingress.*`.
+- Default hostnames are centralized under `global.hosts.*` and align to `global.domain` in each values profile.
+- OpenHands ingress is intentionally disabled by default and should remain internal-only unless explicitly required.
+- Configure class, annotations, host rules, and TLS under each service's `<service>.ingress.*` block.
 
 ## Environment profiles and usage
 

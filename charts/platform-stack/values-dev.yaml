@@ -1,8 +1,13 @@
 global:
-  domain: homebase.local
+  domain: localtest.me
   hosts:
     openclaw: openclaw.localtest.me
-    openhands: openhands.homebase.local
+    openhands: openhands.localtest.me
+    nextcloud: nextcloud.localtest.me
+    gitea: gitea.localtest.me
+    paperlessNgx: paperlessngx.localtest.me
+    infisical: infisical.localtest.me
+    wgEasy: wgeasy.localtest.me
 
 openclaw:
   enabled: true
@@ -38,6 +43,19 @@ openhands:
     enabled: true
     type: ClusterIP
     annotations: {}
+  # OpenHands is intentionally internal-only by default.
+  # Keep ingress disabled unless a controlled external entrypoint is required.
+  ingress:
+    enabled: false
+    className: nginx
+    annotations:
+      kubernetes.io/ingress.class: internal
+    hosts:
+      - host: openhands.localtest.me
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
   workspace:
     enabled: false
   autoscaling:
@@ -51,6 +69,191 @@ openhands:
     limits:
       cpu: 500m
       memory: 512Mi
+
+nextcloud:
+  enabled: false
+  image:
+    repository: nextcloud
+    tag: "29.0.0-apache"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 80
+    annotations: {}
+  ingress:
+    enabled: false
+    className: nginx
+    annotations: {}
+    hosts:
+      - host: nextcloud.localtest.me
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+  persistence:
+    enabled: true
+    size: 5Gi
+    storageClass: ""
+  resources: {}
+  probes:
+    liveness:
+      enabled: true
+      path: /status.php
+    readiness:
+      enabled: true
+      path: /status.php
+  secretRefs:
+    existingSecret: ""
+
+gitea:
+  enabled: false
+  image:
+    repository: gitea/gitea
+    tag: "1.22.0"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 3000
+    targetPort: 3000
+    annotations: {}
+  ingress:
+    enabled: false
+    className: nginx
+    annotations: {}
+    hosts:
+      - host: gitea.localtest.me
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+  persistence:
+    enabled: true
+    size: 5Gi
+    storageClass: ""
+  resources: {}
+  probes:
+    liveness:
+      enabled: true
+      path: /api/healthz
+    readiness:
+      enabled: true
+      path: /api/healthz
+  secretRefs:
+    existingSecret: ""
+
+paperlessNgx:
+  enabled: false
+  image:
+    repository: ghcr.io/paperless-ngx/paperless-ngx
+    tag: "2.11.0"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8000
+    targetPort: 8000
+  ingress:
+    enabled: false
+    className: nginx
+    annotations: {}
+    hosts:
+      - host: paperlessngx.localtest.me
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+  persistence:
+    data:
+      enabled: true
+      size: 5Gi
+      storageClass: ""
+    media:
+      enabled: true
+      size: 10Gi
+      storageClass: ""
+  resources: {}
+  probes:
+    liveness:
+      enabled: true
+      path: /api/health/
+    readiness:
+      enabled: true
+      path: /api/health/
+  secretRefs:
+    existingSecret: ""
+
+infisical:
+  enabled: false
+  image:
+    repository: infisical/infisical
+    tag: "0.94.0"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+  ingress:
+    enabled: false
+    className: nginx
+    annotations: {}
+    hosts:
+      - host: infisical.localtest.me
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+  persistence:
+    enabled: false
+    size: 5Gi
+    storageClass: ""
+  resources: {}
+  probes:
+    liveness:
+      enabled: true
+      path: /api/status
+    readiness:
+      enabled: true
+      path: /api/status
+  secretRefs:
+    existingSecret: ""
+
+wgEasy:
+  enabled: false
+  image:
+    repository: ghcr.io/wg-easy/wg-easy
+    tag: "14"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    webPort: 51821
+    webTargetPort: 51821
+    vpnPort: 51820
+    vpnTargetPort: 51820
+    annotations: {}
+  ingress:
+    enabled: false
+    className: nginx
+    annotations: {}
+    hosts:
+      - host: wgeasy.localtest.me
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+  persistence:
+    enabled: true
+    size: 2Gi
+    storageClass: ""
+  resources: {}
+  probes:
+    liveness:
+      enabled: true
+      path: /
+    readiness:
+      enabled: true
+      path: /
+  secretRefs:
+    existingSecret: ""
 
 externalSecrets:
   enabled: false

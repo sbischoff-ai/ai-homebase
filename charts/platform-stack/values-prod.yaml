@@ -1,10 +1,15 @@
 global:
   imagePullSecrets: []
-  storageClass: "premium-rwo"
+  storageClass: premium-rwo
   domain: prod.example.com
   hosts:
     openclaw: openclaw.prod.example.com
     openhands: openhands.prod.example.com
+    nextcloud: nextcloud.prod.example.com
+    gitea: gitea.prod.example.com
+    paperlessNgx: paperlessngx.prod.example.com
+    infisical: infisical.prod.example.com
+    wgEasy: wgeasy.prod.example.com
   commonLabels:
     environment: production
 
@@ -60,6 +65,19 @@ openhands:
     enabled: true
     type: ClusterIP
     annotations: {}
+  # OpenHands is intentionally internal-only by default.
+  # Keep ingress disabled unless a controlled external entrypoint is required.
+  ingress:
+    enabled: false
+    className: nginx
+    annotations:
+      kubernetes.io/ingress.class: internal
+    hosts:
+      - host: openhands.prod.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
   workspace:
     enabled: true
     size: 100Gi
@@ -107,6 +125,257 @@ openhands:
     limits:
       cpu: "3"
       memory: 4Gi
+
+nextcloud:
+  enabled: false
+  image:
+    repository: ghcr.io/example/nextcloud
+    tag: stable
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 80
+    annotations: {}
+  ingress:
+    enabled: false
+    className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+    hosts:
+      - host: nextcloud.prod.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: nextcloud-prod-tls
+        hosts:
+          - nextcloud.prod.example.com
+  persistence:
+    enabled: true
+    existingClaim: ""
+    accessModes:
+      - ReadWriteOnce
+    size: 200Gi
+    storageClass: premium-rwo
+    annotations: {}
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  probes:
+    liveness:
+      enabled: true
+      path: /status.php
+    readiness:
+      enabled: true
+      path: /status.php
+  secretRefs:
+    existingSecret: nextcloud-app-secrets
+
+gitea:
+  enabled: false
+  image:
+    repository: ghcr.io/example/gitea
+    tag: stable
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 3000
+    targetPort: 3000
+    annotations: {}
+  ingress:
+    enabled: false
+    className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+    hosts:
+      - host: gitea.prod.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: gitea-prod-tls
+        hosts:
+          - gitea.prod.example.com
+  persistence:
+    enabled: true
+    existingClaim: ""
+    accessModes:
+      - ReadWriteOnce
+    size: 100Gi
+    storageClass: premium-rwo
+    annotations: {}
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  probes:
+    liveness:
+      enabled: true
+      path: /api/healthz
+    readiness:
+      enabled: true
+      path: /api/healthz
+  secretRefs:
+    existingSecret: gitea-app-secrets
+
+paperlessNgx:
+  enabled: false
+  image:
+    repository: ghcr.io/example/paperless-ngx
+    tag: stable
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8000
+    targetPort: 8000
+  ingress:
+    enabled: false
+    className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+    hosts:
+      - host: paperlessngx.prod.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: paperlessngx-prod-tls
+        hosts:
+          - paperlessngx.prod.example.com
+  persistence:
+    data:
+      enabled: true
+      existingClaim: ""
+      accessModes: ["ReadWriteOnce"]
+      size: 100Gi
+      storageClass: premium-rwo
+    media:
+      enabled: true
+      existingClaim: ""
+      accessModes: ["ReadWriteOnce"]
+      size: 500Gi
+      storageClass: premium-rwo
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+  probes:
+    liveness:
+      enabled: true
+      path: /api/health/
+    readiness:
+      enabled: true
+      path: /api/health/
+  secretRefs:
+    existingSecret: paperlessngx-app-secrets
+
+infisical:
+  enabled: false
+  image:
+    repository: ghcr.io/example/infisical
+    tag: stable
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+  ingress:
+    enabled: false
+    className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+    hosts:
+      - host: infisical.prod.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: infisical-prod-tls
+        hosts:
+          - infisical.prod.example.com
+  persistence:
+    enabled: true
+    existingClaim: ""
+    accessModes: ["ReadWriteOnce"]
+    size: 20Gi
+    storageClass: premium-rwo
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  probes:
+    liveness:
+      enabled: true
+      path: /api/status
+    readiness:
+      enabled: true
+      path: /api/status
+  secretRefs:
+    existingSecret: infisical-app-secrets
+
+wgEasy:
+  enabled: false
+  image:
+    repository: ghcr.io/example/wg-easy
+    tag: stable
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    webPort: 51821
+    webTargetPort: 51821
+    vpnPort: 51820
+    vpnTargetPort: 51820
+    annotations: {}
+  ingress:
+    enabled: false
+    className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+    hosts:
+      - host: wgeasy.prod.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: wgeasy-prod-tls
+        hosts:
+          - wgeasy.prod.example.com
+  persistence:
+    enabled: true
+    existingClaim: ""
+    accessModes: ["ReadWriteOnce"]
+    size: 20Gi
+    storageClass: premium-rwo
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  probes:
+    liveness:
+      enabled: true
+      path: /
+    readiness:
+      enabled: true
+      path: /
+  secretRefs:
+    existingSecret: wgeasy-app-secrets
 
 externalSecrets:
   enabled: true
