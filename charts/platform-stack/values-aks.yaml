@@ -55,8 +55,6 @@ openhands:
   service:
     enabled: true
     type: ClusterIP
-    annotations:
-      service.beta.kubernetes.io/azure-load-balancer-internal: "true"
   serviceAccount:
     annotations:
       azure.workload.identity/client-id: "<openhands-workload-identity-client-id>"
