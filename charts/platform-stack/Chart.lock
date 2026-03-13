@@ -1,0 +1,24 @@
+dependencies:
+- name: openclaw
+  repository: file://../openclaw
+  version: 0.1.0
+- name: openhands
+  repository: file://../openhands
+  version: 0.1.0
+- name: nextcloud
+  repository: file://../nextcloud
+  version: 0.1.0
+- name: gitea
+  repository: file://../gitea
+  version: 0.1.0
+- name: paperless-ngx
+  repository: file://../paperless-ngx
+  version: 0.1.0
+- name: infisical
+  repository: file://../infisical
+  version: 0.1.0
+- name: wg-easy
+  repository: file://../wg-easy
+  version: 0.1.0
+digest: sha256:d5ea95c5fb88322d26d05c01bb0707ee634c93330a63d6d17a525371bb46afb8
+generated: "2026-03-13T01:30:58.011665559Z"

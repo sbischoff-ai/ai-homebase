@@ -1,0 +1,40 @@
+nameOverride: ""
+fullnameOverride: ""
+
+replicaCount: 1
+
+image:
+  repository: infisical/infisical
+  tag: "0.94.0"
+  pullPolicy: IfNotPresent
+
+global:
+  storageClass: ""
+  hosts:
+    infisical: ""
+  commonLabels: {}
+
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: ""
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+persistence:
+  enabled: false
+  existingClaim: ""
+  accessModes: ["ReadWriteOnce"]
+  size: 5Gi
+  storageClass: ""
+
+resources: {}

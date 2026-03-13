@@ -1,0 +1,49 @@
+nameOverride: ""
+fullnameOverride: ""
+
+replicaCount: 1
+
+image:
+  repository: nextcloud
+  tag: "29.0.0-apache"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+global:
+  imagePullSecrets: []
+  storageClass: ""
+  hosts:
+    nextcloud: ""
+  commonLabels: {}
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 80
+  annotations: {}
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: ""
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+persistence:
+  enabled: true
+  existingClaim: ""
+  accessModes:
+    - ReadWriteOnce
+  size: 20Gi
+  storageClass: ""
+  annotations: {}
+
+resources: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}

@@ -1,0 +1,6 @@
+apiVersion: v2
+name: infisical
+description: Helm chart for deploying Infisical
+type: application
+version: 0.1.0
+appVersion: "0.94.0"

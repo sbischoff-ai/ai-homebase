@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "wg-easy.fullname" . }}
+  labels:
+    {{- include "wg-easy.labels" . | nindent 4 }}
+  {{- with .Values.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - name: web
+      port: {{ .Values.service.webPort }}
+      targetPort: {{ .Values.service.webTargetPort }}
+      protocol: TCP
+    - name: vpn
+      port: {{ .Values.service.vpnPort }}
+      targetPort: {{ .Values.service.vpnTargetPort }}
+      protocol: UDP
+  selector:
+    {{- include "wg-easy.selectorLabels" . | nindent 4 }}
