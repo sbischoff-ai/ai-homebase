@@ -86,6 +86,12 @@ AKS values assume:
 
 `openhands` remains internal by default and should not be exposed publicly unless your threat model explicitly allows it.
 
+Network posture details for `openhands` in `values-aks.yaml`:
+
+- `openhands.service.type` is `ClusterIP`, so the service is reachable only inside the cluster network by default.
+- Azure load balancer service annotations (for example `service.beta.kubernetes.io/azure-load-balancer-internal`) apply only to `type: LoadBalancer` services and are not valid for the current `ClusterIP` posture.
+- To keep `openhands` internal while still exposing it, route traffic through an internal ingress/controller pattern rather than attaching a load balancer annotation to a `ClusterIP` service.
+
 ## Storage guidance
 
 The AKS profile defaults to `managed-csi` and enables persistence for both components.
