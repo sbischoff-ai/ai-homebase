@@ -1,0 +1,158 @@
+global:
+  imagePullSecrets: []
+  storageClass: "premium-rwo"
+  domain: prod.example.com
+  hosts:
+    openclaw: openclaw.prod.example.com
+    openhands: openhands.prod.example.com
+  commonLabels:
+    environment: production
+
+openclaw:
+  enabled: true
+  replicaCount: 3
+  ingress:
+    enabled: true
+    className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+      nginx.ingress.kubernetes.io/proxy-body-size: 25m
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    hosts:
+      - host: openclaw.prod.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: openclaw-prod-tls
+        hosts:
+          - openclaw.prod.example.com
+  persistence:
+    enabled: true
+    size: 50Gi
+    storageClass: premium-rwo
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 12
+    targetCPUUtilizationPercentage: 65
+    targetMemoryUtilizationPercentage: 75
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 2
+  networkPolicy:
+    enabled: true
+    policyTypes:
+      - Ingress
+      - Egress
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+
+openhands:
+  enabled: true
+  replicaCount: 2
+  service:
+    enabled: true
+    type: ClusterIP
+    annotations: {}
+  workspace:
+    enabled: true
+    size: 100Gi
+    storageClass: premium-rwo
+  queue:
+    enabled: true
+    provider: "<set-provider>"
+    endpoint: "<set-endpoint>"
+    queueName: openhands-jobs
+    dlqName: openhands-jobs-deadletter
+    workerConcurrency: 10
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 65
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+  resources:
+    requests:
+      cpu: 750m
+      memory: 1Gi
+    limits:
+      cpu: "3"
+      memory: 4Gi
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  tls:
+    - secretName: platform-prod-wildcard-tls
+      hosts:
+        - prod.example.com
+
+externalSecrets:
+  enabled: true
+  secretStoreRef:
+    name: prod-secrets-store
+    kind: ClusterSecretStore
+  refreshInterval: 10m
+  mappings:
+    - name: openclaw-app
+      targetSecretName: openclaw-app-secrets
+      remoteRef:
+        key: prod/openclaw/app
+    - name: openhands-app
+      targetSecretName: openhands-app-secrets
+      remoteRef:
+        key: prod/openhands/app
+
+observability:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 15s
+  logging:
+    enabled: true
+    destination: central-logging
+
+persistence:
+  enabled: true
+  snapshots:
+    enabled: true
+  backups:
+    enabled: true
+    schedule: "0 */6 * * *"
+
+autoscaling:
+  enabled: true
+  profile: prod-high-availability
+
+workerIsolation:
+  enabled: true
+  runtimeClassName: gvisor
+  nodeSelector:
+    workload-tier: isolated
+  tolerations:
+    - key: workload-tier
+      operator: Equal
+      value: isolated
+      effect: NoSchedule
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/instance
+                  operator: In
+                  values:
+                    - platform-stack
+            topologyKey: kubernetes.io/hostname

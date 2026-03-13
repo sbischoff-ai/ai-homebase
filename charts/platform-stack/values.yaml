@@ -14,22 +14,89 @@ global:
 
 openclaw:
   enabled: true
+  replicaCount: 2
+  image:
+    repository: ghcr.io/example/openclaw
+    tag: ""
+    pullPolicy: IfNotPresent
   ingress:
-    enabled: false
+    enabled: true
+    className: ""
+    annotations: {}
+    hosts:
+      - host: openclaw.homebase.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 8080
+    annotations: {}
   persistence:
     enabled: false
+    size: 10Gi
+    storageClass: ""
   autoscaling:
     enabled: false
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 75
+  podDisruptionBudget:
+    enabled: false
+    minAvailable: 1
+  networkPolicy:
+    enabled: false
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
 
 openhands:
   enabled: true
+  replicaCount: 1
+  image:
+    repository: ghcr.io/example/openhands
+    tag: ""
+    pullPolicy: IfNotPresent
   service:
     enabled: true
+    type: ClusterIP
+    port: 80
+    targetPort: 3000
+    annotations: {}
   workspace:
     enabled: false
+    size: 20Gi
+    storageClass: ""
+  queue:
+    enabled: false
+    provider: ""
+    endpoint: ""
+    queueName: ""
+    dlqName: ""
+    workerConcurrency: 4
   autoscaling:
     enabled: false
+    minReplicas: 1
+    maxReplicas: 4
+    targetCPUUtilizationPercentage: 75
+  podDisruptionBudget:
+    enabled: false
+    minAvailable: 1
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
 
+# Platform-level feature toggles and placeholders for future integration templates.
 ingress:
   enabled: false
   className: ""
