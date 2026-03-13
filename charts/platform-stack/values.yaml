@@ -103,12 +103,6 @@ openhands:
       memory: 1Gi
 
 # Platform-level feature toggles and placeholders for future integration templates.
-ingress:
-  enabled: false
-  className: ""
-  annotations: {}
-  tls: []
-
 externalSecrets:
   enabled: false
   secretStoreRef:

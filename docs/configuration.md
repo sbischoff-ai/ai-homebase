@@ -16,7 +16,18 @@ Within chart values, intent is organized as:
 - `global.*` for shared defaults consumed across components.
 - `openclaw.*` for control-plane-only settings.
 - `openhands.*` for execution-plane-only settings.
-- Platform integration placeholders (`ingress`, `externalSecrets`, `observability`, `persistence`, `autoscaling`, `workerIsolation`) for stack-level operations.
+- Platform integration placeholders (`externalSecrets`, `observability`, `persistence`, `autoscaling`, `workerIsolation`) for stack-level operations.
+
+
+## Ingress source of truth
+
+The authoritative ingress toggle for platform-stack is `openclaw.ingress.enabled`.
+
+- Set `openclaw.ingress.enabled=true` to render the OpenClaw ingress resource.
+- Set `openclaw.ingress.enabled=false` to disable ingress creation.
+- The former top-level `ingress.enabled` in platform-stack values was removed to avoid conflicting intent.
+
+If you need ingress behavior changes (class, annotations, TLS, hosts), configure them under `openclaw.ingress.*` in your selected profile/overrides.
 
 ## `global` vs component-specific values
 

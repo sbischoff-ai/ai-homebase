@@ -96,16 +96,6 @@ openhands:
                 values:
                   - isolated
 
-ingress:
-  enabled: true
-  className: nginx
-  annotations:
-    kubernetes.io/ingress.class: nginx
-  tls:
-    - secretName: platform-wildcard-tls
-      hosts:
-        - aks.example.com
-
 externalSecrets:
   enabled: true
   secretStoreRef:
