@@ -1,48 +1,58 @@
-# Networking exposure guide
+# Networking and exposure model
 
-This guide explains which services should be public by default vs private-by-default, and why.
+This platform is designed with explicit public/private boundaries between core and optional services.
 
-## Recommended exposure model
+## Recommended default exposure
 
-- **Public by default**: `openclaw`
-  - Serves as the primary external API/UI entrypoint.
-- **Private by default**: `openhands`, `infisical`, `wg-easy` web UI
-  - These are internal execution/admin surfaces and should remain restricted unless explicitly required.
-- **Optional public exposure**: `nextcloud`, `gitea`, `paperless-ngx`
-  - Enable ingress only when your use case needs direct user access and TLS/auth controls are in place.
+- **Public by default:** OpenClaw ingress.
+- **Private by default:** OpenHands, Infisical, wg-easy web UI.
+- **Optional public exposure:** Nextcloud, Gitea, Paperless-ngx (only when needed).
 
-## Global hostnames
+## Ingress controls
 
-`platform-stack` centralizes host defaults in `global.hosts`:
+Each service has independent ingress values under `<service>.ingress.*`.
 
-- `global.hosts.openclaw`
-- `global.hosts.openhands`
-- `global.hosts.nextcloud`
-- `global.hosts.gitea`
-- `global.hosts.paperless` (alias: `paperlessNgx`)
-- `global.hosts.infisical`
-- `global.hosts.wg` (aliases: `vpn`, `wgEasy`)
+Common requirements per exposed service:
 
-Each chart ingress template consumes these defaults when `ingress.hosts[].host` is left empty.
+- Explicit `ingressClassName` (or equivalent class field).
+- TLS configured with valid certificate issuer.
+- Stable hostnames mapped in DNS.
 
-## wg-easy secure exposure guidance
+Keep OpenHands ingress disabled unless there is a reviewed requirement.
 
-Keep `wgEasy.ingress.enabled=false` by default.
+## AKS ingress posture
 
-Preferred patterns:
+Typical AKS pattern:
 
-1. Expose only UDP WireGuard port (`service.vpnPort`) via `LoadBalancer` with source CIDR restrictions.
-2. Keep web UI private (internal ingress class or no ingress) and access through VPN/bastion.
-3. Require TLS + strong auth when exposing any admin web surface.
+- NGINX ingress controller.
+- cert-manager for TLS automation.
+- external-dns (optional) for DNS lifecycle automation.
 
-Avoid exposing the wg-easy web UI directly to the public internet without compensating controls.
+For internal-only services, prefer internal ingress or cluster-private access instead of direct public load balancers.
 
-## NetworkPolicy placeholders
+## wg-easy networking guidance
 
-Internal/admin services now include `networkPolicy` placeholders so you can define deny-by-default posture and explicit allow-lists:
+- Keep admin web UI private.
+- Expose UDP VPN endpoint with narrow source/routing controls.
+- Avoid public admin UI exposure without compensating controls.
 
-- `openhands.networkPolicy.*`
-- `infisical.networkPolicy.*`
-- `wgEasy.networkPolicy.*`
+## NetworkPolicy guidance
 
-Start by enabling `networkPolicy.enabled=true`, then add ingress/egress rules for trusted namespaces, controllers, and destinations only.
+NetworkPolicy fields are present as operator hooks, but rules are environment-specific.
+
+Recommended progression:
+
+1. Enable policy for internal/admin services first.
+2. Add explicit allow rules for required namespaces/ports.
+3. Deny all unspecified traffic.
+4. Validate service-to-service paths with smoke tests.
+
+## Intentional placeholders and hardening gaps
+
+This repo does not ship production-ready policy matrices, WAF policy, or DDoS controls out of the box.
+
+Before production, define:
+
+- Namespace/service traffic contracts.
+- Ingress security controls (rate limits, auth integration, mTLS where needed).
+- Operational runbooks for certificate rotation and DNS incidents.
