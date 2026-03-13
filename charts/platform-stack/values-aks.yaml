@@ -76,6 +76,25 @@ openhands:
   podDisruptionBudget:
     enabled: true
     minAvailable: 1
+  # Mirror workerIsolation.* into OpenHands scheduling fields.
+  runtimeClassName: kata-cc
+  nodeSelector:
+    kubernetes.azure.com/mode: user
+    workload-tier: isolated
+  tolerations:
+    - key: workload-tier
+      operator: Equal
+      value: isolated
+      effect: NoSchedule
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: workload-tier
+                operator: In
+                values:
+                  - isolated
 
 ingress:
   enabled: true
@@ -126,8 +145,21 @@ autoscaling:
 
 workerIsolation:
   enabled: true
-  runtimeClassName: ""
+  runtimeClassName: kata-cc
   nodeSelector:
     kubernetes.azure.com/mode: user
-  tolerations: []
-  affinity: {}
+    workload-tier: isolated
+  tolerations:
+    - key: workload-tier
+      operator: Equal
+      value: isolated
+      effect: NoSchedule
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: workload-tier
+                operator: In
+                values:
+                  - isolated

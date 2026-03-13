@@ -86,6 +86,8 @@ Several keys are intentionally placeholders to keep this starter repository prov
 - Queue provider details (`openhands.queue.*`).
 - External secret store references (`externalSecrets.secretStoreRef`, mapping keys).
 - Observability destinations (`observability.logging.destination`).
-- Worker isolation settings (`workerIsolation.*`, runtime class and node placement).
+- Worker isolation settings (`workerIsolation.*`) are the operator-facing contract.
+
+`workerIsolation.*` captures platform intent, while `openhands.runtimeClassName`, `openhands.nodeSelector`, `openhands.tolerations`, and `openhands.affinity` are the fields rendered into the OpenHands Deployment. Keep them aligned in environment overlays; if both are set, the `openhands.*` values take precedence at render time.
 
 Treat these as required integration checkpoints before production rollout.
