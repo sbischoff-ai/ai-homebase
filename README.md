@@ -23,7 +23,7 @@ The `charts/` directory includes:
 
 - `openclaw/` — API/runtime service chart with optional ingress, persistence, autoscaling, disruption budget, and network policy controls.
 - `openhands/` — orchestration service chart with optional workspace PVC, autoscaling, disruption budget, queue-ready environment values, and internal service defaults.
-- `platform-stack/` — umbrella chart that composes `openclaw` and `openhands`, with platform-level placeholders for ingress, external secrets, observability, persistence, autoscaling, and worker isolation.
+- `platform-stack/` — umbrella chart that composes `openclaw` and `openhands`, with platform-level placeholders for external secrets, observability, persistence, autoscaling, and worker isolation.
 
 `charts/platform-stack/` includes deployment profiles:
 
@@ -32,7 +32,7 @@ The `charts/` directory includes:
 - `values-aks.yaml` — AKS-oriented example (ACR images, ingress assumptions, workload identity placeholders, Key Vault external-secrets placeholders).
 - `values-prod.yaml` — production-shaped profile (higher scale/resources, stricter availability, hardened defaults).
 
-All profiles keep `openclaw` externally accessible via ingress while maintaining an internal-only `ClusterIP` posture for `openhands`.
+All profiles keep `openclaw` externally accessible via ingress (`openclaw.ingress.enabled`) while maintaining an internal-only `ClusterIP` posture for `openhands`.
 
 ## Prerequisites
 Before using this repository, install:
@@ -87,6 +87,15 @@ helm upgrade --install platform-stack charts/platform-stack \
   --create-namespace \
   -f charts/platform-stack/values-dev.yaml
 ```
+
+## Ingress configuration
+
+`openclaw.ingress.enabled` is the single source of truth for ingress enablement in `platform-stack`.
+
+- Enable ingress: `openclaw.ingress.enabled: true`
+- Disable ingress: `openclaw.ingress.enabled: false`
+
+Set all ingress behavior (class, annotations, hosts, TLS) under `openclaw.ingress.*`.
 
 ## Environment profiles and usage
 

@@ -87,16 +87,6 @@ openhands:
       cpu: "3"
       memory: 4Gi
 
-ingress:
-  enabled: true
-  className: nginx
-  annotations:
-    nginx.ingress.kubernetes.io/ssl-redirect: "true"
-  tls:
-    - secretName: platform-prod-wildcard-tls
-      hosts:
-        - prod.example.com
-
 externalSecrets:
   enabled: true
   secretStoreRef:
