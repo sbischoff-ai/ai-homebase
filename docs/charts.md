@@ -1,7 +1,7 @@
 # Helm chart notes
 
 ## Shared global values
-`openclaw`, `nextcloud`, `gitea`, `paperless-ngx`, `infisical`, and `wg-easy` support a shared `global` block (with chart-specific host keys) for:
+`openclaw`, `openhands`, `nextcloud`, `gitea`, `paperless-ngx`, `infisical`, and `wg-easy` support a shared `global` block (with chart-specific host keys) for:
 
 - `imagePullSecrets`
 - `storageClass`
@@ -30,3 +30,12 @@ It also provides platform-level value placeholders for:
 - persistence
 - autoscaling
 - worker isolation
+
+
+## Network policy placeholders
+Internal/admin-oriented charts expose optional `networkPolicy.*` values and templates:
+
+- `openclaw.networkPolicy.*`
+- `openhands.networkPolicy.*`
+- `infisical.networkPolicy.*`
+- `wgEasy.networkPolicy.*`

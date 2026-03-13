@@ -1,4 +1,5 @@
 {{- if .Values.ingress.enabled }}
+{{- $defaultHost := coalesce .Values.global.hosts.paperless .Values.global.hosts.paperlessNgx -}}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -10,9 +11,12 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
   rules:
     {{- range .Values.ingress.hosts }}
-    - host: {{ default $.Values.global.hosts.paperlessNgx .host | quote }}
+    - host: {{ default $defaultHost .host | quote }}
       http:
         paths:
           {{- range .paths }}
@@ -25,4 +29,8 @@ spec:
                   number: {{ $.Values.service.port }}
           {{- end }}
     {{- end }}
+  {{- with .Values.ingress.tls }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 {{- end }}

@@ -22,13 +22,30 @@ service:
 ingress:
   enabled: false
   className: ""
-  annotations: {}
+  annotations:
+    kubernetes.io/ingress.class: internal
   hosts:
     - host: ""
       paths:
         - path: /
           pathType: Prefix
   tls: []
+
+networkPolicy:
+  enabled: false
+  # Example admin-surface policy: allow ingress only from trusted admin namespace(s).
+  # ingress:
+  #   - from:
+  #       - namespaceSelector:
+  #           matchLabels:
+  #             kubernetes.io/metadata.name: admin-tools
+  # policyTypes:
+  #   - Ingress
+  ingress: []
+  egress: []
+  policyTypes:
+    - Ingress
+    - Egress
 
 persistence:
   enabled: false

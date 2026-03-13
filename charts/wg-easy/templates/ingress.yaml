@@ -1,14 +1,22 @@
 {{- if .Values.ingress.enabled }}
+{{- $defaultHost := coalesce .Values.global.hosts.wg .Values.global.hosts.vpn .Values.global.hosts.wgEasy -}}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: {{ include "wg-easy.fullname" . }}
   labels:
     {{- include "wg-easy.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
   rules:
     {{- range .Values.ingress.hosts }}
-    - host: {{ default $.Values.global.hosts.wgEasy .host | quote }}
+    - host: {{ default $defaultHost .host | quote }}
       http:
         paths:
           {{- range .paths }}
@@ -21,4 +29,8 @@ spec:
                   number: {{ $.Values.service.webPort }}
           {{- end }}
     {{- end }}
+  {{- with .Values.ingress.tls }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 {{- end }}

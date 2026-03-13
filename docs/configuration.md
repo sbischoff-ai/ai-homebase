@@ -1,6 +1,6 @@
 # Configuration model and value hierarchy
 
-This repository centers on the umbrella chart `charts/platform-stack`, which composes `openclaw` and `openhands`.
+This repository centers on the umbrella chart `charts/platform-stack`, which composes OpenClaw, OpenHands, Nextcloud, Gitea, Paperless-ngx, Infisical, and wg-easy.
 
 ## Value hierarchy
 
@@ -21,13 +21,15 @@ Within chart values, intent is organized as:
 
 ## Ingress source of truth
 
-The authoritative ingress toggle for platform-stack is `openclaw.ingress.enabled`.
+Ingress is controlled per component in `platform-stack` values:
 
-- Set `openclaw.ingress.enabled=true` to render the OpenClaw ingress resource.
-- Set `openclaw.ingress.enabled=false` to disable ingress creation.
-- The former top-level `ingress.enabled` in platform-stack values was removed to avoid conflicting intent.
+- `openclaw.ingress.*` (public-by-default entrypoint)
+- `openhands.ingress.*` (internal-only by default)
+- `nextcloud.ingress.*`, `gitea.ingress.*`, `paperlessNgx.ingress.*` (optional public exposure)
+- `infisical.ingress.*` (internal/admin-oriented)
+- `wgEasy.ingress.*` (disabled by default; prefer private/admin-only exposure)
 
-If you need ingress behavior changes (class, annotations, TLS, hosts), configure them under `openclaw.ingress.*` in your selected profile/overrides.
+If you need ingress behavior changes (class, annotations, TLS, hosts), configure them under the service-specific `<service>.ingress.*` block in your selected profile/overrides.
 
 ## `global` vs component-specific values
 

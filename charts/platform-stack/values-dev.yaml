@@ -5,9 +5,12 @@ global:
     openhands: openhands.localtest.me
     nextcloud: nextcloud.localtest.me
     gitea: gitea.localtest.me
-    paperlessNgx: paperlessngx.localtest.me
+    paperless: paperless.localtest.me
+    paperlessNgx: paperless.localtest.me
     infisical: infisical.localtest.me
-    wgEasy: wgeasy.localtest.me
+    wg: wg.localtest.me
+    vpn: wg.localtest.me
+    wgEasy: wg.localtest.me
 
 openclaw:
   enabled: true
@@ -163,7 +166,7 @@ paperlessNgx:
     className: nginx
     annotations: {}
     hosts:
-      - host: paperlessngx.localtest.me
+      - host: paperless.localtest.me
         paths:
           - path: /
             pathType: Prefix
@@ -258,7 +261,7 @@ wgEasy:
     className: nginx
     annotations: {}
     hosts:
-      - host: wgeasy.localtest.me
+      - host: wg.localtest.me
         paths:
           - path: /
             pathType: Prefix

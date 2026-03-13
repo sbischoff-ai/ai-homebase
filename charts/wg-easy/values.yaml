@@ -11,6 +11,8 @@ image:
 global:
   storageClass: ""
   hosts:
+    wg: ""
+    vpn: ""
     wgEasy: ""
   commonLabels: {}
 
@@ -24,6 +26,7 @@ service:
 
 ingress:
   enabled: false
+  # Keep disabled by default. Prefer private exposure methods (internal ingress, VPN-only LB, or bastion).
   className: ""
   annotations: {}
   hosts:
@@ -32,6 +35,15 @@ ingress:
         - path: /
           pathType: Prefix
   tls: []
+
+networkPolicy:
+  enabled: false
+  # Example admin-surface policy: restrict web UI ingress and allow VPN UDP only from trusted CIDRs via CNI policies.
+  ingress: []
+  egress: []
+  policyTypes:
+    - Ingress
+    - Egress
 
 persistence:
   enabled: true
