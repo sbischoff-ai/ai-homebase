@@ -102,6 +102,21 @@ openhands:
       cpu: "1"
       memory: 1Gi
 
+nextcloud:
+  enabled: false
+
+gitea:
+  enabled: false
+
+paperlessNgx:
+  enabled: false
+
+infisical:
+  enabled: false
+
+wgEasy:
+  enabled: false
+
 # Platform-level feature toggles and placeholders for future integration templates.
 externalSecrets:
   enabled: false

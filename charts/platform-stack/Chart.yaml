@@ -13,3 +13,23 @@ dependencies:
     version: 0.1.0
     repository: file://../openhands
     condition: openhands.enabled
+  - name: nextcloud
+    version: 0.1.0
+    repository: file://../nextcloud
+    condition: nextcloud.enabled
+  - name: gitea
+    version: 0.1.0
+    repository: file://../gitea
+    condition: gitea.enabled
+  - name: paperless-ngx
+    version: 0.1.0
+    repository: file://../paperless-ngx
+    condition: paperlessNgx.enabled
+  - name: infisical
+    version: 0.1.0
+    repository: file://../infisical
+    condition: infisical.enabled
+  - name: wg-easy
+    version: 0.1.0
+    repository: file://../wg-easy
+    condition: wgEasy.enabled

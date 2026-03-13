@@ -23,7 +23,12 @@ The `charts/` directory includes:
 
 - `openclaw/` — API/runtime service chart with optional ingress, persistence, autoscaling, disruption budget, and network policy controls.
 - `openhands/` — orchestration service chart with optional workspace PVC, autoscaling, disruption budget, queue-ready environment values, and internal service defaults.
-- `platform-stack/` — umbrella chart that composes `openclaw` and `openhands`, with platform-level placeholders for external secrets, observability, persistence, autoscaling, and worker isolation.
+- `nextcloud/` — self-hosted file collaboration service chart using a StatefulSet, service, optional ingress, and persistent storage.
+- `gitea/` — lightweight Git service chart using a StatefulSet, service, optional ingress, and persistent storage.
+- `paperless-ngx/` — document management chart using a StatefulSet, service, optional ingress, and separate data/media PVCs.
+- `infisical/` — secrets management service chart using a Deployment, service, optional ingress, and optional persistence.
+- `wg-easy/` — WireGuard management chart using a Deployment, dual-port service (web/vpn), optional ingress, and persistent storage.
+- `platform-stack/` — umbrella chart that composes `openclaw`, `openhands`, `nextcloud`, `gitea`, `paperless-ngx`, `infisical`, and `wg-easy`, with platform-level placeholders for external secrets, observability, persistence, autoscaling, and worker isolation.
 
 `charts/platform-stack/` includes deployment profiles:
 
@@ -55,6 +60,11 @@ helm dependency update charts/platform-stack
 ```bash
 helm lint charts/openclaw
 helm lint charts/openhands
+helm lint charts/nextcloud
+helm lint charts/gitea
+helm lint charts/paperless-ngx
+helm lint charts/infisical
+helm lint charts/wg-easy
 helm lint charts/platform-stack
 helm lint charts/platform-stack -f charts/platform-stack/values-dev.yaml
 helm lint charts/platform-stack -f charts/platform-stack/values-aks.yaml
@@ -65,6 +75,11 @@ helm lint charts/platform-stack -f charts/platform-stack/values-prod.yaml
 
 ```bash
 helm template platform-stack charts/platform-stack
+helm template platform-stack charts/platform-stack --set nextcloud.enabled=true
+helm template platform-stack charts/platform-stack --set gitea.enabled=true
+helm template platform-stack charts/platform-stack --set paperlessNgx.enabled=true
+helm template platform-stack charts/platform-stack --set infisical.enabled=true
+helm template platform-stack charts/platform-stack --set wgEasy.enabled=true
 helm template platform-stack charts/platform-stack -f charts/platform-stack/values-dev.yaml
 helm template platform-stack charts/platform-stack -f charts/platform-stack/values-aks.yaml
 helm template platform-stack charts/platform-stack -f charts/platform-stack/values-prod.yaml
