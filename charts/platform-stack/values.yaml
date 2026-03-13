@@ -5,6 +5,11 @@ global:
   hosts:
     openclaw: openclaw.homebase.local
     openhands: openhands.homebase.local
+    nextcloud: nextcloud.homebase.local
+    gitea: gitea.homebase.local
+    paperlessNgx: paperlessngx.homebase.local
+    infisical: infisical.homebase.local
+    wgEasy: wgeasy.homebase.local
   commonLabels: {}
   podAnnotations: {}
   nodeSelector: {}
@@ -69,6 +74,19 @@ openhands:
     port: 80
     targetPort: 3000
     annotations: {}
+  # OpenHands is intentionally internal-only by default.
+  # Keep ingress disabled unless a controlled external entrypoint is required.
+  ingress:
+    enabled: false
+    className: ""
+    annotations:
+      kubernetes.io/ingress.class: internal
+    hosts:
+      - host: openhands.homebase.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
   workspace:
     enabled: false
     size: 20Gi
@@ -104,18 +122,224 @@ openhands:
 
 nextcloud:
   enabled: false
+  image:
+    repository: nextcloud
+    tag: "29.0.0-apache"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 80
+    annotations: {}
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+    hosts:
+      - host: nextcloud.homebase.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+  persistence:
+    enabled: true
+    existingClaim: ""
+    accessModes:
+      - ReadWriteOnce
+    size: 20Gi
+    storageClass: ""
+    annotations: {}
+  resources: {}
+  probes:
+    liveness:
+      enabled: true
+      path: /status.php
+      initialDelaySeconds: 30
+      periodSeconds: 10
+    readiness:
+      enabled: true
+      path: /status.php
+      initialDelaySeconds: 10
+      periodSeconds: 10
+  secretRefs:
+    existingSecret: ""
 
 gitea:
   enabled: false
+  image:
+    repository: gitea/gitea
+    tag: "1.22.0"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 3000
+    targetPort: 3000
+    annotations: {}
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+    hosts:
+      - host: gitea.homebase.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+  persistence:
+    enabled: true
+    existingClaim: ""
+    accessModes:
+      - ReadWriteOnce
+    size: 10Gi
+    storageClass: ""
+    annotations: {}
+  resources: {}
+  probes:
+    liveness:
+      enabled: true
+      path: /api/healthz
+      initialDelaySeconds: 30
+      periodSeconds: 10
+    readiness:
+      enabled: true
+      path: /api/healthz
+      initialDelaySeconds: 10
+      periodSeconds: 10
+  secretRefs:
+    existingSecret: ""
 
 paperlessNgx:
   enabled: false
+  image:
+    repository: ghcr.io/paperless-ngx/paperless-ngx
+    tag: "2.11.0"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8000
+    targetPort: 8000
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+    hosts:
+      - host: paperlessngx.homebase.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+  persistence:
+    data:
+      enabled: true
+      existingClaim: ""
+      accessModes: ["ReadWriteOnce"]
+      size: 10Gi
+      storageClass: ""
+    media:
+      enabled: true
+      existingClaim: ""
+      accessModes: ["ReadWriteOnce"]
+      size: 20Gi
+      storageClass: ""
+  resources: {}
+  probes:
+    liveness:
+      enabled: true
+      path: /api/health/
+      initialDelaySeconds: 30
+      periodSeconds: 10
+    readiness:
+      enabled: true
+      path: /api/health/
+      initialDelaySeconds: 10
+      periodSeconds: 10
+  secretRefs:
+    existingSecret: ""
 
 infisical:
   enabled: false
+  image:
+    repository: infisical/infisical
+    tag: "0.94.0"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+    hosts:
+      - host: infisical.homebase.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+  persistence:
+    enabled: false
+    existingClaim: ""
+    accessModes: ["ReadWriteOnce"]
+    size: 5Gi
+    storageClass: ""
+  resources: {}
+  probes:
+    liveness:
+      enabled: true
+      path: /api/status
+      initialDelaySeconds: 30
+      periodSeconds: 10
+    readiness:
+      enabled: true
+      path: /api/status
+      initialDelaySeconds: 10
+      periodSeconds: 10
+  secretRefs:
+    existingSecret: ""
 
 wgEasy:
   enabled: false
+  image:
+    repository: ghcr.io/wg-easy/wg-easy
+    tag: "14"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    webPort: 51821
+    webTargetPort: 51821
+    vpnPort: 51820
+    vpnTargetPort: 51820
+    annotations: {}
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+    hosts:
+      - host: wgeasy.homebase.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+  persistence:
+    enabled: true
+    existingClaim: ""
+    accessModes: ["ReadWriteOnce"]
+    size: 2Gi
+    storageClass: ""
+  resources: {}
+  probes:
+    liveness:
+      enabled: true
+      path: /
+      initialDelaySeconds: 30
+      periodSeconds: 10
+    readiness:
+      enabled: true
+      path: /
+      initialDelaySeconds: 10
+      periodSeconds: 10
+  secretRefs:
+    existingSecret: ""
 
 # Platform-level feature toggles and placeholders for future integration templates.
 externalSecrets:
