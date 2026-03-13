@@ -37,11 +37,32 @@ persistence:
     accessModes: ["ReadWriteOnce"]
     size: 10Gi
     storageClass: ""
+    annotations: {}
   media:
     enabled: true
     existingClaim: ""
     accessModes: ["ReadWriteOnce"]
     size: 20Gi
     storageClass: ""
+    annotations: {}
+  consume:
+    enabled: true
+    existingClaim: ""
+    accessModes: ["ReadWriteOnce"]
+    size: 5Gi
+    storageClass: ""
+    annotations: {}
+  export:
+    enabled: true
+    existingClaim: ""
+    accessModes: ["ReadWriteOnce"]
+    size: 5Gi
+    storageClass: ""
+    annotations: {}
+
+podAnnotations: {}
+
+backup:
+  annotations: {}
 
 resources: {}

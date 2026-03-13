@@ -39,5 +39,11 @@ persistence:
   accessModes: ["ReadWriteOnce"]
   size: 2Gi
   storageClass: ""
+  annotations: {}
+
+podAnnotations: {}
+
+backup:
+  annotations: {}
 
 resources: {}

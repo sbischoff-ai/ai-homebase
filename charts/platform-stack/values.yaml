@@ -146,7 +146,7 @@ nextcloud:
     existingClaim: ""
     accessModes:
       - ReadWriteOnce
-    size: 20Gi
+    size: 250Gi
     storageClass: ""
     annotations: {}
   resources: {}
@@ -161,6 +161,8 @@ nextcloud:
       path: /status.php
       initialDelaySeconds: 10
       periodSeconds: 10
+  backup:
+    annotations: {}
   secretRefs:
     existingSecret: ""
 
@@ -190,7 +192,7 @@ gitea:
     existingClaim: ""
     accessModes:
       - ReadWriteOnce
-    size: 10Gi
+    size: 120Gi
     storageClass: ""
     annotations: {}
   resources: {}
@@ -205,6 +207,8 @@ gitea:
       path: /api/healthz
       initialDelaySeconds: 10
       periodSeconds: 10
+  backup:
+    annotations: {}
   secretRefs:
     existingSecret: ""
 
@@ -233,14 +237,32 @@ paperlessNgx:
       enabled: true
       existingClaim: ""
       accessModes: ["ReadWriteOnce"]
-      size: 10Gi
+      size: 30Gi
       storageClass: ""
+      annotations: {}
     media:
+      enabled: true
+      existingClaim: ""
+      accessModes: ["ReadWriteOnce"]
+      size: 250Gi
+      storageClass: ""
+      annotations: {}
+    consume:
       enabled: true
       existingClaim: ""
       accessModes: ["ReadWriteOnce"]
       size: 20Gi
       storageClass: ""
+      annotations: {}
+    export:
+      enabled: true
+      existingClaim: ""
+      accessModes: ["ReadWriteOnce"]
+      size: 20Gi
+      storageClass: ""
+      annotations: {}
+  backup:
+    annotations: {}
   resources: {}
   probes:
     liveness:
@@ -280,8 +302,9 @@ infisical:
     enabled: false
     existingClaim: ""
     accessModes: ["ReadWriteOnce"]
-    size: 5Gi
+    size: 10Gi
     storageClass: ""
+    annotations: {}
   resources: {}
   probes:
     liveness:
@@ -294,6 +317,8 @@ infisical:
       path: /api/status
       initialDelaySeconds: 10
       periodSeconds: 10
+  backup:
+    annotations: {}
   secretRefs:
     existingSecret: ""
 
@@ -324,8 +349,9 @@ wgEasy:
     enabled: true
     existingClaim: ""
     accessModes: ["ReadWriteOnce"]
-    size: 2Gi
+    size: 5Gi
     storageClass: ""
+    annotations: {}
   resources: {}
   probes:
     liveness:
@@ -338,6 +364,8 @@ wgEasy:
       path: /
       initialDelaySeconds: 10
       periodSeconds: 10
+  backup:
+    annotations: {}
   secretRefs:
     existingSecret: ""
 
