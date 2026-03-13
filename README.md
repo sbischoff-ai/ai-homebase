@@ -70,6 +70,15 @@ helm template platform-stack charts/platform-stack -f charts/platform-stack/valu
 helm template platform-stack charts/platform-stack -f charts/platform-stack/values-prod.yaml
 ```
 
+### Scripted helpers
+
+```bash
+./scripts/lint.sh --values-file charts/platform-stack/values-dev.yaml
+./scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values-dev.yaml
+./scripts/install-dev.sh --release-name platform-stack --namespace ai-homebase
+./scripts/install-aks.sh --release-name platform-stack --namespace ai-homebase --kube-context <your-kube-context>
+```
+
 ### Install/upgrade
 
 ```bash
@@ -97,6 +106,10 @@ helm upgrade --install platform-stack charts/platform-stack \
 ```
 
 This keeps shared profile intent in source control while environment-specific hostnames, image tags, and secret references live in overlays.
+
+## Examples
+
+See [`examples/README.md`](./examples/README.md) for placeholder-only command flows covering namespace setup, dummy secret creation, Helm install/upgrade, and AKS deployment sequencing.
 
 ## Intended interaction model
 

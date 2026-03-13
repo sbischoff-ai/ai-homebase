@@ -2,6 +2,8 @@
 
 This document describes a practical bootstrap flow for running `platform-stack` on Azure Kubernetes Service (AKS) using the AKS profile at `charts/platform-stack/values-aks.yaml`.
 
+For placeholder-only command examples and override files that match chart value keys, see [`examples/README.md`](../examples/README.md).
+
 ## Prerequisites
 
 Before deployment, ensure you have:
