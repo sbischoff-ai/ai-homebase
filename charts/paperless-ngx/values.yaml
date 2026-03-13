@@ -67,3 +67,9 @@ backup:
   annotations: {}
 
 resources: {}
+
+# Secret injection conventions:
+# - Secret names: kebab-case (example: paperlessngx-app-secrets)
+# - Secret data keys: UPPER_SNAKE_CASE (example: PAPERLESS_SECRET_KEY)
+existingSecret: "" # Optional envFrom source for app credentials/secrets.
+secretRefs: [] # [{name: paperlessngx-app-secrets, key: PAPERLESS_SECRET_KEY, envVar: PAPERLESS_SECRET_KEY}]

@@ -61,3 +61,9 @@ backup:
   annotations: {}
 
 resources: {}
+
+# Secret injection conventions:
+# - Secret names: kebab-case (example: infisical-app-secrets)
+# - Secret data keys: UPPER_SNAKE_CASE (example: INFISICAL_ENCRYPTION_KEY)
+existingSecret: "" # Optional envFrom source for app credentials/secrets.
+secretRefs: [] # [{name: infisical-app-secrets, key: INFISICAL_ENCRYPTION_KEY, envVar: INFISICAL_ENCRYPTION_KEY}]

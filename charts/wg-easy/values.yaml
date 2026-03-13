@@ -59,3 +59,9 @@ backup:
   annotations: {}
 
 resources: {}
+
+# Secret injection conventions:
+# - Secret names: kebab-case (example: wgeasy-app-secrets)
+# - Secret data keys: UPPER_SNAKE_CASE (example: WG_EASY_PASSWORD_HASH)
+existingSecret: "" # Optional envFrom source for app credentials/secrets.
+secretRefs: [] # [{name: wgeasy-app-secrets, key: WG_EASY_PASSWORD_HASH, envVar: WG_EASY_PASSWORD_HASH}]

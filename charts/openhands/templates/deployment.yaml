@@ -72,8 +72,12 @@ spec:
                   name: {{ .name }}
                   key: {{ .key }}
             {{- end }}
-          {{- if .Values.envFromSecrets }}
+          {{- if or .Values.existingSecret .Values.envFromSecrets }}
           envFrom:
+            {{- with .Values.existingSecret }}
+            - secretRef:
+                name: {{ . }}
+            {{- end }}
             {{- range .Values.envFromSecrets }}
             - secretRef:
                 name: {{ . }}

@@ -65,7 +65,11 @@ config:
 
 env: []
 envFromSecrets: []
-secretRefs: [] # [{name: my-secret, key: token, envVar: API_TOKEN}]
+# Secret injection conventions:
+# - Secret names: kebab-case (example: openclaw-app-secrets)
+# - Secret data keys: UPPER_SNAKE_CASE (example: OPENCLAW_API_TOKEN)
+existingSecret: "" # Optional envFrom source for app credentials/secrets.
+secretRefs: [] # [{name: openclaw-app-secrets, key: OPENCLAW_API_TOKEN, envVar: OPENCLAW_API_TOKEN}]
 
 podSecurityContext:
   fsGroup: 1000

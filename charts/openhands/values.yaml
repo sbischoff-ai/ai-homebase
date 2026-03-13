@@ -60,7 +60,11 @@ workspace:
 
 env: []
 envFromSecrets: []
-secretRefs: [] # [{name: my-secret, key: token, envVar: API_TOKEN}]
+# Secret injection conventions:
+# - Secret names: kebab-case (example: openhands-app-secrets)
+# - Secret data keys: UPPER_SNAKE_CASE (example: OPENHANDS_API_TOKEN)
+existingSecret: "" # Optional envFrom source for app credentials/secrets.
+secretRefs: [] # [{name: openhands-app-secrets, key: OPENHANDS_API_TOKEN, envVar: OPENHANDS_API_TOKEN}]
 
 queue:
   enabled: false
