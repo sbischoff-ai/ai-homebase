@@ -16,6 +16,7 @@ See also:
 
 - [`docs/architecture.md`](./docs/architecture.md) for control-plane vs execution-plane boundaries.
 - [`docs/configuration.md`](./docs/configuration.md) for value layering and secrets strategy.
+- [`docs/storage.md`](./docs/storage.md) for storage-class behavior, AKS vs bare-metal differences, and PVC sizing rationale.
 - [`docs/deployment-aks.md`](./docs/deployment-aks.md) for AKS-specific deployment notes.
 
 ## Helm charts

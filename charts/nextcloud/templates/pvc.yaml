@@ -5,9 +5,14 @@ metadata:
   name: data
   labels:
     {{- include "nextcloud.labels" . | nindent 4 }}
-  {{- with .Values.persistence.annotations }}
+  {{- if or .Values.persistence.annotations .Values.backup.annotations }}
   annotations:
+    {{- with .Values.backup.annotations }}
     {{- toYaml . | nindent 4 }}
+    {{- end }}
+    {{- with .Values.persistence.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
   {{- end }}
 spec:
   accessModes:

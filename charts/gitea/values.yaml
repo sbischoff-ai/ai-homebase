@@ -43,6 +43,11 @@ persistence:
   storageClass: ""
   annotations: {}
 
+podAnnotations: {}
+
+backup:
+  annotations: {}
+
 resources: {}
 nodeSelector: {}
 tolerations: []
