@@ -79,6 +79,27 @@ openhands:
   podDisruptionBudget:
     enabled: true
     minAvailable: 1
+  # Mirror workerIsolation.* into OpenHands scheduling fields.
+  runtimeClassName: gvisor
+  nodeSelector:
+    workload-tier: isolated
+  tolerations:
+    - key: workload-tier
+      operator: Equal
+      value: isolated
+      effect: NoSchedule
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/instance
+                  operator: In
+                  values:
+                    - platform-stack
+            topologyKey: kubernetes.io/hostname
   resources:
     requests:
       cpu: 750m
