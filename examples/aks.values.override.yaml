@@ -1,0 +1,44 @@
+global:
+  domain: <your-domain>
+  hosts:
+    openclaw: <openclaw-hostname>
+    openhands: <openhands-hostname>
+  imagePullSecrets:
+    - acr-pull
+
+openclaw:
+  image:
+    repository: <your-acr>.azurecr.io/openclaw
+    tag: <image-tag>
+  serviceAccount:
+    annotations:
+      azure.workload.identity/client-id: <openclaw-client-id>
+
+openhands:
+  image:
+    repository: <your-acr>.azurecr.io/openhands
+    tag: <image-tag>
+  queue:
+    enabled: true
+    provider: azure-servicebus
+    endpoint: sb://<servicebus-namespace>.servicebus.windows.net/
+    queueName: <jobs-queue-name>
+    dlqName: <jobs-dlq-name>
+  serviceAccount:
+    annotations:
+      azure.workload.identity/client-id: <openhands-client-id>
+
+externalSecrets:
+  enabled: true
+  secretStoreRef:
+    name: <cluster-secret-store-name>
+    kind: ClusterSecretStore
+  mappings:
+    - name: openclaw-secrets
+      targetSecretName: openclaw-app-secrets
+      remoteRef:
+        key: <key-vault-secret-for-openclaw>
+    - name: openhands-secrets
+      targetSecretName: openhands-app-secrets
+      remoteRef:
+        key: <key-vault-secret-for-openhands>

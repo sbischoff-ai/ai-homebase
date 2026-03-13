@@ -1,0 +1,21 @@
+global:
+  hosts:
+    openclaw: <openclaw-dev-hostname>
+  imagePullSecrets:
+    - <optional-image-pull-secret>
+
+openclaw:
+  image:
+    repository: <registry>/openclaw
+    tag: <image-tag>
+
+openhands:
+  image:
+    repository: <registry>/openhands
+    tag: <image-tag>
+  queue:
+    enabled: true
+    provider: <queue-provider>
+    endpoint: <queue-endpoint>
+    queueName: <queue-name>
+    dlqName: <dlq-name>
