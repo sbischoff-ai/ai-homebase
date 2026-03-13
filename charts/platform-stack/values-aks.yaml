@@ -1,0 +1,135 @@
+global:
+  imagePullSecrets:
+    - acr-pull
+  storageClass: managed-csi
+  domain: aks.example.com
+  hosts:
+    openclaw: openclaw.aks.example.com
+    openhands: openhands.aks.example.com
+  commonLabels:
+    platform: aks
+
+openclaw:
+  enabled: true
+  image:
+    repository: myregistry.azurecr.io/openclaw
+    tag: stable
+    pullPolicy: IfNotPresent
+  ingress:
+    enabled: true
+    className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+      external-dns.alpha.kubernetes.io/hostname: openclaw.aks.example.com
+    hosts:
+      - host: openclaw.aks.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: openclaw-tls
+        hosts:
+          - openclaw.aks.example.com
+  serviceAccount:
+    annotations:
+      azure.workload.identity/client-id: "<openclaw-workload-identity-client-id>"
+  persistence:
+    enabled: true
+    size: 20Gi
+    storageClass: managed-csi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+
+openhands:
+  enabled: true
+  image:
+    repository: myregistry.azurecr.io/openhands
+    tag: stable
+    pullPolicy: IfNotPresent
+  service:
+    enabled: true
+    type: ClusterIP
+    annotations:
+      service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+  serviceAccount:
+    annotations:
+      azure.workload.identity/client-id: "<openhands-workload-identity-client-id>"
+  workspace:
+    enabled: true
+    size: 50Gi
+    storageClass: managed-csi
+  queue:
+    enabled: true
+    provider: azure-servicebus
+    endpoint: sb://<namespace>.servicebus.windows.net/
+    queueName: openhands-jobs
+    dlqName: openhands-jobs-deadletter
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 70
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    kubernetes.io/ingress.class: nginx
+  tls:
+    - secretName: platform-wildcard-tls
+      hosts:
+        - aks.example.com
+
+externalSecrets:
+  enabled: true
+  secretStoreRef:
+    name: azure-keyvault
+    kind: ClusterSecretStore
+  refreshInterval: 15m
+  mappings:
+    - name: openclaw-secrets
+      targetSecretName: openclaw-app-secrets
+      remoteRef:
+        key: kv-openclaw
+    - name: openhands-secrets
+      targetSecretName: openhands-app-secrets
+      remoteRef:
+        key: kv-openhands
+
+observability:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+  logging:
+    enabled: true
+    destination: azure-monitor
+
+persistence:
+  enabled: true
+  snapshots:
+    enabled: true
+  backups:
+    enabled: true
+    schedule: "0 2 * * *"
+
+autoscaling:
+  enabled: true
+  profile: aks-balanced
+
+workerIsolation:
+  enabled: true
+  runtimeClassName: ""
+  nodeSelector:
+    kubernetes.azure.com/mode: user
+  tolerations: []
+  affinity: {}
