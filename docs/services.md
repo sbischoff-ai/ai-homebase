@@ -1,256 +1,91 @@
-# Service secret contracts
+# Services reference
 
-This document standardizes how each service chart consumes secrets now and how to map future ExternalSecret resources.
+This document summarizes each service's role, default posture, toggle, and integration notes.
 
-## Shared secret contract pattern
+## Composition overview
 
-All service charts support:
+### Core plane
 
-- `existingSecret`: optional, imports all keys from one pre-created Kubernetes Secret (`envFrom.secretRef`).
-- `secretRefs[]`: optional, fine-grained key mapping to env vars (`name`, `key`, `envVar`).
+| Service | Role | Default expectation |
+| --- | --- | --- |
+| `openclaw` | Control-plane API/UI | Enabled and externally reachable via ingress |
+| `openhands` | Execution runtime/workers | Enabled and internal-only (`ClusterIP`) |
 
-Naming convention:
+### Optional personal-cloud services
 
-- Secret names: `kebab-case` (example: `gitea-app-secrets`).
-- Secret keys: `UPPER_SNAKE_CASE` (example: `GITEA_ADMIN_PASSWORD`).
-- `secretRefs[].envVar` should generally match the referenced key.
+| Service | Toggle | Typical use |
+| --- | --- | --- |
+| `nextcloud` | `nextcloud.enabled` | File sync/collaboration |
+| `gitea` | `gitea.enabled` | Git hosting |
+| `paperless-ngx` | `paperlessNgx.enabled` | Document ingestion/archive |
+| `infisical` | `infisical.enabled` | Secret-management service |
+| `wg-easy` | `wgEasy.enabled` | VPN management and private access |
 
-## Current pattern: pre-created Kubernetes Secrets
+## Core plane details
 
-For each service, create the Secret first (manually, GitOps-sealed flow, or another controller), then set values like:
+### OpenClaw
 
-```yaml
-existingSecret: <service>-app-secrets
-secretRefs:
-  - name: <service>-app-secrets
-    key: <SERVICE_SPECIFIC_KEY>
-    envVar: <SERVICE_SPECIFIC_KEY>
-```
+- Primary external endpoint for platform clients.
+- Should be treated as the only default public ingress.
+- Requires secret references for API/auth integrations.
 
-## Target pattern: External Secrets + Infisical provider/operator
+### OpenHands
 
-Target architecture:
+- Consumes execution work; manages runtime workspaces.
+- Keep internal unless a reviewed internal-ingress pattern is required.
+- Tune isolation/scheduling/persistence independently from OpenClaw.
 
-1. External Secrets Operator reconciles `ExternalSecret` resources.
-2. Provider backend (including Infisical provider/operator flow) sources real credentials.
-3. ESO writes Kubernetes Secrets (target names below).
-4. Service chart values reference those target Secrets via `existingSecret`/`secretRefs`.
+## Optional service details
 
----
+### Nextcloud
 
-## OpenClaw
+- Stateful user data service.
+- Ingress should be enabled only when user-facing access is required.
+- Plan for larger and growing PVC usage.
 
-Target Secret: `openclaw-app-secrets`
+### Gitea
 
-```yaml
-openclaw:
-  existingSecret: openclaw-app-secrets
-  secretRefs:
-    - name: openclaw-app-secrets
-      key: OPENCLAW_API_TOKEN
-      envVar: OPENCLAW_API_TOKEN
-```
+- Source control service with persistent repositories.
+- Optional ingress for developer access.
+- Ensure backup for repository integrity.
 
-```yaml
-apiVersion: external-secrets.io/v1beta1
-kind: ExternalSecret
-metadata:
-  name: openclaw-secrets
-spec:
-  refreshInterval: 1h
-  secretStoreRef:
-    name: platform-secrets-store
-    kind: ClusterSecretStore
-  target:
-    name: openclaw-app-secrets
-  data:
-    - secretKey: OPENCLAW_API_TOKEN
-      remoteRef:
-        key: /platform/openclaw/api-token
-```
+### Paperless-ngx
 
-## OpenHands
+- Multi-volume document pipeline (`data`, `media`, etc.).
+- Optional ingress depending on user workflow.
+- Validate storage growth and retention behavior.
 
-Target Secret: `openhands-app-secrets`
+### Infisical
 
-```yaml
-openhands:
-  existingSecret: openhands-app-secrets
-  secretRefs:
-    - name: openhands-app-secrets
-      key: OPENHANDS_API_TOKEN
-      envVar: OPENHANDS_API_TOKEN
-```
+- Optional in-cluster secret-management component.
+- Can coexist with external secret-provider patterns.
+- Keep exposure private/admin-scoped.
 
-```yaml
-apiVersion: external-secrets.io/v1beta1
-kind: ExternalSecret
-metadata:
-  name: openhands-secrets
-spec:
-  refreshInterval: 1h
-  secretStoreRef:
-    name: platform-secrets-store
-    kind: ClusterSecretStore
-  target:
-    name: openhands-app-secrets
-  data:
-    - secretKey: OPENHANDS_API_TOKEN
-      remoteRef:
-        key: /platform/openhands/api-token
-```
+### wg-easy
 
-## Nextcloud
+- Provides VPN lifecycle UI and WireGuard endpoint.
+- UI should remain private; VPN endpoint exposure should be tightly controlled.
+- Avoid default public UI publishing.
 
-Target Secret: `nextcloud-app-secrets`
+## Secret contract model (all services)
 
-```yaml
-nextcloud:
-  existingSecret: nextcloud-app-secrets
-  secretRefs:
-    - name: nextcloud-app-secrets
-      key: NEXTCLOUD_ADMIN_PASSWORD
-      envVar: NEXTCLOUD_ADMIN_PASSWORD
-```
+Supported patterns:
 
-```yaml
-apiVersion: external-secrets.io/v1beta1
-kind: ExternalSecret
-metadata:
-  name: nextcloud-secrets
-spec:
-  refreshInterval: 1h
-  secretStoreRef:
-    name: platform-secrets-store
-    kind: ClusterSecretStore
-  target:
-    name: nextcloud-app-secrets
-  data:
-    - secretKey: NEXTCLOUD_ADMIN_PASSWORD
-      remoteRef:
-        key: /platform/nextcloud/admin-password
-```
+- `existingSecret` for importing all keys from one Secret.
+- `secretRefs[]` for explicit key-to-env mapping.
 
-## Gitea
+Recommended naming:
 
-Target Secret: `gitea-app-secrets`
+- Secret names: `kebab-case`.
+- Secret keys/env vars: `UPPER_SNAKE_CASE`.
 
-```yaml
-gitea:
-  existingSecret: gitea-app-secrets
-  secretRefs:
-    - name: gitea-app-secrets
-      key: GITEA_ADMIN_PASSWORD
-      envVar: GITEA_ADMIN_PASSWORD
-```
+## Placeholder and hardening notes
 
-```yaml
-apiVersion: external-secrets.io/v1beta1
-kind: ExternalSecret
-metadata:
-  name: gitea-secrets
-spec:
-  refreshInterval: 1h
-  secretStoreRef:
-    name: platform-secrets-store
-    kind: ClusterSecretStore
-  target:
-    name: gitea-app-secrets
-  data:
-    - secretKey: GITEA_ADMIN_PASSWORD
-      remoteRef:
-        key: /platform/gitea/admin-password
-```
+The chart values intentionally leave these unresolved for operators:
 
-## Paperless-ngx
+- Actual queue backend and credentials.
+- External secret provider mappings.
+- Final per-service network policies.
+- Production SLO/SLI and alerting definitions.
 
-Target Secret: `paperlessngx-app-secrets`
-
-```yaml
-paperlessNgx:
-  existingSecret: paperlessngx-app-secrets
-  secretRefs:
-    - name: paperlessngx-app-secrets
-      key: PAPERLESS_SECRET_KEY
-      envVar: PAPERLESS_SECRET_KEY
-```
-
-```yaml
-apiVersion: external-secrets.io/v1beta1
-kind: ExternalSecret
-metadata:
-  name: paperlessngx-secrets
-spec:
-  refreshInterval: 1h
-  secretStoreRef:
-    name: platform-secrets-store
-    kind: ClusterSecretStore
-  target:
-    name: paperlessngx-app-secrets
-  data:
-    - secretKey: PAPERLESS_SECRET_KEY
-      remoteRef:
-        key: /platform/paperlessngx/secret-key
-```
-
-## Infisical
-
-Target Secret: `infisical-app-secrets`
-
-```yaml
-infisical:
-  existingSecret: infisical-app-secrets
-  secretRefs:
-    - name: infisical-app-secrets
-      key: INFISICAL_ENCRYPTION_KEY
-      envVar: INFISICAL_ENCRYPTION_KEY
-```
-
-```yaml
-apiVersion: external-secrets.io/v1beta1
-kind: ExternalSecret
-metadata:
-  name: infisical-secrets
-spec:
-  refreshInterval: 1h
-  secretStoreRef:
-    name: platform-secrets-store
-    kind: ClusterSecretStore
-  target:
-    name: infisical-app-secrets
-  data:
-    - secretKey: INFISICAL_ENCRYPTION_KEY
-      remoteRef:
-        key: /platform/infisical/encryption-key
-```
-
-## wg-easy
-
-Target Secret: `wgeasy-app-secrets`
-
-```yaml
-wgEasy:
-  existingSecret: wgeasy-app-secrets
-  secretRefs:
-    - name: wgeasy-app-secrets
-      key: WG_EASY_PASSWORD_HASH
-      envVar: WG_EASY_PASSWORD_HASH
-```
-
-```yaml
-apiVersion: external-secrets.io/v1beta1
-kind: ExternalSecret
-metadata:
-  name: wgeasy-secrets
-spec:
-  refreshInterval: 1h
-  secretStoreRef:
-    name: platform-secrets-store
-    kind: ClusterSecretStore
-  target:
-    name: wgeasy-app-secrets
-  data:
-    - secretKey: WG_EASY_PASSWORD_HASH
-      remoteRef:
-        key: /platform/wgeasy/password-hash
-```
+Treat these as required environment work before production promotion.

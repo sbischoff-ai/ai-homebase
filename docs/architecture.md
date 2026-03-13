@@ -1,63 +1,91 @@
-# Architecture boundaries: control-plane vs execution-plane
+# Architecture
 
-`ai-homebase` models the platform as two cooperating planes with distinct responsibilities:
+`ai-homebase` is structured as a modular platform:
 
-- **Control-plane (`openclaw`)**: API-first entrypoint, user-facing orchestration surface, and policy/configuration owner.
-- **Execution-plane (`openhands`)**: internal job runner responsible for workspace lifecycle, queue-backed execution, and worker-level runtime concerns.
+1. **Core AI plane** (OpenClaw + OpenHands).
+2. **Supporting personal-cloud services** (optional, enabled per environment).
 
-## Boundary definition
+This separation keeps the primary AI workflow deployable even when optional apps are disabled.
 
-### `openclaw` (control-plane)
+## 1) Core AI plane
 
-Primary responsibilities:
+### OpenClaw (control plane)
 
-- Expose the external ingress/API endpoint.
-- Accept requests, validate/authorize, and normalize job intents.
-- Persist and publish execution requests to the selected queue/event mechanism.
-- Aggregate execution status and present a stable contract back to clients.
+OpenClaw is the external entrypoint and coordination layer.
 
-Operational expectations:
+Responsibilities:
 
-- Prioritize API availability and predictability.
-- Keep request-path state minimal and explicit.
-- Remain externally reachable while execution stays private by default.
+- Public API/UI ingress.
+- Request validation and policy enforcement.
+- Job intent publication toward execution backends.
+- Aggregated status/reporting contract for clients.
 
-### `openhands` (execution-plane)
+Default posture:
 
-Primary responsibilities:
+- Externally reachable through ingress.
+- Smaller durable data profile than execution workloads.
+- Security-sensitive due to user-facing interface.
 
-- Consume queued work and execute isolated job workloads.
-- Handle workspace storage and runtime dependencies for jobs.
-- Report status, artifacts, and terminal outcomes back to control-plane integration points.
-- Scale workers based on queue pressure and resource targets.
+### OpenHands (execution plane)
 
-Operational expectations:
+OpenHands is the internal runtime for job execution.
 
-- Default to internal-only service exposure (`ClusterIP`).
-- Emphasize safe execution, workload isolation, and bounded concurrency.
-- Support horizontal scale independently of control-plane API scaling.
+Responsibilities:
 
-## Data and trust flow
+- Queue/job consumption.
+- Workspace lifecycle and runtime execution.
+- Artifact and status propagation back to control-plane integrations.
+- Independent horizontal scaling under execution load.
 
-1. Client traffic enters through `openclaw` ingress.
-2. `openclaw` validates and translates requests into execution units.
-3. `openhands` workers consume those units and perform execution.
-4. Results/status propagate back to control-plane-visible stores or APIs.
+Default posture:
 
-This keeps ingress, API contracts, and policy in one plane while runtime risk and high-variance workloads remain in another.
+- Internal-only service (`ClusterIP`) unless deliberately exposed.
+- Larger and more variable storage/compute profile.
+- Node/isolation controls expected for production workloads.
 
-## Future scaling and isolation intent
+## 2) Supporting personal-cloud services (optional)
 
-The chart structure intentionally leaves room for stronger execution isolation and independent scaling:
+These services are intentionally optional and toggleable:
 
-- **Independent scaling knobs** for each plane (replicas + HPA targets).
-- **Worker isolation controls** (runtime class, node selectors, tolerations, affinity) for execution-plane hardening.
-- **Queue abstraction placeholders** so execution can migrate between providers without changing the control-plane contract.
-- **Persistence separation** so API data and execution workspaces evolve with different storage classes and backup policies.
+- **Nextcloud**: collaboration and file sync.
+- **Gitea**: git hosting and project collaboration.
+- **Paperless-ngx**: document pipeline and archive.
+- **Infisical**: in-cluster secret-management option.
+- **wg-easy**: VPN management and secure private access.
 
-Longer-term direction:
+They can run alongside the core plane for a single "personal cloud" footprint, but should not be treated as mandatory dependencies for core AI operations.
 
-- Per-tenant/per-workload job pools.
-- Dedicated node pools for untrusted or high-cost jobs.
-- Stronger runtime isolation (e.g., gVisor/Kata or equivalent) where required.
-- Clear SLO split: API latency/availability (`openclaw`) vs throughput/completion (`openhands`).
+## Data and trust boundaries
+
+High-level flow:
+
+1. External traffic enters OpenClaw.
+2. OpenClaw validates and dispatches work intent.
+3. OpenHands performs execution with bounded runtime controls.
+4. Results and metadata are surfaced through control-plane interfaces.
+
+Boundary goal:
+
+- Keep user/API exposure concentrated in OpenClaw.
+- Keep high-variance execution risk inside OpenHands.
+- Keep optional services isolated behind explicit toggles and policy.
+
+## Composition model in `platform-stack`
+
+The umbrella chart provides:
+
+- A single release for core + optional services.
+- Service-level toggles (`<service>.enabled`) for optional components.
+- Shared global values (`global.*`) for cross-service defaults.
+- Per-service overrides for divergent runtime requirements.
+
+## Intentional placeholders and hardening gaps
+
+The architecture intentionally leaves operator decisions unresolved in source control:
+
+- Queue and broker implementation details.
+- External secret provider/store mappings.
+- Final network policy allow/deny rules.
+- Production-grade observability and alert routing.
+
+Before production, close these gaps with environment-specific overlays and documented runbooks.

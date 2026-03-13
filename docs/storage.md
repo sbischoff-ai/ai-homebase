@@ -1,51 +1,59 @@
-# Storage guidance and sizing rationale
+# Storage strategy
 
-This repository supports both cloud-managed and self-managed Kubernetes storage with the same Helm values interface.
+This document covers storage-class selection, persistence toggles, and sizing for core + optional services.
 
-## StorageClass behavior
+## Storage resolution order
 
-All service PVC templates in this repo resolve `storageClassName` in this order:
+PVC templates resolve storage class in this order:
 
-1. Service-level override (`<service>.persistence.storageClass` or `paperlessNgx.persistence.<volume>.storageClass`)
-2. Global fallback (`global.storageClass`)
-3. Cluster default StorageClass (when both are empty)
+1. Service-specific class override.
+2. `global.storageClass` fallback.
+3. Cluster default StorageClass.
 
-This lets operators set a single platform default while still overriding specific workloads.
+This allows one shared default plus targeted overrides where needed.
 
-## AKS CSI vs bare-metal
+## Core plane storage
 
-### AKS CSI (`managed-csi`, `premium-rwo`, etc.)
+### OpenClaw
 
-- Backed by Azure managed disks and CSI provisioners.
-- Good default for `ReadWriteOnce` application PVCs.
-- Performance tier is selected by storage class (for example standard vs premium).
-- Expansion and snapshots are typically available out-of-the-box depending on class policy.
+- Usually smaller durable state.
+- Prioritize reliability and backup consistency.
+- Keep recovery objectives aligned with API/control-plane requirements.
 
-### Bare-metal / homelab classes (`local-path`, `longhorn`, `rook-ceph`, NFS-backed classes)
+### OpenHands
 
-- Characteristics vary by implementation:
-  - `local-path`: simple and fast, but node-affine and less resilient.
-  - Longhorn/Rook Ceph: replicated/distributed, more resilient, higher overhead.
-  - NFS classes: shared access patterns, but throughput/latency depend on backend.
-- Snapshot/backup behavior is driver-dependent and should be validated before production.
+- Workspace-heavy and potentially high churn.
+- May require larger PVCs and different class/performance profile.
+- Isolation by node pool/class can help contain noisy workloads.
 
-## Sizing defaults rationale
+## Optional service storage characteristics
 
-The default storage values in `platform-stack` are intentionally pragmatic:
+- **Nextcloud**: fast growth in primary user data.
+- **Gitea**: repositories, artifacts, and attachments accumulate over time.
+- **Paperless-ngx**: data/media/consume/export volumes should be sized independently.
+- **Infisical**: moderate persistent metadata footprint.
+- **wg-easy**: small but durable configuration/state volume.
 
-- **Nextcloud**: large primary data volume, because user file content grows quickly.
-- **Gitea**: substantial repository volume for git history, artifacts, and attachments.
-- **Paperless-ngx**: split volumes for `data`, `media`, `consume`, and `export` so ingestion and archive growth can be tuned independently.
-- **Infisical / wg-easy**: modest baseline storage with room for metadata, state, and config growth.
+## AKS-focused guidance
 
-Treat these as starter baselines. Real sizing should be adjusted with observed growth, retention policies, and backup windows.
+- Start with AKS CSI-backed classes, then tune per workload.
+- Validate `allowVolumeExpansion` and snapshot support on all classes used.
+- Avoid one-size-fits-all class choice for all services in production.
 
-## Backup annotation placeholders
+## Backup and restore expectations
 
-PVC and workload templates expose `backup.annotations` placeholders so backup systems (for example Velero) can be wired without forking templates.
+Minimum production expectations:
 
-Recommended pattern:
+- Snapshot/backup policy documented per persistent service.
+- Restore rehearsals performed (not just backup job success).
+- Retention aligned to service criticality and compliance needs.
 
-- Set service-specific `backup.annotations` values in environment overlays.
-- Optionally add per-PVC `persistence.annotations` for claim-specific policy.
-- Keep values empty unless your backup controller requires explicit selectors.
+## Intentional placeholders and hardening gaps
+
+The repository includes backup annotation hooks and sizing defaults, but does **not** include:
+
+- A complete backup controller installation.
+- Environment-specific retention/SLA policy.
+- Automated restore validation workflows.
+
+Operators must close these gaps before production rollout.

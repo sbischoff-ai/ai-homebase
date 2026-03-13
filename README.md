@@ -1,53 +1,75 @@
 # ai-homebase
 
 ## Project purpose
-`ai-homebase` is a starter repository for organizing Kubernetes and Helm-based home lab infrastructure in one place. It provides a clear layout for charts, documentation, automation scripts, and working examples so deployment and maintenance workflows can scale cleanly over time.
+`ai-homebase` is an all-in-one Kubernetes platform starter for running an AI control plane plus optional personal-cloud services from a single Helm release.
 
-## Architecture overview
-The repository is organized by responsibility:
+The stack is intentionally opinionated around:
+
+- A **core AI plane** (`openclaw` + `openhands`) that stays deployable on its own.
+- A set of **optional services** (Nextcloud, Gitea, Paperless-ngx, Infisical, wg-easy) that can be enabled per environment.
+- A **values-layering model** so dev, AKS, and production overlays remain predictable.
+
+> **Intentional placeholders:** queue backends, external secret stores, observability destinations, and hardened network policy rules are left as operator-supplied values.
+
+## Platform composition
+
+### Core plane (always recommended)
+
+- **OpenClaw**: external-facing API/UI control surface.
+- **OpenHands**: internal execution runtime and worker orchestration.
+
+### Optional supporting services
+
+- **Nextcloud**: file collaboration and sync.
+- **Gitea**: source control and lightweight CI adjacency.
+- **Paperless-ngx**: document ingestion and archival workflows.
+- **Infisical**: secret-management service (can be in-cluster or external).
+- **wg-easy**: WireGuard management UI + VPN endpoint.
+
+Enable only what you need in your environment overlay.
+
+## Repository layout
 
 - `charts/` — Helm charts and chart-related assets.
-- `docs/` — project documentation, runbooks, and onboarding guides.
-- `scripts/` — local helper scripts for setup, validation, and deployment tasks.
+- `docs/` — architecture, deployment, configuration, service contracts, networking, and storage guidance.
+- `scripts/` — helper scripts for linting, templating, and install workflows.
 - `examples/` — sample values files and reference manifests.
-- `.github/workflows/` — CI/CD workflow definitions.
+- `.github/workflows/` — CI/CD workflows.
 
-See also:
+## Key docs
 
-- [`docs/architecture.md`](./docs/architecture.md) for control-plane vs execution-plane boundaries.
-- [`docs/configuration.md`](./docs/configuration.md) for value layering and secrets strategy.
-- [`docs/storage.md`](./docs/storage.md) for storage-class behavior, AKS vs bare-metal differences, and PVC sizing rationale.
-- [`docs/networking.md`](./docs/networking.md) for recommended public vs private exposure and secure ingress posture.
-- [`docs/deployment-aks.md`](./docs/deployment-aks.md) for AKS-specific deployment notes.
+- [`docs/architecture.md`](./docs/architecture.md): core-plane boundaries + optional service roles.
+- [`docs/services.md`](./docs/services.md): service-by-service toggle, dependency, and secret contract matrix.
+- [`docs/configuration.md`](./docs/configuration.md): values hierarchy and layering guidance.
+- [`docs/deployment-aks.md`](./docs/deployment-aks.md): AKS deployment flow with prerequisites and toggles.
+- [`docs/storage.md`](./docs/storage.md): storage class strategy, PVC sizing, and backup gaps.
+- [`docs/networking.md`](./docs/networking.md): ingress posture, internal/private patterns, and hardening checklist.
 
 ## Helm charts
-The `charts/` directory includes:
 
-- `openclaw/` — API/runtime service chart with optional ingress, persistence, autoscaling, disruption budget, and network policy controls.
-- `openhands/` — orchestration service chart with optional workspace PVC, autoscaling, disruption budget, queue-ready environment values, and internal service defaults.
-- `nextcloud/` — self-hosted file collaboration service chart using a StatefulSet, service, optional ingress, and persistent storage.
-- `gitea/` — lightweight Git service chart using a StatefulSet, service, optional ingress, and persistent storage.
-- `paperless-ngx/` — document management chart using a StatefulSet, service, optional ingress, and separate data/media PVCs.
-- `infisical/` — secrets management service chart using a Deployment, service, optional ingress, and optional persistence.
-- `wg-easy/` — WireGuard management chart using a Deployment, dual-port service (web/vpn), optional ingress, and persistent storage.
-- `platform-stack/` — umbrella chart that composes `openclaw`, `openhands`, `nextcloud`, `gitea`, `paperless-ngx`, `infisical`, and `wg-easy`, with platform-level placeholders for external secrets, observability, persistence, autoscaling, and worker isolation.
+The `charts/platform-stack` umbrella chart composes:
 
-`charts/platform-stack/` includes deployment profiles:
+- `openclaw`
+- `openhands`
+- `nextcloud` (optional)
+- `gitea` (optional)
+- `paperless-ngx` (optional)
+- `infisical` (optional)
+- `wg-easy` (optional)
 
-- `values.yaml` — safe defaults with feature toggles disabled by default where possible.
-- `values-dev.yaml` — local/dev minimal profile (small resources, no optional platform integrations).
-- `values-aks.yaml` — AKS-oriented example (ACR images, ingress assumptions, workload identity placeholders, Key Vault external-secrets placeholders).
-- `values-prod.yaml` — production-shaped profile (higher scale/resources, stricter availability, hardened defaults).
+Profiles:
 
-All profiles keep `openclaw` externally accessible via ingress (`openclaw.ingress.enabled`) while maintaining an internal-only `ClusterIP` posture for `openhands`.
+- `values.yaml` — baseline defaults.
+- `values-dev.yaml` — minimal dev profile.
+- `values-aks.yaml` — AKS-oriented profile with cloud integration placeholders.
+- `values-prod.yaml` — production-shaped profile and stronger defaults.
 
 ## Prerequisites
-Before using this repository, install:
 
 - [Git](https://git-scm.com/)
 - [Helm 3](https://helm.sh/docs/intro/install/)
 - [kubectl](https://kubernetes.io/docs/tasks/tools/)
-- Access to a Kubernetes cluster (local or remote)
+- Access to Kubernetes (AKS, homelab, or other distribution)
 
 ## Common commands
 
@@ -60,13 +82,6 @@ helm dependency update charts/platform-stack
 ### Linting
 
 ```bash
-helm lint charts/openclaw
-helm lint charts/openhands
-helm lint charts/nextcloud
-helm lint charts/gitea
-helm lint charts/paperless-ngx
-helm lint charts/infisical
-helm lint charts/wg-easy
 helm lint charts/platform-stack
 helm lint charts/platform-stack -f charts/platform-stack/values-dev.yaml
 helm lint charts/platform-stack -f charts/platform-stack/values-aks.yaml
@@ -77,11 +92,6 @@ helm lint charts/platform-stack -f charts/platform-stack/values-prod.yaml
 
 ```bash
 helm template platform-stack charts/platform-stack
-helm template platform-stack charts/platform-stack --set nextcloud.enabled=true
-helm template platform-stack charts/platform-stack --set gitea.enabled=true
-helm template platform-stack charts/platform-stack --set paperlessNgx.enabled=true
-helm template platform-stack charts/platform-stack --set infisical.enabled=true
-helm template platform-stack charts/platform-stack --set wgEasy.enabled=true
 helm template platform-stack charts/platform-stack -f charts/platform-stack/values-dev.yaml
 helm template platform-stack charts/platform-stack -f charts/platform-stack/values-aks.yaml
 helm template platform-stack charts/platform-stack -f charts/platform-stack/values-prod.yaml
@@ -96,83 +106,11 @@ helm template platform-stack charts/platform-stack -f charts/platform-stack/valu
 ./scripts/install-aks.sh --release-name platform-stack --namespace ai-homebase --kube-context <your-kube-context>
 ```
 
-### Install/upgrade
+## Production-hardening gaps to close before go-live
 
-```bash
-helm upgrade --install platform-stack charts/platform-stack \
-  -n ai-homebase \
-  --create-namespace \
-  -f charts/platform-stack/values-dev.yaml
-```
-
-## Ingress configuration
-
-`platform-stack` defines ingress blocks per service (`openclaw`, `openhands`, `nextcloud`, `gitea`, `paperlessNgx`, `infisical`, `wgEasy`).
-
-- Default hostnames are centralized under `global.hosts.*` (`openclaw`, `openhands`, `nextcloud`, `gitea`, `paperless`, `infisical`, `wg`/`vpn`) and align to `global.domain` in each values profile.
-- OpenHands ingress is intentionally disabled by default and should remain internal-only unless explicitly required.
-- wg-easy ingress should remain disabled by default; prefer private/admin-only exposure patterns.
-- Configure class, annotations, host rules, and TLS under each service's `<service>.ingress.*` block.
-
-## Environment profiles and usage
-
-Choose a profile based on your target:
-
-- **Dev/local**: `values-dev.yaml`
-- **AKS**: `values-aks.yaml`
-- **Prod-like baseline**: `values-prod.yaml`
-
-Recommended pattern:
-
-```bash
-helm upgrade --install platform-stack charts/platform-stack \
-  -n <namespace> \
-  -f charts/platform-stack/values-<profile>.yaml \
-  -f <your-environment-overrides>.yaml
-```
-
-This keeps shared profile intent in source control while environment-specific hostnames, image tags, and secret references live in overlays.
-
-## Examples
-
-See [`examples/README.md`](./examples/README.md) for placeholder-only command flows covering namespace setup, dummy secret creation, Helm install/upgrade, and AKS deployment sequencing.
-
-## Intended interaction model
-
-- External clients interact with **`openclaw`** via ingress/API.
-- `openclaw` handles control-plane concerns (validation/orchestration) and dispatches execution intents.
-- **`openhands`** handles execution-plane concerns (job workers/workspaces) as an internal service.
-
-This separation allows independent scaling and safer isolation of runtime workloads.
-
-## Known placeholders
-
-This starter repository intentionally leaves some integration values as placeholders:
-
-- Container image sources/tags for real registries.
-- Queue provider details and endpoints.
-- External secret store references and remote keys.
-- Workload identity client IDs.
-- Observability/log shipping destinations.
-- Worker isolation/runtime class settings.
-
-Treat these as required environment integration tasks before production usage.
-
-## Recommended next integration steps
-
-1. **Images**
-   - Build/publish `openclaw` and `openhands` images to your target registry.
-   - Replace placeholder repositories with immutable release tags or digests.
-2. **CI/CD**
-   - GitHub Actions workflow: [`.github/workflows/helm-ci.yml`](./.github/workflows/helm-ci.yml) runs chart dependency build, lint, and templating checks for push/PR changes.
-   - Add gated deploy stages that promote values overlays by environment.
-3. **Secrets and identity**
-   - Wire external secrets provider mappings and workload identity bindings.
-4. **Observability and backups**
-   - Finalize metrics/log destination integration and backup/snapshot policies.
-
-## Quickstart
-
-- Read documentation: [`docs/`](./docs/)
-- Explore helper scripts: [`scripts/`](./scripts/)
-- Review chart layout: [`charts/`](./charts/)
+- Replace placeholder hosts/domains and TLS issuers.
+- Wire real secret stores (External Secrets + provider integration).
+- Enforce deny-by-default `NetworkPolicy` per namespace/service.
+- Validate backup/restore and volume-snapshot procedures.
+- Use immutable image tags/digests and tighten pod security context.
+- Confirm SLOs and alerting for both core plane and optional services.

@@ -1,109 +1,129 @@
-# AKS deployment guide
+# AKS deployment flow
 
-This document describes a practical bootstrap flow for running `platform-stack` on Azure Kubernetes Service (AKS) using the AKS profile at `charts/platform-stack/values-aks.yaml`.
+This guide describes an AKS-first rollout of `platform-stack` including service toggles, storage classes, ingress, and secret prerequisites.
 
-For placeholder-only command examples and override files that match chart value keys, see [`examples/README.md`](../examples/README.md).
+## 0) Scope and assumptions
 
-## Prerequisites
+- You are deploying `charts/platform-stack`.
+- You will start from `charts/platform-stack/values-aks.yaml` and add an environment-specific override file.
+- Optional services are enabled intentionally; core services are always evaluated first.
 
-Before deployment, ensure you have:
+> **Intentional placeholders:** values in `values-aks.yaml` include example hostnames, client IDs, and secret mappings that must be replaced before production use.
 
-- Azure subscription and permissions to create/update AKS and ACR resources.
-- AKS cluster with:
-  - OIDC issuer enabled.
-  - Workload identity enabled (if using Key Vault, Service Bus, or other Azure identity-based access).
-- ACR registry with push/pull access for your build agents and cluster identity.
-- Ingress controller installed (assumes NGINX ingress in this profile).
-- Optional but common integrations:
-  - cert-manager for TLS certificate automation.
-  - external-dns for hostname automation.
-  - External Secrets Operator if syncing secrets from Key Vault.
+## 1) Prerequisites
 
-CLI tooling:
+### AKS and cluster access
 
-- `az`, `kubectl`, `helm`.
+- AKS cluster exists and is reachable with `kubectl`.
+- Namespace chosen (examples use `ai-homebase`).
+- Helm v3 and kubectl installed.
 
-## Namespace and bootstrap flow
+### Ingress/TLS prerequisites
 
-Recommended order:
+- Ingress controller installed (typically NGINX class `nginx`).
+- TLS issuer available (for example cert-manager `ClusterIssuer`).
+- DNS records planned for enabled public hosts.
 
-1. **Create namespace** (example: `ai-homebase`).
-2. **Create image pull secret** if not using managed identity-based ACR pull.
-3. **Install/verify cluster addons** (ingress, cert-manager, external-dns, ESO).
-4. **Prepare workload identity bindings** for each service account used by `openclaw` and `openhands`.
-5. **Configure secret stores** (for example, `ClusterSecretStore` for Key Vault).
-6. **Deploy chart dependencies** and render manifests for validation.
-7. **Install/upgrade `platform-stack`** with `values-aks.yaml` plus your environment override.
+### Secret prerequisites
 
-Example skeleton commands:
+At least one secret strategy must be ready before install:
+
+1. **Pre-created Kubernetes Secrets** referenced by `existingSecret`/`secretRefs`.
+2. **External Secrets workflow** with valid `secretStoreRef` and mappings.
+
+### Registry/image prerequisites
+
+- Image repositories and tags/digests updated to your ACR paths.
+- Pull auth configured (`global.imagePullSecrets`) if needed.
+
+## 2) Service toggle planning
+
+In your overlay, explicitly decide enabled state for optional services:
+
+- `nextcloud.enabled`
+- `gitea.enabled`
+- `paperlessNgx.enabled`
+- `infisical.enabled`
+- `wgEasy.enabled`
+
+Recommendation: enable only required services per environment to reduce attack surface and ops overhead.
+
+## 3) Storage-class and PVC planning
+
+`platform-stack` resolves `storageClassName` via service override -> global fallback -> cluster default.
+
+AKS guidance:
+
+- Set `global.storageClass` only if one class should be shared broadly.
+- Override per service when profile differs (for example premium disk for latency-sensitive paths).
+- Validate expansion/snapshot support for every class in use.
+- Pre-size PVCs for growth-heavy services (Nextcloud, Paperless media, execution workspaces).
+
+## 4) Ingress and network exposure planning
+
+Per-service ingress is controlled independently:
+
+- `openclaw.ingress.*` (typically public)
+- `openhands.ingress.*` (keep disabled/private by default)
+- Optional service ingress blocks (`nextcloud`, `gitea`, `paperlessNgx`, `infisical`, `wgEasy`)
+
+AKS notes:
+
+- `openhands.service.type=ClusterIP` is intentional for private execution-plane access.
+- Use internal ingress patterns instead of public exposure for admin/internal tools.
+- For wg-easy, prefer private web UI + controlled UDP VPN exposure.
+
+## 5) Prepare values files
+
+Use two layers minimum:
+
+1. `charts/platform-stack/values-aks.yaml` (baseline).
+2. `values-aks.<env>.yaml` (real hostnames, secrets, class overrides, toggles).
+
+Avoid editing `values-aks.yaml` directly for environment-specific secrets or hostnames.
+
+## 6) Validate before apply
 
 ```bash
-kubectl create namespace ai-homebase
 helm dependency update charts/platform-stack
+helm lint charts/platform-stack -f charts/platform-stack/values-aks.yaml -f values-aks.<env>.yaml
 helm template platform-stack charts/platform-stack \
   -n ai-homebase \
-  -f charts/platform-stack/values-aks.yaml
-helm upgrade --install platform-stack charts/platform-stack \
-  -n ai-homebase \
-  -f charts/platform-stack/values-aks.yaml
+  -f charts/platform-stack/values-aks.yaml \
+  -f values-aks.<env>.yaml
 ```
 
-## ACR image notes
+Check for:
 
-`values-aks.yaml` intentionally uses ACR-style repositories:
+- Correct ingress hosts/class/TLS blocks.
+- Enabled/disabled services matching plan.
+- PVC class/size values matching storage design.
+- Secret references pointing to existing target Secret names.
 
-- `myregistry.azurecr.io/openclaw`
-- `myregistry.azurecr.io/openhands`
+## 7) Install/upgrade
 
-Update these for your registry and promote immutable tags (or digests) per environment. Avoid relying on mutable tags alone for production rollouts.
+```bash
+helm upgrade --install platform-stack charts/platform-stack \
+  -n ai-homebase \
+  --create-namespace \
+  -f charts/platform-stack/values-aks.yaml \
+  -f values-aks.<env>.yaml
+```
 
-If you keep `global.imagePullSecrets` (example `acr-pull`), ensure that secret exists in the target namespace.
+## 8) Post-deploy verification
 
-## Workload identity notes
+- Pods running for core plane first (`openclaw`, `openhands`).
+- Optional services present only when enabled.
+- PVCs bound with expected storage classes.
+- Ingress objects provisioned with expected hosts/TLS.
+- Secret-backed env vars resolved (no crash loops from missing keys).
 
-The AKS profile includes service account annotation placeholders:
+## Production-hardening gaps checklist
 
-- `azure.workload.identity/client-id: "<openclaw-workload-identity-client-id>"`
-- `azure.workload.identity/client-id: "<openhands-workload-identity-client-id>"`
+Before production promotion, confirm:
 
-Replace placeholders with managed identity client IDs and bind federated credentials to the corresponding Kubernetes service accounts.
-
-Typical split:
-
-- `openclaw`: read app/platform secrets and potentially write control-plane metadata.
-- `openhands`: read runtime secrets and access execution dependencies (queue/storage/artifacts).
-
-Grant least privilege per identity rather than sharing one broad identity across both services.
-
-## Ingress assumptions
-
-AKS values assume:
-
-- NGINX ingress class (`className: nginx`).
-- Public hostname for `openclaw`.
-- TLS managed by cert-manager (`cert-manager.io/cluster-issuer` annotation examples).
-- Optional external-dns annotation for automatic DNS registration.
-
-`openhands` remains internal by default and should not be exposed publicly unless your threat model explicitly allows it.
-
-Network posture details for `openhands` in `values-aks.yaml`:
-
-- `openhands.service.type` is `ClusterIP`, so the service is reachable only inside the cluster network by default.
-- Azure load balancer service annotations (for example `service.beta.kubernetes.io/azure-load-balancer-internal`) apply only to `type: LoadBalancer` services and are not valid for the current `ClusterIP` posture.
-- To keep `openhands` internal while still exposing it, route traffic through an internal ingress/controller pattern rather than attaching a load balancer annotation to a `ClusterIP` service.
-
-## Storage guidance
-
-The AKS profile defaults to `managed-csi` and enables persistence for both components.
-
-Guidance:
-
-- Use separate PVC sizing strategies:
-  - `openclaw`: smaller durable state.
-  - `openhands`: larger, execution-workspace-oriented storage.
-- Align storage classes with workload patterns (latency vs throughput vs cost).
-- Keep backup/snapshot policy aligned to data criticality:
-  - Control-plane metadata usually needs stricter retention.
-  - Execution workspace data may be more ephemeral.
-
-For production, validate backup, restore, and snapshot procedures before go-live.
+- Placeholder domains/annotations/client IDs are fully replaced.
+- NetworkPolicies enforce least privilege (not just defaults).
+- Backup/restore tested for all persistent services.
+- Pod security context and runtime isolation tuned for OpenHands workers.
+- Monitoring/alerts wired to real destinations.
