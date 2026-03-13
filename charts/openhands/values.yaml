@@ -36,6 +36,18 @@ service:
   targetPort: 3000
   annotations: {}
 
+ingress:
+  enabled: false
+  className: ""
+  annotations:
+    kubernetes.io/ingress.class: internal
+  hosts:
+    - host: ""
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
 workspace:
   enabled: false
   existingClaim: ""
@@ -68,6 +80,29 @@ podDisruptionBudget:
   enabled: false
   minAvailable: 1
   maxUnavailable: null
+
+networkPolicy:
+  enabled: false
+  # Example internal-only posture: allow traffic from the ingress controller and same namespace only.
+  # ingress:
+  #   - from:
+  #       - namespaceSelector:
+  #           matchLabels:
+  #             kubernetes.io/metadata.name: ingress-nginx
+  #       - podSelector: {}
+  # egress:
+  #   - to:
+  #       - namespaceSelector:
+  #           matchLabels:
+  #             kubernetes.io/metadata.name: default
+  # policyTypes:
+  #   - Ingress
+  #   - Egress
+  ingress: []
+  egress: []
+  policyTypes:
+    - Ingress
+    - Egress
 
 podAnnotations: {}
 podLabels: {}

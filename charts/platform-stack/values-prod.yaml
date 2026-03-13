@@ -7,9 +7,12 @@ global:
     openhands: openhands.prod.example.com
     nextcloud: nextcloud.prod.example.com
     gitea: gitea.prod.example.com
-    paperlessNgx: paperlessngx.prod.example.com
+    paperless: paperless.prod.example.com
+    paperlessNgx: paperless.prod.example.com
     infisical: infisical.prod.example.com
-    wgEasy: wgeasy.prod.example.com
+    wg: wg.prod.example.com
+    vpn: wg.prod.example.com
+    wgEasy: wg.prod.example.com
   commonLabels:
     environment: production
 
@@ -242,14 +245,14 @@ paperlessNgx:
     annotations:
       cert-manager.io/cluster-issuer: letsencrypt-prod
     hosts:
-      - host: paperlessngx.prod.example.com
+      - host: paperless.prod.example.com
         paths:
           - path: /
             pathType: Prefix
     tls:
       - secretName: paperlessngx-prod-tls
         hosts:
-          - paperlessngx.prod.example.com
+          - paperless.prod.example.com
   persistence:
     data:
       enabled: true
@@ -346,14 +349,14 @@ wgEasy:
     annotations:
       cert-manager.io/cluster-issuer: letsencrypt-prod
     hosts:
-      - host: wgeasy.prod.example.com
+      - host: wg.prod.example.com
         paths:
           - path: /
             pathType: Prefix
     tls:
       - secretName: wgeasy-prod-tls
         hosts:
-          - wgeasy.prod.example.com
+          - wg.prod.example.com
   persistence:
     enabled: true
     existingClaim: ""

@@ -8,9 +8,12 @@ global:
     openhands: openhands.aks.example.com
     nextcloud: nextcloud.aks.example.com
     gitea: gitea.aks.example.com
-    paperlessNgx: paperlessngx.aks.example.com
+    paperless: paperless.aks.example.com
+    paperlessNgx: paperless.aks.example.com
     infisical: infisical.aks.example.com
-    wgEasy: wgeasy.aks.example.com
+    wg: wg.aks.example.com
+    vpn: wg.aks.example.com
+    wgEasy: wg.aks.example.com
   commonLabels:
     platform: aks
 
@@ -219,16 +222,16 @@ paperlessNgx:
     className: nginx
     annotations:
       cert-manager.io/cluster-issuer: letsencrypt-prod
-      external-dns.alpha.kubernetes.io/hostname: paperlessngx.aks.example.com
+      external-dns.alpha.kubernetes.io/hostname: paperless.aks.example.com
     hosts:
-      - host: paperlessngx.aks.example.com
+      - host: paperless.aks.example.com
         paths:
           - path: /
             pathType: Prefix
     tls:
       - secretName: paperlessngx-tls
         hosts:
-          - paperlessngx.aks.example.com
+          - paperless.aks.example.com
   persistence:
     data:
       enabled: true
@@ -313,16 +316,16 @@ wgEasy:
     className: nginx
     annotations:
       cert-manager.io/cluster-issuer: letsencrypt-prod
-      external-dns.alpha.kubernetes.io/hostname: wgeasy.aks.example.com
+      external-dns.alpha.kubernetes.io/hostname: wg.aks.example.com
     hosts:
-      - host: wgeasy.aks.example.com
+      - host: wg.aks.example.com
         paths:
           - path: /
             pathType: Prefix
     tls:
       - secretName: wgeasy-tls
         hosts:
-          - wgeasy.aks.example.com
+          - wg.aks.example.com
   persistence:
     enabled: true
     existingClaim: ""

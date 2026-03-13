@@ -1,11 +1,11 @@
-{{- if .Values.ingress.enabled }}
-{{- $defaultHost := .Values.global.hosts.infisical -}}
+{{- if and .Values.service.enabled .Values.ingress.enabled }}
+{{- $defaultHost := .Values.global.hosts.openhands -}}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "infisical.fullname" . }}
+  name: {{ include "openhands.fullname" . }}
   labels:
-    {{- include "infisical.labels" . | nindent 4 }}
+    {{- include "openhands.labels" . | nindent 4 }}
   {{- with .Values.ingress.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
@@ -24,7 +24,7 @@ spec:
             pathType: {{ .pathType }}
             backend:
               service:
-                name: {{ include "infisical.fullname" $ }}
+                name: {{ include "openhands.fullname" $ }}
                 port:
                   number: {{ $.Values.service.port }}
           {{- end }}

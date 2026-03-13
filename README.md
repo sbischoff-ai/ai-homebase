@@ -17,6 +17,7 @@ See also:
 - [`docs/architecture.md`](./docs/architecture.md) for control-plane vs execution-plane boundaries.
 - [`docs/configuration.md`](./docs/configuration.md) for value layering and secrets strategy.
 - [`docs/storage.md`](./docs/storage.md) for storage-class behavior, AKS vs bare-metal differences, and PVC sizing rationale.
+- [`docs/networking.md`](./docs/networking.md) for recommended public vs private exposure and secure ingress posture.
 - [`docs/deployment-aks.md`](./docs/deployment-aks.md) for AKS-specific deployment notes.
 
 ## Helm charts
@@ -108,8 +109,9 @@ helm upgrade --install platform-stack charts/platform-stack \
 
 `platform-stack` defines ingress blocks per service (`openclaw`, `openhands`, `nextcloud`, `gitea`, `paperlessNgx`, `infisical`, `wgEasy`).
 
-- Default hostnames are centralized under `global.hosts.*` and align to `global.domain` in each values profile.
+- Default hostnames are centralized under `global.hosts.*` (`openclaw`, `openhands`, `nextcloud`, `gitea`, `paperless`, `infisical`, `wg`/`vpn`) and align to `global.domain` in each values profile.
 - OpenHands ingress is intentionally disabled by default and should remain internal-only unless explicitly required.
+- wg-easy ingress should remain disabled by default; prefer private/admin-only exposure patterns.
 - Configure class, annotations, host rules, and TLS under each service's `<service>.ingress.*` block.
 
 ## Environment profiles and usage

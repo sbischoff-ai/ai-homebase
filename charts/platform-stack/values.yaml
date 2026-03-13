@@ -7,9 +7,12 @@ global:
     openhands: openhands.homebase.local
     nextcloud: nextcloud.homebase.local
     gitea: gitea.homebase.local
-    paperlessNgx: paperlessngx.homebase.local
+    paperless: paperless.homebase.local
+    paperlessNgx: paperless.homebase.local
     infisical: infisical.homebase.local
-    wgEasy: wgeasy.homebase.local
+    wg: wg.homebase.local
+    vpn: wg.homebase.local
+    wgEasy: wg.homebase.local
   commonLabels: {}
   podAnnotations: {}
   nodeSelector: {}
@@ -227,7 +230,7 @@ paperlessNgx:
     className: ""
     annotations: {}
     hosts:
-      - host: paperlessngx.homebase.local
+      - host: paperless.homebase.local
         paths:
           - path: /
             pathType: Prefix
@@ -291,7 +294,8 @@ infisical:
   ingress:
     enabled: false
     className: ""
-    annotations: {}
+    annotations:
+      kubernetes.io/ingress.class: internal
     hosts:
       - host: infisical.homebase.local
         paths:
@@ -337,10 +341,11 @@ wgEasy:
     annotations: {}
   ingress:
     enabled: false
+    # Keep disabled by default. Prefer private exposure (internal ingress, VPN-only LB, or bastion).
     className: ""
     annotations: {}
     hosts:
-      - host: wgeasy.homebase.local
+      - host: wg.homebase.local
         paths:
           - path: /
             pathType: Prefix
