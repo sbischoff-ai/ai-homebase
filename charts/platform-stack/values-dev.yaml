@@ -109,8 +109,8 @@ nextcloud:
     readiness:
       enabled: true
       path: /status.php
-  secretRefs:
-    existingSecret: ""
+  existingSecret: ""
+  secretRefs: []
 
 gitea:
   enabled: false
@@ -148,8 +148,8 @@ gitea:
     readiness:
       enabled: true
       path: /api/healthz
-  secretRefs:
-    existingSecret: ""
+  existingSecret: ""
+  secretRefs: []
 
 paperlessNgx:
   enabled: false
@@ -202,8 +202,8 @@ paperlessNgx:
     readiness:
       enabled: true
       path: /api/health/
-  secretRefs:
-    existingSecret: ""
+  existingSecret: ""
+  secretRefs: []
 
 infisical:
   enabled: false
@@ -240,8 +240,8 @@ infisical:
     readiness:
       enabled: true
       path: /api/status
-  secretRefs:
-    existingSecret: ""
+  existingSecret: ""
+  secretRefs: []
 
 wgEasy:
   enabled: false
@@ -281,8 +281,8 @@ wgEasy:
     readiness:
       enabled: true
       path: /
-  secretRefs:
-    existingSecret: ""
+  existingSecret: ""
+  secretRefs: []
 
 externalSecrets:
   enabled: false

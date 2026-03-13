@@ -52,3 +52,9 @@ resources: {}
 nodeSelector: {}
 tolerations: []
 affinity: {}
+
+# Secret injection conventions:
+# - Secret names: kebab-case (example: gitea-app-secrets)
+# - Secret data keys: UPPER_SNAKE_CASE (example: GITEA_ADMIN_PASSWORD)
+existingSecret: "" # Optional envFrom source for app credentials/secrets.
+secretRefs: [] # [{name: gitea-app-secrets, key: GITEA_ADMIN_PASSWORD, envVar: GITEA_ADMIN_PASSWORD}]

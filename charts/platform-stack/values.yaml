@@ -166,8 +166,8 @@ nextcloud:
       periodSeconds: 10
   backup:
     annotations: {}
-  secretRefs:
-    existingSecret: ""
+  existingSecret: ""
+  secretRefs: []
 
 gitea:
   enabled: false
@@ -212,8 +212,8 @@ gitea:
       periodSeconds: 10
   backup:
     annotations: {}
-  secretRefs:
-    existingSecret: ""
+  existingSecret: ""
+  secretRefs: []
 
 paperlessNgx:
   enabled: false
@@ -278,8 +278,8 @@ paperlessNgx:
       path: /api/health/
       initialDelaySeconds: 10
       periodSeconds: 10
-  secretRefs:
-    existingSecret: ""
+  existingSecret: ""
+  secretRefs: []
 
 infisical:
   enabled: false
@@ -323,8 +323,8 @@ infisical:
       periodSeconds: 10
   backup:
     annotations: {}
-  secretRefs:
-    existingSecret: ""
+  existingSecret: ""
+  secretRefs: []
 
 wgEasy:
   enabled: false
@@ -371,8 +371,8 @@ wgEasy:
       periodSeconds: 10
   backup:
     annotations: {}
-  secretRefs:
-    existingSecret: ""
+  existingSecret: ""
+  secretRefs: []
 
 # Platform-level feature toggles and placeholders for future integration templates.
 externalSecrets:

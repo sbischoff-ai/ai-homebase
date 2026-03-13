@@ -76,21 +76,42 @@ helm upgrade --install platform-stack charts/platform-stack \
 
 Do not commit live credentials to this repository.
 
+### Current pattern (today): pre-created Kubernetes Secrets
+
+Each service chart supports two secret-consumption patterns that reference existing Kubernetes Secrets:
+
+- `existingSecret`: inject all keys from a single pre-created Secret via `envFrom.secretRef`.
+- `secretRefs[]`: map individual Secret keys to explicit environment variables (`name`, `key`, `envVar`).
+
+Naming convention used across chart comments and examples:
+
+- Secret object names: `kebab-case` (for example `openclaw-app-secrets`).
+- Secret data keys: `UPPER_SNAKE_CASE` (for example `OPENCLAW_API_TOKEN`).
+- Mapped environment variables (`envVar`) should match the corresponding key name when possible.
+
+### Target pattern (next): External Secrets + Infisical integration
+
 Preferred flow:
 
-- Use `externalSecrets.*` mappings to define desired Kubernetes Secret targets.
-- Back the mappings with an external provider (for example Azure Key Vault in AKS).
-- Keep placeholders in version-controlled values, and resolve real secret identifiers per environment.
+- Define desired Kubernetes Secret targets under `externalSecrets.*` in `platform-stack` values.
+- Use External Secrets Operator to sync from a provider (Azure Key Vault, AWS/GCP backends, or Infisical provider).
+- Point service charts at generated target Secrets using `existingSecret` and/or `secretRefs[]`.
+
+Infisical-specific target state:
+
+- Use either the External Secrets Infisical provider (recommended for Kubernetes-native secret sync) or the Infisical operator/provider flow used by your cluster platform team.
+- Keep provider auth material out of this repo and bind it via workload identity or separately-managed bootstrap Secrets.
 
 Fallback (only where necessary):
 
-- Pre-create Kubernetes Secrets out-of-band and reference them from component env/config hooks.
+- Pre-create Kubernetes Secrets out-of-band and reference them from service values.
 
 Operational best practices:
 
 - Rotate secrets centrally at the provider.
 - Keep least-privilege identity boundaries between `openclaw` and `openhands`.
 - Audit secret mappings during each environment promotion.
+- Keep service-to-secret contracts documented in `docs/services.md`.
 
 ## Operational placeholders
 

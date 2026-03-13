@@ -52,3 +52,9 @@ resources: {}
 nodeSelector: {}
 tolerations: []
 affinity: {}
+
+# Secret injection conventions:
+# - Secret names: kebab-case (example: nextcloud-app-secrets)
+# - Secret data keys: UPPER_SNAKE_CASE (example: NEXTCLOUD_ADMIN_PASSWORD)
+existingSecret: "" # Optional envFrom source for app credentials/secrets.
+secretRefs: [] # [{name: nextcloud-app-secrets, key: NEXTCLOUD_ADMIN_PASSWORD, envVar: NEXTCLOUD_ADMIN_PASSWORD}]

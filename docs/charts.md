@@ -11,6 +11,8 @@
 - default scheduling controls (`nodeSelector`, `tolerations`, `affinity`)
 - shared environment entries (`env`)
 
+Most service charts also expose `existingSecret` and `secretRefs[]` to consume credentials from pre-created Kubernetes Secrets using standardized key naming conventions.
+
 ## platform-stack composition
 `platform-stack` is an umbrella chart with dependency toggles:
 
