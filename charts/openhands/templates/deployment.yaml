@@ -29,7 +29,7 @@ spec:
       {{- end }}
     spec:
       serviceAccountName: {{ include "openhands.serviceAccountName" . }}
-      {{- $pullSecrets := include "openhands.effectiveImagePullSecrets" . | fromYaml }}
+      {{- $pullSecrets := include "openhands.effectiveImagePullSecrets" . | fromYamlArray }}
       {{- if $pullSecrets }}
       imagePullSecrets:
         {{- range $pullSecrets }}

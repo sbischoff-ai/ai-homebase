@@ -1,0 +1,72 @@
+name: Helm CI
+
+on:
+  push:
+    paths:
+      - "charts/**"
+      - ".github/workflows/helm-ci.yml"
+      - "README.md"
+  pull_request:
+    paths:
+      - "charts/**"
+      - ".github/workflows/helm-ci.yml"
+      - "README.md"
+
+jobs:
+  helm-ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+
+      - name: Build chart dependencies
+        run: helm dependency build charts/platform-stack
+
+      - name: Lint all charts
+        run: |
+          set -euo pipefail
+          for chart in charts/*; do
+            if [ -f "$chart/Chart.yaml" ]; then
+              echo "Linting $chart"
+              helm lint "$chart"
+            fi
+          done
+
+      - name: Render platform-stack for each values profile
+        run: |
+          set -euo pipefail
+          profiles=(
+            "values.yaml"
+            "values-dev.yaml"
+            "values-aks.yaml"
+            "values-prod.yaml"
+          )
+
+          for profile in "${profiles[@]}"; do
+            echo "Rendering platform-stack with $profile"
+            helm template platform-stack charts/platform-stack \
+              -f "charts/platform-stack/$profile" \
+              > "rendered-${profile%.yaml}.yaml"
+          done
+
+      - name: Validate rendered YAML syntax (lightweight)
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet pyyaml
+          python <<'PY'
+          import glob
+          import yaml
+
+          rendered_files = sorted(glob.glob("rendered-*.yaml"))
+          if not rendered_files:
+              raise SystemExit("No rendered manifests found.")
+
+          for filename in rendered_files:
+              with open(filename, "r", encoding="utf-8") as handle:
+                  documents = list(yaml.safe_load_all(handle))
+              print(f"{filename}: parsed {len(documents)} YAML document(s)")
+          PY

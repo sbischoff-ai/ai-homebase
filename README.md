@@ -138,7 +138,7 @@ Treat these as required environment integration tasks before production usage.
    - Build/publish `openclaw` and `openhands` images to your target registry.
    - Replace placeholder repositories with immutable release tags or digests.
 2. **CI/CD**
-   - Add pipeline stages for `helm dependency update`, `helm lint`, and `helm template` validation.
+   - GitHub Actions workflow: [`.github/workflows/helm-ci.yml`](./.github/workflows/helm-ci.yml) runs chart dependency build, lint, and templating checks for push/PR changes.
    - Add gated deploy stages that promote values overlays by environment.
 3. **Secrets and identity**
    - Wire external secrets provider mappings and workload identity bindings.

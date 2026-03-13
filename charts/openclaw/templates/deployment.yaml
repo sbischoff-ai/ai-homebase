@@ -33,7 +33,7 @@ spec:
       {{- end }}
     spec:
       serviceAccountName: {{ include "openclaw.serviceAccountName" . }}
-      {{- $pullSecrets := include "openclaw.effectiveImagePullSecrets" . | fromYaml }}
+      {{- $pullSecrets := include "openclaw.effectiveImagePullSecrets" . | fromYamlArray }}
       {{- if $pullSecrets }}
       imagePullSecrets:
         {{- range $pullSecrets }}
