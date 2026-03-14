@@ -115,19 +115,47 @@ spec:
           {{- end }}
           {{- if .Values.probes.liveness.enabled }}
           livenessProbe:
+            {{- if eq (lower (default "tcp" .Values.probes.liveness.type)) "http" }}
             httpGet:
-              path: {{ .Values.probes.liveness.path }}
-              port: http
+              path: {{ coalesce .Values.probes.liveness.path .Values.probes.liveness.endpoint "/healthz" }}
+              port: {{ default "http" .Values.probes.liveness.port }}
+            {{- else }}
+            tcpSocket:
+              port: {{ default 3000 .Values.probes.liveness.port }}
+            {{- end }}
             initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
             periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.liveness.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.liveness.failureThreshold }}
           {{- end }}
           {{- if .Values.probes.readiness.enabled }}
           readinessProbe:
+            {{- if eq (lower (default "tcp" .Values.probes.readiness.type)) "http" }}
             httpGet:
-              path: {{ .Values.probes.readiness.path }}
-              port: http
+              path: {{ coalesce .Values.probes.readiness.path .Values.probes.readiness.endpoint "/readyz" }}
+              port: {{ default "http" .Values.probes.readiness.port }}
+            {{- else }}
+            tcpSocket:
+              port: {{ default 3000 .Values.probes.readiness.port }}
+            {{- end }}
             initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
             periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.readiness.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.readiness.failureThreshold }}
+          {{- end }}
+          {{- if .Values.probes.startup.enabled }}
+          startupProbe:
+            {{- if eq (lower (default "tcp" .Values.probes.startup.type)) "http" }}
+            httpGet:
+              path: {{ coalesce .Values.probes.startup.path .Values.probes.startup.endpoint "/healthz" }}
+              port: {{ default "http" .Values.probes.startup.port }}
+            {{- else }}
+            tcpSocket:
+              port: {{ default 3000 .Values.probes.startup.port }}
+            {{- end }}
+            periodSeconds: {{ .Values.probes.startup.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.startup.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.startup.failureThreshold }}
           {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
