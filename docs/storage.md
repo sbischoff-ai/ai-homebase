@@ -17,6 +17,7 @@ This allows one shared default plus targeted overrides where needed.
 ### OpenClaw
 
 - Usually smaller durable state.
+- By default, the chart persists OpenClaw state at `/home/node/.openclaw` (matching the container home for the upstream image user).
 - Prioritize reliability and backup consistency.
 - Keep recovery objectives aligned with API/control-plane requirements.
 
