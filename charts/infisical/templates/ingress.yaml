@@ -1,5 +1,5 @@
-{{ if .Values.ingress.enabled }}
-{{- $ingress := .Values.ingress }}
+{{- $ingress := .Values.infisical.ingress }}
+{{ if $ingress.enabled }}
 {{- if and $ingress.ingressClassName (not (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion)) }}
   {{- if not (hasKey $ingress.annotations "kubernetes.io/ingress.class") }}
   {{- $_ := set $ingress.annotations "kubernetes.io/ingress.class" $ingress.ingressClassName}}

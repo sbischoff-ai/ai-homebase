@@ -31,7 +31,7 @@ For email-based flows (invites, password reset, notifications), include these ke
 
 ## Ingress and private reachability model
 
-This chart exposes Infisical behind an Ingress by default (`ingress.enabled: true`) with optional host/TLS configuration via values.
+This chart exposes Infisical behind an Ingress by default (`infisical.ingress.enabled: true`) with optional host/TLS configuration via values.
 
 Recommended operational model:
 
