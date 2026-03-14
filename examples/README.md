@@ -6,9 +6,12 @@ All examples in this directory use placeholders only. Replace values like `<your
 
 ```bash
 kubectl --context <your-kube-context> create namespace <your-namespace>
+kubectl --context <your-kube-context> config set-context --current --namespace=<your-namespace>
 ```
 
-## Dummy secrets
+## Dummy secrets for all components
+
+Create image pull and app secrets before first install so optional services can be enabled without secret-related crash loops.
 
 ```bash
 kubectl --context <your-kube-context> -n <your-namespace> create secret docker-registry acr-pull \
@@ -22,48 +25,137 @@ kubectl --context <your-kube-context> -n <your-namespace> create secret generic 
 
 kubectl --context <your-kube-context> -n <your-namespace> create secret generic openhands-app-secrets \
   --from-literal=OPENHANDS_QUEUE_TOKEN=<dummy-queue-token>
+
+kubectl --context <your-kube-context> -n <your-namespace> create secret generic nextcloud-app-secrets \
+  --from-literal=NEXTCLOUD_ADMIN_PASSWORD=<dummy-nextcloud-admin-password>
+
+kubectl --context <your-kube-context> -n <your-namespace> create secret generic gitea-app-secrets \
+  --from-literal=GITEA_ADMIN_PASSWORD=<dummy-gitea-admin-password>
+
+kubectl --context <your-kube-context> -n <your-namespace> create secret generic paperlessngx-app-secrets \
+  --from-literal=PAPERLESS_SECRET_KEY=<dummy-paperless-secret-key>
+
+kubectl --context <your-kube-context> -n <your-namespace> create secret generic infisical-app-secrets \
+  --from-literal=INFISICAL_ENCRYPTION_KEY=<dummy-infisical-encryption-key>
+
+kubectl --context <your-kube-context> -n <your-namespace> create secret generic wgeasy-app-secrets \
+  --from-literal=WG_DEFAULT_PASSWORD_HASH=<dummy-wg-password-hash>
 ```
 
-## Helm install/upgrade examples
+## Install/upgrade with value overlays and service toggles
+
+Use the scripts to combine baseline + override files and explicitly control service toggles.
 
 ```bash
-helm dependency update charts/platform-stack
-
-helm upgrade --install <your-release> charts/platform-stack \
-  --kube-context <your-kube-context> \
+./scripts/install-dev.sh \
+  --release-name <your-release> \
   --namespace <your-namespace> \
-  --create-namespace \
-  --values charts/platform-stack/values-dev.yaml \
-  --values examples/dev.values.override.yaml
-
-helm upgrade --install <your-release> charts/platform-stack \
   --kube-context <your-kube-context> \
+  --values-file charts/platform-stack/values-dev.yaml \
+  --values-file examples/dev.values.override.yaml \
+  --values-file examples/profile-content-services.override.yaml \
+  --enable-service nextcloud \
+  --enable-service gitea \
+  --enable-service paperless-ngx
+
+./scripts/install-aks.sh \
+  --release-name <your-release> \
   --namespace <your-namespace> \
-  --create-namespace \
-  --values charts/platform-stack/values-aks.yaml \
-  --values examples/aks.values.override.yaml
+  --kube-context <your-kube-context> \
+  --values-file charts/platform-stack/values-aks.yaml \
+  --values-file examples/aks.values.override.yaml \
+  --values-file examples/storage-premium.override.yaml \
+  --enable-service infisical \
+  --enable-service wg-easy \
+  --disable-service openhands
 ```
 
-## AKS deployment flow
+## Ingress hostname override example
+
+```yaml
+# examples/ingress-hosts.override.yaml
+global:
+  domain: <your-domain>
+  hosts:
+    openclaw: openclaw.<your-domain>
+    openhands: openhands.<your-domain>
+    nextcloud: files.<your-domain>
+    gitea: git.<your-domain>
+    paperlessNgx: docs.<your-domain>
+    infisical: secrets.<your-domain>
+    wgEasy: vpn.<your-domain>
+```
+
+Pass it with `--values-file examples/ingress-hosts.override.yaml`.
+
+## PVC/storage override examples
+
+```yaml
+# examples/storage-premium.override.yaml
+global:
+  storageClass: managed-csi
+
+openhands:
+  workspace:
+    enabled: true
+    storageClass: managed-csi-premium
+    size: 200Gi
+
+nextcloud:
+  persistence:
+    storageClass: managed-csi-premium
+    size: 500Gi
+
+gitea:
+  persistence:
+    storageClass: managed-csi
+    size: 200Gi
+
+paperlessNgx:
+  persistence:
+    data:
+      storageClass: managed-csi-premium
+      size: 200Gi
+    media:
+      storageClass: managed-csi-premium
+      size: 1Ti
+    consume:
+      storageClass: managed-csi
+      size: 50Gi
+    export:
+      storageClass: managed-csi
+      size: 50Gi
+```
+
+## AKS deployment sequence (core + new services)
 
 Use this order for AKS:
 
-1. `kubectl create namespace`.
-2. Create `acr-pull` secret when not using managed identity pull.
-3. Update placeholders in `examples/aks.values.override.yaml`.
-4. Validate render with `scripts/template.sh`.
-5. Deploy using `scripts/install-aks.sh`.
+1. Create namespace and baseline secrets.
+2. Update placeholders in `examples/aks.values.override.yaml`.
+3. Choose profile overlays (for example `examples/profile-content-services.override.yaml` + `examples/storage-premium.override.yaml`).
+4. Validate manifests with service toggles.
+5. Install/upgrade using AKS script.
+6. Verify enabled services only (`openclaw`, `openhands`, `nextcloud`, `gitea`, `paperlessNgx`, `infisical`, `wgEasy`).
 
 ```bash
 ./scripts/template.sh \
   --release-name <your-release> \
   --namespace <your-namespace> \
   --kube-context <your-kube-context> \
-  --values-file charts/platform-stack/values-aks.yaml
+  --values-file charts/platform-stack/values-aks.yaml \
+  --values-file examples/aks.values.override.yaml \
+  --values-file examples/profile-content-services.override.yaml \
+  --enable-service infisical \
+  --enable-service wg-easy
 
 ./scripts/install-aks.sh \
   --release-name <your-release> \
   --namespace <your-namespace> \
   --kube-context <your-kube-context> \
-  --values-file charts/platform-stack/values-aks.yaml
+  --values-file charts/platform-stack/values-aks.yaml \
+  --values-file examples/aks.values.override.yaml \
+  --values-file examples/profile-content-services.override.yaml \
+  --enable-service infisical \
+  --enable-service wg-easy
 ```

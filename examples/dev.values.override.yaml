@@ -1,6 +1,16 @@
+# Overlay this after charts/platform-stack/values-dev.yaml.
+# You can combine this with profile overlays, for example:
+#   --values-file examples/profile-content-services.override.yaml
+
 global:
   hosts:
     openclaw: <openclaw-dev-hostname>
+    openhands: <openhands-dev-hostname>
+    nextcloud: <nextcloud-dev-hostname>
+    gitea: <gitea-dev-hostname>
+    paperlessNgx: <paperless-dev-hostname>
+    infisical: <infisical-dev-hostname>
+    wgEasy: <wgeasy-dev-hostname>
   imagePullSecrets:
     - <optional-image-pull-secret>
 

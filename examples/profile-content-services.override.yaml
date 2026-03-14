@@ -1,0 +1,14 @@
+nextcloud:
+  enabled: true
+
+gitea:
+  enabled: true
+
+paperlessNgx:
+  enabled: true
+
+infisical:
+  enabled: true
+
+wgEasy:
+  enabled: true
