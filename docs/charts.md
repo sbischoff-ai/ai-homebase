@@ -60,10 +60,12 @@ Primary value paths:
 - optional `secretKeys.*ApiKey` provider/search mappings
 - `openclaw.agents.defaults.workspace`
 - `openclaw.agents.list`
-- `ingress.enabled` (enabled by default for remote-host style exposure)
+- `ingress.enabled` (disabled by default; enable only when intentionally exposing via internal/private or public ingress)
 - `ingress.defaultHost` (optional fallback before `global.hosts.openclaw`)
 
 The container uses `OPENCLAW_CONFIG_PATH=/etc/openclaw/openclaw.json` while `OPENCLAW_STATE_DIR` remains aligned with the persistence mount path.
+
+Default exposure posture for OpenClaw is internal-only: `Service` type `ClusterIP` with no ingress enabled. Recommended access is over VPN/private networking, for example `http://openclaw.default.svc.cluster.local:18789`.
 
 When `openclaw.gateway.auth.mode` is `token`, chart rendering fails fast unless `existingSecret` and `secretKeys.gatewayToken` are set. The rendered config references `${OPENCLAW_GATEWAY_TOKEN}` and expects the env var to be injected from the configured secret key.
 

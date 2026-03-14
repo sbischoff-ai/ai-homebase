@@ -28,7 +28,7 @@ openclaw:
     tag: ""
     pullPolicy: IfNotPresent
   ingress:
-    enabled: true
+    enabled: false
     className: ""
     annotations: {}
     hosts:
