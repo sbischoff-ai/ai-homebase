@@ -41,3 +41,20 @@ Internal/admin-oriented charts expose optional `networkPolicy.*` values and temp
 - `openhands.networkPolicy.*`
 - `infisical.networkPolicy.*`
 - `wgEasy.networkPolicy.*`
+
+## OpenClaw dedicated config file
+The `openclaw` chart renders an `openclaw.json` ConfigMap entry from structured `openclaw.*` values and mounts it to `/etc/openclaw/openclaw.json` in the pod.
+
+Primary value paths:
+
+- `openclaw.gateway.mode`
+- `openclaw.gateway.bind`
+- `openclaw.gateway.port`
+- `openclaw.gateway.auth.mode`
+- `openclaw.gateway.controlUi.enabled`
+- `openclaw.gateway.controlUi.allowedOrigins`
+- `openclaw.agents.defaults.workspace`
+- `openclaw.agents.list`
+
+The container uses `OPENCLAW_CONFIG_PATH=/etc/openclaw/openclaw.json` while `OPENCLAW_STATE_DIR` remains aligned with the persistence mount path.
+
