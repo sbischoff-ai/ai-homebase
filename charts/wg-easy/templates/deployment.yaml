@@ -33,16 +33,17 @@ spec:
             - name: vpn
               containerPort: {{ .Values.service.wireguardPort }}
               protocol: UDP
+          {{- $secretName := default (printf "%s-secrets" (include "wg-easy.fullname" .)) .Values.existingSecret }}
           env:
             - name: WG_HOST
               valueFrom:
                 secretKeyRef:
-                  name: {{ required "values.existingSecret is required and must include WG_HOST and PASSWORD keys" .Values.existingSecret }}
+                  name: {{ $secretName }}
                   key: WG_HOST
             - name: PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ required "values.existingSecret is required and must include WG_HOST and PASSWORD keys" .Values.existingSecret }}
+                  name: {{ $secretName }}
                   key: PASSWORD
             - name: WG_DEFAULT_ADDRESS
               value: "10.8.0.x"
