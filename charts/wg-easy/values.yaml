@@ -19,6 +19,9 @@ global:
 wg:
   host: ""
   subnet: "10.8.0.0/24"
+  defaultAddress: ""
+  defaultDns: "1.1.1.1"
+  allowedIPs: "0.0.0.0/0"
 
 service:
   type: LoadBalancer # Set to NodePort when your environment does not support LoadBalancer services.
@@ -51,7 +54,7 @@ persistence:
   enabled: true
   existingClaim: ""
   accessModes: ["ReadWriteOnce"]
-  size: 2Gi
+  size: 1Gi
   storageClass: ""
   annotations: {}
 

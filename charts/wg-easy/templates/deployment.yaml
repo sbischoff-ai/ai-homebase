@@ -46,11 +46,11 @@ spec:
                   name: {{ $secretName }}
                   key: PASSWORD
             - name: WG_DEFAULT_ADDRESS
-              value: "10.8.0.x"
+              value: {{ default (regexReplaceAll "\\.0/[0-9]+$" .Values.wg.subnet ".x") .Values.wg.defaultAddress | quote }}
             - name: WG_DEFAULT_DNS
-              value: "1.1.1.1"
+              value: {{ .Values.wg.defaultDns | quote }}
             - name: WG_ALLOWED_IPS
-              value: "0.0.0.0/0"
+              value: {{ .Values.wg.allowedIPs | quote }}
           {{- if .Values.secretRefs }}
             {{- range .Values.secretRefs }}
             - name: {{ .envVar }}
@@ -59,11 +59,6 @@ spec:
                   name: {{ .name }}
                   key: {{ .key }}
             {{- end }}
-          {{- end }}
-          {{- if .Values.existingSecret }}
-          envFrom:
-            - secretRef:
-                name: {{ .Values.existingSecret }}
           {{- end }}
           {{- with .Values.securityContext }}
           securityContext:
