@@ -292,47 +292,35 @@ paperlessNgx:
 
 infisical:
   enabled: false
-  image:
-    repository: infisical/infisical
-    tag: "0.94.0"
-    pullPolicy: IfNotPresent
-  service:
-    type: ClusterIP
-    port: 8080
-    targetPort: 8080
+  infisical:
+    enabled: true
+    image:
+      repository: infisical/infisical
+      tag: "v0.151.0"
+      pullPolicy: IfNotPresent
+    service:
+      type: ClusterIP
+    resources: {}
+    autoBootstrap:
+      enabled: false
+    kubeSecretRef: ""
   ingress:
     enabled: true
-    className: ""
+    hostName: infisical.homebase.local
+    ingressClassName: ""
     annotations: {}
-    hosts:
-      - host: infisical.homebase.local
-        paths:
-          - path: /
-            pathType: Prefix
     tls: []
-  persistence:
-    enabled: false
-    existingClaim: ""
-    accessModes: ["ReadWriteOnce"]
-    size: 10Gi
-    storageClass: ""
-    annotations: {}
-  resources: {}
-  probes:
-    liveness:
-      enabled: true
-      path: /api/status
-      initialDelaySeconds: 30
-      periodSeconds: 10
-    readiness:
-      enabled: true
-      path: /api/status
-      initialDelaySeconds: 10
-      periodSeconds: 10
-  backup:
-    annotations: {}
-  existingSecret: ""
-  secretRefs: []
+    nginx:
+      enabled: false
+  postgresql:
+    enabled: true
+    primary:
+      persistence:
+        enabled: false
+        size: 10Gi
+        storageClass: ""
+  redis:
+    enabled: true
 
 wgEasy:
   enabled: false

@@ -154,8 +154,13 @@ paperlessNgx:
 
 infisical:
   enabled: false
-  persistence:
-    enabled: false
+  postgresql:
+    enabled: true
+    primary:
+      persistence:
+        enabled: false
+  redis:
+    enabled: true
 
 wgEasy:
   enabled: false
