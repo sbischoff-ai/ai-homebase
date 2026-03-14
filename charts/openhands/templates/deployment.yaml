@@ -127,8 +127,15 @@ spec:
       {{- with .Values.priorityClassName }}
       priorityClassName: {{ . }}
       {{- end }}
-      {{- with .Values.runtimeClassName }}
-      runtimeClassName: {{ . }}
+      {{- $runtime := .Values.runtime }}
+      {{- $runtimeClassName := "" }}
+      {{- if kindIs "string" $runtime }}
+      {{- $runtimeClassName = $runtime }}
+      {{- else if kindIs "map" $runtime }}
+      {{- $runtimeClassName = (coalesce $runtime.className $runtime.runtimeClassName $runtime.name) | default "" }}
+      {{- end }}
+      {{- with (default .Values.runtimeClassName $runtimeClassName) }}
+      runtimeClassName: {{ . | quote }}
       {{- end }}
       {{- with (coalesce .Values.nodeSelector .Values.global.nodeSelector) }}
       nodeSelector:

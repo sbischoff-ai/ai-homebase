@@ -4,9 +4,14 @@ fullnameOverride: ""
 replicaCount: 1
 
 image:
-  repository: ghcr.io/example/openhands
-  tag: ""
+  repository: docker.openhands.dev/openhands/openhands
+  tag: "1.5"
   pullPolicy: IfNotPresent
+
+agentServer:
+  image:
+    repository: ghcr.io/openhands/agent-server
+    tag: 1.12.0-python
 
 imagePullSecrets: []
 
@@ -32,7 +37,7 @@ serviceAccount:
 service:
   enabled: true
   type: ClusterIP
-  port: 80
+  port: 3000
   targetPort: 3000
   annotations: {}
 
@@ -148,6 +153,7 @@ tolerations: []
 affinity: {}
 topologySpreadConstraints: []
 priorityClassName: ""
+runtime: null
 runtimeClassName: ""
 
 extraVolumes: []
