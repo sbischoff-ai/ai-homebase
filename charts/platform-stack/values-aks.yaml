@@ -63,13 +63,11 @@ openhands:
   service:
     enabled: true
     type: ClusterIP
-  # OpenHands is intentionally internal-only by default.
-  # Keep ingress disabled unless a controlled external entrypoint is required.
+  # OpenHands UI/API should be exposed when the service is enabled.
   ingress:
-    enabled: false
+    enabled: true
     className: nginx
-    annotations:
-      kubernetes.io/ingress.class: internal
+    annotations: {}
     hosts:
       - host: openhands.aks.example.com
         paths:
@@ -129,7 +127,7 @@ nextcloud:
     targetPort: 80
     annotations: {}
   ingress:
-    enabled: false
+    enabled: true
     className: nginx
     annotations:
       cert-manager.io/cluster-issuer: letsencrypt-prod
@@ -174,7 +172,7 @@ gitea:
     targetPort: 3000
     annotations: {}
   ingress:
-    enabled: false
+    enabled: true
     className: nginx
     annotations:
       cert-manager.io/cluster-issuer: letsencrypt-prod
@@ -218,7 +216,7 @@ paperlessNgx:
     port: 8000
     targetPort: 8000
   ingress:
-    enabled: false
+    enabled: true
     className: nginx
     annotations:
       cert-manager.io/cluster-issuer: letsencrypt-prod
@@ -267,7 +265,7 @@ infisical:
     port: 8080
     targetPort: 8080
   ingress:
-    enabled: false
+    enabled: true
     className: nginx
     annotations:
       cert-manager.io/cluster-issuer: letsencrypt-prod
@@ -312,7 +310,7 @@ wgEasy:
     vpnTargetPort: 51820
     annotations: {}
   ingress:
-    enabled: false
+    enabled: true
     className: nginx
     annotations:
       cert-manager.io/cluster-issuer: letsencrypt-prod

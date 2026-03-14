@@ -28,7 +28,7 @@ Default posture:
 
 ### OpenHands (execution plane)
 
-OpenHands is the internal runtime for job execution.
+OpenHands is an agentic coding platform with a user-facing UI/API.
 
 Responsibilities:
 
@@ -39,7 +39,7 @@ Responsibilities:
 
 Default posture:
 
-- Internal-only service (`ClusterIP`) unless deliberately exposed.
+- Exposed through ingress for direct UI/API access.
 - Larger and more variable storage/compute profile.
 - Node/isolation controls expected for production workloads.
 
@@ -66,8 +66,8 @@ High-level flow:
 
 Boundary goal:
 
-- Keep user/API exposure concentrated in OpenClaw.
-- Keep high-variance execution risk inside OpenHands.
+- Expose user/API entrypoints for enabled services.
+- Keep high-variance execution risk inside OpenHands with isolation controls.
 - Keep optional services isolated behind explicit toggles and policy.
 
 ## Composition model in `platform-stack`

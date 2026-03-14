@@ -16,7 +16,7 @@ The stack is intentionally opinionated around:
 ### Core plane (always recommended)
 
 - **OpenClaw**: external-facing API/UI control surface.
-- **OpenHands**: internal execution runtime and worker orchestration.
+- **OpenHands**: agentic coding platform with user-facing UI/API.
 
 ### Optional supporting services
 

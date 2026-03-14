@@ -112,17 +112,6 @@ wait_for_workload() {
     --timeout=300s
 }
 
-wait_for_local_port() {
-  local port="$1"
-  for _ in {1..30}; do
-    if curl --silent --show-error --fail "http://127.0.0.1:${port}/" >/dev/null 2>&1; then
-      return 0
-    fi
-    sleep 1
-  done
-  return 1
-}
-
 echo "Updating Helm dependencies"
 helm dependency update charts/platform-stack
 
@@ -141,27 +130,9 @@ curl --silent --show-error --fail \
   -H 'Host: openclaw.localtest.me' \
   http://127.0.0.1/ >/dev/null
 
-echo "Checking openhands service endpoint through port-forward"
-OPENHANDS_POD="$(kubectl "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" get pods \
-  -l "app.kubernetes.io/instance=${RELEASE_NAME},app.kubernetes.io/name=openhands" \
-  -o jsonpath='{.items[0].metadata.name}')"
-
-if [[ -z "$OPENHANDS_POD" ]]; then
-  echo "Unable to find an openhands pod for port-forward check" >&2
-  exit 1
-fi
-
-kubectl "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" port-forward "pod/${OPENHANDS_POD}" 18080:80 >/tmp/openhands-port-forward.log 2>&1 &
-PORT_FORWARD_PID=$!
-cleanup() {
-  if [[ -n "${PORT_FORWARD_PID:-}" ]]; then
-    kill "$PORT_FORWARD_PID" >/dev/null 2>&1 || true
-    wait "$PORT_FORWARD_PID" 2>/dev/null || true
-  fi
-}
-trap cleanup EXIT
-
-wait_for_local_port 18080
-curl --silent --show-error --fail http://127.0.0.1:18080/ >/dev/null
+echo "Checking openhands ingress endpoint"
+curl --silent --show-error --fail \
+  -H 'Host: openhands.localtest.me' \
+  http://127.0.0.1/ >/dev/null
 
 echo "Local k3d smoke checks passed for release=${RELEASE_NAME} namespace=${NAMESPACE}"

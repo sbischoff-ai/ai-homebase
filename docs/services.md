@@ -9,7 +9,7 @@ This document summarizes each service's role, default posture, toggle, and integ
 | Service | Role | Default expectation |
 | --- | --- | --- |
 | `openclaw` | Control-plane API/UI | Enabled and externally reachable via ingress |
-| `openhands` | Execution runtime/workers | Enabled and internal-only (`ClusterIP`) |
+| `openhands` | Agentic coding UI/API | Enabled and exposed via ingress |
 
 ### Optional personal-cloud services
 
@@ -26,13 +26,13 @@ This document summarizes each service's role, default posture, toggle, and integ
 ### OpenClaw
 
 - Primary external endpoint for platform clients.
-- Should be treated as the only default public ingress.
+- Exposed via ingress when enabled.
 - Requires secret references for API/auth integrations.
 
 ### OpenHands
 
-- Consumes execution work; manages runtime workspaces.
-- Keep internal unless a reviewed internal-ingress pattern is required.
+- Agentic coding service that provides a user-facing UI/API.
+- Exposed via ingress when enabled.
 - Tune isolation/scheduling/persistence independently from OpenClaw.
 
 ## Optional service details
@@ -40,32 +40,32 @@ This document summarizes each service's role, default posture, toggle, and integ
 ### Nextcloud
 
 - Stateful user data service.
-- Ingress should be enabled only when user-facing access is required.
+- Ingress is enabled by default so the UI/API is reachable when the service is enabled.
 - Plan for larger and growing PVC usage.
 
 ### Gitea
 
 - Source control service with persistent repositories.
-- Optional ingress for developer access.
+- Ingress is enabled by default so developer UI/API access is available when the service is enabled.
 - Ensure backup for repository integrity.
 
 ### Paperless-ngx
 
 - Multi-volume document pipeline (`data`, `media`, etc.).
-- Optional ingress depending on user workflow.
+- Ingress is enabled by default so the UI/API is reachable when the service is enabled.
 - Validate storage growth and retention behavior.
 
 ### Infisical
 
 - Optional in-cluster secret-management component.
 - Can coexist with external secret-provider patterns.
-- Keep exposure private/admin-scoped.
+- Ingress is enabled by default when the service is enabled; restrict access in environment overlays when needed.
 
 ### wg-easy
 
 - Provides VPN lifecycle UI and WireGuard endpoint.
-- UI should remain private; VPN endpoint exposure should be tightly controlled.
-- Avoid default public UI publishing.
+- UI/API ingress is enabled by default when the service is enabled.
+- VPN endpoint exposure should be tightly controlled.
 
 ## Secret contract model (all services)
 
