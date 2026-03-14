@@ -8,7 +8,7 @@ This document summarizes each service's role, default posture, toggle, and integ
 
 | Service | Role | Default expectation |
 | --- | --- | --- |
-| `openclaw` | Control-plane API/UI | Enabled and externally reachable via ingress |
+| `openclaw` | General AI assistant UI/API | Enabled and externally reachable via ingress |
 | `openhands` | Agentic coding UI/API | Enabled and exposed via ingress |
 
 ### Optional personal-cloud services
@@ -25,7 +25,7 @@ This document summarizes each service's role, default posture, toggle, and integ
 
 ### OpenClaw
 
-- Primary external endpoint for platform clients.
+- General AI assistant service for user-facing chat/API use.
 - Exposed via ingress when enabled.
 - Requires secret references for API/auth integrations.
 
