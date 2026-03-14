@@ -158,16 +158,41 @@ resources:
     memory: 1Gi
 
 probes:
+  # Probe mode can be "tcp" or "http".
+  # Default is TCP because OpenHands image health endpoints may vary by build.
+  # Operators can switch to HTTP once endpoint stability is confirmed.
+  # Example HTTP override:
+  # probes:
+  #   readiness:
+  #     type: http
+  #     endpoint: /readyz
+  #     port: http
   liveness:
     enabled: true
-    path: /healthz
-    initialDelaySeconds: 15
-    periodSeconds: 10
+    type: tcp
+    port: 3000
+    endpoint: /healthz
+    initialDelaySeconds: 20
+    periodSeconds: 15
+    timeoutSeconds: 5
+    failureThreshold: 6
   readiness:
     enabled: true
-    path: /readyz
-    initialDelaySeconds: 10
+    type: tcp
+    port: 3000
+    endpoint: /readyz
+    initialDelaySeconds: 15
+    periodSeconds: 15
+    timeoutSeconds: 5
+    failureThreshold: 6
+  startup:
+    enabled: true
+    type: tcp
+    port: 3000
+    endpoint: /healthz
     periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 30
 
 nodeSelector: {}
 tolerations: []
