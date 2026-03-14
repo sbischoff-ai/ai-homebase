@@ -199,7 +199,11 @@ tolerations: []
 affinity: {}
 topologySpreadConstraints: []
 priorityClassName: ""
-runtime: null
+runtime:
+  # Optional neutral runtime mode exposed to the app (for example: "sandbox", "default").
+  mode: ""
+  # Optional Kubernetes RuntimeClass name used for pod scheduling/runtime selection.
+  className: ""
 runtimeClassName: ""
 
 extraVolumes: []

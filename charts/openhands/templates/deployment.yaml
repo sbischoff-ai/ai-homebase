@@ -43,12 +43,30 @@ spec:
         - name: {{ include "openhands.name" . }}
           image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- $runtime := .Values.runtime }}
+          {{- $runtimeClassName := "" }}
+          {{- $runtimeMode := "" }}
+          {{- if kindIs "string" $runtime }}
+          {{- $runtimeClassName = $runtime }}
+          {{- else if kindIs "map" $runtime }}
+          {{- $runtimeClassName = (coalesce $runtime.className $runtime.runtimeClassName $runtime.name) | default "" }}
+          {{- $runtimeMode = (coalesce $runtime.mode $runtime.runtimeMode) | default "" }}
+          {{- end }}
           ports:
             - name: http
               containerPort: {{ .Values.service.targetPort }}
               protocol: TCP
           env:
             {{- $envNames := dict }}
+            - name: AGENT_SERVER_IMAGE_REPOSITORY
+              value: {{ .Values.agentServer.image.repository | quote }}
+            {{- $_ := set $envNames "AGENT_SERVER_IMAGE_REPOSITORY" true }}
+            - name: AGENT_SERVER_IMAGE_TAG
+              value: {{ .Values.agentServer.image.tag | quote }}
+            {{- $_ := set $envNames "AGENT_SERVER_IMAGE_TAG" true }}
+            - name: RUNTIME_MODE
+              value: {{ $runtimeMode | quote }}
+            {{- $_ := set $envNames "RUNTIME_MODE" true }}
             - name: QUEUE_ENABLED
               value: {{ .Values.queue.enabled | quote }}
             {{- $_ := set $envNames "QUEUE_ENABLED" true }}
@@ -184,13 +202,6 @@ spec:
       {{- end }}
       {{- with .Values.priorityClassName }}
       priorityClassName: {{ . }}
-      {{- end }}
-      {{- $runtime := .Values.runtime }}
-      {{- $runtimeClassName := "" }}
-      {{- if kindIs "string" $runtime }}
-      {{- $runtimeClassName = $runtime }}
-      {{- else if kindIs "map" $runtime }}
-      {{- $runtimeClassName = (coalesce $runtime.className $runtime.runtimeClassName $runtime.name) | default "" }}
       {{- end }}
       {{- with (default .Values.runtimeClassName $runtimeClassName) }}
       runtimeClassName: {{ . | quote }}
