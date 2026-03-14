@@ -1,0 +1,19 @@
+# Optional k3d user overrides loaded *after* values-dev.yaml + values-k3d.yaml.
+# Keep this file out of source control in real environments if it contains secrets.
+
+# Example: point to a local registry mirror instead of public images.
+# openclaw:
+#   image:
+#     repository: k3d-ai-homebase-registry.localhost:5000/openclaw
+#     tag: dev
+# openhands:
+#   image:
+#     repository: k3d-ai-homebase-registry.localhost:5000/openhands
+#     tag: dev
+
+# Example: temporarily enable an optional service for a focused local test.
+# gitea:
+#   enabled: true
+#   persistence:
+#     enabled: true
+#     size: 5Gi

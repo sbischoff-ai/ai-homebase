@@ -5,7 +5,7 @@ This project uses Helm values layering to keep environment configuration explici
 ## Values hierarchy (lowest to highest precedence)
 
 1. `charts/platform-stack/values.yaml`
-2. Profile overlay (`values-dev.yaml`, `values-aks.yaml`, `values-prod.yaml`)
+2. Profile overlay (`values-dev.yaml`, `values-k3d.yaml`, `values-aks.yaml`, `values-prod.yaml`)
 3. Environment/team overlay file(s) (`-f values-<profile>.<env>.yaml`)
 4. CLI overrides (`--set`, `--set-string`, `--set-file`)
 
@@ -22,6 +22,7 @@ Use `values.yaml` for safe, reusable defaults that should apply broadly.
 Use profile files to encode environment class behavior:
 
 - `values-dev.yaml`: low-cost local/dev defaults.
+- `values-k3d.yaml`: k3d local-smoke overlay (loaded after `values-dev.yaml`).
 - `values-aks.yaml`: AKS assumptions and cloud integration placeholders.
 - `values-prod.yaml`: production-shaped resource/availability posture.
 
