@@ -129,7 +129,7 @@ ingress:
     #     - some.domain.com
 
 postgresql:
-  # -- Enables an in-cluster PostgreSQL deployment. To achieve HA for Postgres, we recommend deploying https://github.com/zalando/postgres-operator instead.
+  # -- Enables an in-cluster PostgreSQL deployment by default. To achieve HA for Postgres, we recommend deploying https://github.com/zalando/postgres-operator instead.
   enabled: true
   # -- PostgreSQL resource name
   name: "postgresql"
@@ -150,6 +150,15 @@ postgresql:
     # -- Database name for Infisical
     database: infisicalDB
 
+  primary:
+    persistence:
+      # -- PVC for PostgreSQL primary data. This stores Infisical's encrypted secret data at rest and is critical for retention/disaster recovery.
+      enabled: true
+      # -- Requested PostgreSQL PVC size.
+      size: 10Gi
+      # -- Optional PostgreSQL PVC storageClass override.
+      storageClass: ""
+
   useExistingPostgresSecret:
     # -- Set to true if using an existing Kubernetes secret that contains PostgreSQL connection string
     enabled: false
@@ -160,7 +169,7 @@ postgresql:
       key: ""
 
 redis:
-  # -- Enables an in-cluster Redis deployment
+  # -- Enables an in-cluster Redis deployment by default
   enabled: true
   # -- Redis resource name
   name: "redis"
@@ -186,3 +195,12 @@ redis:
 
   # -- Redis deployment type (e.g., standalone or cluster)
   architecture: standalone
+
+  master:
+    persistence:
+      # -- PVC for Redis primary cache data.
+      enabled: true
+      # -- Requested Redis PVC size.
+      size: 8Gi
+      # -- Optional Redis PVC storageClass override.
+      storageClass: ""
