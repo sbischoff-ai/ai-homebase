@@ -264,10 +264,8 @@ wgEasy:
     pullPolicy: IfNotPresent
   service:
     type: ClusterIP
-    webPort: 51821
-    webTargetPort: 51821
-    vpnPort: 51820
-    vpnTargetPort: 51820
+    wireguardPort: 51820
+    uiPort: 51821
     annotations: {}
   ingress:
     enabled: true

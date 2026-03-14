@@ -29,9 +29,9 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: web
-              containerPort: {{ .Values.service.webTargetPort }}
+              containerPort: {{ .Values.service.uiPort }}
             - name: vpn
-              containerPort: {{ .Values.service.vpnTargetPort }}
+              containerPort: {{ .Values.service.wireguardPort }}
               protocol: UDP
           {{- if .Values.secretRefs }}
           env:

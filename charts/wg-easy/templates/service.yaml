@@ -12,12 +12,12 @@ spec:
   type: {{ .Values.service.type }}
   ports:
     - name: web
-      port: {{ .Values.service.webPort }}
-      targetPort: {{ .Values.service.webTargetPort }}
+      port: {{ .Values.service.uiPort }}
+      targetPort: {{ .Values.service.uiPort }}
       protocol: TCP
     - name: vpn
-      port: {{ .Values.service.vpnPort }}
-      targetPort: {{ .Values.service.vpnTargetPort }}
+      port: {{ .Values.service.wireguardPort }}
+      targetPort: {{ .Values.service.wireguardPort }}
       protocol: UDP
   selector:
     {{- include "wg-easy.selectorLabels" . | nindent 4 }}

@@ -17,11 +17,9 @@ global:
   commonLabels: {}
 
 service:
-  type: ClusterIP
-  webPort: 51821
-  webTargetPort: 51821
-  vpnPort: 51820
-  vpnTargetPort: 51820
+  type: LoadBalancer # Set to NodePort when your environment does not support LoadBalancer services.
+  wireguardPort: 51820
+  uiPort: 51821
   annotations: {}
 
 ingress:

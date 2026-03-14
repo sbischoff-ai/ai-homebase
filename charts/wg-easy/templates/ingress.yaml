@@ -26,7 +26,7 @@ spec:
               service:
                 name: {{ include "wg-easy.fullname" $ }}
                 port:
-                  number: {{ $.Values.service.webPort }}
+                  number: {{ $.Values.service.uiPort }}
           {{- end }}
     {{- end }}
   {{- with .Values.ingress.tls }}
