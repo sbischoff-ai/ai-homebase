@@ -78,8 +78,18 @@ envFromSecrets: []
 # Secret injection conventions:
 # - Secret names: kebab-case (example: openhands-app-secrets)
 # - Secret data keys: UPPER_SNAKE_CASE (example: OPENHANDS_API_TOKEN)
-existingSecret: "" # Optional envFrom source for app credentials/secrets.
-secretRefs: [] # [{name: openhands-app-secrets, key: OPENHANDS_API_TOKEN, envVar: OPENHANDS_API_TOKEN}]
+existingSecret: "" # Optional envFrom source for app credentials/secrets (example: openhands-app-secrets).
+# Explicit secret key -> env var mappings (OpenHands-focused examples):
+# - required/expected: {name: openhands-app-secrets, key: LLM_API_KEY, envVar: LLM_API_KEY}
+# - optional: {name: openhands-app-secrets, key: LLM_MODEL, envVar: LLM_MODEL}
+# - optional: {name: openhands-app-secrets, key: OH_WEB_URL, envVar: OH_WEB_URL}
+# - optional/future: provider or git credentials (for example OPENAI_API_KEY, GITHUB_TOKEN)
+secretRefs: []
+# Structured secret-backed env vars rendered as valueFrom.secretKeyRef:
+# - {name: LLM_API_KEY, secretName: openhands-app-secrets, key: LLM_API_KEY}
+# - {name: LLM_MODEL, secretName: openhands-app-secrets, key: LLM_MODEL, optional: true}
+# - {name: OH_WEB_URL, secretName: openhands-app-secrets, key: OH_WEB_URL, optional: true}
+secretEnv: []
 
 queue:
   enabled: false

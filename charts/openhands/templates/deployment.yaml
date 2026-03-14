@@ -48,30 +48,59 @@ spec:
               containerPort: {{ .Values.service.targetPort }}
               protocol: TCP
           env:
+            {{- $envNames := dict }}
             - name: QUEUE_ENABLED
               value: {{ .Values.queue.enabled | quote }}
+            {{- $_ := set $envNames "QUEUE_ENABLED" true }}
             - name: QUEUE_PROVIDER
               value: {{ .Values.queue.provider | quote }}
+            {{- $_ := set $envNames "QUEUE_PROVIDER" true }}
             - name: QUEUE_ENDPOINT
               value: {{ .Values.queue.endpoint | quote }}
+            {{- $_ := set $envNames "QUEUE_ENDPOINT" true }}
             - name: QUEUE_NAME
               value: {{ .Values.queue.queueName | quote }}
+            {{- $_ := set $envNames "QUEUE_NAME" true }}
             - name: QUEUE_DLQ_NAME
               value: {{ .Values.queue.dlqName | quote }}
+            {{- $_ := set $envNames "QUEUE_DLQ_NAME" true }}
             - name: WORKER_CONCURRENCY
               value: {{ .Values.queue.workerConcurrency | quote }}
-            {{- with .Values.global.env }}
-            {{- toYaml . | nindent 12 }}
+            {{- $_ := set $envNames "WORKER_CONCURRENCY" true }}
+            {{- range .Values.global.env }}
+            {{- if and .name (not (hasKey $envNames .name)) }}
+            {{- toYaml (list .) | nindent 12 }}
+            {{- $_ := set $envNames .name true }}
             {{- end }}
-            {{- with .Values.env }}
-            {{- toYaml . | nindent 12 }}
+            {{- end }}
+            {{- range .Values.env }}
+            {{- if and .name (not (hasKey $envNames .name)) }}
+            {{- toYaml (list .) | nindent 12 }}
+            {{- $_ := set $envNames .name true }}
+            {{- end }}
+            {{- end }}
+            {{- range .Values.secretEnv }}
+            {{- if and .name .secretName .key (not (hasKey $envNames .name)) }}
+            - name: {{ .name }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .secretName }}
+                  key: {{ .key }}
+                  {{- with .optional }}
+                  optional: {{ . }}
+                  {{- end }}
+            {{- $_ := set $envNames .name true }}
+            {{- end }}
             {{- end }}
             {{- range .Values.secretRefs }}
+            {{- if and .envVar .name .key (not (hasKey $envNames .envVar)) }}
             - name: {{ .envVar }}
               valueFrom:
                 secretKeyRef:
                   name: {{ .name }}
                   key: {{ .key }}
+            {{- $_ := set $envNames .envVar true }}
+            {{- end }}
             {{- end }}
           {{- if or .Values.existingSecret .Values.envFromSecrets }}
           envFrom:

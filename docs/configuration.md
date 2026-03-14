@@ -74,7 +74,9 @@ Current supported runtime contracts:
 - `existingSecret`
 - `secretKeys.gatewayToken` (OpenClaw gateway token key mapping)
 - optional OpenClaw provider/search mappings under `secretKeys.*ApiKey`
+- `envFromSecrets[]`
 - `secretRefs[]`
+- `secretEnv[]`
 
 Recommended layering:
 

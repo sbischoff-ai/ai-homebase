@@ -74,7 +74,11 @@ This document summarizes each service's role, default posture, toggle, and integ
 Supported patterns:
 
 - `existingSecret` for a primary Secret source (OpenClaw uses explicit `secretKeys.*` mappings against this Secret).
+- `envFromSecrets[]` for additional bulk Secret imports.
 - `secretRefs[]` for explicit key-to-env mapping.
+- `secretEnv[]` for structured key-to-env mapping rendered as `valueFrom.secretKeyRef`.
+
+Infisical integration is done by syncing provider values into Kubernetes Secret names consumed by each chart (for example `openhands-app-secrets`) and then referencing those names via `existingSecret`, `envFromSecrets`, `secretRefs`, or `secretEnv`.
 
 Recommended naming:
 
