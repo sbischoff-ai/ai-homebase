@@ -100,7 +100,7 @@ helm template platform-stack charts/platform-stack -f charts/platform-stack/valu
 ### Scripted helpers
 
 ```bash
-./scripts/lint.sh --values-file charts/platform-stack/values-dev.yaml
+./scripts/lint.sh --values-file charts/platform-stack/values-dev.yaml  # auto-discovers component charts
 ./scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values-dev.yaml
 ./scripts/install-dev.sh --release-name platform-stack --namespace ai-homebase
 ./scripts/install-aks.sh --release-name platform-stack --namespace ai-homebase --kube-context <your-kube-context>

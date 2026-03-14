@@ -46,21 +46,13 @@ for values_file in "${VALUES_FILES[@]}"; do
   VALUES_ARGS+=(--values "$values_file")
 done
 
-CHARTS=(
-  charts/openclaw
-  charts/openhands
-  charts/nextcloud
-  charts/gitea
-  charts/paperless-ngx
-  charts/infisical
-  charts/wg-easy
-)
-
 echo "Linting component charts"
-for chart in "${CHARTS[@]}"; do
+while IFS= read -r chart; do
+  [[ "$chart" == "charts/platform-stack" ]] && continue
+  [[ ! -f "$chart/Chart.yaml" ]] && continue
   echo "- helm lint ${chart}"
   helm lint "$chart"
-done
+done < <(find charts -mindepth 1 -maxdepth 1 -type d | sort)
 
 echo "Linting umbrella chart for release=$RELEASE_NAME namespace=$NAMESPACE values=${VALUES_FILES[*]}"
 helm lint charts/platform-stack "${KUBE_CONTEXT_ARGS[@]}" \
