@@ -91,13 +91,10 @@ openhands:
   # OpenHands UI/API should be exposed when the service is enabled.
   ingress:
     enabled: true
-    className: ""
+    hostName: openhands.homebase.local
+    ingressClassName: ""
+    # Keep hostName on an internal/VPN DNS name when exposing OpenHands privately.
     annotations: {}
-    hosts:
-      - host: openhands.homebase.local
-        paths:
-          - path: /
-            pathType: Prefix
     tls: []
   workspace:
     enabled: false

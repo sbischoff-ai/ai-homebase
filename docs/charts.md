@@ -74,3 +74,17 @@ When `openclaw.gateway.auth.mode` is `token`, chart rendering fails fast unless 
 When `openclaw.gateway.bind` is non-loopback (for example `lan`) and `openclaw.gateway.controlUi.enabled=true`, chart rendering also requires a non-empty `openclaw.gateway.controlUi.allowedOrigins` list.
 
 When ingress is enabled, ensure each `ingress.hosts[*].host` has a matching exact public origin (scheme + host) in `openclaw.gateway.controlUi.allowedOrigins`.
+
+## OpenHands ingress values
+
+OpenHands keeps `service.type: ClusterIP` by default.
+
+Ingress controls are available under `openhands.ingress.*`:
+
+- `ingress.enabled`
+- `ingress.hostName` (preferred single host entry)
+- `ingress.ingressClassName`
+- `ingress.annotations`
+- `ingress.tls`
+
+Use internal/VPN hostnames for admin/internal deployments (for example `openhands.vpn.homebase.internal`) and pair them with an internal ingress class.
