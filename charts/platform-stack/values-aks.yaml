@@ -19,6 +19,7 @@ global:
 
 openclaw:
   enabled: true
+  replicaCount: 1
   image:
     repository: myregistry.azurecr.io/openclaw
     tag: stable
@@ -46,13 +47,25 @@ openclaw:
     size: 20Gi
     storageClass: managed-csi
   autoscaling:
-    enabled: true
-    minReplicas: 2
-    maxReplicas: 6
-    targetCPUUtilizationPercentage: 70
+    enabled: false
   podDisruptionBudget:
     enabled: true
     minAvailable: 1
+  existingSecret: openclaw-app-secrets
+  secretKeys:
+    gatewayToken: OPENCLAW_GATEWAY_TOKEN
+    openaiApiKey: OPENAI_API_KEY
+    anthropicApiKey: ANTHROPIC_API_KEY
+    googleApiKey: GOOGLE_API_KEY
+    tavilyApiKey: TAVILY_API_KEY
+    braveSearchApiKey: BRAVE_SEARCH_API_KEY
+  secretRefs: []
+  openclaw:
+    gateway:
+      controlUi:
+        allowedOrigins:
+          - https://openclaw.aks.example.com
+
 
 openhands:
   enabled: true

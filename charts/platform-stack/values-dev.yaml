@@ -26,7 +26,7 @@ openclaw:
             pathType: Prefix
     tls: []
   persistence:
-    enabled: false
+    enabled: true
   autoscaling:
     enabled: false
   podDisruptionBudget:
@@ -38,6 +38,21 @@ openclaw:
     limits:
       cpu: 250m
       memory: 256Mi
+  existingSecret: openclaw-app-secrets
+  secretKeys:
+    gatewayToken: OPENCLAW_GATEWAY_TOKEN
+    openaiApiKey: OPENAI_API_KEY
+    anthropicApiKey: ANTHROPIC_API_KEY
+    googleApiKey: GOOGLE_API_KEY
+    tavilyApiKey: TAVILY_API_KEY
+    braveSearchApiKey: BRAVE_SEARCH_API_KEY
+  secretRefs: []
+  openclaw:
+    gateway:
+      controlUi:
+        allowedOrigins:
+          - http://openclaw.localtest.me
+
 
 openhands:
   enabled: true

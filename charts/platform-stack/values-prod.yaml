@@ -18,7 +18,7 @@ global:
 
 openclaw:
   enabled: true
-  replicaCount: 3
+  replicaCount: 1
   ingress:
     enabled: true
     className: nginx
@@ -40,11 +40,7 @@ openclaw:
     size: 50Gi
     storageClass: premium-rwo
   autoscaling:
-    enabled: true
-    minReplicas: 3
-    maxReplicas: 12
-    targetCPUUtilizationPercentage: 65
-    targetMemoryUtilizationPercentage: 75
+    enabled: false
   podDisruptionBudget:
     enabled: true
     minAvailable: 2
@@ -60,6 +56,21 @@ openclaw:
     limits:
       cpu: "2"
       memory: 2Gi
+  existingSecret: openclaw-app-secrets
+  secretKeys:
+    gatewayToken: OPENCLAW_GATEWAY_TOKEN
+    openaiApiKey: OPENAI_API_KEY
+    anthropicApiKey: ANTHROPIC_API_KEY
+    googleApiKey: GOOGLE_API_KEY
+    tavilyApiKey: TAVILY_API_KEY
+    braveSearchApiKey: BRAVE_SEARCH_API_KEY
+  secretRefs: []
+  openclaw:
+    gateway:
+      controlUi:
+        allowedOrigins:
+          - https://openclaw.prod.example.com
+
 
 openhands:
   enabled: true
