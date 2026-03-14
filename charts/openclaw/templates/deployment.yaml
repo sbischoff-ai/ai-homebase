@@ -53,6 +53,8 @@ spec:
           env:
             - name: OPENCLAW_STATE_DIR
               value: {{ .Values.persistence.mountPath | quote }}
+            - name: OPENCLAW_CONFIG_PATH
+              value: /etc/openclaw/openclaw.json
             {{- with .Values.global.env }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -66,12 +68,8 @@ spec:
                   name: {{ .name }}
                   key: {{ .key }}
             {{- end }}
-          {{- if or (and .Values.config.enabled .Values.config.data) .Values.existingSecret .Values.envFromSecrets }}
+          {{- if or .Values.existingSecret .Values.envFromSecrets }}
           envFrom:
-            {{- if and .Values.config.enabled .Values.config.data }}
-            - configMapRef:
-                name: {{ include "openclaw.fullname" . }}
-            {{- end }}
             {{- with .Values.existingSecret }}
             - secretRef:
                 name: {{ . }}
@@ -115,22 +113,36 @@ spec:
             {{- toYaml .Values.resources | nindent 12 }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
-          {{- if or .Values.persistence.enabled .Values.extraVolumeMounts }}
+          {{- if or .Values.persistence.enabled .Values.config.enabled .Values.extraVolumeMounts }}
           volumeMounts:
             {{- if .Values.persistence.enabled }}
             - name: data
               mountPath: {{ .Values.persistence.mountPath }}
             {{- end }}
+            {{- if .Values.config.enabled }}
+            - name: config
+              mountPath: /etc/openclaw/openclaw.json
+              subPath: openclaw.json
+              readOnly: true
+            {{- end }}
             {{- with .Values.extraVolumeMounts }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
           {{- end }}
-      {{- if or .Values.persistence.enabled .Values.extraVolumes }}
+      {{- if or .Values.persistence.enabled .Values.config.enabled .Values.extraVolumes }}
       volumes:
         {{- if .Values.persistence.enabled }}
         - name: data
           persistentVolumeClaim:
             claimName: {{ default (include "openclaw.fullname" .) .Values.persistence.existingClaim }}
+        {{- end }}
+        {{- if .Values.config.enabled }}
+        - name: config
+          configMap:
+            name: {{ include "openclaw.fullname" . }}
+            items:
+              - key: openclaw.json
+                path: openclaw.json
         {{- end }}
         {{- with .Values.extraVolumes }}
         {{- toYaml . | nindent 8 }}

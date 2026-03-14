@@ -1,4 +1,4 @@
-{{- if and .Values.config.enabled .Values.config.data }}
+{{- if .Values.config.enabled }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -6,5 +6,25 @@ metadata:
   labels:
     {{- include "openclaw.labels" . | nindent 4 }}
 data:
-  {{- toYaml .Values.config.data | nindent 2 }}
+  openclaw.json: |
+    {
+      "gateway": {
+        "mode": {{ .Values.openclaw.gateway.mode | quote }},
+        "bind": {{ .Values.openclaw.gateway.bind | quote }},
+        "port": {{ .Values.openclaw.gateway.port }},
+        "auth": {
+          "mode": {{ .Values.openclaw.gateway.auth.mode | quote }}
+        },
+        "controlUi": {
+          "enabled": {{ .Values.openclaw.gateway.controlUi.enabled }},
+          "allowedOrigins": {{ toJson .Values.openclaw.gateway.controlUi.allowedOrigins }}
+        }
+      },
+      "agents": {
+        "defaults": {
+          "workspace": {{ .Values.openclaw.agents.defaults.workspace | quote }}
+        },
+        "list": {{ toJson .Values.openclaw.agents.list }}
+      }
+    }
 {{- end }}

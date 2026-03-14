@@ -61,7 +61,24 @@ persistence:
 
 config:
   enabled: true
-  data: {}
+
+openclaw:
+  gateway:
+    mode: local
+    bind: lan
+    port: 18789
+    auth:
+      mode: token
+    controlUi:
+      enabled: true
+      allowedOrigins: []
+  agents:
+    defaults:
+      workspace: ~/.openclaw/workspace
+    list:
+      - name: default
+        provider: openai
+        model: gpt-5-mini
 
 env: []
 envFromSecrets: []
