@@ -17,7 +17,9 @@ kubectl create secret generic wg-easy-secrets \
   --from-literal=PASSWORD='change-me'
 ```
 
-Then set `existingSecret` to that secret name.
+By default, the chart reads these keys from a secret named `<release>-wg-easy-secrets` (for `helm install wg-easy`, that is `wg-easy-wg-easy-secrets`).
+
+Set `existingSecret` to override that name (for example, `wg-easy-secrets`).
 
 ## Values contract
 
@@ -28,7 +30,7 @@ Then set `existingSecret` to that secret name.
 
 At deployment time, the chart wires:
 
-- Required env vars from `existingSecret`: `WG_HOST`, `PASSWORD`
+- Required env vars from the configured secret (`existingSecret` if set, otherwise `<release>-wg-easy-secrets`): `WG_HOST`, `PASSWORD`
 - Recommended defaults:
   - `WG_DEFAULT_ADDRESS=10.8.0.x`
   - `WG_DEFAULT_DNS=1.1.1.1`
@@ -37,7 +39,7 @@ At deployment time, the chart wires:
 ## Deployment flow
 
 1. Create the required secret (example above).
-2. Configure chart values (at minimum `existingSecret`, and service/ingress settings appropriate for your cluster).
+2. Configure chart values (at minimum ensure your secret name matches the default or set `existingSecret`; also set service/ingress settings appropriate for your cluster).
 3. Install or upgrade:
 
 ```bash
