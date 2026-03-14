@@ -1,6 +1,17 @@
 apiVersion: v2
 name: infisical
-description: Helm chart for deploying Infisical
+description: Wrapper chart that tracks Infisical standalone upstream chart semantics
 type: application
-version: 0.1.0
-appVersion: "0.94.0"
+version: 0.2.0
+appVersion: "0.151.0"
+sources:
+  - https://github.com/Infisical/infisical/tree/main/helm-charts/infisical-standalone-postgres
+dependencies:
+  - name: postgresql
+    version: 14.1.10
+    repository: oci://registry-1.docker.io/bitnamicharts
+    condition: postgresql.enabled
+  - name: redis
+    version: 18.14.1
+    repository: oci://registry-1.docker.io/bitnamicharts
+    condition: redis.enabled

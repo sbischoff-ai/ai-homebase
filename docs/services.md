@@ -57,9 +57,10 @@ This document summarizes each service's role, default posture, toggle, and integ
 
 ### Infisical
 
-- Optional in-cluster secret-management component.
+- Optional in-cluster secret-management component based on upstream standalone chart semantics.
+- Primary knobs are grouped under `infisical.infisical`, `infisical.ingress`, `infisical.postgresql`, and `infisical.redis`.
+- Uses `infisical.infisical.kubeSecretRef` to point at the runtime/bootstrap secret.
 - Can coexist with external secret-provider patterns.
-- Ingress is enabled by default when the service is enabled; restrict access in environment overlays when needed.
 
 ### wg-easy
 

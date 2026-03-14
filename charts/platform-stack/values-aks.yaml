@@ -269,45 +269,40 @@ paperlessNgx:
 
 infisical:
   enabled: false
-  image:
-    repository: myregistry.azurecr.io/infisical
-    tag: stable
-    pullPolicy: IfNotPresent
-  service:
-    type: ClusterIP
-    port: 8080
-    targetPort: 8080
+  infisical:
+    enabled: true
+    image:
+      repository: myregistry.azurecr.io/infisical
+      tag: stable
+      pullPolicy: IfNotPresent
+    service:
+      type: ClusterIP
+    resources: {}
+    autoBootstrap:
+      enabled: false
+    kubeSecretRef: infisical-app-secrets
   ingress:
     enabled: true
-    className: nginx
+    hostName: infisical.aks.example.com
+    ingressClassName: nginx
     annotations:
       cert-manager.io/cluster-issuer: letsencrypt-prod
       external-dns.alpha.kubernetes.io/hostname: infisical.aks.example.com
-    hosts:
-      - host: infisical.aks.example.com
-        paths:
-          - path: /
-            pathType: Prefix
     tls:
       - secretName: infisical-tls
         hosts:
           - infisical.aks.example.com
-  persistence:
+    nginx:
+      enabled: false
+  postgresql:
     enabled: true
-    existingClaim: ""
-    accessModes: ["ReadWriteOnce"]
-    size: 10Gi
-    storageClass: managed-csi
-  resources: {}
-  probes:
-    liveness:
-      enabled: true
-      path: /api/status
-    readiness:
-      enabled: true
-      path: /api/status
-  existingSecret: infisical-app-secrets
-  secretRefs: []
+    primary:
+      persistence:
+        enabled: true
+        size: 10Gi
+        storageClass: managed-csi
+  redis:
+    enabled: true
 
 wgEasy:
   enabled: false

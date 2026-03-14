@@ -13,6 +13,8 @@
 
 Most service charts also expose `existingSecret` and `secretRefs[]` to consume credentials from pre-created Kubernetes Secrets using standardized key naming conventions.
 
+`infisical` now follows upstream standalone chart value paths (`infisical.*`, `ingress.*`, `postgresql.*`, `redis.*`) and uses `infisical.kubeSecretRef` for bootstrap/runtime credentials.
+
 For `openclaw`, `existingSecret` is used with explicit key mappings under `secretKeys.*` (including `secretKeys.gatewayToken` for gateway token auth).
 
 ## platform-stack composition

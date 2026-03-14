@@ -294,50 +294,45 @@ paperlessNgx:
 
 infisical:
   enabled: false
-  image:
-    repository: ghcr.io/example/infisical
-    tag: stable
-    pullPolicy: IfNotPresent
-  service:
-    type: ClusterIP
-    port: 8080
-    targetPort: 8080
+  infisical:
+    enabled: true
+    image:
+      repository: ghcr.io/example/infisical
+      tag: stable
+      pullPolicy: IfNotPresent
+    service:
+      type: ClusterIP
+    resources:
+      requests:
+        cpu: 250m
+        memory: 256Mi
+      limits:
+        cpu: "1"
+        memory: 1Gi
+    autoBootstrap:
+      enabled: false
+    kubeSecretRef: infisical-app-secrets
   ingress:
     enabled: true
-    className: nginx
+    hostName: infisical.prod.example.com
+    ingressClassName: nginx
     annotations:
       cert-manager.io/cluster-issuer: letsencrypt-prod
-    hosts:
-      - host: infisical.prod.example.com
-        paths:
-          - path: /
-            pathType: Prefix
     tls:
       - secretName: infisical-prod-tls
         hosts:
           - infisical.prod.example.com
-  persistence:
+    nginx:
+      enabled: false
+  postgresql:
     enabled: true
-    existingClaim: ""
-    accessModes: ["ReadWriteOnce"]
-    size: 20Gi
-    storageClass: premium-rwo
-  resources:
-    requests:
-      cpu: 250m
-      memory: 256Mi
-    limits:
-      cpu: "1"
-      memory: 1Gi
-  probes:
-    liveness:
-      enabled: true
-      path: /api/status
-    readiness:
-      enabled: true
-      path: /api/status
-  existingSecret: infisical-app-secrets
-  secretRefs: []
+    primary:
+      persistence:
+        enabled: true
+        size: 20Gi
+        storageClass: premium-rwo
+  redis:
+    enabled: true
 
 wgEasy:
   enabled: false

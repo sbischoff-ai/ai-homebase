@@ -16,9 +16,9 @@ dependencies:
   version: 0.1.0
 - name: infisical
   repository: file://../infisical
-  version: 0.1.0
+  version: 0.2.0
 - name: wg-easy
   repository: file://../wg-easy
   version: 0.1.0
-digest: sha256:d5ea95c5fb88322d26d05c01bb0707ee634c93330a63d6d17a525371bb46afb8
-generated: "2026-03-13T01:30:58.011665559Z"
+digest: sha256:21860fa1099f7df380892536512e9eb826ac56c8f00af4eb3006d0f0e8c8be5c
+generated: "2026-03-14T17:01:24.193331667Z"
