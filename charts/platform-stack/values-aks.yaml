@@ -280,6 +280,12 @@ infisical:
     resources: {}
     autoBootstrap:
       enabled: false
+      organization: default-org
+      credentialSecret:
+        name: infisical-bootstrap-credentials
+      secretDestination:
+        name: infisical-bootstrap-secret
+        namespace: default
     kubeSecretRef: infisical-app-secrets
   ingress:
     enabled: true

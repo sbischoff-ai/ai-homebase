@@ -150,6 +150,23 @@ Set `infisical.kubeSecretRef` to a Kubernetes Secret that includes:
 
 These keys are always wired into the Infisical container in chart templates for in-cluster mode.
 
+### Auto-bootstrap credentials
+
+`infisical.autoBootstrap.*` values are exposed by the Infisical chart and can be configured from `platform-stack` via `infisical.infisical.autoBootstrap.*`:
+
+- `enabled`
+- `organization`
+- `credentialSecret.name`
+- `secretDestination.name`
+- `secretDestination.namespace`
+
+When `infisical.autoBootstrap.enabled=true`, `credentialSecret.name` must reference a Kubernetes Secret containing:
+
+- `INFISICAL_ADMIN_EMAIL`
+- `INFISICAL_ADMIN_PASSWORD`
+
+When auto-bootstrap is disabled, Infisical falls back to default first-run behavior where the first signup becomes the admin user.
+
 For internal-only ingress posture, prefer private/VPN hostnames and an internal ingress class. Example:
 
 ```yaml
