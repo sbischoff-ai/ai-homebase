@@ -1,8 +1,18 @@
+# Overlay this after charts/platform-stack/values-aks.yaml.
+# Add profile/value overlays as needed, for example:
+#   --values-file examples/profile-content-services.override.yaml
+#   --values-file examples/storage-premium.override.yaml
+
 global:
   domain: <your-domain>
   hosts:
     openclaw: <openclaw-hostname>
     openhands: <openhands-hostname>
+    nextcloud: <nextcloud-hostname>
+    gitea: <gitea-hostname>
+    paperlessNgx: <paperless-hostname>
+    infisical: <infisical-hostname>
+    wgEasy: <wgeasy-hostname>
   imagePullSecrets:
     - acr-pull
 
@@ -42,3 +52,23 @@ externalSecrets:
       targetSecretName: openhands-app-secrets
       remoteRef:
         key: <key-vault-secret-for-openhands>
+    - name: nextcloud-secrets
+      targetSecretName: nextcloud-app-secrets
+      remoteRef:
+        key: <key-vault-secret-for-nextcloud>
+    - name: gitea-secrets
+      targetSecretName: gitea-app-secrets
+      remoteRef:
+        key: <key-vault-secret-for-gitea>
+    - name: paperlessngx-secrets
+      targetSecretName: paperlessngx-app-secrets
+      remoteRef:
+        key: <key-vault-secret-for-paperless>
+    - name: infisical-secrets
+      targetSecretName: infisical-app-secrets
+      remoteRef:
+        key: <key-vault-secret-for-infisical>
+    - name: wgeasy-secrets
+      targetSecretName: wgeasy-app-secrets
+      remoteRef:
+        key: <key-vault-secret-for-wgeasy>
