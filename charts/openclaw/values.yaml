@@ -44,7 +44,7 @@ ingress:
   annotations: {}
   # Optional default used when ingress.hosts[*].host is omitted.
   # If empty, the chart falls back to global.hosts.openclaw.
-  defaultHost: ""
+  defaultHost: openclaw.example.com
   hosts:
     - host: ""
       paths:
@@ -75,14 +75,14 @@ openclaw:
     controlUi:
       enabled: true
       allowedOrigins:
-        - "*"
+        - https://openclaw.example.com
   agents:
     defaults:
       workspace: ~/.openclaw/workspace
     list:
-      - name: default
-        provider: openai
-        model: gpt-5-mini
+      - id: default
+        name: OpenClaw Assistant
+        workspace: ~/.openclaw/workspace
 
 env: []
 envFromSecrets: []
@@ -94,9 +94,15 @@ secretKeys:
   gatewayToken: OPENCLAW_GATEWAY_TOKEN
   openaiApiKey: ""
   anthropicApiKey: ""
-  googleApiKey: ""
+  braveApiKey: ""
+  kimiApiKey: ""
+  moonshotApiKey: ""
   tavilyApiKey: ""
-  braveSearchApiKey: ""
+  perplexityApiKey: ""
+  geminiApiKey: ""
+  xaiApiKey: ""
+  googleApiKey: "" # backward-compatible legacy alias for GEMINI_API_KEY-style setups
+  braveSearchApiKey: "" # backward-compatible legacy alias for BRAVE_API_KEY-style setups
 secretRefs: [] # [{name: openclaw-app-secrets, key: OPENCLAW_API_TOKEN, envVar: OPENCLAW_API_TOKEN}]
 
 podSecurityContext:
