@@ -63,6 +63,15 @@ openclaw:
     limits:
       cpu: 500m
       memory: 512Mi
+  existingSecret: "openclaw-secrets"
+  secretKeys:
+    gatewayToken: OPENCLAW_GATEWAY_TOKEN
+    openaiApiKey: ""
+    anthropicApiKey: ""
+    googleApiKey: ""
+    tavilyApiKey: ""
+    braveSearchApiKey: ""
+  secretRefs: []
 
 openhands:
   enabled: true

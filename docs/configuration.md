@@ -72,6 +72,8 @@ Do not rely on ad-hoc CLI toggles for persistent environments.
 Current supported runtime contracts:
 
 - `existingSecret`
+- `secretKeys.gatewayToken` (OpenClaw gateway token key mapping)
+- optional OpenClaw provider/search mappings under `secretKeys.*ApiKey`
 - `secretRefs[]`
 
 Recommended layering:

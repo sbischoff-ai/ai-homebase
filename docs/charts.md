@@ -13,6 +13,8 @@
 
 Most service charts also expose `existingSecret` and `secretRefs[]` to consume credentials from pre-created Kubernetes Secrets using standardized key naming conventions.
 
+For `openclaw`, `existingSecret` is used with explicit key mappings under `secretKeys.*` (including `secretKeys.gatewayToken` for gateway token auth).
+
 ## platform-stack composition
 `platform-stack` is an umbrella chart with dependency toggles:
 
@@ -53,8 +55,14 @@ Primary value paths:
 - `openclaw.gateway.auth.mode`
 - `openclaw.gateway.controlUi.enabled`
 - `openclaw.gateway.controlUi.allowedOrigins`
+- `existingSecret`
+- `secretKeys.gatewayToken`
+- optional `secretKeys.*ApiKey` provider/search mappings
 - `openclaw.agents.defaults.workspace`
 - `openclaw.agents.list`
 
 The container uses `OPENCLAW_CONFIG_PATH=/etc/openclaw/openclaw.json` while `OPENCLAW_STATE_DIR` remains aligned with the persistence mount path.
 
+When `openclaw.gateway.auth.mode` is `token`, chart rendering fails fast unless `existingSecret` and `secretKeys.gatewayToken` are set. The rendered config references `${OPENCLAW_GATEWAY_TOKEN}` and expects the env var to be injected from the configured secret key.
+
+When `openclaw.gateway.bind` is non-loopback (for example `lan`) and `openclaw.gateway.controlUi.enabled=true`, chart rendering also requires a non-empty `openclaw.gateway.controlUi.allowedOrigins` list.

@@ -1,3 +1,17 @@
+{{- $gatewayAuthMode := .Values.openclaw.gateway.auth.mode | default "" }}
+{{- $gatewayBind := .Values.openclaw.gateway.bind | default "" }}
+{{- $controlUiEnabled := .Values.openclaw.gateway.controlUi.enabled }}
+{{- $allowedOrigins := .Values.openclaw.gateway.controlUi.allowedOrigins | default (list) }}
+{{- $nonLoopbackBind := not (or (eq $gatewayBind "") (eq $gatewayBind "localhost") (eq $gatewayBind "127.0.0.1") (eq $gatewayBind "::1") (eq $gatewayBind "loopback") (eq $gatewayBind "local")) }}
+{{- if and (eq $gatewayAuthMode "token") (not .Values.existingSecret) }}
+{{- fail "openclaw.existingSecret is required when openclaw.gateway.auth.mode=token" }}
+{{- end }}
+{{- if and (eq $gatewayAuthMode "token") (not .Values.secretKeys.gatewayToken) }}
+{{- fail "openclaw.secretKeys.gatewayToken is required when openclaw.gateway.auth.mode=token" }}
+{{- end }}
+{{- if and $nonLoopbackBind $controlUiEnabled (eq (len $allowedOrigins) 0) }}
+{{- fail "openclaw.gateway.controlUi.allowedOrigins must be non-empty when gateway bind is non-loopback and control UI is enabled" }}
+{{- end }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -61,6 +75,48 @@ spec:
             {{- with .Values.env }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
+            {{- with .Values.existingSecret }}
+            - name: OPENCLAW_GATEWAY_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ . }}
+                  key: {{ $.Values.secretKeys.gatewayToken }}
+            {{- with $.Values.secretKeys.openaiApiKey }}
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.existingSecret }}
+                  key: {{ . }}
+            {{- end }}
+            {{- with $.Values.secretKeys.anthropicApiKey }}
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.existingSecret }}
+                  key: {{ . }}
+            {{- end }}
+            {{- with $.Values.secretKeys.googleApiKey }}
+            - name: GOOGLE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.existingSecret }}
+                  key: {{ . }}
+            {{- end }}
+            {{- with $.Values.secretKeys.tavilyApiKey }}
+            - name: TAVILY_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.existingSecret }}
+                  key: {{ . }}
+            {{- end }}
+            {{- with $.Values.secretKeys.braveSearchApiKey }}
+            - name: BRAVE_SEARCH_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.existingSecret }}
+                  key: {{ . }}
+            {{- end }}
+            {{- end }}
             {{- range .Values.secretRefs }}
             - name: {{ .envVar }}
               valueFrom:
@@ -68,12 +124,8 @@ spec:
                   name: {{ .name }}
                   key: {{ .key }}
             {{- end }}
-          {{- if or .Values.existingSecret .Values.envFromSecrets }}
+          {{- if .Values.envFromSecrets }}
           envFrom:
-            {{- with .Values.existingSecret }}
-            - secretRef:
-                name: {{ . }}
-            {{- end }}
             {{- range .Values.envFromSecrets }}
             - secretRef:
                 name: {{ . }}
