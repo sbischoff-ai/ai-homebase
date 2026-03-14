@@ -29,6 +29,7 @@ global:
 
 openclaw:
   enabled: true
+  replicaCount: 1
   image:
     repository: nginx
     tag: "1.27.5-alpine"
@@ -69,6 +70,21 @@ openclaw:
     runAsNonRoot: false
     runAsUser: 0
     runAsGroup: 0
+  existingSecret: openclaw-app-secrets
+  secretKeys:
+    gatewayToken: OPENCLAW_GATEWAY_TOKEN
+    openaiApiKey: OPENAI_API_KEY
+    anthropicApiKey: ANTHROPIC_API_KEY
+    googleApiKey: GOOGLE_API_KEY
+    tavilyApiKey: TAVILY_API_KEY
+    braveSearchApiKey: BRAVE_SEARCH_API_KEY
+  secretRefs: []
+  openclaw:
+    gateway:
+      controlUi:
+        allowedOrigins:
+          - http://openclaw.localtest.me
+
 
 openhands:
   enabled: true
