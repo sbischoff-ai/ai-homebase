@@ -85,9 +85,16 @@ Baseline OpenHands deployment defaults in this repo:
 - `image.tag: 1.5` (chart `appVersion` is also `1.5`)
 - `service.port: 3000`
 - `service.targetPort: 3000`
-- `runtime: null` (optional runtime class selector; supports either a string or object form)
+- `runtime.mode: ""` (optional neutral runtime mode passed into the app as `RUNTIME_MODE`)
+- `runtime.className: ""` (optional Kubernetes RuntimeClass selector; portable scheduling control)
 - `agentServer.image.repository: ghcr.io/openhands/agent-server`
 - `agentServer.image.tag: 1.12.0-python`
+
+OpenHands also renders the following env vars by default:
+
+- `AGENT_SERVER_IMAGE_REPOSITORY` from `agentServer.image.repository`
+- `AGENT_SERVER_IMAGE_TAG` from `agentServer.image.tag`
+- `RUNTIME_MODE` from `runtime.mode`
 
 Ingress controls are available under `openhands.ingress.*`:
 
