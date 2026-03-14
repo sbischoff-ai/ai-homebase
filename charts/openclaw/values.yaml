@@ -39,9 +39,12 @@ service:
   annotations: {}
 
 ingress:
-  enabled: false
+  enabled: true
   className: ""
   annotations: {}
+  # Optional default used when ingress.hosts[*].host is omitted.
+  # If empty, the chart falls back to global.hosts.openclaw.
+  defaultHost: ""
   hosts:
     - host: ""
       paths:

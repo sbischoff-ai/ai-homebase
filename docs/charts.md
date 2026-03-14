@@ -60,9 +60,13 @@ Primary value paths:
 - optional `secretKeys.*ApiKey` provider/search mappings
 - `openclaw.agents.defaults.workspace`
 - `openclaw.agents.list`
+- `ingress.enabled` (enabled by default for remote-host style exposure)
+- `ingress.defaultHost` (optional fallback before `global.hosts.openclaw`)
 
 The container uses `OPENCLAW_CONFIG_PATH=/etc/openclaw/openclaw.json` while `OPENCLAW_STATE_DIR` remains aligned with the persistence mount path.
 
 When `openclaw.gateway.auth.mode` is `token`, chart rendering fails fast unless `existingSecret` and `secretKeys.gatewayToken` are set. The rendered config references `${OPENCLAW_GATEWAY_TOKEN}` and expects the env var to be injected from the configured secret key.
 
 When `openclaw.gateway.bind` is non-loopback (for example `lan`) and `openclaw.gateway.controlUi.enabled=true`, chart rendering also requires a non-empty `openclaw.gateway.controlUi.allowedOrigins` list.
+
+When ingress is enabled, ensure each `ingress.hosts[*].host` has a matching exact public origin (scheme + host) in `openclaw.gateway.controlUi.allowedOrigins`.
