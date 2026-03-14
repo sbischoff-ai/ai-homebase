@@ -60,7 +60,7 @@ Script behavior summary:
 - Executes `helm upgrade --install ...`.
 - Waits for `openclaw` and `openhands` deployments and pods.
 - Checks `openclaw` ingress via `Host: openclaw.localtest.me` on `http://127.0.0.1/`.
-- Port-forwards to `openhands` and checks `http://127.0.0.1:18080/`.
+- Checks `openhands` ingress via `Host: openhands.localtest.me` on `http://127.0.0.1/`.
 - Dumps pod diagnostics automatically on failure.
 
 ## 3) Teardown
@@ -73,20 +73,21 @@ Delete the local cluster when done:
 
 ## 4) Local ingress host access (DNS/hosts)
 
-The default local ingress check uses `openclaw.localtest.me`.
+The default local ingress checks use `openclaw.localtest.me` and `openhands.localtest.me`.
 
 ### Preferred: `localtest.me` wildcard behavior
 
 `*.localtest.me` resolves to `127.0.0.1` using public DNS, so this works without editing `/etc/hosts` in most environments:
 
 - `openclaw.localtest.me` -> `127.0.0.1`
+- `openhands.localtest.me` -> `127.0.0.1`
 
 ### Fallback: `/etc/hosts`
 
 If DNS is filtered or unavailable, add host mappings manually:
 
 ```text
-127.0.0.1 openclaw.localtest.me
+127.0.0.1 openclaw.localtest.me openhands.localtest.me
 ```
 
 If you changed values to custom hostnames, map those hosts to `127.0.0.1` as well.
@@ -142,9 +143,7 @@ kubectl -n ingress-nginx get pods
 kubectl -n ai-homebase get pods
 kubectl -n ai-homebase get ingress
 curl -sS -H 'Host: openclaw.localtest.me' http://127.0.0.1/ -o /dev/null -w '%{http_code}\n'
-kubectl -n ai-homebase port-forward deploy/platform-stack-openhands 18080:80
-# in a second terminal:
-curl -sS http://127.0.0.1:18080/ -o /dev/null -w '%{http_code}\n'
+curl -sS -H 'Host: openhands.localtest.me' http://127.0.0.1/ -o /dev/null -w '%{http_code}\n'
 ```
 
 Expected results:

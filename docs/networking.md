@@ -4,9 +4,8 @@ This platform is designed with explicit public/private boundaries between core a
 
 ## Recommended default exposure
 
-- **Public by default:** OpenClaw ingress.
-- **Private by default:** OpenHands, Infisical, wg-easy web UI.
-- **Optional public exposure:** Nextcloud, Gitea, Paperless-ngx (only when needed).
+- **Exposed by default (when enabled):** services with user-facing UIs/APIs (OpenClaw, OpenHands, Nextcloud, Gitea, Paperless-ngx, Infisical, wg-easy web UI).
+- **Optional private posture per environment:** use internal ingress classes, VPN-only access, or private load balancers when required.
 
 ## Ingress controls
 
@@ -18,7 +17,7 @@ Common requirements per exposed service:
 - TLS configured with valid certificate issuer.
 - Stable hostnames mapped in DNS.
 
-Keep OpenHands ingress disabled unless there is a reviewed requirement.
+OpenHands ingress is enabled by default in the platform profiles so the UI/API is reachable.
 
 ## AKS ingress posture
 
@@ -28,13 +27,12 @@ Typical AKS pattern:
 - cert-manager for TLS automation.
 - external-dns (optional) for DNS lifecycle automation.
 
-For internal-only services, prefer internal ingress or cluster-private access instead of direct public load balancers.
+If a service must remain private, use internal ingress classes, VPN-only access, or private load balancers in environment overlays.
 
 ## wg-easy networking guidance
 
-- Keep admin web UI private.
 - Expose UDP VPN endpoint with narrow source/routing controls.
-- Avoid public admin UI exposure without compensating controls.
+- If the web UI is exposed, protect it with strong authn/authz and IP/rate controls.
 
 ## NetworkPolicy guidance
 

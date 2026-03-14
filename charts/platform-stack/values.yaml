@@ -77,13 +77,11 @@ openhands:
     port: 80
     targetPort: 3000
     annotations: {}
-  # OpenHands is intentionally internal-only by default.
-  # Keep ingress disabled unless a controlled external entrypoint is required.
+  # OpenHands UI/API should be exposed when the service is enabled.
   ingress:
-    enabled: false
+    enabled: true
     className: ""
-    annotations:
-      kubernetes.io/ingress.class: internal
+    annotations: {}
     hosts:
       - host: openhands.homebase.local
         paths:
@@ -135,7 +133,7 @@ nextcloud:
     targetPort: 80
     annotations: {}
   ingress:
-    enabled: false
+    enabled: true
     className: ""
     annotations: {}
     hosts:
@@ -181,7 +179,7 @@ gitea:
     targetPort: 3000
     annotations: {}
   ingress:
-    enabled: false
+    enabled: true
     className: ""
     annotations: {}
     hosts:
@@ -226,7 +224,7 @@ paperlessNgx:
     port: 8000
     targetPort: 8000
   ingress:
-    enabled: false
+    enabled: true
     className: ""
     annotations: {}
     hosts:
@@ -292,10 +290,9 @@ infisical:
     port: 8080
     targetPort: 8080
   ingress:
-    enabled: false
+    enabled: true
     className: ""
-    annotations:
-      kubernetes.io/ingress.class: internal
+    annotations: {}
     hosts:
       - host: infisical.homebase.local
         paths:
@@ -340,8 +337,7 @@ wgEasy:
     vpnTargetPort: 51820
     annotations: {}
   ingress:
-    enabled: false
-    # Keep disabled by default. Prefer private exposure (internal ingress, VPN-only LB, or bastion).
+    enabled: true
     className: ""
     annotations: {}
     hosts:

@@ -83,10 +83,9 @@ openhands:
     targetPort: 80
     annotations: {}
   ingress:
-    enabled: false
+    enabled: true
     className: nginx
-    annotations:
-      kubernetes.io/ingress.class: internal
+    annotations: {}
     hosts:
       - host: openhands.localtest.me
         paths:
