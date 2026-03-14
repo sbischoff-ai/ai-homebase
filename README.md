@@ -146,7 +146,25 @@ Set `infisical.kubeSecretRef` to a Kubernetes Secret that includes:
 - `ENCRYPTION_KEY`
 - `SITE_URL`
 
+`SITE_URL` must exactly match the internal URL users on VPN/private network use to access the Infisical UI (same scheme + hostname, and port if non-default).
+
 These keys are always wired into the Infisical container in chart templates for in-cluster mode.
+
+For internal-only ingress posture, prefer private/VPN hostnames and an internal ingress class. Example:
+
+```yaml
+ingress:
+  enabled: true
+  ingressClassName: internal-nginx
+  hostName: infisical.vpn.homebase.internal
+  annotations:
+    kubernetes.io/ingress.class: internal-nginx
+    nginx.ingress.kubernetes.io/whitelist-source-range: 10.0.0.0/8,192.168.0.0/16
+  tls:
+    - secretName: infisical-vpn-tls
+      hosts:
+        - infisical.vpn.homebase.internal
+```
 
 ### External mode (optional / future path)
 

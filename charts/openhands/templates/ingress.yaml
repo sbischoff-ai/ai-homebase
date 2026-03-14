@@ -1,5 +1,11 @@
 {{- if and .Values.service.enabled .Values.ingress.enabled }}
 {{- $defaultHost := .Values.global.hosts.openhands -}}
+{{- $legacyHost := "" -}}
+{{- with .Values.ingress.hosts }}
+{{- $legacyHost = (first .).host -}}
+{{- end }}
+{{- $hostName := default (default $defaultHost $legacyHost) .Values.ingress.hostName -}}
+{{- $ingressClassName := default .Values.ingress.className .Values.ingress.ingressClassName -}}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -11,24 +17,20 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  {{- with .Values.ingress.className }}
+  {{- with $ingressClassName }}
   ingressClassName: {{ . }}
   {{- end }}
   rules:
-    {{- range .Values.ingress.hosts }}
-    - host: {{ default $defaultHost .host | quote }}
+    - host: {{ $hostName | quote }}
       http:
         paths:
-          {{- range .paths }}
-          - path: {{ .path }}
-            pathType: {{ .pathType }}
+          - path: /
+            pathType: Prefix
             backend:
               service:
-                name: {{ include "openhands.fullname" $ }}
+                name: {{ include "openhands.fullname" . }}
                 port:
                   number: {{ $.Values.service.port }}
-          {{- end }}
-    {{- end }}
   {{- with .Values.ingress.tls }}
   tls:
     {{- toYaml . | nindent 4 }}

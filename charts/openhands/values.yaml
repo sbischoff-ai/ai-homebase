@@ -38,14 +38,13 @@ service:
 
 ingress:
   enabled: false
+  hostName: ""
+  ingressClassName: ""
+  # Backward compatibility: className/hosts are still honored if set.
   className: ""
   annotations:
     kubernetes.io/ingress.class: internal
-  hosts:
-    - host: ""
-      paths:
-        - path: /
-          pathType: Prefix
+  hosts: []
   tls: []
 
 workspace:
