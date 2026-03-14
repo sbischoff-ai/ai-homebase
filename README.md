@@ -131,6 +131,15 @@ helm template platform-stack charts/platform-stack -f charts/platform-stack/valu
 
 For this repository, **in-cluster mode is the default** for Infisical (`charts/infisical/values.yaml` keeps `postgresql.enabled=true` and `redis.enabled=true`).
 
+Stateful retention for in-cluster Infisical lives on dependency PVCs, not an app-level Infisical PVC:
+
+- `postgresql.primary.persistence.size`
+- `postgresql.primary.persistence.storageClass`
+- `redis.master.persistence.size`
+- `redis.master.persistence.storageClass`
+
+The PostgreSQL PVC is the critical data volume because it holds Infisical's encrypted secret data at rest. Treat it as a protected/backup-required volume.
+
 Set `infisical.kubeSecretRef` to a Kubernetes Secret that includes:
 
 - `AUTH_SECRET`

@@ -32,7 +32,7 @@ This allows one shared default plus targeted overrides where needed.
 - **Nextcloud**: fast growth in primary user data.
 - **Gitea**: repositories, artifacts, and attachments accumulate over time.
 - **Paperless-ngx**: data/media/consume/export volumes should be sized independently.
-- **Infisical**: moderate persistent metadata footprint.
+- **Infisical**: persistent state should be managed via in-cluster dependency PVCs (`postgresql.primary.persistence.*`, `redis.master.persistence.*`), not a generic app-layer Infisical PVC. PostgreSQL is critical because it stores encrypted secret data at rest and must be covered by backup/restore plans.
 - **wg-easy**: small but durable configuration/state volume.
 
 ## AKS-focused guidance
