@@ -58,6 +58,12 @@ backup:
 
 resources: {}
 
+securityContext:
+  capabilities:
+    add:
+      - NET_ADMIN
+      - SYS_MODULE
+
 # Secret injection conventions:
 # - Secret names: kebab-case (example: wgeasy-app-secrets)
 # - Secret data keys: UPPER_SNAKE_CASE (example: WG_EASY_PASSWORD_HASH)
