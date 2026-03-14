@@ -15,6 +15,7 @@ infisical:
 
   autoBootstrap:
     # -- Enable auto-bootstrap of the Infisical instance
+    # -- When disabled, Infisical runs in fallback mode where the first signup becomes admin.
     enabled: false
 
     image:
@@ -36,6 +37,7 @@ infisical:
 
     credentialSecret:
       # -- Name of the Kubernetes secret containing the credentials for the auto-bootstrap workflow
+      # -- Required keys in this secret: INFISICAL_ADMIN_EMAIL and INFISICAL_ADMIN_PASSWORD
       name: "infisical-bootstrap-credentials"
 
   databaseSchemaMigrationJob:
