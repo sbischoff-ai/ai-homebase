@@ -1,0 +1,33 @@
+global:
+  storageClass: managed-csi
+
+openhands:
+  workspace:
+    enabled: true
+    storageClass: managed-csi-premium
+    size: 200Gi
+
+nextcloud:
+  persistence:
+    storageClass: managed-csi-premium
+    size: 500Gi
+
+gitea:
+  persistence:
+    storageClass: managed-csi
+    size: 200Gi
+
+paperlessNgx:
+  persistence:
+    data:
+      storageClass: managed-csi-premium
+      size: 200Gi
+    media:
+      storageClass: managed-csi-premium
+      size: 1Ti
+    consume:
+      storageClass: managed-csi
+      size: 50Gi
+    export:
+      storageClass: managed-csi
+      size: 50Gi
