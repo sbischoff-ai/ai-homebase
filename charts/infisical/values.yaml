@@ -84,7 +84,9 @@ infisical:
   # -- Ref: https://kubernetes.io/docs/concepts/workloads/pods/pod-topology-spread-constraints/
   topologySpreadConstraints: []
 
-  # -- Kubernetes Secret reference containing Infisical root credentials
+  # -- Kubernetes Secret name with app env keys.
+  # -- Required (in-cluster default): AUTH_SECRET, ENCRYPTION_KEY, SITE_URL.
+  # -- Optional (external mode / future path): DB_CONNECTION_URI, REDIS_URL.
   kubeSecretRef: "infisical-secrets"
 
   service:
