@@ -66,6 +66,7 @@ This document summarizes each service's role, default posture, toggle, and integ
 - Provides VPN lifecycle UI and WireGuard endpoint.
 - UI/API ingress is enabled by default when the service is enabled.
 - VPN endpoint exposure should be tightly controlled.
+- Container-level `securityContext` is configurable and defaults to adding `NET_ADMIN` and `SYS_MODULE` capabilities required by WireGuard.
 
 ## Secret contract model (all services)
 
