@@ -61,6 +61,7 @@ Profiles:
 
 - `values.yaml` — baseline defaults.
 - `values-dev.yaml` — minimal dev profile.
+- `values-k3d.yaml` — k3d local-smoke overlay (layer on top of `values-dev.yaml`).
 - `values-aks.yaml` — AKS-oriented profile with cloud integration placeholders.
 - `values-prod.yaml` — production-shaped profile and stronger defaults.
 
@@ -85,6 +86,7 @@ helm dependency update charts/platform-stack
 ```bash
 helm lint charts/platform-stack
 helm lint charts/platform-stack -f charts/platform-stack/values-dev.yaml
+helm lint charts/platform-stack -f charts/platform-stack/values-dev.yaml -f charts/platform-stack/values-k3d.yaml
 helm lint charts/platform-stack -f charts/platform-stack/values-aks.yaml
 helm lint charts/platform-stack -f charts/platform-stack/values-prod.yaml
 ```
@@ -94,6 +96,7 @@ helm lint charts/platform-stack -f charts/platform-stack/values-prod.yaml
 ```bash
 helm template platform-stack charts/platform-stack
 helm template platform-stack charts/platform-stack -f charts/platform-stack/values-dev.yaml
+helm template platform-stack charts/platform-stack -f charts/platform-stack/values-dev.yaml -f charts/platform-stack/values-k3d.yaml
 helm template platform-stack charts/platform-stack -f charts/platform-stack/values-aks.yaml
 helm template platform-stack charts/platform-stack -f charts/platform-stack/values-prod.yaml
 ```
@@ -103,6 +106,7 @@ helm template platform-stack charts/platform-stack -f charts/platform-stack/valu
 ```bash
 ./scripts/lint.sh --values-file charts/platform-stack/values-dev.yaml  # auto-discovers component charts
 ./scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values-dev.yaml
+./scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values-dev.yaml --values-file charts/platform-stack/values-k3d.yaml --values-file examples/k3d.values.override.yaml
 ./scripts/install-dev.sh --release-name platform-stack --namespace ai-homebase
 ./scripts/install-aks.sh --release-name platform-stack --namespace ai-homebase --kube-context <your-kube-context>
 ./scripts/k3d-up.sh --cluster-name ai-homebase-dev

@@ -70,6 +70,33 @@ Use the scripts to combine baseline + override files and explicitly control serv
   --disable-service openhands
 ```
 
+
+## k3d local smoke overlay
+
+Use layered values in this order for local k3d smoke tests:
+
+1. `charts/platform-stack/values-dev.yaml`
+2. `charts/platform-stack/values-k3d.yaml`
+3. `examples/k3d.values.override.yaml` (optional, user-specific)
+
+```bash
+./scripts/template.sh \
+  --release-name <your-release> \
+  --namespace <your-namespace> \
+  --kube-context <your-kube-context> \
+  --values-file charts/platform-stack/values-dev.yaml \
+  --values-file charts/platform-stack/values-k3d.yaml \
+  --values-file examples/k3d.values.override.yaml
+
+./scripts/install-dev.sh \
+  --release-name <your-release> \
+  --namespace <your-namespace> \
+  --kube-context <your-kube-context> \
+  --values-file charts/platform-stack/values-dev.yaml \
+  --values-file charts/platform-stack/values-k3d.yaml \
+  --values-file examples/k3d.values.override.yaml
+```
+
 ## Ingress hostname override example
 
 ```yaml

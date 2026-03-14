@@ -1,0 +1,163 @@
+# k3d overlay for local smoke tests.
+#
+# Values precedence contract (lowest -> highest):
+# 1) charts/platform-stack/values.yaml
+# 2) charts/platform-stack/values-dev.yaml
+# 3) charts/platform-stack/values-k3d.yaml
+# 4) optional user override file(s) (for example: examples/k3d.values.override.yaml)
+#
+# Usage:
+# helm upgrade --install platform-stack charts/platform-stack \
+#   -n ai-homebase \
+#   -f charts/platform-stack/values-dev.yaml \
+#   -f charts/platform-stack/values-k3d.yaml \
+#   -f examples/k3d.values.override.yaml
+
+global:
+  domain: localtest.me
+  hosts:
+    openclaw: openclaw.localtest.me
+    openhands: openhands.localtest.me
+    nextcloud: nextcloud.localtest.me
+    gitea: gitea.localtest.me
+    paperless: paperless.localtest.me
+    paperlessNgx: paperless.localtest.me
+    infisical: infisical.localtest.me
+    wg: wg.localtest.me
+    vpn: wg.localtest.me
+    wgEasy: wg.localtest.me
+
+openclaw:
+  enabled: true
+  image:
+    repository: nginx
+    tag: "1.27.5-alpine"
+    pullPolicy: IfNotPresent
+  service:
+    port: 80
+    targetPort: 80
+  ingress:
+    enabled: true
+    className: nginx
+    annotations: {}
+    hosts:
+      - host: openclaw.localtest.me
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+  persistence:
+    enabled: false
+  probes:
+    liveness:
+      enabled: true
+      path: /
+    readiness:
+      enabled: true
+      path: /
+    startup:
+      enabled: false
+  resources:
+    requests:
+      cpu: 25m
+      memory: 32Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+  securityContext:
+    readOnlyRootFilesystem: false
+    runAsNonRoot: false
+    runAsUser: 0
+    runAsGroup: 0
+
+openhands:
+  enabled: true
+  image:
+    repository: nginx
+    tag: "1.27.5-alpine"
+    pullPolicy: IfNotPresent
+  service:
+    enabled: true
+    type: ClusterIP
+    port: 80
+    targetPort: 80
+    annotations: {}
+  ingress:
+    enabled: false
+    className: nginx
+    annotations:
+      kubernetes.io/ingress.class: internal
+    hosts:
+      - host: openhands.localtest.me
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+  workspace:
+    enabled: false
+  probes:
+    liveness:
+      enabled: true
+      path: /
+    readiness:
+      enabled: true
+      path: /
+  resources:
+    requests:
+      cpu: 25m
+      memory: 32Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+  securityContext:
+    readOnlyRootFilesystem: false
+    runAsNonRoot: false
+    runAsUser: 0
+    runAsGroup: 0
+
+nextcloud:
+  enabled: false
+  persistence:
+    enabled: false
+
+gitea:
+  enabled: false
+  persistence:
+    enabled: false
+
+paperlessNgx:
+  enabled: false
+  persistence:
+    data:
+      enabled: false
+    media:
+      enabled: false
+    consume:
+      enabled: false
+    export:
+      enabled: false
+
+infisical:
+  enabled: false
+  persistence:
+    enabled: false
+
+wgEasy:
+  enabled: false
+  persistence:
+    enabled: false
+
+externalSecrets:
+  enabled: false
+
+observability:
+  enabled: false
+
+persistence:
+  enabled: false
+
+autoscaling:
+  enabled: false
+
+workerIsolation:
+  enabled: false
