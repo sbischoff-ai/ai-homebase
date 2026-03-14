@@ -1,11 +1,12 @@
 apiVersion: v2
 name: infisical
-description: Wrapper chart that tracks Infisical standalone upstream chart semantics
+description: Self-hosted Infisical with in-cluster PostgreSQL/Redis persistence and VPN-first ingress defaults
 type: application
 version: 0.2.0
 appVersion: "0.151.0"
 sources:
-  - https://github.com/Infisical/infisical/tree/main/helm-charts/infisical-standalone-postgres
+  - https://dl.cloudsmith.io/public/infisical/helm-charts/helm/charts/
+  - https://github.com/Infisical/infisical-helm-charts
 dependencies:
   - name: postgresql
     version: 14.1.10

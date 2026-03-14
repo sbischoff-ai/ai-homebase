@@ -1,3 +1,4 @@
+{{- $ingress := (include "infisical.ingressValues" . | fromYaml) -}}
 ##
 
 -- Infisical Helm Chart --
@@ -19,7 +20,7 @@
 │
 │   Current installation (infisical) :
 │   • infisical          : {{ .Values.infisical.enabled }}
-|   • nginx              : {{ .Values.infisical.ingress.nginx.enabled }}
+|   • nginx              : {{ $ingress.nginx.enabled | default false }}
 |   • Postgres DB        : {{ .Values.postgresql.enabled }}
 |   • Redis              : {{ .Values.redis.enabled }}
 │
