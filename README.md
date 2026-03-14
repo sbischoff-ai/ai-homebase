@@ -69,6 +69,7 @@ Profiles:
 - [Git](https://git-scm.com/)
 - [Helm 3](https://helm.sh/docs/intro/install/)
 - [kubectl](https://kubernetes.io/docs/tasks/tools/)
+- [k3d](https://k3d.io/) (for local cluster lifecycle scripts)
 - Access to Kubernetes (AKS, homelab, or other distribution)
 
 ## Common commands
@@ -104,6 +105,8 @@ helm template platform-stack charts/platform-stack -f charts/platform-stack/valu
 ./scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values-dev.yaml
 ./scripts/install-dev.sh --release-name platform-stack --namespace ai-homebase
 ./scripts/install-aks.sh --release-name platform-stack --namespace ai-homebase --kube-context <your-kube-context>
+./scripts/k3d-up.sh --cluster-name ai-homebase-dev
+./scripts/k3d-down.sh --cluster-name ai-homebase-dev
 ```
 
 ## Production-hardening gaps to close before go-live

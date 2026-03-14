@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+CLUSTER_NAME="${CLUSTER_NAME:-ai-homebase-dev}"
+HTTP_PORT="${HTTP_PORT:-80}"
+HTTPS_PORT="${HTTPS_PORT:-443}"
+ENABLE_HTTPS="${ENABLE_HTTPS:-true}"
+INGRESS_NAMESPACE="${INGRESS_NAMESPACE:-ingress-nginx}"
+INGRESS_RELEASE_NAME="${INGRESS_RELEASE_NAME:-ingress-nginx}"
+INGRESS_CHART_REF="${INGRESS_CHART_REF:-ingress-nginx/ingress-nginx}"
+
+usage() {
+  cat <<USAGE
+Usage: $0 [options]
+
+Create or reuse a local k3d cluster for ai-homebase and ensure ingress-nginx is ready.
+
+Options:
+  --cluster-name <name>         k3d cluster name (default: ${CLUSTER_NAME})
+  --http-port <port>            Host HTTP port mapped to LB 80 (default: ${HTTP_PORT})
+  --https-port <port>           Host HTTPS port mapped to LB 443 (default: ${HTTPS_PORT})
+  --without-https               Do not map host HTTPS port 443 to the k3s load balancer
+  -h, --help                    Show this help message
+USAGE
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --cluster-name) CLUSTER_NAME="$2"; shift 2 ;;
+    --http-port) HTTP_PORT="$2"; shift 2 ;;
+    --https-port) HTTPS_PORT="$2"; shift 2 ;;
+    --without-https) ENABLE_HTTPS="false"; shift ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
+  esac
+done
+
+for cmd in k3d kubectl helm; do
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    echo "Missing required dependency: $cmd" >&2
+    exit 1
+  fi
+done
+
+K3D_CONTEXT="k3d-${CLUSTER_NAME}"
+
+if k3d kubeconfig get "$CLUSTER_NAME" >/dev/null 2>&1; then
+  echo "Cluster ${CLUSTER_NAME} already exists; reusing it"
+else
+  CREATE_ARGS=(
+    --wait
+    -p "${HTTP_PORT}:80@loadbalancer"
+  )
+
+  if [[ "$ENABLE_HTTPS" == "true" ]]; then
+    CREATE_ARGS+=( -p "${HTTPS_PORT}:443@loadbalancer" )
+  fi
+
+  echo "Creating k3d cluster ${CLUSTER_NAME}"
+  k3d cluster create "$CLUSTER_NAME" "${CREATE_ARGS[@]}"
+fi
+
+kubectl config use-context "$K3D_CONTEXT" >/dev/null
+CURRENT_CONTEXT="$(kubectl config current-context)"
+if [[ "$CURRENT_CONTEXT" != "$K3D_CONTEXT" ]]; then
+  echo "Failed to switch kubectl context to ${K3D_CONTEXT} (current: ${CURRENT_CONTEXT})" >&2
+  exit 1
+fi
+echo "kubectl context is ${CURRENT_CONTEXT}"
+
+echo "Ensuring ingress-nginx Helm repo"
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx >/dev/null 2>&1 || true
+helm repo update ingress-nginx >/dev/null
+
+echo "Installing/upgrading ingress-nginx controller"
+helm upgrade --install "$INGRESS_RELEASE_NAME" "$INGRESS_CHART_REF" \
+  --namespace "$INGRESS_NAMESPACE" \
+  --create-namespace \
+  --set controller.ingressClassResource.name=nginx \
+  --set controller.ingressClass=nginx \
+  --set controller.watchIngressWithoutClass=false
+
+echo "Waiting for ingress-nginx controller readiness"
+kubectl wait --namespace "$INGRESS_NAMESPACE" \
+  --for=condition=Available \
+  deployment/${INGRESS_RELEASE_NAME}-controller \
+  --timeout=180s
+
+kubectl wait --namespace "$INGRESS_NAMESPACE" \
+  --for=condition=Ready \
+  pods \
+  -l app.kubernetes.io/component=controller,app.kubernetes.io/instance=${INGRESS_RELEASE_NAME} \
+  --timeout=180s
+
+echo "k3d cluster ${CLUSTER_NAME} is ready with ingress-nginx"
