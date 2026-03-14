@@ -110,3 +110,19 @@ OpenHands persistence controls are available under `openhands.persistence.*`:
 - `persistence.annotations`
 
 `openhands.workspace.*` is deprecated and remains as a temporary compatibility fallback. Prefer migrating to `openhands.persistence.*`.
+
+OpenHands secret/env controls follow the shared conventions and can be mixed safely:
+
+- `existingSecret` and `envFromSecrets[]` for bulk `envFrom` secret imports.
+- `env[]` for plain env values.
+- `secretRefs[]` for explicit `{name, key, envVar}` mappings.
+- `secretEnv[]` for explicit `{name, secretName, key, optional}` mappings rendered as `valueFrom.secretKeyRef`.
+
+OpenHands-focused secret examples:
+
+- Required/expected: `LLM_API_KEY`
+- Optional: `LLM_MODEL`, `OH_WEB_URL`
+- Optional/future: provider/git credentials such as `OPENAI_API_KEY`, `GITHUB_TOKEN`
+
+For Infisical integration, sync secret material into Kubernetes Secret names (for example `openhands-app-secrets`) and point OpenHands values (`existingSecret`, `envFromSecrets`, `secretRefs`, `secretEnv`) at those Secret names. This matches the OpenClaw-style contract of referencing Kubernetes Secrets from chart values.
+
