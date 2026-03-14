@@ -37,6 +37,14 @@ jobs:
             fi
           done
 
+
+      - name: Lint platform-stack k3d profile
+        run: |
+          set -euo pipefail
+          helm lint charts/platform-stack \
+            -f charts/platform-stack/values-dev.yaml \
+            -f charts/platform-stack/values-k3d.yaml
+
       - name: Render platform-stack for each values profile
         run: |
           set -euo pipefail
@@ -53,6 +61,15 @@ jobs:
               -f "charts/platform-stack/$profile" \
               > "rendered-${profile%.yaml}.yaml"
           done
+
+
+      - name: Render platform-stack for k3d layered profile
+        run: |
+          set -euo pipefail
+          helm template platform-stack charts/platform-stack \
+            -f charts/platform-stack/values-dev.yaml \
+            -f charts/platform-stack/values-k3d.yaml \
+            > rendered-values-dev-k3d.yaml
 
       - name: Validate rendered YAML syntax (lightweight)
         run: |

@@ -18,6 +18,10 @@ Options:
   --values-file <path>       Values file for platform-stack (repeatable)
   --kube-context <context>   Optional kube context
   -h, --help                 Show this help message
+
+Examples:
+  $0 --values-file charts/platform-stack/values-dev.yaml
+  $0 --values-file charts/platform-stack/values-dev.yaml --values-file charts/platform-stack/values-k3d.yaml
 USAGE
 }
 

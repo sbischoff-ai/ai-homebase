@@ -103,11 +103,22 @@ helm template platform-stack charts/platform-stack -f charts/platform-stack/valu
 helm template platform-stack charts/platform-stack -f charts/platform-stack/values-prod.yaml
 ```
 
+### Local validation (base + k3d)
+
+```bash
+./scripts/lint.sh --values-file charts/platform-stack/values-dev.yaml
+./scripts/lint.sh --values-file charts/platform-stack/values-dev.yaml --values-file charts/platform-stack/values-k3d.yaml
+./scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values-dev.yaml > /tmp/platform-stack-dev.yaml
+./scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values-dev.yaml --values-file charts/platform-stack/values-k3d.yaml > /tmp/platform-stack-k3d.yaml
+```
+
 ### Scripted helpers
 
 ```bash
-./scripts/lint.sh --values-file charts/platform-stack/values-dev.yaml  # auto-discovers component charts
+./scripts/lint.sh --values-file charts/platform-stack/values-dev.yaml  # base/dev overlay
+./scripts/lint.sh --values-file charts/platform-stack/values-dev.yaml --values-file charts/platform-stack/values-k3d.yaml  # k3d profile
 ./scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values-dev.yaml
+./scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values-dev.yaml --values-file charts/platform-stack/values-k3d.yaml
 ./scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values-dev.yaml --values-file charts/platform-stack/values-k3d.yaml --values-file examples/k3d.values.override.yaml
 ./scripts/install-dev.sh --release-name platform-stack --namespace ai-homebase
 ./scripts/install-aks.sh --release-name platform-stack --namespace ai-homebase --kube-context <your-kube-context>
