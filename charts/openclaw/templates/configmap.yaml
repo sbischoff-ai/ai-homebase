@@ -13,7 +13,8 @@ data:
         "bind": {{ .Values.openclaw.gateway.bind | quote }},
         "port": {{ .Values.openclaw.gateway.port }},
         "auth": {
-          "mode": {{ .Values.openclaw.gateway.auth.mode | quote }}
+          "mode": {{ .Values.openclaw.gateway.auth.mode | quote }},
+          "token": "${OPENCLAW_GATEWAY_TOKEN}"
         },
         "controlUi": {
           "enabled": {{ .Values.openclaw.gateway.controlUi.enabled }},

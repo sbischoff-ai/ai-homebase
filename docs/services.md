@@ -71,7 +71,7 @@ This document summarizes each service's role, default posture, toggle, and integ
 
 Supported patterns:
 
-- `existingSecret` for importing all keys from one Secret.
+- `existingSecret` for a primary Secret source (OpenClaw uses explicit `secretKeys.*` mappings against this Secret).
 - `secretRefs[]` for explicit key-to-env mapping.
 
 Recommended naming:

@@ -71,7 +71,8 @@ openclaw:
       mode: token
     controlUi:
       enabled: true
-      allowedOrigins: []
+      allowedOrigins:
+        - "*"
   agents:
     defaults:
       workspace: ~/.openclaw/workspace
@@ -84,8 +85,15 @@ env: []
 envFromSecrets: []
 # Secret injection conventions:
 # - Secret names: kebab-case (example: openclaw-app-secrets)
-# - Secret data keys: UPPER_SNAKE_CASE (example: OPENCLAW_API_TOKEN)
-existingSecret: "" # Optional envFrom source for app credentials/secrets.
+# - Secret data keys: UPPER_SNAKE_CASE (example: OPENCLAW_GATEWAY_TOKEN)
+existingSecret: openclaw-secrets # Secret name used for explicit key refs under secretKeys.
+secretKeys:
+  gatewayToken: OPENCLAW_GATEWAY_TOKEN
+  openaiApiKey: ""
+  anthropicApiKey: ""
+  googleApiKey: ""
+  tavilyApiKey: ""
+  braveSearchApiKey: ""
 secretRefs: [] # [{name: openclaw-app-secrets, key: OPENCLAW_API_TOKEN, envVar: OPENCLAW_API_TOKEN}]
 
 podSecurityContext:
