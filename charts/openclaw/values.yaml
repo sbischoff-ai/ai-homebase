@@ -39,7 +39,7 @@ service:
   annotations: {}
 
 ingress:
-  enabled: true
+  enabled: false
   className: ""
   annotations: {}
   # Optional default used when ingress.hosts[*].host is omitted.

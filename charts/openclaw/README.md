@@ -1,6 +1,6 @@
 # OpenClaw chart notes
 
-This chart deploys OpenClaw as a **single trusted-boundary, long-running gateway host** with durable state and ingress-ready browser access.
+This chart deploys OpenClaw as a **single trusted-boundary, long-running gateway host** with durable state and private-by-default browser access.
 
 ## What this chart configures by default
 
@@ -13,7 +13,7 @@ This chart deploys OpenClaw as a **single trusted-boundary, long-running gateway
   - `gateway.auth.mode: token`
   - `gateway.controlUi.enabled: true`
 - `Service` defaults to `ClusterIP` on port `18789`.
-- `Ingress` is enabled by default and supports TLS values.
+- `Ingress` is disabled by default (`ingress.enabled: false`) to keep exposure private/internal unless explicitly enabled.
 
 ## Required operator-provided secrets
 
@@ -41,9 +41,17 @@ Optional keys for additional providers and web-search tooling:
 
 Use `secretKeys` for common direct mappings and/or `secretRefs` for arbitrary secret-to-env mappings.
 
+## Default access posture
+
+By default, OpenClaw is exposed internally only:
+
+- `Service` type is `ClusterIP`.
+- `ingress.enabled` is `false` by default.
+- Access should come through private networking such as VPN, for example: `http://openclaw.default.svc.cluster.local:18789`.
+
 ## Ingress and origin requirements
 
-For external browser access you must set all of the following:
+If you intentionally enable browser ingress, set all of the following:
 
 1. Ingress hostname (`ingress.hosts[*].host`, `ingress.defaultHost`, or `global.hosts.openclaw`).
 2. TLS for that hostname (`ingress.tls`).

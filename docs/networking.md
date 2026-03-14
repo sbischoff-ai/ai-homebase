@@ -4,7 +4,9 @@ This platform is designed with explicit public/private boundaries between core a
 
 ## Recommended default exposure
 
-- **Exposed by default (when enabled):** services with user-facing UIs/APIs (OpenClaw, OpenHands, Nextcloud, Gitea, Paperless-ngx, Infisical, wg-easy web UI).
+- **OpenClaw is private by default:** `Service` type `ClusterIP` with `openclaw.ingress.enabled: false` unless you explicitly configure internal/private ingress.
+- **OpenClaw access path:** through VPN/private networking, for example `http://openclaw.default.svc.cluster.local:18789`.
+- **Exposed by default (when enabled):** other user-facing UIs/APIs (OpenHands, Nextcloud, Gitea, Paperless-ngx, Infisical, wg-easy web UI).
 - **Optional private posture per environment:** use internal ingress classes, VPN-only access, or private load balancers when required.
 
 ## Ingress controls
