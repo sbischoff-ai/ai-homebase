@@ -27,6 +27,9 @@ Set `existingSecret` to override that name (for example, `wg-easy-secrets`).
 
 - `wg.host` (string, default `""`)
 - `wg.subnet` (default `10.8.0.0/24`)
+- `wg.defaultAddress` (default derived from `wg.subnet`, for example `10.8.0.x`)
+- `wg.defaultDns` (default `1.1.1.1`)
+- `wg.allowedIPs` (default `0.0.0.0/0`)
 
 At deployment time, the chart wires:
 
@@ -53,6 +56,12 @@ helm upgrade --install wg-easy ./charts/wg-easy \
 kubectl rollout status deploy/wg-easy
 ```
 
+5. Access the wg-easy UI (when using a direct LoadBalancer/NodePort service):
+
+```bash
+http://<cluster-ip>:51821
+```
+
 ## VPN connection steps
 
 1. Open the wg-easy UI (via your configured service/ingress endpoint).
@@ -65,6 +74,6 @@ kubectl rollout status deploy/wg-easy
 
 After connecting the VPN, access OpenClaw at:
 
-- `http://openclaw.openclaw.svc.cluster.local`
+- `http://openclaw.default.svc.cluster.local:18789`
 
 (Use the in-cluster DNS endpoint from a VPN-connected client with routing configured to cluster networks.)
