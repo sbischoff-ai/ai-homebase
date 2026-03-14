@@ -110,6 +110,7 @@ helm template platform-stack charts/platform-stack -f charts/platform-stack/valu
 ./scripts/install-dev.sh --release-name platform-stack --namespace ai-homebase
 ./scripts/install-aks.sh --release-name platform-stack --namespace ai-homebase --kube-context <your-kube-context>
 ./scripts/k3d-up.sh --cluster-name ai-homebase-dev
+./scripts/test-local-k3d.sh --release-name platform-stack --namespace ai-homebase
 ./scripts/k3d-down.sh --cluster-name ai-homebase-dev
 ```
 
