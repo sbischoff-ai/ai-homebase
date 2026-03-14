@@ -1,7 +1,7 @@
 # ai-homebase
 
 ## Project purpose
-`ai-homebase` is an all-in-one Kubernetes platform starter for running an AI control plane plus optional personal-cloud services from a single Helm release.
+`ai-homebase` is an all-in-one Kubernetes platform starter for running a general AI assistant (OpenClaw), an agentic coding platform (OpenHands), and optional personal-cloud services from a single Helm release.
 
 The stack is intentionally opinionated around:
 
@@ -15,7 +15,7 @@ The stack is intentionally opinionated around:
 
 ### Core plane (always recommended)
 
-- **OpenClaw**: external-facing API/UI control surface.
+- **OpenClaw**: general AI assistant with user-facing API/UI.
 - **OpenHands**: agentic coding platform with user-facing UI/API.
 
 ### Optional supporting services

@@ -9,16 +9,16 @@ This separation keeps the primary AI workflow deployable even when optional apps
 
 ## 1) Core AI plane
 
-### OpenClaw (control plane)
+### OpenClaw (general AI assistant)
 
-OpenClaw is the external entrypoint and coordination layer.
+OpenClaw is the general AI assistant service and primary user-facing assistant experience.
 
 Responsibilities:
 
 - Public API/UI ingress.
-- Request validation and policy enforcement.
-- Job intent publication toward execution backends.
-- Aggregated status/reporting contract for clients.
+- Assistant chat/API interactions for general AI use.
+- User/session-facing request handling and policy enforcement.
+- Integration point for platform-level auth and assistant configuration.
 
 Default posture:
 
@@ -59,10 +59,10 @@ They can run alongside the core plane for a single "personal cloud" footprint, b
 
 High-level flow:
 
-1. External traffic enters OpenClaw.
-2. OpenClaw validates and dispatches work intent.
-3. OpenHands performs execution with bounded runtime controls.
-4. Results and metadata are surfaced through control-plane interfaces.
+1. Users access OpenClaw for general AI assistant interactions.
+2. Users access OpenHands for agentic coding workflows via UI/API.
+3. Optional personal-cloud services are exposed when enabled for their own UI/API use cases.
+4. Environment overlays enforce exposure, security, and policy posture per service.
 
 Boundary goal:
 
