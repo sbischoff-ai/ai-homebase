@@ -1,6 +1,19 @@
 # OpenClaw chart notes
 
-This chart deploys OpenClaw with token-gated gateway auth enabled by default.
+This chart deploys OpenClaw as a **single trusted-boundary, long-running gateway host** with durable state and ingress-ready browser access.
+
+## What this chart configures by default
+
+- **One replica** (`replicaCount: 1`) because the gateway owns mutable state.
+- **Durable state** (`persistence.enabled: true`) mounted at `/home/node/.openclaw` and exported as `OPENCLAW_STATE_DIR`.
+- A rendered `openclaw.json` from chart values, mounted read-only and set via `OPENCLAW_CONFIG_PATH=/etc/openclaw/openclaw.json`.
+- Gateway defaults for remote access:
+  - `gateway.bind: lan`
+  - `gateway.port: 18789`
+  - `gateway.auth.mode: token`
+  - `gateway.controlUi.enabled: true`
+- `Service` defaults to `ClusterIP` on port `18789`.
+- `Ingress` is enabled by default and supports TLS values.
 
 ## Required operator-provided secrets
 
@@ -11,11 +24,13 @@ You must provide a Kubernetes Secret that includes:
   - `OPENAI_API_KEY`, or
   - `ANTHROPIC_API_KEY`.
 
+Without a model provider key, the UI can load but the assistant will not produce responses.
+
 If `openclaw.gateway.auth.mode=token`, Helm rendering fails unless `existingSecret` and `secretKeys.gatewayToken` are configured.
 
 ## Optional provider/search/tooling keys
 
-You can also provide optional keys for extra providers and tools:
+Optional keys for additional providers and web-search tooling:
 
 - `BRAVE_API_KEY`
 - `PERPLEXITY_API_KEY`
@@ -24,33 +39,35 @@ You can also provide optional keys for extra providers and tools:
 - `KIMI_API_KEY` / `MOONSHOT_API_KEY`
 - `TAVILY_API_KEY`
 
-Use `secretRefs` to map these keys directly into the OpenClaw container environment with exact variable names.
+Use `secretKeys` for common direct mappings and/or `secretRefs` for arbitrary secret-to-env mappings.
 
 ## Ingress and origin requirements
 
-For external access:
+For external browser access you must set all of the following:
 
-1. Set an ingress host.
-2. Configure TLS for that host.
-3. Set `openclaw.gateway.controlUi.allowedOrigins` to the exact public origin (scheme + host), for example:
+1. Ingress hostname (`ingress.hosts[*].host`, `ingress.defaultHost`, or `global.hosts.openclaw`).
+2. TLS for that hostname (`ingress.tls`).
+3. `openclaw.gateway.controlUi.allowedOrigins` to exact public origin(s), for example:
    - `https://openclaw.example.com`
 
-`allowedOrigins` should match how users actually reach the service (no wildcard for internet exposure).
+For non-loopback binds, wildcard origins are intentionally rejected.
 
 ## First-use auth and pairing behavior
 
-- OpenClaw uses **token auth on the WebSocket handshake** (gateway token).
-- On first connection from a new device/client, you may see a one-time pairing request that requires approval.
-- Operational approval path:
+- OpenClaw authenticates during the **WebSocket handshake** using token auth (or password if configured).
+- On first connection from a new browser/device, OpenClaw may require one-time pairing approval.
+- Approval flow:
 
 ```bash
 openclaw devices list
 openclaw devices approve <requestId>
 ```
 
+If you do not have direct CLI access in the running pod, make sure you have another operational path to run those commands when pairing approval is required.
+
 ## Trust model
 
-This deployment model is suitable for a **single trusted operator or household boundary**.
+This deployment is intended for a **single trusted operator / household / team boundary**.
 It is **not intended to be a hostile multi-tenant shared service**.
 
 ## Example: secrets + values (`existingSecret` / `secretRefs` style)
@@ -85,26 +102,15 @@ secretKeys:
   gatewayToken: OPENCLAW_GATEWAY_TOKEN
   openaiApiKey: OPENAI_API_KEY
   # anthropicApiKey: ANTHROPIC_API_KEY
+  braveApiKey: BRAVE_API_KEY
+  tavilyApiKey: TAVILY_API_KEY
+  perplexityApiKey: PERPLEXITY_API_KEY
+  geminiApiKey: GEMINI_API_KEY
+  xaiApiKey: XAI_API_KEY
+  kimiApiKey: KIMI_API_KEY
+  moonshotApiKey: MOONSHOT_API_KEY
 
 secretRefs:
-  - name: openclaw-secrets
-    key: BRAVE_API_KEY
-    envVar: BRAVE_API_KEY
-  - name: openclaw-secrets
-    key: PERPLEXITY_API_KEY
-    envVar: PERPLEXITY_API_KEY
-  - name: openclaw-secrets
-    key: GEMINI_API_KEY
-    envVar: GEMINI_API_KEY
-  - name: openclaw-secrets
-    key: XAI_API_KEY
-    envVar: XAI_API_KEY
-  - name: openclaw-secrets
-    key: KIMI_API_KEY
-    envVar: KIMI_API_KEY
-  - name: openclaw-secrets
-    key: MOONSHOT_API_KEY
-    envVar: MOONSHOT_API_KEY
   - name: openclaw-secrets
     key: TAVILY_API_KEY
     envVar: TAVILY_API_KEY

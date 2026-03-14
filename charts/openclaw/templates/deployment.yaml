@@ -2,6 +2,7 @@
 {{- $gatewayBind := .Values.openclaw.gateway.bind | default "" }}
 {{- $controlUiEnabled := .Values.openclaw.gateway.controlUi.enabled }}
 {{- $allowedOrigins := .Values.openclaw.gateway.controlUi.allowedOrigins | default (list) }}
+{{- $allowedOriginsIncludesWildcard := has "*" $allowedOrigins }}
 {{- $nonLoopbackBind := not (or (eq $gatewayBind "") (eq $gatewayBind "localhost") (eq $gatewayBind "127.0.0.1") (eq $gatewayBind "::1") (eq $gatewayBind "loopback") (eq $gatewayBind "local")) }}
 {{- if and (eq $gatewayAuthMode "token") (not .Values.existingSecret) }}
 {{- fail "openclaw.existingSecret is required when openclaw.gateway.auth.mode=token" }}
@@ -11,6 +12,9 @@
 {{- end }}
 {{- if and $nonLoopbackBind $controlUiEnabled (eq (len $allowedOrigins) 0) }}
 {{- fail "openclaw.gateway.controlUi.allowedOrigins must be non-empty when gateway bind is non-loopback and control UI is enabled" }}
+{{- end }}
+{{- if and $nonLoopbackBind $controlUiEnabled $allowedOriginsIncludesWildcard }}
+{{- fail "openclaw.gateway.controlUi.allowedOrigins cannot include \"*\" when gateway bind is non-loopback; set exact public origin(s)" }}
 {{- end }}
 apiVersion: apps/v1
 kind: Deployment
@@ -95,8 +99,22 @@ spec:
                   name: {{ $.Values.existingSecret }}
                   key: {{ . }}
             {{- end }}
-            {{- with $.Values.secretKeys.googleApiKey }}
-            - name: GOOGLE_API_KEY
+            {{- with $.Values.secretKeys.braveApiKey }}
+            - name: BRAVE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.existingSecret }}
+                  key: {{ . }}
+            {{- end }}
+            {{- with $.Values.secretKeys.kimiApiKey }}
+            - name: KIMI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.existingSecret }}
+                  key: {{ . }}
+            {{- end }}
+            {{- with $.Values.secretKeys.moonshotApiKey }}
+            - name: MOONSHOT_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: {{ $.Values.existingSecret }}
@@ -104,6 +122,34 @@ spec:
             {{- end }}
             {{- with $.Values.secretKeys.tavilyApiKey }}
             - name: TAVILY_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.existingSecret }}
+                  key: {{ . }}
+            {{- end }}
+            {{- with $.Values.secretKeys.perplexityApiKey }}
+            - name: PERPLEXITY_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.existingSecret }}
+                  key: {{ . }}
+            {{- end }}
+            {{- with $.Values.secretKeys.geminiApiKey }}
+            - name: GEMINI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.existingSecret }}
+                  key: {{ . }}
+            {{- end }}
+            {{- with $.Values.secretKeys.xaiApiKey }}
+            - name: XAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.existingSecret }}
+                  key: {{ . }}
+            {{- end }}
+            {{- with $.Values.secretKeys.googleApiKey }}
+            - name: GOOGLE_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: {{ $.Values.existingSecret }}
