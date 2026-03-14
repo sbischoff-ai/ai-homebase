@@ -1,20 +1,21 @@
-{{- if and .Values.workspace.enabled (not .Values.workspace.existingClaim) }}
+{{- $persistence := include "openhands.persistenceConfig" . | fromYaml -}}
+{{- if and $persistence.enabled (not $persistence.existingClaim) }}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: {{ include "openhands.fullname" . }}-workspace
   labels:
     {{- include "openhands.labels" . | nindent 4 }}
-  {{- with .Values.workspace.annotations }}
+  {{- with $persistence.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
   accessModes:
-    {{- toYaml .Values.workspace.accessModes | nindent 4 }}
+    {{- toYaml $persistence.accessModes | nindent 4 }}
   resources:
     requests:
-      storage: {{ .Values.workspace.size }}
+      storage: {{ $persistence.size }}
   {{- $storageClass := include "openhands.effectiveStorageClass" . }}
   {{- if $storageClass }}
   storageClassName: {{ $storageClass }}

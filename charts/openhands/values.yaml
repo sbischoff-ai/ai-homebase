@@ -52,14 +52,25 @@ ingress:
   hosts: []
   tls: []
 
-workspace:
-  enabled: false
+persistence:
+  enabled: true
+  mountPath: "/.openhands"
   existingClaim: ""
   accessModes:
     - ReadWriteOnce
   size: 20Gi
   storageClass: ""
-  mountPath: /workspace
+  annotations: {}
+
+# DEPRECATED: use persistence.* instead. These fields are still honored as a
+# temporary compatibility fallback when persistence.* values are not set.
+workspace:
+  enabled: null
+  existingClaim: ""
+  accessModes: []
+  size: ""
+  storageClass: ""
+  mountPath: ""
   annotations: {}
 
 env: []
