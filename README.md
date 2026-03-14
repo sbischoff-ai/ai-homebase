@@ -60,7 +60,7 @@ The `charts/platform-stack` umbrella chart composes:
 
 Profiles:
 
-- `values.yaml` — baseline defaults.
+- `values.yaml` — baseline defaults (including OpenHands service-only exposure: ClusterIP on port 3000, ingress disabled).
 - `values-dev.yaml` — minimal dev profile.
 - `values-k3d.yaml` — k3d local-smoke overlay (layer on top of `values-dev.yaml`).
 - `values-aks.yaml` — AKS-oriented profile with cloud integration placeholders.

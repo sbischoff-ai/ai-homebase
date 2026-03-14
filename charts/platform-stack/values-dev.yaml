@@ -61,7 +61,7 @@ openhands:
     enabled: true
     type: ClusterIP
     annotations: {}
-  # OpenHands UI/API should be exposed when the service is enabled.
+  # Enable OpenHands ingress only for environments that intentionally expose a private/internal endpoint.
   ingress:
     enabled: true
     className: nginx
