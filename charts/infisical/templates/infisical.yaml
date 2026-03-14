@@ -68,24 +68,49 @@ spec:
         ports: 
         - containerPort: 8080
         env:
+        - name: AUTH_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: {{ $infisicalValues.kubeSecretRef }}
+              key: AUTH_SECRET
+        - name: ENCRYPTION_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ $infisicalValues.kubeSecretRef }}
+              key: ENCRYPTION_KEY
+        - name: SITE_URL
+          valueFrom:
+            secretKeyRef:
+              name: {{ $infisicalValues.kubeSecretRef }}
+              key: SITE_URL
         {{- if .Values.postgresql.useExistingPostgresSecret.enabled }}
         - name: DB_CONNECTION_URI
           valueFrom:
             secretKeyRef:
               name: {{ .Values.postgresql.useExistingPostgresSecret.existingConnectionStringSecret.name }}
               key: {{ .Values.postgresql.useExistingPostgresSecret.existingConnectionStringSecret.key }}
-        {{- end }}
-        {{- if .Values.postgresql.enabled }}
+        {{- else if .Values.postgresql.enabled }}
         - name: DB_CONNECTION_URI
           value: {{ include "infisical.postgresDBConnectionString" . }}
+        {{- else }}
+        - name: DB_CONNECTION_URI
+          valueFrom:
+            secretKeyRef:
+              name: {{ $infisicalValues.kubeSecretRef }}
+              key: DB_CONNECTION_URI
+              optional: true
         {{- end }}
         {{- if .Values.redis.enabled }}
         - name: REDIS_URL
           value: {{ include "infisical.redisConnectionString" . }}
+        {{- else }}
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: {{ $infisicalValues.kubeSecretRef }}
+              key: REDIS_URL
+              optional: true
         {{- end }}
-        envFrom:
-        - secretRef:
-            name: {{ $infisicalValues.kubeSecretRef }}
         {{- if  $infisicalValues.resources }}
         resources: {{- toYaml $infisicalValues.resources | nindent 12 }}
         {{- end }}

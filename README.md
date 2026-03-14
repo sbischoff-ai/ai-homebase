@@ -127,6 +127,27 @@ helm template platform-stack charts/platform-stack -f charts/platform-stack/valu
 ./scripts/k3d-down.sh --cluster-name ai-homebase-dev
 ```
 
+## Infisical secret contract
+
+For this repository, **in-cluster mode is the default** for Infisical (`charts/infisical/values.yaml` keeps `postgresql.enabled=true` and `redis.enabled=true`).
+
+Set `infisical.kubeSecretRef` to a Kubernetes Secret that includes:
+
+- `AUTH_SECRET`
+- `ENCRYPTION_KEY`
+- `SITE_URL`
+
+These keys are always wired into the Infisical container in chart templates for in-cluster mode.
+
+### External mode (optional / future path)
+
+If you disable in-cluster PostgreSQL and/or Redis and point Infisical to external services, the same `infisical.kubeSecretRef` Secret can additionally provide:
+
+- `DB_CONNECTION_URI`
+- `REDIS_URL`
+
+These keys are optional and only used when in-cluster dependencies are disabled.
+
 ## Production-hardening gaps to close before go-live
 
 - Replace placeholder hosts/domains and TLS issuers.
