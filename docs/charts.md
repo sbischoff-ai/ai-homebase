@@ -98,3 +98,15 @@ Ingress controls are available under `openhands.ingress.*`:
 - `ingress.tls`
 
 Use internal/VPN hostnames for admin/internal deployments (for example `openhands.vpn.homebase.internal`) and pair them with an internal ingress class.
+
+OpenHands persistence controls are available under `openhands.persistence.*`:
+
+- `persistence.enabled` (default `true`)
+- `persistence.mountPath` (default `/.openhands`)
+- `persistence.size`
+- `persistence.storageClass` (falls back to `global.storageClass` when empty)
+- `persistence.accessModes`
+- `persistence.existingClaim`
+- `persistence.annotations`
+
+`openhands.workspace.*` is deprecated and remains as a temporary compatibility fallback. Prefer migrating to `openhands.persistence.*`.

@@ -28,6 +28,7 @@ spec:
         {{- end }}
       {{- end }}
     spec:
+      {{- $persistence := include "openhands.persistenceConfig" . | fromYaml }}
       serviceAccountName: {{ include "openhands.serviceAccountName" . }}
       {{- $pullSecrets := include "openhands.effectiveImagePullSecrets" . | fromYamlArray }}
       {{- if $pullSecrets }}
@@ -103,22 +104,22 @@ spec:
             {{- toYaml .Values.resources | nindent 12 }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
-          {{- if or .Values.workspace.enabled .Values.extraVolumeMounts }}
+          {{- if or $persistence.enabled .Values.extraVolumeMounts }}
           volumeMounts:
-            {{- if .Values.workspace.enabled }}
+            {{- if $persistence.enabled }}
             - name: workspace
-              mountPath: {{ .Values.workspace.mountPath }}
+              mountPath: {{ $persistence.mountPath }}
             {{- end }}
             {{- with .Values.extraVolumeMounts }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
           {{- end }}
-      {{- if or .Values.workspace.enabled .Values.extraVolumes }}
+      {{- if or $persistence.enabled .Values.extraVolumes }}
       volumes:
-        {{- if .Values.workspace.enabled }}
+        {{- if $persistence.enabled }}
         - name: workspace
           persistentVolumeClaim:
-            claimName: {{ default (printf "%s-workspace" (include "openhands.fullname" .)) .Values.workspace.existingClaim }}
+            claimName: {{ default (printf "%s-workspace" (include "openhands.fullname" .)) $persistence.existingClaim }}
         {{- end }}
         {{- with .Values.extraVolumes }}
         {{- toYaml . | nindent 8 }}
