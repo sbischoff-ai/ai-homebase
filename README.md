@@ -42,6 +42,7 @@ Enable only what you need in your environment overlay.
 - [`docs/services.md`](./docs/services.md): service-by-service toggle, dependency, and secret contract matrix.
 - [`docs/configuration.md`](./docs/configuration.md): values hierarchy and layering guidance.
 - [`docs/deployment-aks.md`](./docs/deployment-aks.md): AKS deployment flow with prerequisites and toggles.
+- [`docs/deployment-k3d.md`](./docs/deployment-k3d.md): local k3d bootstrap, smoke checks, ingress host access, and troubleshooting.
 - [`docs/storage.md`](./docs/storage.md): storage class strategy, PVC sizing, and backup gaps.
 - [`docs/networking.md`](./docs/networking.md): ingress posture, internal/private patterns, and hardening checklist.
 
@@ -70,6 +71,7 @@ Profiles:
 - [Git](https://git-scm.com/)
 - [Helm 3](https://helm.sh/docs/intro/install/)
 - [kubectl](https://kubernetes.io/docs/tasks/tools/)
+- [Docker](https://docs.docker.com/get-docker/) (required by k3d)
 - [k3d](https://k3d.io/) (for local cluster lifecycle scripts)
 - Access to Kubernetes (AKS, homelab, or other distribution)
 
