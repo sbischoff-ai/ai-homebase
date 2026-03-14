@@ -83,6 +83,42 @@ spec:
             secretKeyRef:
               name: {{ $infisicalValues.kubeSecretRef }}
               key: SITE_URL
+        - name: SMTP_HOST
+          valueFrom:
+            secretKeyRef:
+              name: {{ $infisicalValues.kubeSecretRef }}
+              key: SMTP_HOST
+              optional: true
+        - name: SMTP_PORT
+          valueFrom:
+            secretKeyRef:
+              name: {{ $infisicalValues.kubeSecretRef }}
+              key: SMTP_PORT
+              optional: true
+        - name: SMTP_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: {{ $infisicalValues.kubeSecretRef }}
+              key: SMTP_USERNAME
+              optional: true
+        - name: SMTP_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ $infisicalValues.kubeSecretRef }}
+              key: SMTP_PASSWORD
+              optional: true
+        - name: SMTP_FROM_ADDRESS
+          valueFrom:
+            secretKeyRef:
+              name: {{ $infisicalValues.kubeSecretRef }}
+              key: SMTP_FROM_ADDRESS
+              optional: true
+        - name: SMTP_FROM_NAME
+          valueFrom:
+            secretKeyRef:
+              name: {{ $infisicalValues.kubeSecretRef }}
+              key: SMTP_FROM_NAME
+              optional: true
         {{- if .Values.postgresql.useExistingPostgresSecret.enabled }}
         - name: DB_CONNECTION_URI
           valueFrom:

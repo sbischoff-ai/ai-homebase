@@ -1,6 +1,6 @@
 # Infisical chart notes
 
-This chart deploys Infisical with in-cluster PostgreSQL and Redis defaults and supports either automatic or manual first-admin bootstrap.
+This chart deploys a durable, VPN-reachable **self-hosted Infisical** instance using in-cluster PostgreSQL and Redis (both with PVC persistence enabled).
 
 ## Prerequisites
 
@@ -8,7 +8,18 @@ This chart deploys Infisical with in-cluster PostgreSQL and Redis defaults and s
 - Helm **3.11.3+**
 - `kubectl` access to the target cluster/namespace
 
-## Required secret keys
+## Defaults and architecture choices
+
+- `infisical.service.type: ClusterIP`
+- `ingress.enabled: true` with an internal hostname default (`infisical.internal.home.arpa`)
+- Infisical image pinned to `infisical/infisical:v0.151.0`
+- `infisical.replicaCount: 2`
+- In-cluster PostgreSQL and Redis enabled by default
+- PostgreSQL and Redis persistence enabled by default
+
+This chart is designed to keep Infisical private to VPN/internal users unless you explicitly configure public exposure.
+
+## Required app secret keys
 
 Create (or reuse) the Kubernetes Secret referenced by `infisical.kubeSecretRef` (default: `infisical-secrets`) with at least:
 
@@ -16,11 +27,17 @@ Create (or reuse) the Kubernetes Secret referenced by `infisical.kubeSecretRef` 
 - `ENCRYPTION_KEY`
 - `SITE_URL`
 
-These are required for a healthy in-cluster deployment.
+### External DB/Redis note
+
+This repo defaults to **in-cluster Postgres + Redis** and does not require external connection keys.
+If you later switch to external services, provide:
+
+- `DB_CONNECTION_URI`
+- `REDIS_URL`
 
 ## Recommended SMTP keys
 
-For email-based flows (invites, password reset, notifications), include these keys in the same secret:
+For invitations, password reset, and notifications, include these keys in the same secret:
 
 - `SMTP_HOST`
 - `SMTP_PORT`
@@ -31,15 +48,14 @@ For email-based flows (invites, password reset, notifications), include these ke
 
 ## Ingress and private reachability model
 
-This chart exposes Infisical behind an Ingress by default (`infisical.ingress.enabled: true`) with optional host/TLS configuration via values.
+Use an internal/VPN-only hostname in both:
 
-Recommended operational model:
+- `ingress.hostName`
+- `SITE_URL`
 
-- Use an **internal-only URL** for `SITE_URL` (for example, an internal DNS name).
-- Keep ingress scoped to private networking where possible.
-- Reach Infisical through your VPN/private network path instead of opening public internet access.
+Example: `https://infisical.internal.home.arpa`
 
-If you do publish an external hostname, ensure TLS and access controls are in place.
+Do not expose Infisical publicly by default. If you intentionally expose it externally, enforce TLS and access controls.
 
 ## First-admin bootstrap
 
@@ -47,68 +63,42 @@ Two supported approaches:
 
 1. **Preferred: auto-bootstrap**
    - Set `infisical.autoBootstrap.enabled=true`.
-   - Provide bootstrap credentials Secret (`INFISICAL_ADMIN_EMAIL`, `INFISICAL_ADMIN_PASSWORD`) via `infisical.autoBootstrap.credentialSecret.name`.
-   - On install, the chart runs a post-install bootstrap job and writes root identity credentials to the configured destination Secret.
+   - Create bootstrap credential Secret (keys required):
+     - `INFISICAL_ADMIN_EMAIL`
+     - `INFISICAL_ADMIN_PASSWORD`
+   - Point `infisical.autoBootstrap.credentialSecret.name` at that Secret.
+   - The chart bootstraps an admin user + org and writes the bootstrap output token to `infisical.autoBootstrap.secretDestination`.
 
 2. **Manual fallback**
-   - Leave `infisical.autoBootstrap.enabled=false` (default).
-   - Infisical runs in fallback mode where the first signup becomes admin.
+   - Keep `infisical.autoBootstrap.enabled=false` (default).
+   - First signup becomes admin.
 
 ## Data safety and backup warnings
 
-- **Critical key warning:** if you lose `ENCRYPTION_KEY`, encrypted secret payloads cannot be decrypted, even if PostgreSQL is fully restored from backup.
-- The PostgreSQL primary PVC stores Infisical's persistent encrypted data and is critical for retention and disaster recovery.
-- Always take a verified backup before:
-  - chart upgrades,
-  - storage changes,
-  - or uninstalling the release.
+- 🚨 **Critical:** losing `ENCRYPTION_KEY` means encrypted secret values can never be decrypted, even with a restored PostgreSQL backup.
+- PostgreSQL PVC stores Infisical's encrypted secret data and must be treated as critical state.
+- Take verified backups of PostgreSQL before upgrades, storage migration, or uninstall.
+- Store `ENCRYPTION_KEY` securely **outside the cluster** as part of disaster recovery.
 
-Treat PostgreSQL data + `ENCRYPTION_KEY` as a paired recovery boundary.
-
-## End-to-end: Infisical + secrets-operator + app secret sync
-
-This section shows a concrete workflow for using Infisical as the secret source of truth and syncing app-specific values into Kubernetes Secrets that downstream charts already consume.
-
-### 1) Deploy Infisical
-
-Create the backing secret expected by this chart (at least `AUTH_SECRET`, `ENCRYPTION_KEY`, `SITE_URL`; optionally SMTP keys), then install:
+## Install
 
 ```bash
 kubectl -n infisical create secret generic infisical-secrets \
   --from-literal=AUTH_SECRET='replace-me' \
   --from-literal=ENCRYPTION_KEY='replace-me-with-strong-key' \
-  --from-literal=SITE_URL='https://infisical.internal.example'
+  --from-literal=SITE_URL='https://infisical.internal.home.arpa'
 
 helm upgrade --install infisical charts/infisical \
   --namespace infisical \
   --create-namespace
 ```
 
-### 2) Bootstrap admin/org
+## Using Infisical as the secret source for `openclaw` and `wg-easy`
 
-Use one of the existing chart-supported flows:
+Deploying Infisical alone does **not** sync secrets into Kubernetes Secrets for workloads.
+You must also deploy the **Infisical Kubernetes Operator** and create `InfisicalSecret` resources.
 
-- Auto-bootstrap (`infisical.autoBootstrap.enabled=true`) with bootstrap credential secret (`INFISICAL_ADMIN_EMAIL`, `INFISICAL_ADMIN_PASSWORD`), or
-- Manual fallback where first signup becomes admin.
-
-After bootstrap, sign in to Infisical and create/confirm your organization.
-
-### 3) Create projects/environments/secrets
-
-In Infisical, create one project per app (or shared project if you prefer), create environments (for example `dev`, `prod`), and add secret keys.
-
-Recommended keys for this repo:
-
-- `openclaw` project/environment:
-  - `OPENCLAW_GATEWAY_TOKEN`
-  - `OPENAI_API_KEY` and/or `ANTHROPIC_API_KEY`
-- `wg-easy` project/environment:
-  - `WG_HOST`
-  - `PASSWORD`
-
-### 4) Install Infisical `secrets-operator` chart
-
-Install the operator in-cluster so `InfisicalSecret` custom resources can reconcile to native Kubernetes Secrets.
+### 1) Install the Infisical secrets operator
 
 ```bash
 helm repo add infisical https://dl.cloudsmith.io/public/infisical/helm-charts/helm/charts/
@@ -119,91 +109,22 @@ helm upgrade --install infisical-secrets-operator infisical/secrets-operator \
   --create-namespace
 ```
 
-### 5) Configure Machine Identity + Kubernetes Auth
+### 2) Configure operator authentication
 
-Create a machine identity in Infisical with access to the target project/environment, then configure Kubernetes auth for the operator (service account/JWT flow) as required by the operator version you deploy.
+- Create a Machine Identity in Infisical.
+- Grant least-privilege project/environment access.
+- Configure operator auth (for example Universal Auth credentials Secret referenced by `InfisicalSecret`).
 
-At a high level:
+### 3) Sync app secrets via `InfisicalSecret`
 
-1. Create machine identity + client credentials in Infisical.
-2. Grant least-privilege read access to the required secrets.
-3. Store the credentials in Kubernetes (in the operator namespace).
-4. Create the operator auth custom resource that references those credentials.
+Use one `InfisicalSecret` per workload/env to materialize Kubernetes Secrets consumed by charts.
 
-### 6) Create `InfisicalSecret` resources to sync to Kubernetes Secrets
+- `openclaw` synced Kubernetes Secret should include:
+  - `OPENCLAW_GATEWAY_TOKEN`
+  - `OPENAI_API_KEY`
+  - `ANTHROPIC_API_KEY`
+- `wg-easy` synced Kubernetes Secret should include:
+  - `WG_HOST`
+  - `PASSWORD`
 
-Create one `InfisicalSecret` per app/environment and set the output secret names to match what app charts already consume.
-
-Example (`openclaw`): sync to `openclaw-secrets` with keys `OPENCLAW_GATEWAY_TOKEN`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`.
-
-```yaml
-apiVersion: secrets.infisical.com/v1alpha1
-kind: InfisicalSecret
-metadata:
-  name: openclaw-secrets
-  namespace: apps
-spec:
-  hostAPI: https://infisical.internal.example/api
-  resyncInterval: 60
-  authentication:
-    universalAuthCredentialsRef:
-      secretName: infisical-machine-identity
-      secretNamespace: infisical-operator
-  managedKubeSecretReferences:
-    - secretName: openclaw-secrets
-      secretNamespace: apps
-      creationPolicy: Owner
-  secretsScope:
-    projectSlug: openclaw
-    envSlug: prod
-    secretsPath: /
-    recursive: true
-    includeImports: true
-```
-
-Example (`wg-easy`): sync to `wg-easy-secrets` with keys `WG_HOST`, `PASSWORD`.
-
-```yaml
-apiVersion: secrets.infisical.com/v1alpha1
-kind: InfisicalSecret
-metadata:
-  name: wg-easy-secrets
-  namespace: apps
-spec:
-  hostAPI: https://infisical.internal.example/api
-  resyncInterval: 60
-  authentication:
-    universalAuthCredentialsRef:
-      secretName: infisical-machine-identity
-      secretNamespace: infisical-operator
-  managedKubeSecretReferences:
-    - secretName: wg-easy-secrets
-      secretNamespace: apps
-      creationPolicy: Owner
-  secretsScope:
-    projectSlug: wg-easy
-    envSlug: prod
-    secretsPath: /
-    recursive: true
-    includeImports: true
-```
-
-Then wire charts to these synced secret names.
-
-`openclaw` values:
-
-```yaml
-existingSecret: openclaw-secrets
-secretKeys:
-  gatewayToken: OPENCLAW_GATEWAY_TOKEN
-  openaiApiKey: OPENAI_API_KEY
-  anthropicApiKey: ANTHROPIC_API_KEY
-```
-
-`wg-easy` values:
-
-```yaml
-existingSecret: wg-easy-secrets
-```
-
-`openclaw` and `wg-easy` already read environment variables from Kubernetes Secrets via their existing `existingSecret` and secret-key mappings. Using `InfisicalSecret` just automates keeping those Kubernetes Secrets up to date.
+Then set downstream charts to use those synced Kubernetes Secret names (`existingSecret`).

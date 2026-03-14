@@ -99,28 +99,8 @@ infisical:
     # -- Optional node port for service when using NodePort type
     nodePort: ""
 
-  ingress:
-    # -- Enable or disable ingress configuration
-    enabled: true
-    # -- Hostname for ingress access, e.g., app.example.com
-    hostName: ""
-    # -- Specifies the ingress class, useful for multi-ingress setups
-    ingressClassName: nginx
-
-    nginx:
-      # -- Enable NGINX-specific settings, if using NGINX ingress controller
-      enabled: false
-
-    # -- Custom annotations for ingress resource
-    annotations: {}
-    # -- TLS settings for HTTPS access
-    tls:
-      []
-      # -- TLS secret name for HTTPS
-      # - secretName: letsencrypt-prod
-      # -- Domain name to associate with the TLS certificate
-      #   hosts:
-      #     - some.domain.com
+  # -- Deprecated path retained for compatibility; prefer top-level `ingress` values.
+  ingress: {}
 
   resources:
     limits:
@@ -206,3 +186,25 @@ redis:
       size: 8Gi
       # -- Optional Redis PVC storageClass override.
       storageClass: ""
+
+
+# -- Ingress settings for VPN/internal reachability (preferred over `infisical.ingress`).
+ingress:
+  # -- Enable or disable ingress configuration.
+  enabled: true
+  # -- Internal/VPN hostname for UI access.
+  hostName: infisical.internal.home.arpa
+  # -- Ingress class name.
+  ingressClassName: nginx
+
+  nginx:
+    # -- Enable NGINX-specific settings, if using NGINX ingress controller.
+    enabled: false
+
+  # -- Custom annotations for ingress resource.
+  annotations: {}
+  # -- TLS settings for HTTPS access.
+  tls: []
+  # - secretName: infisical-internal-tls
+  #   hosts:
+  #     - infisical.internal.home.arpa

@@ -122,5 +122,13 @@ We truncate at 63 chars because some Kubernetes name fields are limited to this 
 {{- define "infisical.redisConnectionString" -}}
 {{- $password := .Values.redis.auth.password -}}
 {{- $serviceName := include "infisical.redisServiceName" . -}}
-{{- printf "redis://default:%s@%s:6379" $password "redis-master" -}}
+{{- printf "redis://default:%s@%s:6379" $password $serviceName -}}
+{{- end -}}
+
+{{- define "infisical.ingressValues" -}}
+{{- if .Values.ingress -}}
+{{- toYaml .Values.ingress -}}
+{{- else -}}
+{{- toYaml .Values.infisical.ingress -}}
+{{- end -}}
 {{- end -}}
