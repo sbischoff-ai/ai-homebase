@@ -50,13 +50,13 @@ ingress:
   tls: []
 
 persistence:
-  enabled: false
+  enabled: true
   existingClaim: ""
   accessModes:
     - ReadWriteOnce
   size: 10Gi
   storageClass: ""
-  mountPath: /data
+  mountPath: /home/node/.openclaw
   annotations: {}
 
 config:
