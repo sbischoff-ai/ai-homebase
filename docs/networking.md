@@ -37,6 +37,7 @@ If a service must remain private, use internal ingress classes, VPN-only access,
 
 - Expose UDP VPN endpoint with narrow source/routing controls.
 - If the web UI is exposed, protect it with strong authn/authz and IP/rate controls.
+- Ensure the configured wg-easy runtime Secret contains `WG_HOST` (reachable endpoint/FQDN) and `PASSWORD` (UI auth) before rollout.
 
 ## NetworkPolicy guidance
 

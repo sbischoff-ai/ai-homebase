@@ -49,7 +49,8 @@ kubectl --context <your-kube-context> -n <your-namespace> create secret generic 
   --from-literal=INFISICAL_ENCRYPTION_KEY=<dummy-infisical-encryption-key>
 
 kubectl --context <your-kube-context> -n <your-namespace> create secret generic wgeasy-app-secrets \
-  --from-literal=WG_DEFAULT_PASSWORD_HASH=<dummy-wg-password-hash>
+  --from-literal=WG_HOST=<dummy-vpn-hostname-or-ip> \
+  --from-literal=PASSWORD=<dummy-wg-ui-password>
 ```
 
 For OpenClaw and OpenHands, make sure secret key names match each chart contract:
