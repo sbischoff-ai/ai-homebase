@@ -1,21 +1,40 @@
 # Helm chart notes
 
 ## Shared global values
-`openclaw`, `openhands`, `nextcloud`, `gitea`, `paperless-ngx`, `infisical`, and `wg-easy` support a shared `global` block (with canonical host keys such as `global.hosts.paperlessNgx` and `global.hosts.wgEasy`) for:
+Use `global.*` as a convenience layer, but not all keys are truly universal across every dependency chart.
 
-- `imagePullSecrets`
-- `storageClass`
-- `domain` and `hosts`
-- `commonLabels`
-- `podAnnotations`
-- default scheduling controls (`nodeSelector`, `tolerations`, `affinity`)
-- shared environment entries (`env`)
+### 1) Truly universal `global` keys
+Across the platform-managed service charts, these are the most consistently shared keys:
 
-Most service charts also expose `existingSecret` and `secretRefs[]` to consume credentials from pre-created Kubernetes Secrets using standardized key naming conventions.
+- `global.hosts.*` for ingress host defaults.
+- `global.storageClass` for PVC defaults.
+- `global.commonLabels` for chart-wide labels.
 
-`infisical` now follows upstream standalone chart value paths (`infisical.*`, `ingress.*`, `postgresql.*`, `redis.*`) and uses `infisical.kubeSecretRef` for bootstrap/runtime credentials.
+### 2) Keys supported only by specific charts
+Some `global` paths are intentionally chart-specific rather than universal:
 
-For `openclaw`, `existingSecret` is used with explicit key mappings under `secretKeys.*` (including `secretKeys.gatewayToken` for gateway token auth).
+- `global.env` is currently consumed by `openclaw` and `openhands` (not by Nextcloud, Paperless, wg-easy, Gitea, or Infisical).
+- `global.nodeSelector`, `global.tolerations`, and `global.affinity` are currently consumed by `openclaw` and `openhands` as scheduling fallbacks.
+- `global.podAnnotations` is currently consumed by `openclaw` and `openhands`.
+
+### 3) Charts with custom/non-uniform structures
+- **Infisical** uses upstream standalone layout under nested paths such as `infisical.infisical.*`, plus sibling `infisical.ingress.*`, `infisical.postgresql.*`, and `infisical.redis.*` values in umbrella overlays.
+- **Gitea** values are primarily upstream-driven under `gitea.gitea.*` (for example `gitea.gitea.config.*`, `gitea.gitea.admin.*`, `gitea.gitea.additionalConfigFromEnvs`, and backend toggles under `gitea.gitea.postgresql.*` / `gitea.gitea.redis.*`).
+- **OpenClaw** also has custom secret mapping semantics: `existingSecret` + explicit `secretKeys.*` mappings (including `secretKeys.gatewayToken`).
+
+### Service support matrix (quick divergence view)
+
+Legend: ✅ supported natively, ⚠️ partially/indirectly supported, ❌ not a standard path for that chart.
+
+| Service chart | Global hosts | Global env | Global scheduling | `existingSecret` / `secretRefs` | `networkPolicy` |
+| --- | --- | --- | --- | --- | --- |
+| `openclaw` | ✅ | ✅ | ✅ | ✅ (`existingSecret` + `secretRefs[]` + `secretKeys.*`) | ✅ |
+| `openhands` | ✅ | ✅ | ✅ | ✅ (`existingSecret` + `secretRefs[]` + `secretEnv[]`) | ✅ |
+| `nextcloud` | ✅ | ❌ | ❌ | ✅ (`existingSecret` + `secretRefs[]`) | ✅ |
+| `paperless-ngx` | ✅ | ❌ | ❌ | ✅ (`existingSecret` + `secretRefs[]` + structured secret refs) | ✅ |
+| `wg-easy` | ✅ | ❌ | ❌ | ⚠️ (`existingSecret` + `secretRefs[]`, plus chart-generated default secret name) | ✅ |
+| `infisical` | ❌ | ❌ | ❌ | ❌ (`kubeSecretRef` contract instead) | ❌ |
+| `gitea` | ⚠️ (upstream-specific paths; not standardized on umbrella `global.hosts.*`) | ❌ | ❌ | ⚠️ (`gitea.gitea.admin.existingSecret` only; no shared `secretRefs[]` contract) | ❌ |
 
 ## Gitea chart source
 `charts/gitea` is a local wrapper pinned to the official upstream Helm chart (`repository: https://dl.gitea.com/charts/`, `version: 12.5.0`). The `platform-stack` umbrella continues to depend on the local `file://../gitea` wrapper so umbrella dependency builds remain local/offline-friendly while still pinning upstream Gitea in one place.
