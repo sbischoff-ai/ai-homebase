@@ -86,6 +86,8 @@ Minimum baseline for this stack is `openclaw`, `infisical`, and `wgEasy`; other 
 - Umbrella toggle is `paperlessNgx.enabled`; the Paperless subchart also has a chart-local `enabled` gate (default `false`) so standalone renders are safe unless explicitly enabled. The umbrella chart sets `paperless-ngx.enabled: true` internally so operators continue using `paperlessNgx.enabled` as the single service toggle.
 - Ingress is enabled by default so the UI/API is reachable when the service is enabled.
 - Paperless requires PostgreSQL 14+ for the external database backend configuration.
+- Redis integration supports either a direct `paperless-ngx.redis.url` value or secret-backed URL via `paperless-ngx.redis.urlSecret.{name,key}`; `paperless-ngx.redis.prefix` maps to `PAPERLESS_REDIS_PREFIX` for namespacing.
+- The Paperless chart does not introduce a Redis dependency/subchart; operators should point at shared/external Redis.
 - Validate storage growth and retention behavior.
 
 ### Infisical
