@@ -156,7 +156,7 @@ OpenHands keeps `service.type: ClusterIP` by default.
 
 Baseline OpenHands deployment defaults in this repo:
 
-- `image.repository: docker.openhands.dev/openhands/openhands`
+- `image.repository: ghcr.io/all-hands-ai/openhands`
 - `image.tag: 1.5` (chart `appVersion` is also `1.5`)
 - `service.port: 3000`
 - `service.targetPort: 3000`

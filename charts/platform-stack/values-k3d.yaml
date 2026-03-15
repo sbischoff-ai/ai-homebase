@@ -1,5 +1,5 @@
 # k3d overlay for local smoke tests.
-# Core app services keep their real upstream images; tune resources/storage here for local runs.
+# Core app services inherit chart defaults (including upstream images); tune only local env deltas here.
 #
 # Values precedence contract (lowest -> highest):
 # 1) charts/platform-stack/values.yaml
@@ -28,8 +28,6 @@ global:
 openclaw:
   enabled: true
   replicaCount: 1
-  image:
-    repository: ghcr.io/openclaw/openclaw
   ingress:
     enabled: false
     className: nginx
@@ -42,15 +40,6 @@ openclaw:
     tls: []
   persistence:
     enabled: false
-  probes:
-    liveness:
-      enabled: true
-      path: /healthz
-    readiness:
-      enabled: true
-      path: /readyz
-    startup:
-      enabled: false
   resources:
     requests:
       cpu: 25m
@@ -58,14 +47,6 @@ openclaw:
     limits:
       cpu: 100m
       memory: 128Mi
-  securityContext:
-    readOnlyRootFilesystem: true
-    runAsNonRoot: true
-    runAsUser: 1000
-    runAsGroup: 1000
-    capabilities:
-      drop:
-        - ALL
   existingSecret: openclaw-app-secrets
   secretKeys:
     gatewayToken: OPENCLAW_GATEWAY_TOKEN
@@ -84,14 +65,6 @@ openclaw:
 
 openhands:
   enabled: true
-  image:
-    repository: ghcr.io/all-hands-ai/openhands
-  service:
-    enabled: true
-    type: ClusterIP
-    port: 3000
-    targetPort: 3000
-    annotations: {}
   # Local internal ingress mirrors OpenClaw ingress class/annotation convention.
   ingress:
     enabled: true
@@ -101,15 +74,6 @@ openhands:
     tls: []
   persistence:
     enabled: false
-  probes:
-    liveness:
-      enabled: true
-      type: tcp
-      port: 3000
-    readiness:
-      enabled: true
-      type: tcp
-      port: 3000
   resources:
     requests:
       cpu: 25m
@@ -117,14 +81,6 @@ openhands:
     limits:
       cpu: 100m
       memory: 128Mi
-  securityContext:
-    readOnlyRootFilesystem: false
-    runAsNonRoot: true
-    runAsUser: 1000
-    runAsGroup: 1000
-    capabilities:
-      drop:
-        - ALL
 
 nextcloud:
   enabled: false

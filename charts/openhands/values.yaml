@@ -4,7 +4,7 @@ fullnameOverride: ""
 replicaCount: 1
 
 image:
-  repository: docker.openhands.dev/openhands/openhands
+  repository: ghcr.io/all-hands-ai/openhands
   tag: "1.5"
   pullPolicy: IfNotPresent
 
