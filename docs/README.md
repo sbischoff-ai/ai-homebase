@@ -1,6 +1,8 @@
 # Documentation map
 
 Use this guide to quickly find the right docs page for your task.
+- **Command reference:** [`docs/commands.md`](./commands.md)  
+  *When to read this:* When you need Make targets, lint/template variants, CI-equivalent checks, and helper script usage in one place.
 
 - **Start here (deploy):** [`docs/deployment.md`](./deployment.md)  
   *When to read this:* When you want the fastest path to deploy the platform in a target environment.

@@ -15,6 +15,18 @@ Start with the canonical deployment landing page:
 
 From there, choose the environment-specific flow for k3d local, AKS, or generic Kubernetes/homelab deployments.
 
+Essential commands:
+
+```bash
+helm dependency update charts/platform-stack
+make lint
+make render > /tmp/platform-stack-dev.yaml
+./scripts/install-dev.sh --values-file charts/platform-stack/values-dev.yaml
+./scripts/k3d-up.sh
+```
+
+For complete command coverage (Make targets, lint/render variants, CI-equivalent checks, and helper scripts), see [`docs/commands.md`](./docs/commands.md).
+
 For day-2 operations on generic cluster/homelab installs, use the [Homelab operations runbook (`docs/runbook-homelab.md`)](./docs/runbook-homelab.md).
 
 ## Documentation map
