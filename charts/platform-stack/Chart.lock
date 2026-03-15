@@ -9,8 +9,8 @@ dependencies:
   repository: file://../nextcloud
   version: 0.1.0
 - name: gitea
-  repository: https://dl.gitea.com/charts/
-  version: 12.5.0
+  repository: file://../gitea
+  version: 0.1.0
 - name: paperless-ngx
   repository: file://../paperless-ngx
   version: 0.1.0
@@ -20,5 +20,5 @@ dependencies:
 - name: wg-easy
   repository: file://../wg-easy
   version: 0.1.0
-digest: sha256:3681030564196b7a695b87b03c717b515aacb04428ada57eaf61547680e949ad
-generated: "2026-03-15T00:20:20.50310973Z"
+digest: sha256:21860fa1099f7df380892536512e9eb826ac56c8f00af4eb3006d0f0e8c8be5c
+generated: "2026-03-15T00:24:46.741773513Z"
