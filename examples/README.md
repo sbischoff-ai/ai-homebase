@@ -21,10 +21,12 @@ kubectl --context <your-kube-context> -n <your-namespace> create secret docker-r
   --docker-email=<dummy-email@example.com>
 
 kubectl --context <your-kube-context> -n <your-namespace> create secret generic openclaw-app-secrets \
-  --from-literal=OPENCLAW_API_KEY=<dummy-openclaw-api-key>
+  --from-literal=OPENCLAW_GATEWAY_TOKEN=<dummy-openclaw-gateway-token>
 
 kubectl --context <your-kube-context> -n <your-namespace> create secret generic openhands-app-secrets \
-  --from-literal=OPENHANDS_QUEUE_TOKEN=<dummy-queue-token>
+  --from-literal=LLM_API_KEY=<dummy-llm-api-key> \
+  --from-literal=LLM_MODEL=<optional-llm-model> \
+  --from-literal=OH_WEB_URL=<optional-openhands-web-url>
 
 kubectl --context <your-kube-context> -n <your-namespace> create secret generic nextcloud-app-secrets \
   --from-literal=NEXTCLOUD_ADMIN_PASSWORD=<dummy-nextcloud-admin-password>
@@ -41,6 +43,11 @@ kubectl --context <your-kube-context> -n <your-namespace> create secret generic 
 kubectl --context <your-kube-context> -n <your-namespace> create secret generic wgeasy-app-secrets \
   --from-literal=WG_DEFAULT_PASSWORD_HASH=<dummy-wg-password-hash>
 ```
+
+For OpenClaw and OpenHands, make sure secret key names match each chart contract:
+
+- OpenClaw reads `secretKeys.gatewayToken` from `charts/openclaw/values.yaml` (default key: `OPENCLAW_GATEWAY_TOKEN`).
+- OpenHands secret examples in `charts/openhands/values.yaml` use `secretRefs`/`secretEnv` with `LLM_API_KEY` (plus optional values like `LLM_MODEL` and `OH_WEB_URL` as needed).
 
 ## Install/upgrade with value overlays and service toggles
 
