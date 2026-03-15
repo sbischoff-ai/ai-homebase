@@ -48,6 +48,8 @@ Profile-specific defaults can differ from base chart defaults; verify effective 
 
 - Stateful user data service.
 - Ingress is enabled by default so the UI/API is reachable when the service is enabled.
+- Canonical external backend wiring uses structured keys: `nextcloud.externalDatabase.{host,port,database,user,passwordSecret.*}` and `nextcloud.externalRedis.{host,port,passwordSecret.*}`, rendered to `POSTGRES_*` and `REDIS_*` container env vars.
+- Compatibility secret injection patterns (`nextcloud.existingSecret`, `nextcloud.secretRefs[]`) remain supported for additional app/runtime secrets.
 - Plan for larger and growing PVC usage.
 
 ### Gitea
@@ -93,6 +95,7 @@ Supported patterns:
 - `envFromSecrets[]` for additional bulk Secret imports.
 - `secretRefs[]` for explicit key-to-env mapping.
 - `secretEnv[]` for structured key-to-env mapping rendered as `valueFrom.secretKeyRef`.
+- Nextcloud external Postgres/Redis credentials should prefer `nextcloud.externalDatabase.*` and `nextcloud.externalRedis.*` as the canonical path; keep generic secret patterns for compatibility and extra env wiring.
 
 Infisical integration is done by syncing provider values into Kubernetes Secret names consumed by each chart (for example `openhands-app-secrets`) and then referencing those names via `existingSecret`, `envFromSecrets`, `secretRefs`, or `secretEnv`.
 
