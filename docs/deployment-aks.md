@@ -63,13 +63,13 @@ AKS guidance:
 
 Per-service ingress is controlled independently:
 
-- `openclaw.ingress.*` (typically public)
-- `openhands.ingress.*` (enabled by default for UI/API reachability)
+- `openclaw.ingress.*` (kept disabled in AKS baseline; enable explicitly if your environment requires ingress)
+- `openhands.ingress.*` (kept disabled in AKS baseline; enable only when an environment overlay explicitly requires direct UI/API exposure)
 - Optional service ingress blocks (`nextcloud`, `gitea`, `paperlessNgx`, `infisical`, `wgEasy`)
 
 AKS notes:
 
-- `openhands.service.type=ClusterIP` remains valid because ingress provides external UI/API exposure.
+- `openhands.service.type=ClusterIP` remains valid; if you enable ingress in an environment overlay, that ingress can provide external UI/API exposure.
 - Use internal ingress patterns instead of public exposure for admin/internal tools.
 - For wg-easy, prefer private web UI + controlled UDP VPN exposure.
 

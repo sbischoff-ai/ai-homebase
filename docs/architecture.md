@@ -15,14 +15,14 @@ OpenClaw is the general AI assistant service and primary user-facing assistant e
 
 Responsibilities:
 
-- Public API/UI ingress.
+- User-facing assistant API/UI with ingress controlled per profile overlay (baseline and shipped overlays keep `openclaw.ingress.enabled: false`).
 - Assistant chat/API interactions for general AI use.
 - User/session-facing request handling and policy enforcement.
 - Integration point for platform-level auth and assistant configuration.
 
 Default posture:
 
-- Externally reachable through ingress.
+- Private service posture by default (`openclaw.ingress.enabled: false` in baseline and shipped profile overlays); expose only through explicit environment ingress decisions.
 - Smaller durable data profile than execution workloads.
 - Security-sensitive due to user-facing interface.
 
@@ -39,7 +39,7 @@ Responsibilities:
 
 Default posture:
 
-- Exposed through ingress for direct UI/API access.
+- Profile-specific ingress posture: baseline/AKS/prod keep `openhands.ingress.enabled: false`; local dev/k3d overlays may enable ingress for direct UI/API workflows.
 - Larger and more variable storage/compute profile.
 - Node/isolation controls expected for production workloads.
 
