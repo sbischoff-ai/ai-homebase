@@ -52,6 +52,7 @@ What this does:
 - Creates a k3d cluster and maps host `:80` to cluster load balancer `:80`.
 - Optionally maps host `:443` to cluster load balancer `:443` (enabled by default).
 - Switches `kubectl` context to `k3d-ai-homebase-dev`.
+- Runs a short warm-up (waits for node readiness and, when present, metrics APIService availability) to reduce transient API discovery errors during first install.
 - Installs/upgrades `ingress-nginx` via Helm with ingress class `nginx`.
 - Waits for ingress controller deployment/pods to become ready.
 
