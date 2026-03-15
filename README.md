@@ -27,7 +27,8 @@ make render > /tmp/platform-stack-dev.yaml
 ```
 
 `k3d-local-bootstrap.sh` creates a dedicated kubeconfig for the local cluster so your setup is isolated from other projects and does not depend on your existing `KUBECONFIG` merge state.
-Use `--verbose` (or `BOOTSTRAP_VERBOSE=1`) to stream full tool output; default mode keeps progress concise and writes full logs to `/tmp/ai-homebase-bootstrap-<timestamp>.log`.
+By default, helper scripts print concise progress updates and write full command logs to `/tmp/ai-homebase-bootstrap-<timestamp>.log`.
+Use `--verbose` (or `BOOTSTRAP_VERBOSE=1`) when you want full live command output in the terminal.
 
 `./scripts/install.sh --profile dev` assumes your kube context is already reachable and correctly selected.
 
