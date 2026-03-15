@@ -112,7 +112,7 @@ Current supported runtime contracts:
 - `secretRefs[]`
 - `secretEnv[]`
 - Nextcloud canonical external backend keys: `nextcloud.externalDatabase.*` and `nextcloud.externalRedis.*` (mapped to explicit `POSTGRES_*` and `REDIS_*` env vars in the Nextcloud StatefulSet)
-- Nextcloud bootstrap/runtime keys: `nextcloud.admin.user`, `nextcloud.admin.passwordSecret.{name,key}`, `nextcloud.trustedDomains` (list or delimited string), `nextcloud.overwriteProtocol`, `nextcloud.php.memoryLimit`, `nextcloud.php.uploadLimit`, and `nextcloud.initHtaccess`, `nextcloud.podSecurityContext`, and `nextcloud.containerSecurityContext`
+- Nextcloud bootstrap/runtime keys: `nextcloud.admin.user`, `nextcloud.admin.passwordSecret.{name,key}`, `nextcloud.trustedDomains` (list or delimited string), `nextcloud.overwriteProtocol`, `nextcloud.php.memoryLimit`, `nextcloud.php.uploadLimit`, `nextcloud.initHtaccess`, `nextcloud.smtp.{host,port,user,passwordSecret.{name,key},fromAddress,domain}`, `nextcloud.initialApps[]`, `nextcloud.podSecurityContext`, and `nextcloud.containerSecurityContext`
 - Nextcloud network isolation controls: `nextcloud.networkPolicy.*` (ingress controller selector, DNS/PostgreSQL/Redis egress, and optional SMTP egress selectors).
 
 Recommended layering:

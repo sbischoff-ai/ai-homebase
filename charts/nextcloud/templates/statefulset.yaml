@@ -69,6 +69,23 @@ spec:
               value: {{ .Values.php.uploadLimit | quote }}
             - name: NEXTCLOUD_INIT_HTACCESS
               value: {{ .Values.initHtaccess | toString | quote }}
+            - name: SMTP_HOST
+              value: {{ .Values.smtp.host | quote }}
+            - name: SMTP_PORT
+              value: {{ .Values.smtp.port | toString | quote }}
+            - name: SMTP_NAME
+              value: {{ .Values.smtp.user | quote }}
+            {{- if and .Values.smtp.passwordSecret.name .Values.smtp.passwordSecret.key }}
+            - name: SMTP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.smtp.passwordSecret.name }}
+                  key: {{ .Values.smtp.passwordSecret.key }}
+            {{- end }}
+            - name: MAIL_FROM_ADDRESS
+              value: {{ .Values.smtp.fromAddress | quote }}
+            - name: MAIL_DOMAIN
+              value: {{ .Values.smtp.domain | quote }}
             - name: POSTGRES_HOST
               value: {{ .Values.externalDatabase.host | quote }}
             - name: POSTGRES_PORT
@@ -107,10 +124,18 @@ spec:
             - secretRef:
                 name: {{ .Values.existingSecret }}
           {{- end }}
-          {{- if .Values.persistence.enabled }}
+          {{- if or .Values.persistence.enabled .Values.initialApps }}
           volumeMounts:
+            {{- if .Values.persistence.enabled }}
             - name: data
               mountPath: /var/www/html
+            {{- end }}
+            {{- if .Values.initialApps }}
+            - name: initial-apps-hook
+              mountPath: /docker-entrypoint-hooks.d/post-installation/99-initial-apps.sh
+              subPath: 99-initial-apps.sh
+              readOnly: true
+            {{- end }}
           {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
@@ -130,9 +155,17 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- if and .Values.persistence.enabled .Values.persistence.existingClaim }}
+      {{- if or (and .Values.persistence.enabled .Values.persistence.existingClaim) .Values.initialApps }}
       volumes:
+        {{- if and .Values.persistence.enabled .Values.persistence.existingClaim }}
         - name: data
           persistentVolumeClaim:
             claimName: {{ .Values.persistence.existingClaim }}
+        {{- end }}
+        {{- if .Values.initialApps }}
+        - name: initial-apps-hook
+          configMap:
+            name: {{ include "nextcloud.fullname" . }}-initial-apps-hook
+            defaultMode: 0755
+        {{- end }}
       {{- end }}
