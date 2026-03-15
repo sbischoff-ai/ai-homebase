@@ -186,6 +186,6 @@ Track these as mandatory production-readiness tasks, not optional cleanup.
 Application charts in this repository now share a baseline security contract:
 
 - `podSecurityContext` and `securityContext` (or upstream equivalent pass-through for wrapper charts) are explicit values, not implicit template defaults.
-- Default posture is conservative: runtime-default seccomp, no privilege escalation, and dropped Linux capabilities unless a service requires explicit additions (for example wg-easy adds `NET_ADMIN`/`SYS_MODULE`).
+- Default posture is conservative: runtime-default seccomp, no privilege escalation, and dropped Linux capabilities. Service exceptions are explicit where upstream runtime behavior requires it (for example wg-easy/Infisical set `runAsNonRoot: false`; wg-easy also adds `NET_ADMIN`/`SYS_MODULE`).
 - Operators should override these keys only when required by workload compatibility and must keep overrides in overlay files for traceability.
 - Validation schemas include these security context objects so malformed overlays fail early during `helm lint`/`helm template`.

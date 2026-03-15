@@ -38,11 +38,11 @@ openclaw:
   existingSecret: openclaw-app-secrets
   secretKeys:
     gatewayToken: OPENCLAW_GATEWAY_TOKEN
-    openaiApiKey: OPENAI_API_KEY
-    anthropicApiKey: ANTHROPIC_API_KEY
-    googleApiKey: GOOGLE_API_KEY
-    tavilyApiKey: TAVILY_API_KEY
-    braveSearchApiKey: BRAVE_SEARCH_API_KEY
+    openaiApiKey: ""
+    anthropicApiKey: ""
+    googleApiKey: ""
+    tavilyApiKey: ""
+    braveSearchApiKey: ""
   secretRefs: []
   openclaw:
     gateway:

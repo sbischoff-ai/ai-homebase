@@ -71,7 +71,7 @@ infisical:
       type: RuntimeDefault
 
   securityContext:
-    runAsNonRoot: true
+    runAsNonRoot: false
     allowPrivilegeEscalation: false
     readOnlyRootFilesystem: false
     capabilities:

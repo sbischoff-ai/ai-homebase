@@ -52,6 +52,7 @@ The table below is the single source of truth for baseline defaults and is keyed
 - General AI assistant service for user-facing chat/API use.
 - Exposed via ingress when enabled.
 - Requires secret references for API/auth integrations.
+- `secretKeys.gatewayToken` is required when token auth is enabled; provider/search keys under `secretKeys.*ApiKey` are optional and default to empty mappings until explicitly configured in an environment overlay.
 
 ### OpenHands
 
@@ -119,6 +120,7 @@ The table below is the single source of truth for baseline defaults and is keyed
 - Primary knobs are grouped under `infisical.infisical` and `infisical.ingress`; `infisical.postgresql.enabled` and `infisical.redis.enabled` stay `false` for centralized backend mode.
 - Uses `infisical.infisical.kubeSecretRef` to point at the runtime/bootstrap secret.
 - Runtime secret must include `DB_CONNECTION_URI` and `REDIS_URL` for centralized backend mode (plus `AUTH_SECRET`, `ENCRYPTION_KEY`, `SITE_URL`).
+- Current upstream container user metadata is not kubelet-verifiable as non-root, so baseline chart defaults keep `runAsNonRoot: false` for deployment reliability across clusters.
 - Can coexist with external secret-provider patterns.
 
 ### wg-easy
@@ -127,7 +129,7 @@ The table below is the single source of truth for baseline defaults and is keyed
 - Provides VPN lifecycle UI and WireGuard endpoint.
 - AKS baseline keeps UI/API ingress disabled (`wgEasy.ingress.enabled: false`) so the admin UI is reached over the VPN tunnel.
 - WireGuard endpoint exposure should be explicit and tightly controlled (for example `wgEasy.service.type: LoadBalancer` with `wgEasy.service.loadBalancerSourceRanges`).
-- Pod/container security contexts are explicit values; defaults keep conservative hardening while retaining required WireGuard capabilities (`NET_ADMIN`, `SYS_MODULE`) in `securityContext`.
+- Pod/container security contexts are explicit values; defaults keep conservative hardening while preserving required runtime compatibility (`runAsNonRoot: false` for the current wg-easy image) and required WireGuard capabilities (`NET_ADMIN`, `SYS_MODULE`) in `securityContext`.
 - Runtime secret contract: the effective `existingSecret` (or the default `<release>-wg-easy-secrets` when unset) must provide `WG_HOST` and `PASSWORD`; these are wired via `valueFrom.secretKeyRef` in the Deployment.
 - `secretRefs[]` is optional additive env wiring only; use it for extra variables, not as a replacement for required `WG_HOST`/`PASSWORD` keys.
 - For local k3d, `scripts/k3d-bootstrap-secrets.sh` can generate the minimal wg-easy Secret contract and print the UI password for first login.
@@ -167,8 +169,8 @@ Treat these as required environment work before production promotion.
 The service charts now follow a shared hardening contract:
 
 - All prioritized service charts (`gitea`, `paperless-ngx`, `nextcloud`, `wg-easy`, `infisical`) define explicit pod/container security context values in chart values and wire those values into rendered workloads (or pass through to upstream charts for wrapper-only services).
-- Defaults are conservative (`seccompProfile: RuntimeDefault`, `runAsNonRoot: true`, `allowPrivilegeEscalation: false`, and capabilities dropped by default).
-- Service-specific exceptions remain explicit and minimal (for example wg-easy retains `NET_ADMIN` and `SYS_MODULE`).
+- Defaults are conservative (`seccompProfile: RuntimeDefault`, `allowPrivilegeEscalation: false`, and capabilities dropped by default).
+- Service-specific exceptions remain explicit and minimal (for example wg-easy and Infisical use `runAsNonRoot: false` for image compatibility; wg-easy additionally retains `NET_ADMIN` and `SYS_MODULE`).
 - High-risk operator inputs are schema-guarded: ingress host fields, service type, persistence storageClass settings, and secret references (`existingSecret`, `secretRefs`, or service-specific secret key paths).
 
 When changing these controls, update the chart values, templates, and `values.schema.json` in the same commit to preserve this contract.
