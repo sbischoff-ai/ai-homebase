@@ -86,7 +86,8 @@ Minimum baseline for this stack is `openclaw`, `infisical`, and `wgEasy`; other 
 - Umbrella toggle is `paperlessNgx.enabled`; the Paperless subchart also has a chart-local `enabled` gate (default `false`) so standalone renders are safe unless explicitly enabled. The umbrella chart sets `paperless-ngx.enabled: true` internally so operators continue using `paperlessNgx.enabled` as the single service toggle.
 - Ingress is enabled by default so the UI/API is reachable when the service is enabled.
 - Paperless requires PostgreSQL 14+ for the external database backend configuration.
-- Canonical Paperless secret wiring uses structured refs rendered with `valueFrom.secretKeyRef`: `paperless-ngx.secretKeySecret.{name,key}` -> `PAPERLESS_SECRET_KEY`, `paperless-ngx.externalDatabase.passwordSecret.{name,key}` -> `PAPERLESS_DBPASS`, `paperless-ngx.redis.urlSecret.{name,key}` (or `paperless-ngx.redis.passwordSecret.{name,key}` when that key stores a full Redis URL) -> `PAPERLESS_REDIS`, and `paperless-ngx.adminPasswordSecret.{name,key}` -> `PAPERLESS_ADMIN_PASSWORD`; `paperless-ngx.redis.url` remains available for direct URL input and `paperless-ngx.redis.prefix` maps to `PAPERLESS_REDIS_PREFIX`.
+- Canonical Paperless secret wiring uses structured refs rendered with `valueFrom.secretKeyRef`: `paperless-ngx.secretKeySecret.{name,key}` -> `PAPERLESS_SECRET_KEY`, `paperless-ngx.externalDatabase.passwordSecret.{name,key}` -> `PAPERLESS_DBPASS`, `paperless-ngx.redis.urlSecret.{name,key}` (or `paperless-ngx.redis.passwordSecret.{name,key}` when that key stores a full Redis URL) -> `PAPERLESS_REDIS`, and `paperless-ngx.admin.passwordSecret.{name,key}` -> `PAPERLESS_ADMIN_PASSWORD`; `paperless-ngx.redis.url` remains available for direct URL input and `paperless-ngx.redis.prefix` maps to `PAPERLESS_REDIS_PREFIX`.
+- Admin bootstrap env wiring is split between values and Secrets: set `paperless-ngx.admin.user` (required) and optional `paperless-ngx.admin.mail` in values, and point `paperless-ngx.admin.passwordSecret.{name,key}` to the synced Kubernetes Secret key that stores the admin password. For Infisical-backed flows, this means syncing the Paperless admin password into a Kubernetes Secret first, then referencing that Secret name/key in chart values.
 - The Paperless chart does not introduce a Redis dependency/subchart; operators should point at shared/external Redis.
 - Validate storage growth and retention behavior.
 
@@ -114,9 +115,9 @@ Supported patterns:
 - `secretRefs[]` for explicit key-to-env mapping.
 - `secretEnv[]` for structured key-to-env mapping rendered as `valueFrom.secretKeyRef`.
 - Nextcloud external Postgres/Redis credentials should prefer `nextcloud.externalDatabase.*` and `nextcloud.externalRedis.*` as the canonical path; keep generic secret patterns for compatibility and extra env wiring.
-- Paperless required runtime secrets should use `secretKeySecret`, `externalDatabase.passwordSecret`, `redis.urlSecret`/`redis.passwordSecret` (URL key), and `adminPasswordSecret`; keep `existingSecret` and `secretRefs[]` only for optional additive env injection.
+- Paperless required runtime secrets should use `secretKeySecret`, `externalDatabase.passwordSecret`, `redis.urlSecret`/`redis.passwordSecret` (URL key), and `admin.passwordSecret`; keep `existingSecret` and `secretRefs[]` only for optional additive env injection.
 
-Infisical integration is done by syncing provider values into Kubernetes Secret names consumed by each chart (for example `openhands-app-secrets`) and then referencing those names via `existingSecret`, `envFromSecrets`, `secretRefs`, or `secretEnv`.
+Infisical integration is done by syncing provider values into Kubernetes Secret names consumed by each chart (for example `openhands-app-secrets` or a Paperless admin secret referenced by `paperless-ngx.admin.passwordSecret`) and then referencing those names via `existingSecret`, `envFromSecrets`, `secretRefs`, or `secretEnv`.
 
 Recommended naming:
 

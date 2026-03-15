@@ -38,11 +38,17 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.secretKeySecret.name }}
                   key: {{ .Values.secretKeySecret.key }}
+            - name: PAPERLESS_ADMIN_USER
+              value: {{ .Values.admin.user | quote }}
             - name: PAPERLESS_ADMIN_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.adminPasswordSecret.name }}
-                  key: {{ .Values.adminPasswordSecret.key }}
+                  name: {{ .Values.admin.passwordSecret.name }}
+                  key: {{ .Values.admin.passwordSecret.key }}
+            {{- if .Values.admin.mail }}
+            - name: PAPERLESS_ADMIN_MAIL
+              value: {{ .Values.admin.mail | quote }}
+            {{- end }}
             - name: PAPERLESS_DBENGINE
               value: postgresql
             - name: PAPERLESS_DBHOST
