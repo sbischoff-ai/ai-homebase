@@ -14,14 +14,6 @@ openclaw:
   replicaCount: 1
   ingress:
     enabled: false
-    className: nginx
-    annotations: {}
-    hosts:
-      - host: openclaw.vpn.homebase.internal
-        paths:
-          - path: /
-            pathType: Prefix
-    tls: []
   persistence:
     enabled: true
   autoscaling:
