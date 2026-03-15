@@ -24,7 +24,12 @@ jobs:
         uses: azure/setup-helm@v4
 
       - name: Build chart dependencies
-        run: helm dependency build charts/platform-stack
+        run: |
+          set -euo pipefail
+          # charts/platform-stack depends on local charts/gitea, which itself wraps
+          # the official upstream Gitea chart dependency.
+          helm dependency build charts/gitea
+          helm dependency build charts/platform-stack
 
       - name: Lint all charts
         run: |
@@ -107,10 +112,11 @@ jobs:
                       "infisical.enabled": "false",
                       "wgEasy.enabled": "false",
                   },
-                  "expect_present": {
+                  "expect_exact": {
                       ("Deployment", "platform-stack-openclaw"),
                       ("Deployment", "platform-stack-openhands"),
                   },
+                  "expect_workloads": [],
               },
               {
                   "name": "core-plus-storage-heavy",
@@ -121,11 +127,11 @@ jobs:
                       "infisical.enabled": "false",
                       "wgEasy.enabled": "false",
                   },
-                  "expect_present": {
+                  "expect_exact": {
                       ("StatefulSet", "platform-stack-nextcloud"),
-                      ("StatefulSet", "platform-stack-gitea"),
                       ("StatefulSet", "platform-stack-paperless-ngx"),
                   },
+                  "expect_workloads": ["gitea"],
               },
               {
                   "name": "all-services-enabled",
@@ -136,15 +142,22 @@ jobs:
                       "infisical.enabled": "true",
                       "wgEasy.enabled": "true",
                   },
-                  "expect_present": {
+                  "expect_exact": {
                       ("Deployment", "platform-stack-infisical"),
                       ("Deployment", "platform-stack-wg-easy"),
                       ("StatefulSet", "platform-stack-nextcloud"),
-                      ("StatefulSet", "platform-stack-gitea"),
                       ("StatefulSet", "platform-stack-paperless-ngx"),
                   },
+                  "expect_workloads": ["gitea"],
               },
           ]
+
+          def has_named_workload(resources, needle):
+              workload_kinds = {"Deployment", "StatefulSet", "DaemonSet"}
+              for kind, name in resources:
+                  if kind in workload_kinds and isinstance(name, str) and needle in name:
+                      return True
+              return False
 
           def render(case):
               cmd = [
@@ -163,8 +176,19 @@ jobs:
 
           for case in matrix:
               resources = render(case)
-              missing = sorted(case["expect_present"] - resources)
-              if missing:
-                  raise SystemExit(f"{case['name']} missing expected resources: {missing}")
-              print(f"{case['name']}: asserted {len(case['expect_present'])} resource(s)")
+              missing_exact = sorted(case["expect_exact"] - resources)
+              if missing_exact:
+                  raise SystemExit(f"{case['name']} missing expected resources: {missing_exact}")
+
+              missing_workloads = [
+                  needle for needle in case["expect_workloads"]
+                  if not has_named_workload(resources, needle)
+              ]
+              if missing_workloads:
+                  raise SystemExit(
+                      f"{case['name']} missing expected workload resources containing names: {missing_workloads}"
+                  )
+
+              asserted = len(case["expect_exact"]) + len(case["expect_workloads"])
+              print(f"{case['name']}: asserted {asserted} resource expectation(s)")
           PY
