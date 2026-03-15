@@ -106,8 +106,10 @@ gitea:
 
 paperlessNgx:
   enabled: false
+  service:
+    type: ClusterIP
   ingress:
-    enabled: true
+    enabled: false
     className: internal-nginx
     annotations: {}
     hosts:

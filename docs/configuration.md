@@ -97,6 +97,8 @@ Profile note: Gitea values in shipped `charts/platform-stack/values*.yaml` are i
 - `gitea.enabled`
 - `paperlessNgx.enabled`
 
+For Paperless specifically, baseline and shipped overlays keep `paperlessNgx.ingress.enabled: false` by default (VPN/internal-first posture); enable ingress only in overlays where internal ingress routing is intentionally required.
+
 For Paperless specifically, the umbrella defaults also set `paperless-ngx.enabled: true` as a compatibility bridge so `paperlessNgx.enabled` remains the operator-facing toggle while the subchart can stay standalone-safe by default.
 
 - `infisical.enabled`

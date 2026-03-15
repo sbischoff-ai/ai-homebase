@@ -285,7 +285,7 @@ paperlessNgx:
     port: 8000
     targetPort: 8000
   ingress:
-    enabled: true
+    enabled: false
     className: nginx
     annotations:
       cert-manager.io/cluster-issuer: letsencrypt-prod
