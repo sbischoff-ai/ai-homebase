@@ -39,7 +39,7 @@ if [[ ${#VALUES_FILES[@]} -eq 0 ]]; then
   )
 fi
 
-for cmd in helm kubectl curl; do
+for cmd in helm kubectl curl python3; do
   if ! command -v "$cmd" >/dev/null 2>&1; then
     echo "Missing required dependency: $cmd" >&2
     exit 1
@@ -112,6 +112,21 @@ wait_for_workload() {
     --timeout=300s
 }
 
+is_openclaw_ingress_enabled() {
+  helm get values "$RELEASE_NAME" \
+    "${HELM_CONTEXT_ARGS[@]}" \
+    --namespace "$NAMESPACE" \
+    --all \
+    --output json | python3 -c '
+import json
+import sys
+
+values = json.load(sys.stdin)
+enabled = values.get("openclaw", {}).get("ingress", {}).get("enabled", False)
+print("true" if enabled else "false")
+'
+}
+
 echo "Updating Helm dependencies"
 helm dependency update charts/platform-stack
 
@@ -125,10 +140,14 @@ helm upgrade --install "$RELEASE_NAME" charts/platform-stack \
 wait_for_workload openclaw
 wait_for_workload openhands
 
-echo "Checking openclaw ingress endpoint"
-curl --silent --show-error --fail \
-  -H 'Host: openclaw.localtest.me' \
-  http://127.0.0.1/ >/dev/null
+if [[ "$(is_openclaw_ingress_enabled)" == "true" ]]; then
+  echo "Checking openclaw ingress endpoint"
+  curl --silent --show-error --fail \
+    -H 'Host: openclaw.localtest.me' \
+    http://127.0.0.1/ >/dev/null
+else
+  echo "Info: skipping OpenClaw ingress endpoint check because openclaw.ingress.enabled=false in effective values"
+fi
 
 echo "Checking openhands ingress endpoint"
 curl --silent --show-error --fail \

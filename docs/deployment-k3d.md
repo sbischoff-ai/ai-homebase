@@ -59,13 +59,14 @@ Script behavior summary:
 - Runs `helm dependency update charts/platform-stack`.
 - Executes `helm upgrade --install ...`.
 - Waits for `openclaw` and `openhands` deployments and pods.
-- Checks `openclaw` ingress via `Host: openclaw.localtest.me` on `http://127.0.0.1/`.
+- Detects effective `openclaw.ingress.enabled` from the installed release values.
+- Checks `openclaw` ingress via `Host: openclaw.localtest.me` on `http://127.0.0.1/` **only when** effective `openclaw.ingress.enabled=true`; otherwise logs an info message and skips this probe.
 - Checks `openhands` ingress via `Host: openhands.localtest.me` on `http://127.0.0.1/`.
 - Dumps pod diagnostics automatically on failure.
 
-> ⚠️ Important default-profile note: both `values-dev.yaml` and `values-k3d.yaml` keep `openclaw.ingress.enabled=false`.
-> That means OpenClaw ingress curl checks are **not** valid for default layering by themselves.
-> To make OpenClaw ingress checks pass, add an override file that enables ingress (for example `examples/k3d.values.override.yaml`) and pass it with `--values-file`.
+> Default profile posture: `values-dev.yaml` + `values-k3d.yaml` keep `openclaw.ingress.enabled=false`.
+> This is intentional: public ingress exposure for OpenClaw (and other internal services) is a local testing/debug edge case.
+> Normal access posture is VPN-first via wg-easy, with public exposure typically limited to explicitly allowed endpoints (for example Nextcloud when intentionally configured).
 
 Example command with OpenClaw ingress explicitly enabled:
 
@@ -88,7 +89,7 @@ Delete the local cluster when done:
 
 ## 4) Local ingress host access (DNS/hosts)
 
-Local ingress host checks use `openclaw.localtest.me` and `openhands.localtest.me` when ingress checks are enabled (OpenClaw requires an explicit override under default profile layering).
+Local ingress host checks always include `openhands.localtest.me`; `openclaw.localtest.me` is only used when effective `openclaw.ingress.enabled=true`.
 
 ### Preferred: `localtest.me` wildcard behavior
 
