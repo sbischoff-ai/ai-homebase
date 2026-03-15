@@ -67,6 +67,7 @@ Internal/admin-oriented charts expose optional `networkPolicy.*` values and temp
 - `openhands.networkPolicy.*`
 - `infisical.networkPolicy.*`
 - `wgEasy.networkPolicy.*`
+- `nextcloud.networkPolicy.*`
 
 ## Snapshot (golden manifest) policy
 
