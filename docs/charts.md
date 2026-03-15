@@ -27,6 +27,11 @@ helm dependency update charts/gitea
 helm dependency update charts/platform-stack
 ```
 
+### Gitea probe wiring note
+The wrapper currently retains local templates (including `templates/statefulset.yaml`) for platform-level wiring. Probe values are declared in `charts/gitea/values.yaml` under `probes.liveness` and `probes.readiness` and wired into rendered pod probes with `httpGet` on port `http`. Defaults are set to `/api/healthz`.
+
+Operational expectation: `GET /api/healthz` returns **HTTP 200** for healthy pods. If wrapper templates are further reduced during migration to official-chart-only rendering, re-verify probe values are still present in rendered manifests (not just values declarations).
+
 ## platform-stack composition
 `platform-stack` is an umbrella chart with dependency toggles:
 
