@@ -78,9 +78,13 @@ persistence:
 
 podAnnotations: {}
 
-podSecurityContext: {}
+podSecurityContext:
+  fsGroup: 33
+  fsGroupChangePolicy: OnRootMismatch
+  seccompProfile:
+    type: RuntimeDefault
 
-containerSecurityContext:
+securityContext:
   runAsNonRoot: true
   allowPrivilegeEscalation: false
   readOnlyRootFilesystem: false

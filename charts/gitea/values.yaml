@@ -25,6 +25,18 @@ gitea:
     enabled: true
     size: 10Gi
     storageClass: ""
+  podSecurityContext:
+    fsGroup: 1000
+    fsGroupChangePolicy: OnRootMismatch
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    runAsNonRoot: true
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
+    capabilities:
+      drop:
+        - ALL
   admin:
     username: git-admin
     existingSecret: ""

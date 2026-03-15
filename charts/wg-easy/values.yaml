@@ -58,16 +58,25 @@ persistence:
 
 podAnnotations: {}
 
+podSecurityContext:
+  seccompProfile:
+    type: RuntimeDefault
+
 backup:
   annotations: {}
 
 resources: {}
 
 securityContext:
+  runAsNonRoot: true
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
   capabilities:
     add:
       - NET_ADMIN
       - SYS_MODULE
+    drop:
+      - ALL
 
 # Secret injection conventions:
 # - Secret names: kebab-case (example: wgeasy-app-secrets)

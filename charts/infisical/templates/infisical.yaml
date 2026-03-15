@@ -25,6 +25,10 @@ spec:
         {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:
+    {{- with $infisicalValues.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
     {{- with $infisicalValues.topologySpreadConstraints }}
       topologySpreadConstraints:
         {{- toYaml . | nindent 8 }}
@@ -149,6 +153,10 @@ spec:
         {{- end }}
         {{- if  $infisicalValues.resources }}
         resources: {{- toYaml $infisicalValues.resources | nindent 12 }}
+        {{- end }}
+        {{- with $infisicalValues.securityContext }}
+        securityContext:
+          {{- toYaml . | nindent 10 }}
         {{- end }}
         {{- with $infisicalValues.extraVolumeMounts }}
         volumeMounts:

@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "title": "infisical values",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "infisical": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "service": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["ClusterIP", "NodePort", "LoadBalancer", "ExternalName"]
+            }
+          }
+        },
+        "kubeSecretRef": {
+          "type": "string",
+          "description": "Primary secret containing AUTH_SECRET, ENCRYPTION_KEY, SITE_URL, DB_CONNECTION_URI and REDIS_URL."
+        },
+        "podSecurityContext": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "securityContext": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    },
+    "ingress": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "hostName": {
+          "type": "string",
+          "description": "Ingress hostname for Infisical UI/API."
+        }
+      }
+    },
+    "postgresql": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "primary": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "persistence": {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "storageClass": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "redis": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "master": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "persistence": {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "storageClass": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

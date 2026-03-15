@@ -125,7 +125,7 @@ The table below is the single source of truth for baseline defaults and is keyed
 - Provides VPN lifecycle UI and WireGuard endpoint.
 - UI/API ingress is enabled by default when the service is enabled.
 - VPN endpoint exposure should be tightly controlled.
-- Container-level `securityContext` is configurable and defaults to adding `NET_ADMIN` and `SYS_MODULE` capabilities required by WireGuard.
+- Pod/container security contexts are explicit values; defaults keep conservative hardening while retaining required WireGuard capabilities (`NET_ADMIN`, `SYS_MODULE`) in `securityContext`.
 
 ## Secret contract model (all services)
 
@@ -155,3 +155,15 @@ The chart values intentionally leave these unresolved for operators:
 - Production SLO/SLI and alerting definitions.
 
 Treat these as required environment work before production promotion.
+
+
+## Unified baseline security contract
+
+The service charts now follow a shared hardening contract:
+
+- All prioritized service charts (`gitea`, `paperless-ngx`, `nextcloud`, `wg-easy`, `infisical`) define explicit pod/container security context values in chart values and wire those values into rendered workloads (or pass through to upstream charts for wrapper-only services).
+- Defaults are conservative (`seccompProfile: RuntimeDefault`, `runAsNonRoot: true`, `allowPrivilegeEscalation: false`, and capabilities dropped by default).
+- Service-specific exceptions remain explicit and minimal (for example wg-easy retains `NET_ADMIN` and `SYS_MODULE`).
+- High-risk operator inputs are schema-guarded: ingress host fields, service type, persistence storageClass settings, and secret references (`existingSecret`, `secretRefs`, or service-specific secret key paths).
+
+When changing these controls, update the chart values, templates, and `values.schema.json` in the same commit to preserve this contract.
