@@ -211,17 +211,3 @@ wgEasy:
   persistence:
     enabled: false
 
-externalSecrets:
-  enabled: false
-
-observability:
-  enabled: false
-
-persistence:
-  enabled: false
-
-autoscaling:
-  enabled: false
-
-workerIsolation:
-  enabled: false

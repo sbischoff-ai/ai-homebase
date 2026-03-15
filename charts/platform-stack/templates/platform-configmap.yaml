@@ -7,8 +7,3 @@ metadata:
 data:
   domain: {{ .Values.global.domain | quote }}
   ingressEnabled: {{ .Values.openclaw.ingress.enabled | quote }}
-  externalSecretsEnabled: {{ .Values.externalSecrets.enabled | quote }}
-  observabilityEnabled: {{ .Values.observability.enabled | quote }}
-  persistenceEnabled: {{ .Values.persistence.enabled | quote }}
-  autoscalingEnabled: {{ .Values.autoscaling.enabled | quote }}
-  workerIsolationEnabled: {{ .Values.workerIsolation.enabled | quote }}

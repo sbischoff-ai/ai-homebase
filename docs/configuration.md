@@ -89,6 +89,25 @@ Canonical schema for OpenHands storage is `openhands.persistence.*`. All shipped
 
 Deprecation timeline: compatibility support for `openhands.workspace.*` is planned for removal in the first chart release after **2026-01-31**. Update any custom overlays to `openhands.persistence.*` before that release.
 
+## Removed umbrella placeholder keys (migration note)
+
+The umbrella chart no longer supports these top-level keys:
+
+- `externalSecrets`
+- `observability`
+- `persistence` (umbrella-level placeholder)
+- `autoscaling` (umbrella-level placeholder)
+- `workerIsolation`
+
+They were removed because they did not drive subchart behavior and only populated metadata entries in `platform-configmap`.
+
+Migration guidance:
+
+- Keep using service-level keys (for example `openclaw.autoscaling.*`, `openhands.autoscaling.*`, `openhands.runtimeClassName`, `openhands.nodeSelector`, `openhands.tolerations`, `openhands.affinity`, and per-service `*.persistence.*`) for actual runtime behavior.
+- Store external-secrets/observability platform intent in your environment tooling/overlays that own those controllers, rather than in unused umbrella placeholders.
+
+`charts/platform-stack/values.schema.json` now rejects these removed keys to fail fast during `helm lint`/`helm template`.
+
 ## Toggle strategy for service composition
 
 Canonical baseline defaults come from `charts/platform-stack/values.yaml`: `openclaw.enabled`, `openhands.enabled`, `nextcloud.enabled`, `infisical.enabled`, and `wgEasy.enabled` are `true`, while `gitea.enabled` and `paperlessNgx.enabled` are `false`.

@@ -3,7 +3,7 @@ data:
   openclaw.json: "{\n  \"gateway\": {\n    \"mode\": \"local\",\n    \"bind\": \"\
     lan\",\n    \"port\": 18789,\n    \"auth\": {\n      \"mode\": \"token\",\n  \
     \    \"token\": \"${OPENCLAW_GATEWAY_TOKEN}\"\n    },\n    \"controlUi\": {\n\
-    \      \"enabled\": true,\n      \"allowedOrigins\": [\"http://openclaw.localtest.me\"\
+    \      \"enabled\": true,\n      \"allowedOrigins\": [\"http://openclaw.vpn.homebase.internal\"\
     ]\n    }\n  },\n  \"agents\": {\n    \"defaults\": {\n      \"workspace\": \"\
     ~/.openclaw/workspace\"\n    },\n    \"list\": [{\"id\":\"default\",\"name\":\"\
     OpenClaw Assistant\",\"workspace\":\"~/.openclaw/workspace\"}]\n  }\n}\n"
@@ -17,13 +17,8 @@ metadata:
 ---
 apiVersion: v1
 data:
-  autoscalingEnabled: 'false'
   domain: localtest.me
-  externalSecretsEnabled: 'false'
   ingressEnabled: 'false'
-  observabilityEnabled: 'false'
-  persistenceEnabled: 'false'
-  workerIsolationEnabled: 'false'
 kind: ConfigMap
 metadata:
   labels:
@@ -31,6 +26,196 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: platform-stack
   name: platform-stack-platform-stack-settings
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nextcloud
+  name: platform-stack-nextcloud-cron
+spec:
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/instance: platform-stack
+            app.kubernetes.io/name: nextcloud
+        spec:
+          containers:
+          - command:
+            - /bin/sh
+            - -c
+            - php -f /var/www/html/cron.php
+            env:
+            - name: POSTGRES_HOST
+              value: ''
+            - name: POSTGRES_PORT
+              value: '5432'
+            - name: POSTGRES_DB
+              value: ''
+            - name: POSTGRES_USER
+              value: ''
+            - name: REDIS_HOST
+              value: ''
+            - name: REDIS_HOST_PORT
+              value: '6379'
+            - name: SMTP_HOST
+              value: ''
+            - name: SMTP_PORT
+              value: '587'
+            - name: SMTP_NAME
+              value: ''
+            - name: MAIL_FROM_ADDRESS
+              value: ''
+            - name: MAIL_DOMAIN
+              value: ''
+            image: nextcloud:29.0.0-apache
+            imagePullPolicy: IfNotPresent
+            name: nextcloud-cron
+            volumeMounts:
+            - mountPath: /var/www/html
+              name: data
+          restartPolicy: OnFailure
+          securityContext:
+            fsGroup: 33
+            fsGroupChangePolicy: OnRootMismatch
+            seccompProfile:
+              type: RuntimeDefault
+  schedule: '*/5 * * * *'
+  successfulJobsHistoryLimit: 3
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    updatedAt: 2026-03-03 UTC 11:55:52
+  labels:
+    app: infisical
+    chart: infisical-0.2.0
+    component: infisical
+    heritage: Helm
+    release: platform-stack
+  name: platform-stack-infisical
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: infisical
+      component: infisical
+      release: platform-stack
+  template:
+    metadata:
+      annotations:
+        updatedAt: 2026-03-03 UTC 11:55:52
+      labels:
+        app: infisical
+        component: infisical
+        release: platform-stack
+    spec:
+      containers:
+      - env:
+        - name: AUTH_SECRET
+          valueFrom:
+            secretKeyRef:
+              key: AUTH_SECRET
+              name: infisical-secrets
+        - name: ENCRYPTION_KEY
+          valueFrom:
+            secretKeyRef:
+              key: ENCRYPTION_KEY
+              name: infisical-secrets
+        - name: SITE_URL
+          valueFrom:
+            secretKeyRef:
+              key: SITE_URL
+              name: infisical-secrets
+        - name: SMTP_HOST
+          valueFrom:
+            secretKeyRef:
+              key: SMTP_HOST
+              name: infisical-secrets
+              optional: true
+        - name: SMTP_PORT
+          valueFrom:
+            secretKeyRef:
+              key: SMTP_PORT
+              name: infisical-secrets
+              optional: true
+        - name: SMTP_USERNAME
+          valueFrom:
+            secretKeyRef:
+              key: SMTP_USERNAME
+              name: infisical-secrets
+              optional: true
+        - name: SMTP_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: SMTP_PASSWORD
+              name: infisical-secrets
+              optional: true
+        - name: SMTP_FROM_ADDRESS
+          valueFrom:
+            secretKeyRef:
+              key: SMTP_FROM_ADDRESS
+              name: infisical-secrets
+              optional: true
+        - name: SMTP_FROM_NAME
+          valueFrom:
+            secretKeyRef:
+              key: SMTP_FROM_NAME
+              name: infisical-secrets
+              optional: true
+        - name: DB_CONNECTION_URI
+          valueFrom:
+            secretKeyRef:
+              key: DB_CONNECTION_URI
+              name: infisical-secrets
+              optional: true
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              key: REDIS_URL
+              name: infisical-secrets
+              optional: true
+        image: infisical/infisical:v0.151.0
+        imagePullPolicy: IfNotPresent
+        name: infisical-infisical
+        ports:
+        - containerPort: 8080
+        readinessProbe:
+          httpGet:
+            path: /api/status
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        resources:
+          limits:
+            memory: 1000Mi
+          requests:
+            cpu: 350m
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+      initContainers:
+      - args:
+        - job
+        - platform-stack-schema-migration-1
+        image: ghcr.io/groundnuty/k8s-wait-for:no-root-v2.0
+        imagePullPolicy: IfNotPresent
+        name: migration-init
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: platform-stack-infisical
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -235,6 +420,121 @@ spec:
         fsGroup: 1000
       serviceAccountName: platform-stack-openhands
 ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: wg-easy
+  name: platform-stack-wg-easy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: platform-stack
+      app.kubernetes.io/name: wg-easy
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: platform-stack
+        app.kubernetes.io/name: wg-easy
+    spec:
+      containers:
+      - env:
+        - name: WG_HOST
+          valueFrom:
+            secretKeyRef:
+              key: WG_HOST
+              name: platform-stack-wg-easy-secrets
+        - name: PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: PASSWORD
+              name: platform-stack-wg-easy-secrets
+        - name: WG_DEFAULT_ADDRESS
+          value: 10.8.0.x
+        - name: WG_DEFAULT_DNS
+          value: 1.1.1.1
+        - name: WG_ALLOWED_IPS
+          value: 0.0.0.0/0
+        image: ghcr.io/wg-easy/wg-easy:14
+        imagePullPolicy: IfNotPresent
+        name: wg-easy
+        ports:
+        - containerPort: 51821
+          name: web
+        - containerPort: 51820
+          name: vpn
+          protocol: UDP
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            add:
+            - NET_ADMIN
+            - SYS_MODULE
+            drop:
+            - ALL
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+        volumeMounts:
+        - mountPath: /etc/wireguard
+          name: data
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: platform-stack-wg-easy
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: infisical-ingress
+spec:
+  ingressClassName: internal-nginx
+  rules:
+  - host: infisical.vpn.homebase.internal
+    http:
+      paths:
+      - backend:
+          service:
+            name: platform-stack-infisical
+            port:
+              number: 8080
+        path: /
+        pathType: Prefix
+      - backend:
+          service:
+            name: platform-stack-infisical
+            port:
+              number: 8080
+        path: /ss-webhook
+        pathType: Exact
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nextcloud
+  name: platform-stack-nextcloud
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: cloud.localtest.me
+    http:
+      paths:
+      - backend:
+          service:
+            name: platform-stack-nextcloud
+            port:
+              number: 80
+        path: /
+        pathType: Prefix
+---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -246,7 +546,7 @@ metadata:
     app.kubernetes.io/name: openhands
   name: platform-stack-openhands
 spec:
-  ingressClassName: nginx
+  ingressClassName: internal-nginx
   rules:
   - host: openhands.homebase.local
     http:
@@ -258,6 +558,47 @@ spec:
               number: 3000
         path: /
         pathType: Prefix
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: platform-stack-schema-migration-1
+spec:
+  backoffLimit: 10
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: platform-stack
+        app.kubernetes.io/managed-by: Helm
+      name: platform-stack-create-tables
+    spec:
+      containers:
+      - command:
+        - npm
+        - run
+        - migration:latest
+        envFrom:
+        - secretRef:
+            name: infisical-secrets
+        image: infisical/infisical:v0.151.0
+        name: infisical-schema-migration
+      restartPolicy: OnFailure
+      serviceAccountName: platform-stack-infisical
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nextcloud
+  name: data
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -273,6 +614,61 @@ spec:
   resources:
     requests:
       storage: 10Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: wg-easy
+  name: platform-stack-wg-easy
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: infisical
+    chart: infisical-0.2.0
+    component: infisical
+    heritage: Helm
+    release: platform-stack
+  name: platform-stack-infisical
+spec:
+  ports:
+  - port: 8080
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app: infisical
+    component: infisical
+    release: platform-stack
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nextcloud
+  name: platform-stack-nextcloud
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/name: nextcloud
+  type: ClusterIP
 ---
 apiVersion: v1
 kind: Service
@@ -313,6 +709,63 @@ spec:
   type: ClusterIP
 ---
 apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/name: sharedPostgresql
+  name: platform-stack-shared-postgresql
+spec:
+  ports:
+  - name: postgresql
+    port: 5432
+    targetPort: postgresql
+  selector:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/name: sharedPostgresql
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/name: sharedRedis
+  name: platform-stack-shared-redis
+spec:
+  ports:
+  - name: redis
+    port: 6379
+    targetPort: redis
+  selector:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/name: sharedRedis
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: wg-easy
+  name: platform-stack-wg-easy
+spec:
+  ports:
+  - name: web
+    port: 51821
+    protocol: TCP
+    targetPort: 51821
+  - name: vpn
+    port: 51820
+    protocol: UDP
+    targetPort: 51820
+  selector:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/name: wg-easy
+  type: LoadBalancer
+---
+apiVersion: v1
 automountServiceAccountToken: false
 kind: ServiceAccount
 metadata:
@@ -331,3 +784,210 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: openhands
   name: platform-stack-openhands
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app: infisical
+    chart: infisical-0.2.0
+    component: infisical
+    heritage: Helm
+    release: platform-stack
+  name: platform-stack-infisical
+  namespace: ai-homebase
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nextcloud
+  name: platform-stack-nextcloud
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: platform-stack
+      app.kubernetes.io/name: nextcloud
+  serviceName: platform-stack-nextcloud
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: platform-stack
+        app.kubernetes.io/name: nextcloud
+    spec:
+      containers:
+      - env:
+        - name: NEXTCLOUD_ADMIN_USER
+          value: ''
+        - name: NEXTCLOUD_TRUSTED_DOMAINS
+          value: ''
+        - name: OVERWRITEPROTOCOL
+          value: https
+        - name: PHP_MEMORY_LIMIT
+          value: 512M
+        - name: PHP_UPLOAD_LIMIT
+          value: 16G
+        - name: NEXTCLOUD_INIT_HTACCESS
+          value: 'true'
+        - name: SMTP_HOST
+          value: ''
+        - name: SMTP_PORT
+          value: '587'
+        - name: SMTP_NAME
+          value: ''
+        - name: MAIL_FROM_ADDRESS
+          value: ''
+        - name: MAIL_DOMAIN
+          value: ''
+        - name: POSTGRES_HOST
+          value: ''
+        - name: POSTGRES_PORT
+          value: '5432'
+        - name: POSTGRES_DB
+          value: ''
+        - name: POSTGRES_USER
+          value: ''
+        - name: REDIS_HOST
+          value: ''
+        - name: REDIS_HOST_PORT
+          value: '6379'
+        image: nextcloud:29.0.0-apache
+        imagePullPolicy: IfNotPresent
+        name: nextcloud
+        ports:
+        - containerPort: 80
+          name: http
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+        volumeMounts:
+        - mountPath: /var/www/html
+          name: data
+      securityContext:
+        fsGroup: 33
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/name: sharedPostgresql
+  name: platform-stack-shared-postgresql
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: platform-stack
+      app.kubernetes.io/name: sharedPostgresql
+  serviceName: platform-stack-shared-postgresql
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: platform-stack
+        app.kubernetes.io/name: sharedPostgresql
+    spec:
+      containers:
+      - env:
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: postgres-password
+              name: shared-postgresql-auth
+        image: docker.io/postgres:17.5
+        imagePullPolicy: IfNotPresent
+        name: postgresql
+        ports:
+        - containerPort: 5432
+          name: postgresql
+        volumeMounts:
+        - mountPath: /var/lib/postgresql/data
+          name: data
+        - mountPath: /docker-entrypoint-initdb.d
+          name: initdb-scripts
+          readOnly: true
+      volumes:
+      - name: initdb-scripts
+        secret:
+          secretName: shared-postgresql-initdb
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 100Gi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/name: sharedRedis
+  name: platform-stack-shared-redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: platform-stack
+      app.kubernetes.io/name: sharedRedis
+  serviceName: platform-stack-shared-redis
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: platform-stack
+        app.kubernetes.io/name: sharedRedis
+    spec:
+      containers:
+      - args:
+        - exec redis-server --appendonly yes --requirepass "$REDIS_PASSWORD"
+        command:
+        - sh
+        - -c
+        env:
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: redis-password
+              name: shared-redis-auth
+        image: docker.io/redis:8.0.3
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - redis-cli -a "$REDIS_PASSWORD" ping
+        name: redis
+        ports:
+        - containerPort: 6379
+          name: redis
+        readinessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - redis-cli -a "$REDIS_PASSWORD" ping
+        volumeMounts:
+        - mountPath: /data
+          name: data
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 30Gi

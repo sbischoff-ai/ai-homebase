@@ -320,18 +320,3 @@ wgEasy:
   existingSecret: ""
   secretRefs: []
 
-externalSecrets:
-  enabled: false
-
-observability:
-  enabled: false
-
-persistence:
-  enabled: false
-
-autoscaling:
-  enabled: false
-  profile: dev-minimal
-
-workerIsolation:
-  enabled: false
