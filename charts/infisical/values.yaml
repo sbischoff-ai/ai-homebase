@@ -66,6 +66,18 @@ infisical:
   # -- Number of pod replicas for high availability
   replicaCount: 2
 
+  podSecurityContext:
+    seccompProfile:
+      type: RuntimeDefault
+
+  securityContext:
+    runAsNonRoot: true
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
+    capabilities:
+      drop:
+        - ALL
+
   image:
     # -- Image repository for the Infisical service
     repository: infisical/infisical

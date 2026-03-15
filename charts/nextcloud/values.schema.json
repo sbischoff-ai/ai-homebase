@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "title": "nextcloud values",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "service": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["ClusterIP", "NodePort", "LoadBalancer", "ExternalName"],
+          "description": "Kubernetes Service type for Nextcloud exposure."
+        }
+      }
+    },
+    "ingress": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "hosts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["host"],
+            "properties": {
+              "host": {
+                "type": "string",
+                "description": "Ingress hostname for Nextcloud."
+              }
+            },
+            "additionalProperties": true
+          }
+        }
+      }
+    },
+    "persistence": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "storageClass": {
+          "type": "string",
+          "description": "PVC storageClass override for Nextcloud data."
+        }
+      }
+    },
+    "existingSecret": {
+      "type": "string",
+      "description": "Optional envFrom Secret for Nextcloud runtime configuration."
+    },
+    "secretRefs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "key", "envVar"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "key": { "type": "string", "minLength": 1 },
+          "envVar": { "type": "string", "minLength": 1 }
+        },
+        "additionalProperties": true
+      }
+    },
+    "podSecurityContext": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "securityContext": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  }
+}

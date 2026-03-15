@@ -51,6 +51,7 @@ Current schema coverage:
 - `charts/platform-stack/values.schema.json` validates top-level structure for `global`, `openclaw`, `openhands`, and optional-service toggles (`nextcloud.enabled`, `gitea.enabled`, `paperlessNgx.enabled`, `infisical.enabled`, `wgEasy.enabled`).
 - `charts/openclaw/values.schema.json` validates OpenClaw-specific high-risk fields such as ingress hosts, service type, persistence storage class, and secret reference mappings.
 - `charts/openhands/values.schema.json` validates OpenHands-specific high-risk fields such as ingress host name, service type, persistence storage class, and secret reference mappings.
+- `charts/nextcloud/values.schema.json`, `charts/paperless-ngx/values.schema.json`, `charts/wg-easy/values.schema.json`, `charts/infisical/values.schema.json`, and `charts/gitea/values.schema.json` validate high-risk service keys (ingress hosts, service type, persistence storage class, and secret reference paths) and security context object structure.
 
 ### Extending schema coverage safely
 
@@ -125,7 +126,7 @@ Current supported runtime contracts:
 - Paperless canonical secret refs: `paperless-ngx.secretKeySecret.{name,key}` -> `PAPERLESS_SECRET_KEY`, `paperless-ngx.externalDatabase.passwordSecret.{name,key}` -> `PAPERLESS_DBPASS`, `paperless-ngx.redis.urlSecret.{name,key}` (or `paperless-ngx.redis.passwordSecret.{name,key}` when storing a composed Redis URL) -> `PAPERLESS_REDIS`, and `paperless-ngx.admin.passwordSecret.{name,key}` -> `PAPERLESS_ADMIN_PASSWORD`; `paperless-ngx.redis.url` remains supported for direct non-secret URL input and `paperless-ngx.redis.prefix` maps to `PAPERLESS_REDIS_PREFIX`.
 - Paperless app config keys: `paperless-ngx.appConfig.url` -> `PAPERLESS_URL`, `paperless-ngx.appConfig.allowedHosts` -> `PAPERLESS_ALLOWED_HOSTS`, `paperless-ngx.appConfig.csrfTrustedOrigins` -> `PAPERLESS_CSRF_TRUSTED_ORIGINS`, `paperless-ngx.appConfig.corsAllowedHosts` -> `PAPERLESS_CORS_ALLOWED_HOSTS`, `paperless-ngx.appConfig.timeZone` -> `PAPERLESS_TIME_ZONE` (default `Europe/Berlin`), and `paperless-ngx.appConfig.ocrLanguage` -> `PAPERLESS_OCR_LANGUAGE` (default `deu+eng`).
 - Paperless network isolation controls: `paperless-ngx.networkPolicy.*` (ingress controller selectors, optional wg-easy namespace selectors, and DNS/PostgreSQL/Redis egress selectors).
-- Nextcloud bootstrap/runtime keys: `nextcloud.admin.user`, required secret refs `nextcloud.admin.passwordSecret.{name,key}` + `nextcloud.externalDatabase.passwordSecret.{name,key}` (+ `nextcloud.externalRedis.passwordSecret.{name,key}` when Redis auth is enabled), `nextcloud.trustedDomains` (list or delimited string), `nextcloud.overwriteProtocol`, `nextcloud.php.memoryLimit`, `nextcloud.php.uploadLimit`, `nextcloud.initHtaccess`, `nextcloud.smtp.{host,port,user,passwordSecret.{name,key},fromAddress,domain}`, `nextcloud.initialApps[]`, `nextcloud.podSecurityContext`, and `nextcloud.containerSecurityContext`
+- Nextcloud bootstrap/runtime keys: `nextcloud.admin.user`, required secret refs `nextcloud.admin.passwordSecret.{name,key}` + `nextcloud.externalDatabase.passwordSecret.{name,key}` (+ `nextcloud.externalRedis.passwordSecret.{name,key}` when Redis auth is enabled), `nextcloud.trustedDomains` (list or delimited string), `nextcloud.overwriteProtocol`, `nextcloud.php.memoryLimit`, `nextcloud.php.uploadLimit`, `nextcloud.initHtaccess`, `nextcloud.smtp.{host,port,user,passwordSecret.{name,key},fromAddress,domain}`, `nextcloud.initialApps[]`, `nextcloud.podSecurityContext`, and `nextcloud.securityContext`
 - Nextcloud network isolation controls: `nextcloud.networkPolicy.*` (ingress controller selector, DNS/PostgreSQL/Redis egress, and optional SMTP egress selectors).
 
 Recommended layering:
@@ -157,3 +158,13 @@ The configuration model leaves several items intentionally unresolved:
 - Hardened network policy definitions.
 
 Track these as mandatory production-readiness tasks, not optional cleanup.
+
+
+## Unified baseline pod security contract
+
+Application charts in this repository now share a baseline security contract:
+
+- `podSecurityContext` and `securityContext` (or upstream equivalent pass-through for wrapper charts) are explicit values, not implicit template defaults.
+- Default posture is conservative: runtime-default seccomp, no privilege escalation, and dropped Linux capabilities unless a service requires explicit additions (for example wg-easy adds `NET_ADMIN`/`SYS_MODULE`).
+- Operators should override these keys only when required by workload compatibility and must keep overrides in overlay files for traceability.
+- Validation schemas include these security context objects so malformed overlays fail early during `helm lint`/`helm template`.

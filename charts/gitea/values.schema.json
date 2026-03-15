@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "title": "gitea wrapper values",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "gitea": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "service": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "http": {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": ["ClusterIP", "NodePort", "LoadBalancer", "ExternalName"]
+                }
+              }
+            },
+            "ssh": {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": ["ClusterIP", "NodePort", "LoadBalancer", "ExternalName"]
+                }
+              }
+            }
+          }
+        },
+        "ingress": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "hosts": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["host"],
+                "properties": {
+                  "host": { "type": "string" }
+                },
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "persistence": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "storageClass": { "type": "string" }
+          }
+        },
+        "admin": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "existingSecret": {
+              "type": "string",
+              "description": "Secret used by upstream chart for bootstrap/admin credentials."
+            }
+          }
+        },
+        "podSecurityContext": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "containerSecurityContext": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    }
+  }
+}

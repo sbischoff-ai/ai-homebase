@@ -25,6 +25,10 @@ spec:
         {{- end }}
       {{- end }}
     spec:
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: paperless-ngx
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -139,6 +143,10 @@ spec:
             {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
       volumes:
         {{- if and .Values.persistence.data.enabled .Values.persistence.data.existingClaim }}
         - name: data
