@@ -33,7 +33,12 @@ kubectl --context <your-kube-context> -n <your-namespace> create secret generic 
 
 kubectl --context <your-kube-context> -n <your-namespace> create secret generic gitea-app-secrets \
   --from-literal=username=<dummy-gitea-admin-username-not-admin> \
-  --from-literal=password=<dummy-gitea-admin-password>
+  --from-literal=password=<dummy-gitea-admin-password> \
+  --from-literal=GITEA__database__PASSWD=<dummy-gitea-db-password> \
+  --from-literal=GITEA__mailer__PASSWD=<dummy-gitea-smtp-password> \
+  --from-literal=GITEA__oauth2_client__HOMEBASE__CLIENT_SECRET=<dummy-gitea-oauth-client-secret> \
+  --from-literal=GITEA__security__SECRET_KEY=<dummy-gitea-secret-key> \
+  --from-literal=GITEA__security__INTERNAL_TOKEN=<dummy-gitea-internal-token>
 
 kubectl --context <your-kube-context> -n <your-namespace> create secret generic paperlessngx-app-secrets \
   --from-literal=PAPERLESS_SECRET_KEY=<dummy-paperless-secret-key>
@@ -49,6 +54,8 @@ For OpenClaw and OpenHands, make sure secret key names match each chart contract
 
 - OpenClaw reads `secretKeys.gatewayToken` from `charts/openclaw/values.yaml` (default key: `OPENCLAW_GATEWAY_TOKEN`).
 - OpenHands secret examples in `charts/openhands/values.yaml` use `secretRefs`/`secretEnv` with `LLM_API_KEY` (plus optional values like `LLM_MODEL` and `OH_WEB_URL` as needed).
+
+For Gitea, use the official chart wiring in overlays: map secret keys with `gitea.secretRefs[]`, then enumerate those env names in `gitea.gitea.additionalConfigFromEnvs` so sensitive `app.ini` values are loaded from Secrets (not plaintext YAML).
 
 ## Install/upgrade with value overlays and service toggles
 
