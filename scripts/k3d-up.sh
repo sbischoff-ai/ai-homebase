@@ -58,7 +58,31 @@ HELM_ARGS=(--kubeconfig "$KUBECONFIG_PATH")
 
 run_quiet mkdir -p "$(dirname "$KUBECONFIG_PATH")"
 
-if run_quiet k3d kubeconfig get "$CLUSTER_NAME"; then
+run_k3d_concise() {
+  if [[ "${BOOTSTRAP_VERBOSE:-0}" == "1" ]]; then
+    run_verbose "$@"
+  else
+    local cmd_output
+    local status
+
+    if cmd_output="$("$@" 2>&1)"; then
+      status=0
+    else
+      status=$?
+    fi
+
+    if [[ -n "$cmd_output" ]]; then
+      printf "%s\n" "$cmd_output" >>"$BOOTSTRAP_LOG_FILE"
+      if [[ $status -ne 0 ]]; then
+        printf "%s\n" "$cmd_output" >&2
+      fi
+    fi
+
+    return $status
+  fi
+}
+
+if run_k3d_concise k3d kubeconfig get "$CLUSTER_NAME"; then
   step "Reusing existing k3d cluster ${CLUSTER_NAME}"
 else
   CREATE_ARGS=(
@@ -71,11 +95,12 @@ else
   fi
 
   step "Creating k3d cluster ${CLUSTER_NAME}"
-  run_quiet k3d cluster create "$CLUSTER_NAME" "${CREATE_ARGS[@]}"
+  run_k3d_concise k3d cluster create "$CLUSTER_NAME" "${CREATE_ARGS[@]}"
 fi
 
 step "Writing dedicated kubeconfig to ${KUBECONFIG_PATH}"
-run_quiet bash -c 'k3d kubeconfig get "$1" > "$2"' _ "$CLUSTER_NAME" "$KUBECONFIG_PATH"
+run_k3d_concise bash -c 'k3d kubeconfig get "$1" > "$2"' _ "$CLUSTER_NAME" "$KUBECONFIG_PATH"
+ok "Kubeconfig written to ${KUBECONFIG_PATH}"
 
 run_quiet kubectl "${KUBECTL_ARGS[@]}" config use-context "$K3D_CONTEXT"
 CURRENT_CONTEXT="$(kubectl "${KUBECTL_ARGS[@]}" config current-context)"
@@ -109,13 +134,18 @@ fi
 
 step "Ensuring ingress-nginx Helm repo"
 run_quiet helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx || true
-run_quiet helm repo update ingress-nginx
+if [[ "${BOOTSTRAP_VERBOSE:-0}" == "1" ]]; then
+  run_verbose helm repo update ingress-nginx
+else
+  run_quiet helm repo update ingress-nginx
+fi
 
 step "Installing/upgrading ingress-nginx controller"
 run_quiet helm upgrade --install "$INGRESS_RELEASE_NAME" "$INGRESS_CHART_REF" \
   "${HELM_ARGS[@]}" \
   --namespace "$INGRESS_NAMESPACE" \
   --create-namespace \
+  --hide-notes \
   --set controller.ingressClassResource.name=nginx \
   --set controller.ingressClass=nginx \
   --set controller.watchIngressWithoutClass=false
@@ -132,6 +162,7 @@ run_quiet kubectl "${KUBECTL_ARGS[@]}" wait --namespace "$INGRESS_NAMESPACE" \
   -l app.kubernetes.io/component=controller,app.kubernetes.io/instance=${INGRESS_RELEASE_NAME} \
   --timeout=180s
 
+ok "Ingress controller is ready"
 echo "k3d cluster ${CLUSTER_NAME} is ready with ingress-nginx"
 echo "Kubeconfig written to: ${KUBECONFIG_PATH}"
 echo "Bootstrap log: ${BOOTSTRAP_LOG_FILE}"

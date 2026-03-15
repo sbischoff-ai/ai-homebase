@@ -268,6 +268,7 @@ run_checked helm upgrade --install "$RELEASE_NAME" charts/platform-stack \
   "${HELM_CONTEXT_ARGS[@]}" \
   --namespace "$NAMESPACE" \
   --create-namespace \
+  --hide-notes \
   "${VALUES_ARGS[@]}"
 
 wait_for_workload openclaw

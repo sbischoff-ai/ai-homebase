@@ -80,9 +80,25 @@ create_and_apply_secret() {
   local secret_name="$1"
   shift
   local tmp_file
+  local apply_output
+  local action_label
   tmp_file="$(mktemp)"
   kubectl "${KUBECTL_ARGS[@]}" -n "$NAMESPACE" create secret generic "$secret_name" "$@" --dry-run=client -o yaml > "$tmp_file" 2>>"$BOOTSTRAP_LOG_FILE"
-  run_quiet kubectl "${KUBECTL_ARGS[@]}" apply -f "$tmp_file"
+
+  if [[ "${BOOTSTRAP_VERBOSE:-0}" == "1" ]]; then
+    run_verbose kubectl "${KUBECTL_ARGS[@]}" apply -f "$tmp_file"
+  else
+    apply_output="$(kubectl "${KUBECTL_ARGS[@]}" apply -f "$tmp_file" 2>>"$BOOTSTRAP_LOG_FILE")"
+    printf '%s\n' "$apply_output" >>"$BOOTSTRAP_LOG_FILE"
+
+    action_label="updated"
+    if [[ "$apply_output" == *" created"* ]]; then
+      action_label="created"
+    fi
+
+    echo "${action_label} secret ${secret_name}"
+  fi
+
   rm -f "$tmp_file"
 }
 
