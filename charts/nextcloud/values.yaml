@@ -122,6 +122,21 @@ php:
 
 initHtaccess: true
 
+smtp:
+  host: ""
+  port: 587
+  user: ""
+  passwordSecret:
+    name: ""
+    key: ""
+  fromAddress: ""
+  domain: ""
+
+# Optional apps to install/enable during first-time bootstrap.
+# This uses a post-installation entrypoint hook supported by the official
+# Nextcloud container image.
+initialApps: []
+
 externalDatabase:
   host: ""
   port: 5432

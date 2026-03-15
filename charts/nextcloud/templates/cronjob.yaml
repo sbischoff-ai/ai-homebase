@@ -64,6 +64,23 @@ spec:
                       name: {{ .Values.externalRedis.passwordSecret.name }}
                       key: {{ .Values.externalRedis.passwordSecret.key }}
                 {{- end }}
+                - name: SMTP_HOST
+                  value: {{ .Values.smtp.host | quote }}
+                - name: SMTP_PORT
+                  value: {{ .Values.smtp.port | toString | quote }}
+                - name: SMTP_NAME
+                  value: {{ .Values.smtp.user | quote }}
+                {{- if and .Values.smtp.passwordSecret.name .Values.smtp.passwordSecret.key }}
+                - name: SMTP_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.smtp.passwordSecret.name }}
+                      key: {{ .Values.smtp.passwordSecret.key }}
+                {{- end }}
+                - name: MAIL_FROM_ADDRESS
+                  value: {{ .Values.smtp.fromAddress | quote }}
+                - name: MAIL_DOMAIN
+                  value: {{ .Values.smtp.domain | quote }}
                 {{- range .Values.secretRefs }}
                 - name: {{ .envVar }}
                   valueFrom:

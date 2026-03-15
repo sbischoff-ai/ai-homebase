@@ -1,0 +1,23 @@
+{{- if .Values.initialApps }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "nextcloud.fullname" . }}-initial-apps-hook
+  labels:
+    {{- include "nextcloud.labels" . | nindent 4 }}
+data:
+  99-initial-apps.sh: |
+    #!/bin/sh
+    set -eu
+
+    APPS="{{ join " " .Values.initialApps }}"
+
+    for app in $APPS; do
+      if php /var/www/html/occ app:list | grep -q "^  - $app:"; then
+        php /var/www/html/occ app:enable "$app" || echo "warning: unable to enable app '$app'"
+      else
+        php /var/www/html/occ app:install "$app" || echo "warning: unable to install app '$app'"
+        php /var/www/html/occ app:enable "$app" || echo "warning: unable to enable app '$app'"
+      fi
+    done
+{{- end }}
