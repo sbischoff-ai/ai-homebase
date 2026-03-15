@@ -115,6 +115,7 @@ Current supported runtime contracts:
 - `secretRefs[]`
 - `secretEnv[]`
 - Nextcloud canonical external backend keys: `nextcloud.externalDatabase.*` and `nextcloud.externalRedis.*` (mapped to explicit `POSTGRES_*` and `REDIS_*` env vars in the Nextcloud StatefulSet)
+- Paperless Redis keys: `paperless-ngx.redis.url` or secret-backed `paperless-ngx.redis.urlSecret.{name,key}`, plus `paperless-ngx.redis.prefix` for queue key namespacing.
 - Nextcloud bootstrap/runtime keys: `nextcloud.admin.user`, required secret refs `nextcloud.admin.passwordSecret.{name,key}` + `nextcloud.externalDatabase.passwordSecret.{name,key}` (+ `nextcloud.externalRedis.passwordSecret.{name,key}` when Redis auth is enabled), `nextcloud.trustedDomains` (list or delimited string), `nextcloud.overwriteProtocol`, `nextcloud.php.memoryLimit`, `nextcloud.php.uploadLimit`, `nextcloud.initHtaccess`, `nextcloud.smtp.{host,port,user,passwordSecret.{name,key},fromAddress,domain}`, `nextcloud.initialApps[]`, `nextcloud.podSecurityContext`, and `nextcloud.containerSecurityContext`
 - Nextcloud network isolation controls: `nextcloud.networkPolicy.*` (ingress controller selector, DNS/PostgreSQL/Redis egress, and optional SMTP egress selectors).
 

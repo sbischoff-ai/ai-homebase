@@ -48,6 +48,17 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.externalDatabase.passwordSecret.name }}
                   key: {{ .Values.externalDatabase.passwordSecret.key }}
+            - name: PAPERLESS_REDIS
+              {{- if and .Values.redis.urlSecret.name .Values.redis.urlSecret.key }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.redis.urlSecret.name }}
+                  key: {{ .Values.redis.urlSecret.key }}
+              {{- else }}
+              value: {{ .Values.redis.url | quote }}
+              {{- end }}
+            - name: PAPERLESS_REDIS_PREFIX
+              value: {{ .Values.redis.prefix | quote }}
             {{- range .Values.secretRefs }}
             - name: {{ .envVar }}
               valueFrom:

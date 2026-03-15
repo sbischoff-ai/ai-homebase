@@ -84,3 +84,10 @@ externalDatabase:
   passwordSecret:
     name: ""
     key: ""
+
+redis:
+  url: ""
+  urlSecret:
+    name: ""
+    key: ""
+  prefix: ""
