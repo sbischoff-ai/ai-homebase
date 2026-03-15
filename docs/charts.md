@@ -74,10 +74,9 @@ It also adds shared backend dependencies for centralized state services:
 
 Shared backend implementations are local charts under `charts/shared-postgresql` and `charts/shared-redis`, and the umbrella chart depends on them via local `file://` references.
 
-It also renders a small umbrella settings `ConfigMap` for lightweight metadata (`global.domain` and `openclaw.ingress.enabled`).
 
 ### Removed umbrella placeholder keys (breaking cleanup)
-The following top-level umbrella keys were removed because they only fed `templates/platform-configmap.yaml` and had no real chart behavior/wiring:
+The following top-level umbrella keys were removed because they had no real chart behavior/wiring:
 
 - `externalSecrets`
 - `observability`

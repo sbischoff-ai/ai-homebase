@@ -99,7 +99,7 @@ The umbrella chart no longer supports these top-level keys:
 - `autoscaling` (umbrella-level placeholder)
 - `workerIsolation`
 
-They were removed because they did not drive subchart behavior and only populated metadata entries in `platform-configmap`.
+They were removed because they did not drive subchart behavior.
 
 Migration guidance:
 

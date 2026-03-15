@@ -15,23 +15,11 @@ metadata:
     app.kubernetes.io/name: openclaw
   name: platform-stack-openclaw
 ---
-apiVersion: v1
-data:
-  domain: localtest.me
-  ingressEnabled: 'false'
-kind: ConfigMap
-metadata:
-  labels:
-    app.kubernetes.io/instance: platform-stack
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: platform-stack
-  name: platform-stack-platform-stack-settings
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   annotations:
-    updatedAt: 2026-03-03 UTC 11:55:53
+    updatedAt: 2026-03-03 UTC 12:54:40
   labels:
     app: infisical
     chart: infisical-0.2.0
@@ -49,7 +37,7 @@ spec:
   template:
     metadata:
       annotations:
-        updatedAt: 2026-03-03 UTC 11:55:53
+        updatedAt: 2026-03-03 UTC 12:54:40
       labels:
         app: infisical
         component: infisical
@@ -410,16 +398,9 @@ spec:
             - ALL
           readOnlyRootFilesystem: false
           runAsNonRoot: true
-        volumeMounts:
-        - mountPath: /etc/wireguard
-          name: data
       securityContext:
         seccompProfile:
           type: RuntimeDefault
-      volumes:
-      - name: data
-        persistentVolumeClaim:
-          claimName: platform-stack-wg-easy
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -470,6 +451,28 @@ spec:
         path: /
         pathType: Prefix
 ---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: wg-easy
+  name: platform-stack-wg-easy
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: wg.localtest.me
+    http:
+      paths:
+      - backend:
+          service:
+            name: platform-stack-wg-easy
+            port:
+              number: 51821
+        path: /
+        pathType: Prefix
+---
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -495,21 +498,6 @@ spec:
         name: infisical-schema-migration
       restartPolicy: OnFailure
       serviceAccountName: platform-stack-infisical
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  labels:
-    app.kubernetes.io/instance: platform-stack
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: wg-easy
-  name: platform-stack-wg-easy
-spec:
-  accessModes:
-  - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1Gi
 ---
 apiVersion: v1
 kind: Service
@@ -625,7 +613,7 @@ spec:
   selector:
     app.kubernetes.io/instance: platform-stack
     app.kubernetes.io/name: wg-easy
-  type: LoadBalancer
+  type: ClusterIP
 ---
 apiVersion: v1
 automountServiceAccountToken: false
