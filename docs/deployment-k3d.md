@@ -25,6 +25,7 @@ helm version
 Run the full local setup flow:
 
 ```bash
+export OPENAI_API_KEY="<your-openai-api-key>"
 ./scripts/k3d-local-bootstrap.sh --cluster-name ai-homebase-dev
 ```
 
@@ -68,13 +69,14 @@ Useful options:
 ### 2.2 Generate minimal bootstrap secrets
 
 ```bash
+export OPENAI_API_KEY="<your-openai-api-key>"
 ./scripts/k3d-bootstrap-secrets.sh \
   --namespace ai-homebase \
   --release-name platform-stack \
   --kubeconfig ~/.kube/k3d-ai-homebase-dev.yaml
 ```
 
-The script prints the generated wg-easy UI password at the end.
+The script prints the generated wg-easy UI password at the end and fails early with a helpful message when `OPENAI_API_KEY` is not set.
 
 All bootstrap scripts now write full command logs to `/tmp/ai-homebase-bootstrap-<timestamp>.log` and print that path in both success and failure summaries.
 

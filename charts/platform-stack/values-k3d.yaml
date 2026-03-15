@@ -42,7 +42,7 @@ openclaw:
   existingSecret: openclaw-app-secrets
   secretKeys:
     gatewayToken: OPENCLAW_GATEWAY_TOKEN
-    openaiApiKey: ""
+    openaiApiKey: OPENAI_API_KEY
     anthropicApiKey: ""
     googleApiKey: ""
     tavilyApiKey: ""
