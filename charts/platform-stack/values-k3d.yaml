@@ -210,5 +210,8 @@ infisical:
 
 wgEasy:
   enabled: true
+  securityContext:
+    # wg-easy v14 container startup still requires root in local k3d.
+    runAsNonRoot: false
   persistence:
     enabled: false

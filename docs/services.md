@@ -128,6 +128,7 @@ The table below is the single source of truth for baseline defaults and is keyed
 - AKS baseline keeps UI/API ingress disabled (`wgEasy.ingress.enabled: false`) so the admin UI is reached over the VPN tunnel.
 - WireGuard endpoint exposure should be explicit and tightly controlled (for example `wgEasy.service.type: LoadBalancer` with `wgEasy.service.loadBalancerSourceRanges`).
 - Pod/container security contexts are explicit values; defaults keep conservative hardening while retaining required WireGuard capabilities (`NET_ADMIN`, `SYS_MODULE`) in `securityContext`.
+- Local k3d overlay (`values-dev.yaml` + `values-k3d.yaml`) applies a runtime compatibility exception for `ghcr.io/wg-easy/wg-easy:14` by setting `wgEasy.securityContext.runAsNonRoot: false` while preserving required capabilities.
 - Runtime secret contract: the effective `existingSecret` (or the default `<release>-wg-easy-secrets` when unset) must provide `WG_HOST` and `PASSWORD`; these are wired via `valueFrom.secretKeyRef` in the Deployment.
 - `secretRefs[]` is optional additive env wiring only; use it for extra variables, not as a replacement for required `WG_HOST`/`PASSWORD` keys.
 - For local k3d, `scripts/k3d-bootstrap-secrets.sh` can generate the minimal wg-easy Secret contract and print the UI password for first login.
