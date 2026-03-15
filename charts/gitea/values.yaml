@@ -64,6 +64,10 @@ gitea:
   admin:
     username: git-admin
     existingSecret: ""
+  # Phase 1 intentionally focuses on Git/PR/wiki workflows.
+  # Actions/runners are deferred to a later dedicated deployment.
+  actions:
+    enabled: false
   config:
     database:
       DB_TYPE: postgres
