@@ -62,11 +62,10 @@ podAnnotations: {}
 podSecurityContext:
   seccompProfile:
     type: RuntimeDefault
-  # Kubernetes treats net.ipv4.ip_forward as an unsafe sysctl, so forwarding must be enabled at the node level.
-  # Keep pod-level sysctls limited to kubelet-allowed keys.
-  sysctls:
-    - name: net.ipv4.conf.all.src_valid_mark
-      value: "1"
+  # wg-easy requires node-level sysctl prerequisites:
+  # - net.ipv4.ip_forward=1
+  # - net.ipv4.conf.all.src_valid_mark=1
+  # Do not request pod-level sysctls by default; kubelet may reject non-whitelisted unsafe sysctls.
 
 backup:
   annotations: {}

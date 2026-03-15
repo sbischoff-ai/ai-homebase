@@ -7,8 +7,9 @@ This chart deploys [wg-easy](https://github.com/wg-easy/wg-easy) with WireGuard 
 This chart aligns with the upstream wg-easy container requirements by setting:
 
 - container capabilities: `NET_ADMIN`, `SYS_MODULE`
-- pod-level sysctl: `net.ipv4.conf.all.src_valid_mark=1`
-- node-level requirement: `net.ipv4.ip_forward=1` (must be configured on Kubernetes nodes, not in the Pod spec)
+- node-level requirements (must be configured on Kubernetes nodes, not in the Pod spec):
+  - `net.ipv4.ip_forward=1`
+  - `net.ipv4.conf.all.src_valid_mark=1`
 
 Your Kubernetes node/host kernel must also provide WireGuard and iptables NAT support.
 If either is missing, wg-easy can fail during `wg-quick up wg0` when adding the MASQUERADE rule.
@@ -19,6 +20,7 @@ Host verification commands:
 lsmod | grep -E '(^wireguard|iptable_nat|nf_nat)'
 sudo modprobe wireguard iptable_nat
 sudo sysctl net.ipv4.ip_forward
+sudo sysctl net.ipv4.conf.all.src_valid_mark
 sudo iptables -t nat -S >/dev/null
 ```
 
@@ -26,6 +28,7 @@ Expected outcomes:
 
 - `wireguard` and `iptable_nat` modules load or are already present.
 - `net.ipv4.ip_forward = 1` on the host.
+- `net.ipv4.conf.all.src_valid_mark = 1` on the host.
 - `iptables -t nat` succeeds (no `Table does not exist` error).
 
 ## Prerequisites
