@@ -114,6 +114,21 @@ helm dependency update charts/platform-stack
 ./scripts/k3d-down.sh --cluster-name ai-homebase-dev
 ```
 
+### Run the same Helm CI checks locally
+
+Use these commands to run the exact checks from `.github/workflows/helm-ci.yml` on your workstation:
+
+```bash
+helm dependency build charts/platform-stack
+./scripts/ci/lint_all_charts.sh
+helm lint charts/platform-stack -f charts/platform-stack/values-dev.yaml -f charts/platform-stack/values-k3d.yaml
+./scripts/ci/render_profiles.sh
+python -m pip install pyyaml
+./scripts/ci/validate_rendered_yaml.py
+./scripts/ci/assert_service_matrix.py
+```
+
+
 ## Infisical secret contract
 
 For this repository, **in-cluster mode is the default** for Infisical (`charts/infisical/values.yaml` keeps `postgresql.enabled=true` and `redis.enabled=true`).
