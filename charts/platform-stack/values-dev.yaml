@@ -1,13 +1,13 @@
 global:
   domain: localtest.me
   hosts:
-    openclaw: openclaw.localtest.me
-    openhands: openhands.localtest.me
-    nextcloud: nextcloud.localtest.me
+    openclaw: openclaw.vpn.homebase.internal
+    openhands: openhands.vpn.homebase.internal
+    nextcloud: cloud.localtest.me
     gitea: gitea.vpn.homebase.internal
-    paperless: paperless.localtest.me
-    paperlessNgx: paperless.localtest.me
-    infisical: infisical.localtest.me
+    paperless: paperless.vpn.homebase.internal
+    paperlessNgx: paperless.vpn.homebase.internal
+    infisical: infisical.vpn.homebase.internal
     wg: wg.localtest.me
     vpn: wg.localtest.me
     wgEasy: wg.localtest.me
@@ -20,7 +20,7 @@ openclaw:
     className: nginx
     annotations: {}
     hosts:
-      - host: openclaw.localtest.me
+      - host: openclaw.vpn.homebase.internal
         paths:
           - path: /
             pathType: Prefix
@@ -51,7 +51,7 @@ openclaw:
     gateway:
       controlUi:
         allowedOrigins:
-          - http://openclaw.localtest.me
+          - http://openclaw.vpn.homebase.internal
 
 
 openhands:
@@ -64,10 +64,10 @@ openhands:
   # Enable OpenHands ingress only for environments that intentionally expose a private/internal endpoint.
   ingress:
     enabled: true
-    className: nginx
+    className: internal-nginx
     annotations: {}
     hosts:
-      - host: openhands.localtest.me
+      - host: openhands.vpn.homebase.internal
         paths:
           - path: /
             pathType: Prefix
@@ -87,7 +87,7 @@ openhands:
       memory: 512Mi
 
 nextcloud:
-  enabled: false
+  enabled: true
   image:
     repository: nextcloud
     tag: "29.0.0-apache"
@@ -102,7 +102,7 @@ nextcloud:
     className: nginx
     annotations: {}
     hosts:
-      - host: nextcloud.localtest.me
+      - host: cloud.localtest.me
         paths:
           - path: /
             pathType: Prefix
@@ -232,10 +232,10 @@ paperlessNgx:
     targetPort: 8000
   ingress:
     enabled: true
-    className: nginx
+    className: internal-nginx
     annotations: {}
     hosts:
-      - host: paperless.localtest.me
+      - host: paperless.vpn.homebase.internal
         paths:
           - path: /
             pathType: Prefix
@@ -296,8 +296,8 @@ infisical:
     kubeSecretRef: infisical-secrets
   ingress:
     enabled: true
-    hostName: infisical.localtest.me
-    ingressClassName: nginx
+    hostName: infisical.vpn.homebase.internal
+    ingressClassName: internal-nginx
     annotations: {}
     tls: []
     nginx:

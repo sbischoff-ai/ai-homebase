@@ -16,6 +16,7 @@ Render manifests to inspect effective values layering:
 ```bash
 ./scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values-dev.yaml > /tmp/platform-stack-dev.yaml
 ./scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values-dev.yaml --values-file charts/platform-stack/values-k3d.yaml > /tmp/platform-stack-k3d.yaml
+./scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values-dev.yaml --values-file charts/platform-stack/values-homelab-public-nextcloud.yaml > /tmp/platform-stack-homelab-public-nextcloud.yaml
 ```
 
 Run cluster-level health checks after deploy:
@@ -66,7 +67,7 @@ Validate toggle rendering explicitly:
 Recommended pattern:
 
 1. Keep shared defaults in `charts/platform-stack/values-dev.yaml`.
-2. Keep environment/profile differences in `charts/platform-stack/values-k3d.yaml` or another overlay file.
+2. Keep environment/profile differences in `charts/platform-stack/values-k3d.yaml` or another overlay file (for example `charts/platform-stack/values-homelab-public-nextcloud.yaml`).
 3. Commit overlay file changes so operators can reproduce service posture.
 
 ## 4) Re-render and redeploy workflow
