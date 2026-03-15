@@ -63,6 +63,21 @@ Script behavior summary:
 - Checks `openhands` ingress via `Host: openhands.localtest.me` on `http://127.0.0.1/`.
 - Dumps pod diagnostics automatically on failure.
 
+> ⚠️ Important default-profile note: both `values-dev.yaml` and `values-k3d.yaml` keep `openclaw.ingress.enabled=false`.
+> That means OpenClaw ingress curl checks are **not** valid for default layering by themselves.
+> To make OpenClaw ingress checks pass, add an override file that enables ingress (for example `examples/k3d.values.override.yaml`) and pass it with `--values-file`.
+
+Example command with OpenClaw ingress explicitly enabled:
+
+```bash
+./scripts/test-local-k3d.sh \
+  --release-name platform-stack \
+  --namespace ai-homebase \
+  --values-file charts/platform-stack/values-dev.yaml \
+  --values-file charts/platform-stack/values-k3d.yaml \
+  --values-file examples/k3d.values.override.yaml
+```
+
 ## 3) Teardown
 
 Delete the local cluster when done:
@@ -73,7 +88,7 @@ Delete the local cluster when done:
 
 ## 4) Local ingress host access (DNS/hosts)
 
-The default local ingress checks use `openclaw.localtest.me` and `openhands.localtest.me`.
+Local ingress host checks use `openclaw.localtest.me` and `openhands.localtest.me` when ingress checks are enabled (OpenClaw requires an explicit override under default profile layering).
 
 ### Preferred: `localtest.me` wildcard behavior
 
@@ -135,18 +150,19 @@ Fixes:
 
 ## 6) What success looks like
 
-After bootstrap + deploy, run these checks:
+After bootstrap + deploy with default layering (`values-dev.yaml` + `values-k3d.yaml`), run these checks:
 
 ```bash
 kubectl get nodes
 kubectl -n ingress-nginx get pods
 kubectl -n ai-homebase get pods
 kubectl -n ai-homebase get ingress
-curl -sS -H 'Host: openclaw.localtest.me' http://127.0.0.1/ -o /dev/null -w '%{http_code}\n'
 curl -sS -H 'Host: openhands.localtest.me' http://127.0.0.1/ -o /dev/null -w '%{http_code}\n'
+kubectl -n ai-homebase get ingress -l app.kubernetes.io/name=openclaw
 ```
 
 Expected results:
 
 - `kubectl get` commands show `Ready`/`Running` resources with no core-plane crash loops.
-- Both curl checks return HTTP `200` (or another known-good success code for your configured app endpoints).
+- OpenHands curl check returns HTTP `200` (or another known-good success code for your configured app endpoint).
+- OpenClaw ingress query returns `No resources found` unless you explicitly enable OpenClaw ingress in an override file.
