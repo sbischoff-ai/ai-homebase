@@ -63,6 +63,22 @@ affinity: {}
 existingSecret: "" # Optional envFrom source for app credentials/secrets.
 secretRefs: [] # [{name: nextcloud-app-secrets, key: NEXTCLOUD_ADMIN_PASSWORD, envVar: NEXTCLOUD_ADMIN_PASSWORD}]
 
+admin:
+  user: ""
+  passwordSecret:
+    name: ""
+    key: ""
+
+# Supports either a YAML list of domains or a comma/space-delimited string.
+trustedDomains: []
+overwriteProtocol: https
+
+php:
+  memoryLimit: 512M
+  uploadLimit: 16G
+
+initHtaccess: true
+
 externalDatabase:
   host: ""
   port: 5432
