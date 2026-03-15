@@ -56,6 +56,75 @@ helm dependency update charts/platform-stack
   > /tmp/platform-stack-core-only.yaml
 ```
 
+## Render recipes for common exposure postures
+
+These snippets focus on rendered-manifest validation before `helm upgrade --install`.
+
+### 1) Nextcloud enabled + public ingress + TLS
+
+```bash
+./scripts/template.sh \
+  --release-name platform-stack \
+  --namespace ai-homebase \
+  --values-file charts/platform-stack/values-dev.yaml \
+  --values-file charts/platform-stack/values-homelab-public-nextcloud.yaml \
+  > /tmp/platform-stack-homelab-public-nextcloud.yaml
+
+# Verify Nextcloud host/TLS ingress, Service, CronJob, and secret-backed env refs
+rg -n "kind: Ingress|platform-stack-nextcloud|cloud.homebase.example.com|nextcloud-tls" /tmp/platform-stack-homelab-public-nextcloud.yaml
+rg -n "kind: Service|name: platform-stack-nextcloud" /tmp/platform-stack-homelab-public-nextcloud.yaml
+rg -n "kind: CronJob|name: platform-stack-nextcloud-cron" /tmp/platform-stack-homelab-public-nextcloud.yaml
+rg -n "POSTGRES_PASSWORD|REDIS_HOST_PASSWORD|nextcloud-app-secrets" /tmp/platform-stack-homelab-public-nextcloud.yaml
+
+# Optional: confirm whether any NetworkPolicy objects are rendered in this profile
+rg -n "^kind: NetworkPolicy" /tmp/platform-stack-homelab-public-nextcloud.yaml
+```
+
+### 2) Core services VPN-only/internal
+
+```bash
+./scripts/template.sh \
+  --release-name platform-stack \
+  --namespace ai-homebase \
+  --values-file charts/platform-stack/values-dev.yaml \
+  --disable-service nextcloud \
+  --disable-service gitea \
+  --disable-service paperless-ngx \
+  > /tmp/platform-stack-core-vpn-internal.yaml
+
+# Verify internal ingress host posture and Service objects for core services
+rg -n "kind: Ingress|openhands\.vpn\.homebase\.internal|openclaw\.vpn\.homebase\.internal" /tmp/platform-stack-core-vpn-internal.yaml
+rg -n "kind: Service|name: platform-stack-openhands|name: platform-stack-openclaw|name: platform-stack-infisical" /tmp/platform-stack-core-vpn-internal.yaml
+
+# Verify Nextcloud objects are absent from this core-only profile
+rg -n "platform-stack-nextcloud|cloud\." /tmp/platform-stack-core-vpn-internal.yaml
+
+# Optional: confirm whether any NetworkPolicy objects are rendered in this profile
+rg -n "^kind: NetworkPolicy" /tmp/platform-stack-core-vpn-internal.yaml
+```
+
+### 3) Nextcloud disabled (explicit check)
+
+```bash
+./scripts/template.sh \
+  --release-name platform-stack \
+  --namespace ai-homebase \
+  --values-file charts/platform-stack/values-dev.yaml \
+  --disable-service nextcloud \
+  > /tmp/platform-stack-no-nextcloud.yaml
+
+# Verify Nextcloud Service, Ingress, and CronJob are not rendered
+rg -n "platform-stack-nextcloud|nextcloud-cron|cloud\.localtest\.me" /tmp/platform-stack-no-nextcloud.yaml
+
+# Verify other service secret/env refs still render as expected
+rg -n "name: OPENHANDS_|OPENCLAW_|INFISICAL_|WG_|secretKeyRef" /tmp/platform-stack-no-nextcloud.yaml
+
+# Optional: confirm whether any NetworkPolicy objects are rendered in this profile
+rg -n "^kind: NetworkPolicy" /tmp/platform-stack-no-nextcloud.yaml
+```
+
+`rg` exits with status `1` when no match is found. For absence checks, that `1` exit status is expected and indicates the disabled objects did not render.
+
 ## CI-equivalent checks
 
 These local commands mirror repository CI guardrails for chart validity, render checks, and golden fixtures.
