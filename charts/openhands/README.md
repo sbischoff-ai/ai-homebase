@@ -66,3 +66,11 @@ ingress:
 ```
 
 Keep ingress internal unless you have a deliberate public-exposure design (auth, TLS, and network controls) in place.
+
+
+Ingress class precedence:
+
+- Prefer `ingress.ingressClassName` on modern Kubernetes.
+- `ingress.annotations["kubernetes.io/ingress.class"]` is treated as a legacy fallback and is only applied when `ingress.ingressClassName` is empty.
+- Do not set both fields at the same time; when both are present, the chart removes the legacy annotation from the rendered Ingress to avoid conflicting class mechanisms.
+
