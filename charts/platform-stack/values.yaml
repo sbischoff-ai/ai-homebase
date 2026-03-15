@@ -36,8 +36,8 @@ openclaw:
     tls: []
   service:
     type: ClusterIP
-    port: 80
-    targetPort: 8080
+    port: 18789
+    targetPort: 18789
     annotations: {}
   persistence:
     enabled: true
