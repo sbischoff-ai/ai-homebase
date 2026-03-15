@@ -4,8 +4,8 @@ fullnameOverride: ""
 replicaCount: 1
 
 image:
-  repository: ghcr.io/paperless-ngx/paperless-ngx
-  tag: "2.11.0"
+  repository: paperlessngx/paperless-ngx
+  tag: "2.20"
   pullPolicy: IfNotPresent
 
 global:
