@@ -38,8 +38,34 @@ spec:
           ports:
             - name: http
               containerPort: {{ .Values.service.targetPort }}
-          {{- if .Values.secretRefs }}
+          {{- if or .Values.secretRefs .Values.externalDatabase.host .Values.externalDatabase.port .Values.externalDatabase.database .Values.externalDatabase.user (and .Values.externalDatabase.passwordSecret.name .Values.externalDatabase.passwordSecret.key) .Values.externalRedis.host .Values.externalRedis.port (and .Values.externalRedis.passwordSecret.name .Values.externalRedis.passwordSecret.key) }}
           env:
+            - name: POSTGRES_HOST
+              value: {{ .Values.externalDatabase.host | quote }}
+            - name: POSTGRES_PORT
+              value: {{ .Values.externalDatabase.port | toString | quote }}
+            - name: POSTGRES_DB
+              value: {{ .Values.externalDatabase.database | quote }}
+            - name: POSTGRES_USER
+              value: {{ .Values.externalDatabase.user | quote }}
+            {{- if and .Values.externalDatabase.passwordSecret.name .Values.externalDatabase.passwordSecret.key }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.externalDatabase.passwordSecret.name }}
+                  key: {{ .Values.externalDatabase.passwordSecret.key }}
+            {{- end }}
+            - name: REDIS_HOST
+              value: {{ .Values.externalRedis.host | quote }}
+            - name: REDIS_HOST_PORT
+              value: {{ .Values.externalRedis.port | toString | quote }}
+            {{- if and .Values.externalRedis.passwordSecret.name .Values.externalRedis.passwordSecret.key }}
+            - name: REDIS_HOST_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.externalRedis.passwordSecret.name }}
+                  key: {{ .Values.externalRedis.passwordSecret.key }}
+            {{- end }}
             {{- range .Values.secretRefs }}
             - name: {{ .envVar }}
               valueFrom:

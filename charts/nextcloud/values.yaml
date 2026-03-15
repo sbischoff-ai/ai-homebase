@@ -56,5 +56,25 @@ affinity: {}
 # Secret injection conventions:
 # - Secret names: kebab-case (example: nextcloud-app-secrets)
 # - Secret data keys: UPPER_SNAKE_CASE (example: NEXTCLOUD_ADMIN_PASSWORD)
+# Canonical external service wiring:
+# - externalDatabase.* maps to POSTGRES_* env vars.
+# - externalRedis.* maps to REDIS_* env vars.
+# Keep existingSecret/secretRefs for compatibility and additional app secrets.
 existingSecret: "" # Optional envFrom source for app credentials/secrets.
 secretRefs: [] # [{name: nextcloud-app-secrets, key: NEXTCLOUD_ADMIN_PASSWORD, envVar: NEXTCLOUD_ADMIN_PASSWORD}]
+
+externalDatabase:
+  host: ""
+  port: 5432
+  database: ""
+  user: ""
+  passwordSecret:
+    name: ""
+    key: ""
+
+externalRedis:
+  host: ""
+  port: 6379
+  passwordSecret:
+    name: ""
+    key: ""
