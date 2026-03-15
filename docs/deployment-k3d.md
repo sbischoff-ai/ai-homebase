@@ -75,6 +75,9 @@ Useful options:
 ```
 
 The script prints the generated wg-easy UI password at the end.
+It also provisions local-development placeholders for OpenClaw provider secrets (including
+`OPENAI_API_KEY` in `openclaw-app-secrets`) unless you override them with environment variables
+or CLI flags (for example `--openai-api-key`).
 
 All bootstrap scripts now write full command logs to `/tmp/ai-homebase-bootstrap-<timestamp>.log` and print that path in both success and failure summaries.
 

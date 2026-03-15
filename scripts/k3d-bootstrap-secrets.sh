@@ -10,6 +10,7 @@ WG_HOST="${WG_HOST:-wg.localtest.me}"
 WG_PASSWORD="${WG_PASSWORD:-}"
 WG_PASSWORD_OUTPUT_PATH="${WG_PASSWORD_OUTPUT_PATH:-}"
 OPENCLAW_GATEWAY_TOKEN="${OPENCLAW_GATEWAY_TOKEN:-local-dev-token}"
+OPENAI_API_KEY="${OPENAI_API_KEY:-local-dev-openai-key}"
 POSTGRES_ADMIN_PASSWORD="${POSTGRES_ADMIN_PASSWORD:-postgres-local-dev}"
 REDIS_PASSWORD="${REDIS_PASSWORD:-redis-local-dev}"
 INFISICAL_AUTH_SECRET="${INFISICAL_AUTH_SECRET:-}"
@@ -29,6 +30,7 @@ Options:
   --wg-password <password>       wg-easy UI password (auto-generated if omitted)
   --wg-password-out <path>       Write resolved wg-easy password to file
   --openclaw-gateway-token <v>   OpenClaw gateway token (default: ${OPENCLAW_GATEWAY_TOKEN})
+  --openai-api-key <v>           OpenClaw OpenAI provider key (default: ${OPENAI_API_KEY})
   --postgres-admin-password <v>  shared PostgreSQL admin password (default: generated local value)
   --redis-password <v>           shared Redis password (default: generated local value)
   --verbose                      Stream full command output
@@ -45,6 +47,7 @@ while [[ $# -gt 0 ]]; do
     --wg-password) WG_PASSWORD="$2"; shift 2 ;;
     --wg-password-out) WG_PASSWORD_OUTPUT_PATH="$2"; shift 2 ;;
     --openclaw-gateway-token) OPENCLAW_GATEWAY_TOKEN="$2"; shift 2 ;;
+    --openai-api-key) OPENAI_API_KEY="$2"; shift 2 ;;
     --postgres-admin-password) POSTGRES_ADMIN_PASSWORD="$2"; shift 2 ;;
     --redis-password) REDIS_PASSWORD="$2"; shift 2 ;;
     --verbose) BOOTSTRAP_VERBOSE=1; shift ;;
@@ -138,7 +141,8 @@ create_and_apply_secret shared-postgresql-initdb \
   --from-literal=00_bootstrap.sql="-- reserved for local bootstrap init scripts"
 
 create_and_apply_secret openclaw-app-secrets \
-  --from-literal=OPENCLAW_GATEWAY_TOKEN="$OPENCLAW_GATEWAY_TOKEN"
+  --from-literal=OPENCLAW_GATEWAY_TOKEN="$OPENCLAW_GATEWAY_TOKEN" \
+  --from-literal=OPENAI_API_KEY="$OPENAI_API_KEY"
 
 create_and_apply_secret "$WG_SECRET_NAME" \
   --from-literal=WG_HOST="$WG_HOST" \
