@@ -7,11 +7,8 @@ global:
     openhands: openhands.prod.example.com
     nextcloud: nextcloud.prod.example.com
     gitea: gitea.vpn.homebase.internal
-    paperless: paperless.prod.example.com
     paperlessNgx: paperless.prod.example.com
     infisical: infisical.prod.example.com
-    wg: wg.prod.example.com
-    vpn: wg.prod.example.com
     wgEasy: wg.prod.example.com
   commonLabels:
     environment: production

@@ -98,6 +98,7 @@ The table below is the single source of truth for baseline defaults and is keyed
 
 ### Paperless-ngx
 
+- Canonical umbrella host key is `global.hosts.paperlessNgx`.
 - Multi-volume document pipeline (`data`, `media`, etc.).
 - Umbrella toggle is `paperlessNgx.enabled`; the Paperless subchart also has a chart-local `enabled` gate (default `false`) so standalone renders are safe unless explicitly enabled. The umbrella chart sets `paperless-ngx.enabled: true` internally so operators continue using `paperlessNgx.enabled` as the single service toggle.
 - Default posture is VPN/internal-only: `paperlessNgx.ingress.enabled` is `false` in baseline and shipped overlays; enable ingress explicitly only when an internal ingress route is required for your environment.
@@ -120,6 +121,7 @@ The table below is the single source of truth for baseline defaults and is keyed
 
 ### wg-easy
 
+- Canonical umbrella host key is `global.hosts.wgEasy`.
 - Provides VPN lifecycle UI and WireGuard endpoint.
 - UI/API ingress is enabled by default when the service is enabled.
 - VPN endpoint exposure should be tightly controlled.

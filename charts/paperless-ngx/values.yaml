@@ -13,7 +13,6 @@ image:
 global:
   storageClass: ""
   hosts:
-    paperless: ""
     paperlessNgx: ""
   commonLabels: {}
 

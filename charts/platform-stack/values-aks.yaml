@@ -8,11 +8,8 @@ global:
     openhands: openhands.aks.example.com
     nextcloud: nextcloud.aks.example.com
     gitea: gitea.vpn.homebase.internal
-    paperless: paperless.aks.example.com
     paperlessNgx: paperless.aks.example.com
     infisical: infisical.aks.example.com
-    wg: wg.aks.example.com
-    vpn: wg.aks.example.com
     wgEasy: wg.aks.example.com
   commonLabels:
     platform: aks
