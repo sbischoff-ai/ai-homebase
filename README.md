@@ -15,6 +15,10 @@ Start with the canonical deployment landing page:
 
 From there, choose the environment-specific flow for k3d local, AKS, or generic Kubernetes/homelab deployments.
 
+## Documentation map
+
+- [Full docs taxonomy (`docs/README.md`)](./docs/README.md)
+
 ## Where to go next
 - Configuration layering and toggle model: [`docs/configuration.md`](./docs/configuration.md)
 - Service contracts, toggles, and secret wiring: [`docs/services.md`](./docs/services.md)
