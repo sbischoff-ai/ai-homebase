@@ -2,24 +2,23 @@
 
 This wrapper chart keeps local/offline-friendly platform dependency wiring while pinning the upstream `gitea/gitea` chart version.
 
-## Probe defaults
+## Deployment model
 
-Wrapper probe defaults are configured under `probes.liveness` and `probes.readiness`:
+This chart is now a **true wrapper** around the upstream Gitea chart:
 
-- `path: /api/healthz`
-- `port: http`
+- Local workload templates were removed.
+- Workload resources are rendered only by the upstream dependency.
+- Wrapper values pass through under `gitea.*` (for example `gitea.gitea.config.*`, `gitea.gitea.ingress.*`, `gitea.gitea.persistence.*`).
 
-These values are wired into the wrapper StatefulSet probes and should return **HTTP 200** for healthy pods.
-
-If you change probe keys or paths, verify rendered manifests include the expected `livenessProbe`/`readinessProbe` and run a runtime check against the service endpoint.
+No adaptor templates are required at this time.
 
 ## External database/cache posture
 
 This wrapper is configured for centralized backends:
 
-- `postgresql.enabled=false`
-- `postgresql-ha.enabled=false`
-- `redis.enabled=false`
-- `redis-cluster.enabled=false`
+- `gitea.gitea.postgresql.enabled=false`
+- `gitea.gitea.postgresql-ha.enabled=false`
+- `gitea.gitea.redis.enabled=false`
+- `gitea.gitea.redis-cluster.enabled=false`
 
-Set non-sensitive DB host/name/user in `gitea.config.database.*` and inject sensitive settings (DB password + Redis URIs for session/cache/queue/global_lock) through Kubernetes Secrets using `gitea.additionalConfigFromEnvs` and `secretRefs[]`.
+Set non-sensitive DB host/name/user in `gitea.gitea.config.database.*` and inject sensitive settings through upstream chart secret/env mechanisms (for example `gitea.gitea.additionalConfigFromEnvs` and `gitea.gitea.additionalConfigSources`).

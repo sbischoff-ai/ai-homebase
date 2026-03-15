@@ -175,39 +175,35 @@ nextcloud:
 
 gitea:
   enabled: false
-  image:
-    repository: myregistry.azurecr.io/gitea
-    tag: stable
-    pullPolicy: IfNotPresent
-  service:
-    type: ClusterIP
-    port: 3000
-    targetPort: 3000
-    annotations: {}
-  ingress:
-    enabled: true
-    className: internal-nginx
-    annotations:
-      cert-manager.io/cluster-issuer: letsencrypt-prod
-      external-dns.alpha.kubernetes.io/hostname: gitea.vpn.homebase.internal
-    hosts:
-      - host: gitea.vpn.homebase.internal
-        paths:
-          - path: /
-            pathType: Prefix
-    tls:
-      - secretName: gitea-vpn-tls
-        hosts:
-          - gitea.vpn.homebase.internal
-  persistence:
-    enabled: true
-    existingClaim: ""
-    accessModes:
-      - ReadWriteOnce
-    size: 20Gi
-    storageClass: managed-csi
-    annotations: {}
   gitea:
+    enabled: true
+    image:
+      repository: myregistry.azurecr.io/gitea
+      tag: stable
+      pullPolicy: IfNotPresent
+    service:
+      http:
+        type: ClusterIP
+        port: 3000
+    ingress:
+      enabled: true
+      className: internal-nginx
+      annotations:
+        cert-manager.io/cluster-issuer: letsencrypt-prod
+        external-dns.alpha.kubernetes.io/hostname: gitea.vpn.homebase.internal
+      hosts:
+        - host: gitea.vpn.homebase.internal
+          paths:
+            - path: /
+              pathType: Prefix
+      tls:
+        - secretName: gitea-vpn-tls
+          hosts:
+            - gitea.vpn.homebase.internal
+    persistence:
+      enabled: true
+      size: 20Gi
+      storageClass: managed-csi
     admin:
       username: git-admin
       existingSecret: gitea-app-secrets
@@ -235,44 +231,19 @@ gitea:
       - GITEA__queue__CONN_STR
       - GITEA__global_lock__SERVICE_CONN_STR
     additionalConfigSources: []
-  postgresql:
-    enabled: false
-    primary:
-      persistence:
-        enabled: true
-        size: 20Gi
-        storageClass: managed-csi
-  postgresql-ha:
-    enabled: false
-  redis:
-    enabled: false
-  redis-cluster:
-    enabled: false
-  resources: {}
-  probes:
-    liveness:
-      enabled: true
-      path: /api/healthz
-    readiness:
-      enabled: true
-      path: /api/healthz
-  existingSecret: ""
-  secretRefs:
-    - name: gitea-app-secrets
-      key: GITEA__database__PASSWD
-      envVar: GITEA__database__PASSWD
-    - name: gitea-app-secrets
-      key: GITEA__session__PROVIDER_CONFIG
-      envVar: GITEA__session__PROVIDER_CONFIG
-    - name: gitea-app-secrets
-      key: GITEA__cache__HOST
-      envVar: GITEA__cache__HOST
-    - name: gitea-app-secrets
-      key: GITEA__queue__CONN_STR
-      envVar: GITEA__queue__CONN_STR
-    - name: gitea-app-secrets
-      key: GITEA__global_lock__SERVICE_CONN_STR
-      envVar: GITEA__global_lock__SERVICE_CONN_STR
+    postgresql:
+      enabled: false
+      primary:
+        persistence:
+          enabled: true
+          size: 20Gi
+          storageClass: managed-csi
+    postgresql-ha:
+      enabled: false
+    redis:
+      enabled: false
+    redis-cluster:
+      enabled: false
 
 paperlessNgx:
   enabled: false

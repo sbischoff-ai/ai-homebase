@@ -8,7 +8,7 @@ This platform is designed with explicit public/private boundaries between core a
 - **OpenClaw access path:** through VPN/private networking, for example `http://openclaw.default.svc.cluster.local:18789`.
 - **Baseline chart defaults are private for core ingress:** both `openclaw.ingress.enabled: false` and `openhands.ingress.enabled: false` in `values.yaml`.
 - **Optional private posture per environment:** use internal ingress classes, VPN-only access, or private load balancers when required.
-- **Gitea is configured internal-only in shipped profiles:** `gitea.service.type: ClusterIP` with ingress host `gitea.vpn.homebase.internal` on internal ingress class `internal-nginx`; expected user flow is VPN connected -> internal host.
+- **Gitea is configured internal-only in shipped profiles:** `gitea.gitea.service.http.type: ClusterIP` with ingress host `gitea.vpn.homebase.internal` on internal ingress class `internal-nginx`; expected user flow is VPN connected -> internal host.
 
 ## Ingress controls
 

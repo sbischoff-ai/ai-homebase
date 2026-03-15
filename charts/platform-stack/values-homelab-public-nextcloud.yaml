@@ -90,19 +90,21 @@ openhands:
 
 gitea:
   enabled: false
-  ingress:
+  gitea:
     enabled: true
-    className: internal-nginx
-    annotations: {}
-    hosts:
-      - host: gitea.vpn.homebase.internal
-        paths:
-          - path: /
-            pathType: Prefix
-    tls:
-      - secretName: gitea-vpn-tls
-        hosts:
-          - gitea.vpn.homebase.internal
+    ingress:
+      enabled: true
+      className: internal-nginx
+      annotations: {}
+      hosts:
+        - host: gitea.vpn.homebase.internal
+          paths:
+            - path: /
+              pathType: Prefix
+      tls:
+        - secretName: gitea-vpn-tls
+          hosts:
+            - gitea.vpn.homebase.internal
 
 paperlessNgx:
   enabled: false

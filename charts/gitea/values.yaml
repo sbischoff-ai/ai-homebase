@@ -1,84 +1,30 @@
-nameOverride: ""
-fullnameOverride: ""
-
-replicaCount: 1
-
-image:
-  repository: gitea/gitea
-  tag: "1.22.0"
-  pullPolicy: IfNotPresent
-
-imagePullSecrets: []
-
-global:
-  imagePullSecrets: []
-  storageClass: ""
-  hosts:
-    gitea: ""
-  commonLabels: {}
-
-service:
-  type: ClusterIP
-  port: 3000
-  targetPort: 3000
-  annotations: {}
-
-ingress:
-  enabled: false
-  className: ""
-  annotations: {}
-  hosts:
-    - host: ""
-      paths:
-        - path: /
-          pathType: Prefix
-  tls: []
-
-persistence:
-  enabled: true
-  existingClaim: ""
-  accessModes:
-    - ReadWriteOnce
-  size: 10Gi
-  storageClass: ""
-  annotations: {}
-
-podAnnotations: {}
-
-backup:
-  annotations: {}
-
-resources: {}
-nodeSelector: {}
-tolerations: []
-affinity: {}
-
-probes:
-  liveness:
-    enabled: true
-    path: /api/healthz
-    port: http
-    initialDelaySeconds: 30
-    periodSeconds: 10
-    timeoutSeconds: 5
-    failureThreshold: 6
-  readiness:
-    enabled: true
-    path: /api/healthz
-    port: http
-    initialDelaySeconds: 10
-    periodSeconds: 10
-    timeoutSeconds: 5
-    failureThreshold: 6
-
-# Secret injection conventions:
-# - Secret names: kebab-case (example: gitea-app-secrets)
-# - Secret data keys should match the consuming chart contract (for official admin bootstrap: username/password in gitea.admin.existingSecret).
-existingSecret: "" # Optional envFrom source for app credentials/secrets.
-secretRefs: [] # [{name: app-secrets, key: SOME_KEY, envVar: SOME_ENV}]
-
-# Values passed through to the official Gitea chart dependency.
 gitea:
+  enabled: true
+  image:
+    repository: gitea/gitea
+    tag: "1.22.0"
+    pullPolicy: IfNotPresent
+  service:
+    http:
+      type: ClusterIP
+      port: 3000
+    ssh:
+      type: ClusterIP
+      port: 22
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+    hosts:
+      - host: ""
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: ""
   admin:
     username: git-admin
     existingSecret: ""
@@ -107,20 +53,17 @@ gitea:
     - GITEA__cache__HOST
     - GITEA__queue__CONN_STR
     - GITEA__global_lock__SERVICE_CONN_STR
-
-postgresql:
-  enabled: false
-  primary:
-    persistence:
-      enabled: true
-      size: 10Gi
-      storageClass: ""
-
-postgresql-ha:
-  enabled: false
-
-redis:
-  enabled: false
-
-redis-cluster:
-  enabled: false
+  additionalConfigSources: []
+  postgresql:
+    enabled: false
+    primary:
+      persistence:
+        enabled: true
+        size: 10Gi
+        storageClass: ""
+  postgresql-ha:
+    enabled: false
+  redis:
+    enabled: false
+  redis-cluster:
+    enabled: false

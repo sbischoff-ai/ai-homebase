@@ -74,7 +74,7 @@ Use service-specific blocks when behavior must diverge:
 
 - `openclaw.*` and `openhands.*` for core-plane differences.
 - Optional service blocks for app-specific scaling/storage/ingress.
-- Gitea official-chart dependency knobs are configured under `gitea.gitea.config.*`, `gitea.gitea.admin.*` (including `gitea.gitea.admin.existingSecret`), `gitea.gitea.actions.*`, `gitea.gitea.additionalConfigFromEnvs`, `gitea.gitea.additionalConfigSources`, `gitea.postgresql.*`, `gitea.postgresql-ha.*`, `gitea.redis.*`, and `gitea.redis-cluster.*` in platform overlays (bundled backends disabled by default in shipped profiles).
+- Gitea official-chart dependency knobs are configured under `gitea.gitea.*` in platform overlays (for example `gitea.gitea.config.*`, `gitea.gitea.admin.*`, `gitea.gitea.actions.*`, `gitea.gitea.additionalConfigFromEnvs`, `gitea.gitea.additionalConfigSources`, `gitea.gitea.postgresql.*`, `gitea.gitea.postgresql-ha.*`, `gitea.gitea.redis.*`, and `gitea.gitea.redis-cluster.*`; bundled backends remain disabled by default in shipped profiles).
 - Service-level secret references and env contracts.
 - OpenClaw runtime configuration should be expressed via structured `openclaw.*` values (rendered to `openclaw.json`) rather than generic key/value config blobs.
 
@@ -131,7 +131,7 @@ Recommended layering:
 - For Nextcloud trusted hosts, set `nextcloud.trustedDomains` as either a YAML list or a delimited string; ensure `cloud.<domain>` is always present.
 - Keep Nextcloud on a dedicated hostname (`cloud.<domain>`) routed at `/`; avoid subpath exposure to preserve Android/WebDAV/public-link compatibility.
 - Set `nextcloud.ingress.hosts[]`, `nextcloud.trustedDomains`, and TLS/DNS records to the same canonical public host to avoid redirect/share-link drift.
-- Put only secret **references** in environment overlays (for Gitea sensitive `app.ini` keys, prefer `gitea.secretRefs[]` + `gitea.gitea.additionalConfigFromEnvs`).
+- Put only secret **references** in environment overlays (for Gitea sensitive `app.ini` keys, prefer upstream-chart secret/env wiring with `gitea.gitea.additionalConfigFromEnvs` and optionally `gitea.gitea.additionalConfigSources`).
 - Generate target Kubernetes Secrets via External Secrets or controlled secret bootstrap processes.
 
 ## Example deployment command pattern
