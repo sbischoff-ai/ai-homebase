@@ -91,6 +91,7 @@ make smoke-k3d
 ### Dependency install/update
 
 ```bash
+helm dependency update charts/gitea
 helm dependency update charts/platform-stack
 ```
 
