@@ -138,11 +138,12 @@ nextcloud:
 
 gitea:
   enabled: false
-  persistence:
-    enabled: true
-    size: 10Gi
-    storageClass: ""
   gitea:
+    enabled: true
+    persistence:
+      enabled: true
+      size: 10Gi
+      storageClass: ""
     admin:
       username: git-admin
       existingSecret: ""
@@ -170,19 +171,19 @@ gitea:
       - GITEA__queue__CONN_STR
       - GITEA__global_lock__SERVICE_CONN_STR
     additionalConfigSources: []
-  postgresql:
-    enabled: false
-    primary:
-      persistence:
-        enabled: true
-        size: 10Gi
-        storageClass: ""
-  postgresql-ha:
-    enabled: false
-  redis:
-    enabled: false
-  redis-cluster:
-    enabled: false
+    postgresql:
+      enabled: false
+      primary:
+        persistence:
+          enabled: true
+          size: 10Gi
+          storageClass: ""
+    postgresql-ha:
+      enabled: false
+    redis:
+      enabled: false
+    redis-cluster:
+      enabled: false
 
 paperlessNgx:
   enabled: false

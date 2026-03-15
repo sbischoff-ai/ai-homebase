@@ -85,16 +85,16 @@ The table below is the single source of truth for baseline defaults and is keyed
 ### Gitea
 
 - Source control service with persistent repositories.
-- Shipped profiles keep `gitea.service.type: ClusterIP` and configure ingress for internal-only access (`className: internal-nginx`, host `gitea.vpn.homebase.internal`).
+- Shipped profiles keep `gitea.gitea.service.http.type: ClusterIP` and configure ingress for internal-only access (`gitea.gitea.ingress.className: internal-nginx`, host `gitea.vpn.homebase.internal`).
 - Intended access path is VPN-first: user connects through wg-easy/WireGuard, then reaches the internal Gitea hostname.
 - Avoid public DNS annotations for Gitea unless your annotation targets a private-only DNS zone.
 - Ensure backup for repository integrity.
-- Official-chart dependency defaults in shipped overlays disable bundled backends (`gitea.postgresql.enabled=false`, `gitea.postgresql-ha.enabled=false`, `gitea.redis.enabled=false`, `gitea.redis-cluster.enabled=false`) and use external PostgreSQL/Redis settings under `gitea.gitea.config.*`.
+- Official-chart dependency defaults in shipped overlays disable bundled backends (`gitea.gitea.postgresql.enabled=false`, `gitea.gitea.postgresql-ha.enabled=false`, `gitea.gitea.redis.enabled=false`, `gitea.gitea.redis-cluster.enabled=false`) and use external PostgreSQL/Redis settings under `gitea.gitea.config.*`.
 - Official-chart Actions are intentionally disabled (`gitea.gitea.actions.enabled=false`) for first-phase Git/PR/wiki workflows; Actions runners are deferred to a later dedicated deployment.
 - Admin bootstrap uses official chart fields (`gitea.gitea.admin.username` and `gitea.gitea.admin.existingSecret`) so admin credentials are sourced from Kubernetes Secrets (typically synced from Infisical) instead of plaintext values.
-- Sensitive `app.ini` values (DB password, SMTP password, OAuth client secret, internal/security tokens) should be wired with official-chart mechanisms: set env vars from Kubernetes Secrets (`gitea.secretRefs[]` / `gitea.existingSecret`) and list the env names in `gitea.gitea.additionalConfigFromEnvs`; optionally load secret-backed config snippets via `gitea.gitea.additionalConfigSources`.
+- Sensitive `app.ini` values (DB password, SMTP password, OAuth client secret, internal/security tokens) should be wired with official-chart mechanisms, listing env names in `gitea.gitea.additionalConfigFromEnvs` and optionally loading secret-backed config snippets via `gitea.gitea.additionalConfigSources`.
 - Keep non-sensitive defaults (for example `gitea.gitea.config.database.DB_TYPE` and `gitea.gitea.config.service.DISABLE_REGISTRATION`) in versioned values files.
-- Size and storage class for Gitea app data should follow the active profile storage conventions (`gitea.persistence.*`). Database/cache persistence is handled by shared backend releases (`sharedPostgresql.*` and `sharedRedis.*`).
+- Size and storage class for Gitea app data should follow the active profile storage conventions (`gitea.gitea.persistence.*`). Database/cache persistence is handled by shared backend releases (`sharedPostgresql.*` and `sharedRedis.*`).
 
 ### Paperless-ngx
 

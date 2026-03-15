@@ -7,6 +7,13 @@ import subprocess
 
 import yaml
 
+LEGACY_GITEA_WRAPPER_SOURCES = {
+    "# Source: platform-stack/charts/gitea/templates/statefulset.yaml",
+    "# Source: platform-stack/charts/gitea/templates/service.yaml",
+    "# Source: platform-stack/charts/gitea/templates/ingress.yaml",
+    "# Source: platform-stack/charts/gitea/templates/pvc.yaml",
+}
+
 MATRIX = [
     {
         "name": "core-only",
@@ -33,7 +40,6 @@ MATRIX = [
         },
         "expect_present": {
             ("StatefulSet", "platform-stack-nextcloud"),
-            ("StatefulSet", "platform-stack-gitea"),
             ("StatefulSet", "platform-stack-paperless-ngx"),
         },
     },
@@ -50,14 +56,13 @@ MATRIX = [
             ("Deployment", "platform-stack-infisical"),
             ("Deployment", "platform-stack-wg-easy"),
             ("StatefulSet", "platform-stack-nextcloud"),
-            ("StatefulSet", "platform-stack-gitea"),
             ("StatefulSet", "platform-stack-paperless-ngx"),
         },
     },
 ]
 
 
-def render(case: dict[str, object]) -> set[tuple[str | None, str | None]]:
+def render(case: dict[str, object]) -> tuple[str, set[tuple[str | None, str | None]]]:
     cmd = [
         "helm",
         "template",
@@ -71,15 +76,40 @@ def render(case: dict[str, object]) -> set[tuple[str | None, str | None]]:
 
     result = subprocess.run(cmd, check=True, capture_output=True, text=True)
     docs = [doc for doc in yaml.safe_load_all(result.stdout) if isinstance(doc, dict)]
-    return {(doc.get("kind"), doc.get("metadata", {}).get("name")) for doc in docs}
+    resources = {(doc.get("kind"), doc.get("metadata", {}).get("name")) for doc in docs}
+    return result.stdout, resources
+
+
+def assert_gitea_single_path(case: dict[str, object], rendered: str, resources: set[tuple[str | None, str | None]]) -> None:
+    gitea_enabled = case["set"].get("gitea.enabled") == "true"
+    if not gitea_enabled:
+        return
+
+    legacy_sources = sorted(source for source in LEGACY_GITEA_WRAPPER_SOURCES if source in rendered)
+    if legacy_sources:
+        raise SystemExit(
+            f"{case['name']} still renders removed local gitea wrapper templates: {legacy_sources}"
+        )
+
+    workload_kinds = {"StatefulSet", "Deployment"}
+    workload_count = sum(
+        1
+        for kind, name in resources
+        if name == "platform-stack-gitea" and kind in workload_kinds
+    )
+    if workload_count > 1:
+        raise SystemExit(
+            f"{case['name']} rendered multiple gitea workloads for platform-stack-gitea: {workload_count}"
+        )
 
 
 def main() -> None:
     for case in MATRIX:
-        resources = render(case)
+        rendered, resources = render(case)
         missing = sorted(case["expect_present"] - resources)
         if missing:
             raise SystemExit(f"{case['name']} missing expected resources: {missing}")
+        assert_gitea_single_path(case, rendered, resources)
         print(f"{case['name']}: asserted {len(case['expect_present'])} resource(s)")
 
 

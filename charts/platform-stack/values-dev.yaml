@@ -127,31 +127,30 @@ nextcloud:
 
 gitea:
   enabled: false
-  image:
-    repository: gitea/gitea
-    tag: "1.22.0"
-    pullPolicy: IfNotPresent
-  service:
-    type: ClusterIP
-    port: 3000
-    targetPort: 3000
-    annotations: {}
-  ingress:
-    enabled: true
-    className: internal-nginx
-    annotations: {}
-    hosts:
-      - host: gitea.vpn.homebase.internal
-        paths:
-          - path: /
-            pathType: Prefix
-    tls: []
-  persistence:
-    enabled: true
-    size: 30Gi
-    storageClass: ""
-    annotations: {}
   gitea:
+    enabled: true
+    image:
+      repository: gitea/gitea
+      tag: "1.22.0"
+      pullPolicy: IfNotPresent
+    service:
+      http:
+        type: ClusterIP
+        port: 3000
+    ingress:
+      enabled: true
+      className: internal-nginx
+      annotations: {}
+      hosts:
+        - host: gitea.vpn.homebase.internal
+          paths:
+            - path: /
+              pathType: Prefix
+      tls: []
+    persistence:
+      enabled: true
+      size: 30Gi
+      storageClass: ""
     admin:
       username: git-admin
       existingSecret: ""
@@ -179,46 +178,19 @@ gitea:
       - GITEA__queue__CONN_STR
       - GITEA__global_lock__SERVICE_CONN_STR
     additionalConfigSources: []
-  postgresql:
-    enabled: false
-    primary:
-      persistence:
-        enabled: true
-        size: 10Gi
-        storageClass: ""
-  postgresql-ha:
-    enabled: false
-  redis:
-    enabled: false
-  redis-cluster:
-    enabled: false
-  backup:
-    annotations: {}
-  resources: {}
-  probes:
-    liveness:
-      enabled: true
-      path: /api/healthz
-    readiness:
-      enabled: true
-      path: /api/healthz
-  existingSecret: ""
-  secretRefs:
-    - name: gitea-app-secrets
-      key: GITEA__database__PASSWD
-      envVar: GITEA__database__PASSWD
-    - name: gitea-app-secrets
-      key: GITEA__session__PROVIDER_CONFIG
-      envVar: GITEA__session__PROVIDER_CONFIG
-    - name: gitea-app-secrets
-      key: GITEA__cache__HOST
-      envVar: GITEA__cache__HOST
-    - name: gitea-app-secrets
-      key: GITEA__queue__CONN_STR
-      envVar: GITEA__queue__CONN_STR
-    - name: gitea-app-secrets
-      key: GITEA__global_lock__SERVICE_CONN_STR
-      envVar: GITEA__global_lock__SERVICE_CONN_STR
+    postgresql:
+      enabled: false
+      primary:
+        persistence:
+          enabled: true
+          size: 10Gi
+          storageClass: ""
+    postgresql-ha:
+      enabled: false
+    redis:
+      enabled: false
+    redis-cluster:
+      enabled: false
 
 paperlessNgx:
   enabled: false
