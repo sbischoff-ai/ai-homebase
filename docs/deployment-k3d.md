@@ -110,7 +110,7 @@ Script behavior summary:
 - Detects effective `openclaw.ingress.enabled` from the installed release values.
 - Checks `openclaw` ingress via `Host: openclaw.localtest.me` on `http://127.0.0.1/` **only when** effective `openclaw.ingress.enabled=true`; otherwise logs an info message and skips this probe.
 - Checks `openhands` ingress via `Host: openhands.localtest.me` on `http://127.0.0.1/`.
-- Dumps pod diagnostics automatically on failure.
+- On failure, prints failed command, short log excerpt, top-level Kubernetes status, and targeted next-step commands; full `kubectl describe pod/...` output remains available in `--verbose` mode.
 
 > Default profile posture: `values-dev.yaml` + `values-k3d.yaml` keep `openclaw.ingress.enabled=false`.
 > This is intentional: public ingress exposure for OpenClaw (and other internal services) is a local testing/debug edge case.
