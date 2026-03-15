@@ -116,7 +116,9 @@ OpenHands persistence controls are available under `openhands.persistence.*`:
 - `persistence.existingClaim`
 - `persistence.annotations`
 
-`openhands.workspace.*` is deprecated and remains as a temporary compatibility fallback. Prefer migrating to `openhands.persistence.*`.
+`openhands.workspace.*` is deprecated and retained only as a temporary compatibility alias for `openhands.persistence.*`. Platform overlays and examples in this repository now use `openhands.persistence.*`.
+
+Deprecation timeline: `openhands.workspace.*` will be removed in the first chart release after **2026-01-31**. Migrate all overlays to `openhands.persistence.*` before that date to avoid breaking upgrades.
 
 OpenHands secret/env controls follow the shared conventions and can be mixed safely:
 

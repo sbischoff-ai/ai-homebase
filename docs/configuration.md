@@ -76,6 +76,14 @@ Use service-specific blocks when behavior must diverge:
 - Service-level secret references and env contracts.
 - OpenClaw runtime configuration should be expressed via structured `openclaw.*` values (rendered to `openclaw.json`) rather than generic key/value config blobs.
 
+## OpenHands persistence key migration
+
+Canonical schema for OpenHands storage is `openhands.persistence.*`. All shipped platform profiles (`charts/platform-stack/values-*.yaml`) and storage examples now use `persistence.*` directly.
+
+`openhands.workspace.*` remains a temporary compatibility alias that maps to the same behavior during the migration window.
+
+Deprecation timeline: compatibility support for `openhands.workspace.*` is planned for removal in the first chart release after **2026-01-31**. Update any custom overlays to `openhands.persistence.*` before that release.
+
 ## Toggle strategy for optional services
 
 Treat optional services as explicit decisions in each environment overlay:

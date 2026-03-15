@@ -130,7 +130,7 @@ global:
   storageClass: managed-csi
 
 openhands:
-  workspace:
+  persistence:
     enabled: true
     storageClass: managed-csi-premium
     size: 200Gi

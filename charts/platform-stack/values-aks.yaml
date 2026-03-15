@@ -90,7 +90,7 @@ openhands:
   serviceAccount:
     annotations:
       azure.workload.identity/client-id: "<openhands-workload-identity-client-id>"
-  workspace:
+  persistence:
     enabled: true
     size: 50Gi
     storageClass: managed-csi

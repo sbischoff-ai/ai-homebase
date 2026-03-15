@@ -109,7 +109,7 @@ openhands:
           - path: /
             pathType: Prefix
     tls: []
-  workspace:
+  persistence:
     enabled: false
   probes:
     liveness:

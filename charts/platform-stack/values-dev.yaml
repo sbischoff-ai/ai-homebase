@@ -72,7 +72,7 @@ openhands:
           - path: /
             pathType: Prefix
     tls: []
-  workspace:
+  persistence:
     enabled: false
   autoscaling:
     enabled: false
