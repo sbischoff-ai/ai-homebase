@@ -132,7 +132,7 @@ Symptoms:
 
 Fixes:
 
-- Ensure `ingressClassName` (or annotation) is `nginx` for local k3d usage.
+- Ensure `openhands.ingress.ingressClassName` is `nginx` for local k3d usage (annotation fallback is not used by the OpenHands chart contract).
 - Confirm ingress controller was installed by `scripts/k3d-up.sh` and is Ready.
 - Re-check host header matches ingress host exactly.
 

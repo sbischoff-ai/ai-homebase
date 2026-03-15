@@ -3,71 +3,132 @@
   "type": "object",
   "title": "openhands values",
   "additionalProperties": true,
-  "required": ["image", "service", "ingress", "persistence"],
+  "required": [
+    "image",
+    "service",
+    "ingress",
+    "persistence"
+  ],
   "properties": {
     "image": {
       "type": "object",
-      "required": ["repository", "pullPolicy"],
+      "required": [
+        "repository",
+        "pullPolicy"
+      ],
       "additionalProperties": true,
       "properties": {
-        "repository": { "type": "string", "minLength": 1 },
-        "tag": { "type": "string" },
+        "repository": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tag": {
+          "type": "string"
+        },
         "pullPolicy": {
           "type": "string",
-          "enum": ["Always", "IfNotPresent", "Never"],
+          "enum": [
+            "Always",
+            "IfNotPresent",
+            "Never"
+          ],
           "default": "IfNotPresent"
         }
       }
     },
     "service": {
       "type": "object",
-      "required": ["enabled", "type", "port", "targetPort"],
+      "required": [
+        "enabled",
+        "type",
+        "port",
+        "targetPort"
+      ],
       "additionalProperties": true,
       "properties": {
-        "enabled": { "type": "boolean", "default": true },
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        },
         "type": {
           "type": "string",
-          "enum": ["ClusterIP", "NodePort", "LoadBalancer", "ExternalName"],
+          "enum": [
+            "ClusterIP",
+            "NodePort",
+            "LoadBalancer",
+            "ExternalName"
+          ],
           "default": "ClusterIP",
           "description": "Kubernetes Service type for OpenHands."
         },
-        "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        },
         "targetPort": {
           "oneOf": [
-            { "type": "integer", "minimum": 1, "maximum": 65535 },
-            { "type": "string", "minLength": 1 }
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65535
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
           ]
         }
       }
     },
     "ingress": {
       "type": "object",
-      "required": ["enabled", "hostName"],
+      "required": [
+        "enabled",
+        "hostName"
+      ],
       "additionalProperties": true,
       "properties": {
-        "enabled": { "type": "boolean", "default": false },
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        },
         "hostName": {
           "type": "string",
           "default": "",
           "description": "Primary ingress host for OpenHands."
         },
-        "ingressClassName": { "type": "string", "default": "" },
-        "className": { "type": "string", "default": "" }
+        "ingressClassName": {
+          "type": "string",
+          "default": ""
+        }
       }
     },
     "persistence": {
       "type": "object",
-      "required": ["enabled", "size"],
+      "required": [
+        "enabled",
+        "size"
+      ],
       "additionalProperties": true,
       "properties": {
-        "enabled": { "type": "boolean", "default": true },
-        "size": { "type": "string", "default": "20Gi" },
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "size": {
+          "type": "string",
+          "default": "20Gi"
+        },
         "storageClass": {
           "type": "string",
           "default": "",
           "description": "PVC storageClass override for OpenHands workspace."
         },
-        "existingClaim": { "type": "string", "default": "" }
+        "existingClaim": {
+          "type": "string",
+          "default": ""
+        }
       }
     },
     "existingSecret": {
@@ -80,11 +141,24 @@
       "default": [],
       "items": {
         "type": "object",
-        "required": ["name", "key", "envVar"],
+        "required": [
+          "name",
+          "key",
+          "envVar"
+        ],
         "properties": {
-          "name": { "type": "string", "minLength": 1 },
-          "key": { "type": "string", "minLength": 1 },
-          "envVar": { "type": "string", "minLength": 1 }
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "envVar": {
+            "type": "string",
+            "minLength": 1
+          }
         },
         "additionalProperties": true
       }
@@ -94,12 +168,28 @@
       "default": [],
       "items": {
         "type": "object",
-        "required": ["name", "secretName", "key"],
+        "required": [
+          "name",
+          "secretName",
+          "key"
+        ],
         "properties": {
-          "name": { "type": "string", "minLength": 1 },
-          "secretName": { "type": "string", "minLength": 1 },
-          "key": { "type": "string", "minLength": 1 },
-          "optional": { "type": "boolean", "default": false }
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "secretName": {
+            "type": "string",
+            "minLength": 1
+          },
+          "key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "optional": {
+            "type": "boolean",
+            "default": false
+          }
         },
         "additionalProperties": true
       }

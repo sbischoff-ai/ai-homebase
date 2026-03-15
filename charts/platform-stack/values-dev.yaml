@@ -61,13 +61,9 @@ openhands:
   # Enable OpenHands ingress only for environments that intentionally expose a private/internal endpoint.
   ingress:
     enabled: true
-    className: internal-nginx
+    hostName: openhands.vpn.homebase.internal
+    ingressClassName: internal-nginx
     annotations: {}
-    hosts:
-      - host: openhands.vpn.homebase.internal
-        paths:
-          - path: /
-            pathType: Prefix
     tls: []
   persistence:
     enabled: false

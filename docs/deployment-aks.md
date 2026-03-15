@@ -110,7 +110,7 @@ helm template platform-stack charts/platform-stack \
 
 Check for:
 
-- Correct ingress hosts/class/TLS blocks.
+- Correct ingress host/class/TLS blocks (for OpenHands: `openhands.ingress.hostName`, `openhands.ingress.ingressClassName`, `openhands.ingress.tls`).
 - Enabled/disabled services matching plan.
 - PVC class/size values matching storage design.
 - Secret references pointing to existing target Secret names.

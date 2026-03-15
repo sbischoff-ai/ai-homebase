@@ -79,13 +79,9 @@ openhands:
   # Enable OpenHands ingress only for environments that intentionally expose a private/internal endpoint.
   ingress:
     enabled: false
-    className: nginx
+    hostName: openhands.prod.example.com
+    ingressClassName: nginx
     annotations: {}
-    hosts:
-      - host: openhands.prod.example.com
-        paths:
-          - path: /
-            pathType: Prefix
     tls: []
   persistence:
     enabled: true

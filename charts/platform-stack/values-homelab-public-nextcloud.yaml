@@ -73,13 +73,9 @@ openhands:
   enabled: false
   ingress:
     enabled: true
-    className: internal-nginx
+    hostName: openhands.vpn.homebase.internal
+    ingressClassName: internal-nginx
     annotations: {}
-    hosts:
-      - host: openhands.vpn.homebase.internal
-        paths:
-          - path: /
-            pathType: Prefix
     tls:
       - secretName: openhands-vpn-tls
         hosts:

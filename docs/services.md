@@ -58,6 +58,7 @@ The table below is the single source of truth for baseline defaults and is keyed
 - Agentic coding service that provides a user-facing UI/API.
 - Enabled by default in umbrella values (`openhands.enabled: true`).
 - Ingress behavior is profile-specific: base chart defaults to private (`openhands.ingress.enabled: false`), local overlays (`values-dev.yaml`, `values-k3d.yaml`) can enable ingress, and AKS/prod overlays keep ingress off unless explicitly enabled by environment overlays.
+- Canonical OpenHands ingress keys are `openhands.ingress.enabled`, `openhands.ingress.ingressClassName`, `openhands.ingress.hostName`, and `openhands.ingress.tls`.
 - Tune isolation/scheduling/persistence independently from OpenClaw.
 
 ## Service details
