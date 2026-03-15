@@ -78,9 +78,12 @@ secretKeySecret:
   name: ""
   key: ""
 
-adminPasswordSecret:
-  name: ""
-  key: ""
+admin:
+  user: ""
+  mail: ""
+  passwordSecret:
+    name: ""
+    key: ""
 
 existingSecret: "" # Optional envFrom source for app credentials/secrets.
 secretRefs: [] # [{name: paperlessngx-app-secrets, key: PAPERLESS_SECRET_KEY, envVar: PAPERLESS_SECRET_KEY}]
