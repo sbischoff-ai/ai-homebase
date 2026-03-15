@@ -1,0 +1,94 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "shared-postgresql.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "shared-postgresql.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  serviceName: {{ include "shared-postgresql.fullname" . }}
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "shared-postgresql.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "shared-postgresql.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: postgresql
+          image: "{{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: postgresql
+              containerPort: {{ .Values.service.port }}
+          env:
+            {{- if .Values.auth.username }}
+            - name: POSTGRES_USER
+              value: {{ .Values.auth.username | quote }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.auth.existingSecret }}
+                  key: {{ .Values.auth.secretKeys.userPasswordKey }}
+            {{- else }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.auth.existingSecret }}
+                  key: {{ .Values.auth.secretKeys.adminPasswordKey }}
+            {{- end }}
+            {{- if .Values.auth.database }}
+            - name: POSTGRES_DB
+              value: {{ .Values.auth.database | quote }}
+            {{- end }}
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+            {{- if .Values.primary.initdb.scriptsSecret }}
+            - name: initdb-scripts
+              mountPath: /docker-entrypoint-initdb.d
+              readOnly: true
+            {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- if or .Values.primary.initdb.scriptsSecret (not .Values.primary.persistence.enabled) }}
+      volumes:
+        {{- if .Values.primary.initdb.scriptsSecret }}
+        - name: initdb-scripts
+          secret:
+            secretName: {{ .Values.primary.initdb.scriptsSecret }}
+        {{- end }}
+        {{- if not .Values.primary.persistence.enabled }}
+        - name: data
+          emptyDir: {}
+        {{- end }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  {{- if .Values.primary.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: {{ .Values.primary.persistence.size }}
+        {{- if .Values.primary.persistence.storageClass }}
+        storageClassName: {{ .Values.primary.persistence.storageClass | quote }}
+        {{- end }}
+  {{- end }}

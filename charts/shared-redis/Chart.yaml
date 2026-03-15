@@ -1,0 +1,6 @@
+apiVersion: v2
+name: shared-redis
+description: Shared Redis chart using official redis image
+type: application
+version: 0.1.0
+appVersion: "8.0.3"
