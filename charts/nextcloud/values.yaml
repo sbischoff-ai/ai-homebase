@@ -45,6 +45,16 @@ persistence:
 
 podAnnotations: {}
 
+podSecurityContext: {}
+
+containerSecurityContext:
+  runAsNonRoot: true
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - "ALL"
+
 backup:
   annotations: {}
 
@@ -102,4 +112,3 @@ cron:
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 1
   resources: {}
-  securityContext: {}
