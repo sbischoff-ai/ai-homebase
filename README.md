@@ -1,11 +1,11 @@
 # ai-homebase
 
 ## What is this repo?
-`ai-homebase` is a Kubernetes + Helm starter for running a core AI platform with optional homelab services from a single umbrella chart. Canonical defaults are defined in `charts/platform-stack/values.yaml`: `openclaw`, `openhands`, `nextcloud`, `infisical`, and `wgEasy` are enabled, while `gitea` and `paperlessNgx` are opt-in.
+`ai-homebase` is an AI-driven, developer-centric home lab stack for general use and agentic coding workflows. OpenClaw is the core assistant experience: it is the primary interface you use and the component that connects the rest of the stack into one cohesive environment.
 
-The repository is designed around predictable values layering and environment overlays so you can keep local, cloud, and production-style deployments aligned while still choosing different service toggles per environment. It is intentionally opinionated about composition, but leaves environment-specific details (domains, secrets, storage classes, and hardening choices) to operator-managed overlays.
+Helm charts are the packaging and distribution mechanism that make this stack deployable across local and cluster targets, not the project’s primary identity. Defaults and service toggles are kept intentionally concise in the umbrella values, with deeper layering and service contract details documented in [`docs/configuration.md`](./docs/configuration.md) and [`docs/services.md`](./docs/services.md).
 
-Use this repo when you want one place to manage chart composition, service enablement, and deployment workflows for both local iteration and real cluster targets.
+Use this repo when you want a single platform that gives developers an AI-first workspace plus optional homelab services, with a clear path from local iteration to production-style environments.
 
 ## Quick start: deploy and use
 
