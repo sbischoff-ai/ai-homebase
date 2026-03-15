@@ -149,12 +149,29 @@ gitea:
     config:
       database:
         DB_TYPE: postgres
+        HOST: platform-stack-shared-postgresql:5432
+        NAME: gitea
+        USER: gitea
+      session:
+        PROVIDER: redis
+      cache:
+        ENABLED: true
+        ADAPTER: redis
+      queue:
+        TYPE: redis
+      global_lock:
+        SERVICE_TYPE: redis
       service:
         DISABLE_REGISTRATION: true
-    additionalConfigFromEnvs: []
+    additionalConfigFromEnvs:
+      - GITEA__database__PASSWD
+      - GITEA__session__PROVIDER_CONFIG
+      - GITEA__cache__HOST
+      - GITEA__queue__CONN_STR
+      - GITEA__global_lock__SERVICE_CONN_STR
     additionalConfigSources: []
   postgresql:
-    enabled: true
+    enabled: false
     primary:
       persistence:
         enabled: true
@@ -163,7 +180,9 @@ gitea:
   postgresql-ha:
     enabled: false
   redis:
-    enabled: true
+    enabled: false
+  redis-cluster:
+    enabled: false
 
 paperlessNgx:
   enabled: false
@@ -180,12 +199,12 @@ paperlessNgx:
 infisical:
   enabled: false
   postgresql:
-    enabled: true
+    enabled: false
     primary:
       persistence:
         enabled: false
   redis:
-    enabled: true
+    enabled: false
 
 wgEasy:
   enabled: false

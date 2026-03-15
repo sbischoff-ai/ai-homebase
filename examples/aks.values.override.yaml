@@ -46,6 +46,18 @@ gitea:
       key: GITEA__database__PASSWD
       envVar: GITEA__database__PASSWD
     - name: gitea-app-secrets
+      key: GITEA__session__PROVIDER_CONFIG
+      envVar: GITEA__session__PROVIDER_CONFIG
+    - name: gitea-app-secrets
+      key: GITEA__cache__HOST
+      envVar: GITEA__cache__HOST
+    - name: gitea-app-secrets
+      key: GITEA__queue__CONN_STR
+      envVar: GITEA__queue__CONN_STR
+    - name: gitea-app-secrets
+      key: GITEA__global_lock__SERVICE_CONN_STR
+      envVar: GITEA__global_lock__SERVICE_CONN_STR
+    - name: gitea-app-secrets
       key: GITEA__mailer__PASSWD
       envVar: GITEA__mailer__PASSWD
     - name: gitea-app-secrets
@@ -62,6 +74,10 @@ gitea:
       existingSecret: gitea-app-secrets
     additionalConfigFromEnvs:
       - GITEA__database__PASSWD
+      - GITEA__session__PROVIDER_CONFIG
+      - GITEA__cache__HOST
+      - GITEA__queue__CONN_STR
+      - GITEA__global_lock__SERVICE_CONN_STR
       - GITEA__mailer__PASSWD
       - GITEA__oauth2_client__HOMEBASE__CLIENT_SECRET
       - GITEA__security__SECRET_KEY

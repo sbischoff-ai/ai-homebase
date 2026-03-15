@@ -87,8 +87,7 @@ infisical:
   topologySpreadConstraints: []
 
   # -- Kubernetes Secret name with app env keys.
-  # -- Required (in-cluster default): AUTH_SECRET, ENCRYPTION_KEY, SITE_URL.
-  # -- Optional (external mode / future path): DB_CONNECTION_URI, REDIS_URL.
+  # -- Required: AUTH_SECRET, ENCRYPTION_KEY, SITE_URL, DB_CONNECTION_URI, REDIS_URL.
   kubeSecretRef: "infisical-secrets"
 
   service:
@@ -112,7 +111,7 @@ infisical:
 
 postgresql:
   # -- Enables an in-cluster PostgreSQL deployment by default. To achieve HA for Postgres, we recommend deploying https://github.com/zalando/postgres-operator instead.
-  enabled: true
+  enabled: false
   # -- PostgreSQL resource name
   name: "postgresql"
   # -- Full name override for PostgreSQL resources
@@ -152,7 +151,7 @@ postgresql:
 
 redis:
   # -- Enables an in-cluster Redis deployment by default
-  enabled: true
+  enabled: false
   # -- Redis resource name
   name: "redis"
   # -- Full name override for Redis resources
