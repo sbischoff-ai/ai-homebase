@@ -113,7 +113,6 @@ openhands:
     enabled: false
     minAvailable: 1
   # Scheduling controls consumed by the OpenHands subchart.
-  # If both workerIsolation.* and openhands.* are set, openhands.* wins.
   runtimeClassName: ""
   nodeSelector: {}
   tolerations: []
@@ -437,42 +436,3 @@ sharedRedis:
       enabled: true
       size: 30Gi
       storageClass: ""
-
-# Platform-level feature toggles and placeholders for future integration templates.
-externalSecrets:
-  enabled: false
-  secretStoreRef:
-    name: ""
-    kind: ClusterSecretStore
-  refreshInterval: 1h
-  mappings: []
-
-observability:
-  enabled: false
-  serviceMonitor:
-    enabled: false
-    interval: 30s
-  logging:
-    enabled: false
-    destination: ""
-
-persistence:
-  enabled: false
-  snapshots:
-    enabled: false
-  backups:
-    enabled: false
-    schedule: ""
-
-autoscaling:
-  enabled: false
-  profile: balanced
-
-workerIsolation:
-  enabled: false
-  # Operator-facing isolation intent. Mirror these values into openhands.*
-  # to affect the rendered OpenHands Deployment.
-  runtimeClassName: ""
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}

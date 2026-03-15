@@ -105,7 +105,6 @@ openhands:
   podDisruptionBudget:
     enabled: true
     minAvailable: 1
-  # Mirror workerIsolation.* into OpenHands scheduling fields.
   runtimeClassName: kata-cc
   nodeSelector:
     kubernetes.azure.com/mode: user
@@ -377,60 +376,3 @@ wgEasy:
   existingSecret: wgeasy-app-secrets
   secretRefs: []
 
-externalSecrets:
-  enabled: true
-  secretStoreRef:
-    name: azure-keyvault
-    kind: ClusterSecretStore
-  refreshInterval: 15m
-  mappings:
-    - name: openclaw-secrets
-      targetSecretName: openclaw-app-secrets
-      remoteRef:
-        key: kv-openclaw
-    - name: openhands-secrets
-      targetSecretName: openhands-app-secrets
-      remoteRef:
-        key: kv-openhands
-
-observability:
-  enabled: true
-  serviceMonitor:
-    enabled: true
-    interval: 30s
-  logging:
-    enabled: true
-    destination: azure-monitor
-
-persistence:
-  enabled: true
-  snapshots:
-    enabled: true
-  backups:
-    enabled: true
-    schedule: "0 2 * * *"
-
-autoscaling:
-  enabled: true
-  profile: aks-balanced
-
-workerIsolation:
-  enabled: true
-  runtimeClassName: kata-cc
-  nodeSelector:
-    kubernetes.azure.com/mode: user
-    workload-tier: isolated
-  tolerations:
-    - key: workload-tier
-      operator: Equal
-      value: isolated
-      effect: NoSchedule
-  affinity:
-    nodeAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        nodeSelectorTerms:
-          - matchExpressions:
-              - key: workload-tier
-                operator: In
-                values:
-                  - isolated

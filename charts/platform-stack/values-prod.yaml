@@ -106,7 +106,6 @@ openhands:
   podDisruptionBudget:
     enabled: true
     minAvailable: 1
-  # Mirror workerIsolation.* into OpenHands scheduling fields.
   runtimeClassName: gvisor
   nodeSelector:
     workload-tier: isolated
@@ -406,62 +405,3 @@ wgEasy:
   existingSecret: wgeasy-app-secrets
   secretRefs: []
 
-externalSecrets:
-  enabled: true
-  secretStoreRef:
-    name: prod-secrets-store
-    kind: ClusterSecretStore
-  refreshInterval: 10m
-  mappings:
-    - name: openclaw-app
-      targetSecretName: openclaw-app-secrets
-      remoteRef:
-        key: prod/openclaw/app
-    - name: openhands-app
-      targetSecretName: openhands-app-secrets
-      remoteRef:
-        key: prod/openhands/app
-
-observability:
-  enabled: true
-  serviceMonitor:
-    enabled: true
-    interval: 15s
-  logging:
-    enabled: true
-    destination: central-logging
-
-persistence:
-  enabled: true
-  snapshots:
-    enabled: true
-  backups:
-    enabled: true
-    schedule: "0 */6 * * *"
-
-autoscaling:
-  enabled: true
-  profile: prod-high-availability
-
-workerIsolation:
-  enabled: true
-  runtimeClassName: gvisor
-  nodeSelector:
-    workload-tier: isolated
-  tolerations:
-    - key: workload-tier
-      operator: Equal
-      value: isolated
-      effect: NoSchedule
-  affinity:
-    podAntiAffinity:
-      preferredDuringSchedulingIgnoredDuringExecution:
-        - weight: 100
-          podAffinityTerm:
-            labelSelector:
-              matchExpressions:
-                - key: app.kubernetes.io/instance
-                  operator: In
-                  values:
-                    - platform-stack
-            topologyKey: kubernetes.io/hostname

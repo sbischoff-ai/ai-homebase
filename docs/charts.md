@@ -74,14 +74,18 @@ It also adds shared backend dependencies for centralized state services:
 
 Shared backend implementations are local charts under `charts/shared-postgresql` and `charts/shared-redis`, and the umbrella chart depends on them via local `file://` references.
 
-It also provides platform-level value placeholders for:
+It also renders a small umbrella settings `ConfigMap` for lightweight metadata (`global.domain` and `openclaw.ingress.enabled`).
 
-- ingress
-- external secrets
-- observability
-- persistence
-- autoscaling
-- worker isolation
+### Removed umbrella placeholder keys (breaking cleanup)
+The following top-level umbrella keys were removed because they only fed `templates/platform-configmap.yaml` and had no real chart behavior/wiring:
+
+- `externalSecrets`
+- `observability`
+- `persistence` (umbrella-level; service-level `*.persistence` keys remain supported)
+- `autoscaling` (umbrella-level; service-level autoscaling keys remain supported)
+- `workerIsolation`
+
+Migration note: move any intent previously stored in these keys into real service values (`openclaw.*`, `openhands.*`, `nextcloud.*`, `gitea.*`, `paperlessNgx.*`, `infisical.*`, `wgEasy.*`) or environment-specific automation outside this chart.
 
 
 ## Network policy placeholders

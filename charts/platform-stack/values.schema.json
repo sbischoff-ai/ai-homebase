@@ -93,6 +93,16 @@
     "infisical": { "$ref": "#/definitions/optionalServiceToggle" },
     "wgEasy": { "$ref": "#/definitions/optionalServiceToggle" }
   },
+  "not": {
+    "anyOf": [
+      { "required": ["externalSecrets"] },
+      { "required": ["observability"] },
+      { "required": ["persistence"] },
+      { "required": ["autoscaling"] },
+      { "required": ["workerIsolation"] }
+    ]
+  },
+
   "definitions": {
     "nameOrLocalRef": {
       "oneOf": [
