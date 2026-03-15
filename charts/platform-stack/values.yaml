@@ -21,7 +21,7 @@ openclaw:
   enabled: true
   replicaCount: 1
   image:
-    repository: ghcr.io/example/openclaw
+    repository: ghcr.io/openclaw/openclaw
     tag: ""
     pullPolicy: IfNotPresent
   ingress:
@@ -76,7 +76,7 @@ openhands:
   enabled: true
   replicaCount: 1
   image:
-    repository: ghcr.io/example/openhands
+    repository: ghcr.io/all-hands-ai/openhands
     tag: ""
     pullPolicy: IfNotPresent
   service:
