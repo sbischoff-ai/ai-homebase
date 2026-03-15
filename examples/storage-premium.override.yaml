@@ -13,9 +13,10 @@ nextcloud:
     size: 500Gi
 
 gitea:
-  persistence:
-    storageClass: managed-csi
-    size: 200Gi
+  gitea:
+    persistence:
+      storageClass: managed-csi
+      size: 200Gi
 
 paperlessNgx:
   persistence:
