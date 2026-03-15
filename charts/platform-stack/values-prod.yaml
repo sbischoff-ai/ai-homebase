@@ -6,7 +6,7 @@ global:
     openclaw: openclaw.prod.example.com
     openhands: openhands.prod.example.com
     nextcloud: nextcloud.prod.example.com
-    gitea: gitea.prod.example.com
+    gitea: gitea.vpn.homebase.internal
     paperless: paperless.prod.example.com
     paperlessNgx: paperless.prod.example.com
     infisical: infisical.prod.example.com
@@ -201,18 +201,18 @@ gitea:
     annotations: {}
   ingress:
     enabled: true
-    className: nginx
+    className: internal-nginx
     annotations:
       cert-manager.io/cluster-issuer: letsencrypt-prod
     hosts:
-      - host: gitea.prod.example.com
+      - host: gitea.vpn.homebase.internal
         paths:
           - path: /
             pathType: Prefix
     tls:
-      - secretName: gitea-prod-tls
+      - secretName: gitea-vpn-tls
         hosts:
-          - gitea.prod.example.com
+          - gitea.vpn.homebase.internal
   persistence:
     enabled: true
     existingClaim: ""

@@ -7,7 +7,7 @@ global:
     openclaw: openclaw.aks.example.com
     openhands: openhands.aks.example.com
     nextcloud: nextcloud.aks.example.com
-    gitea: gitea.aks.example.com
+    gitea: gitea.vpn.homebase.internal
     paperless: paperless.aks.example.com
     paperlessNgx: paperless.aks.example.com
     infisical: infisical.aks.example.com
@@ -186,19 +186,19 @@ gitea:
     annotations: {}
   ingress:
     enabled: true
-    className: nginx
+    className: internal-nginx
     annotations:
       cert-manager.io/cluster-issuer: letsencrypt-prod
-      external-dns.alpha.kubernetes.io/hostname: gitea.aks.example.com
+      external-dns.alpha.kubernetes.io/hostname: gitea.vpn.homebase.internal
     hosts:
-      - host: gitea.aks.example.com
+      - host: gitea.vpn.homebase.internal
         paths:
           - path: /
             pathType: Prefix
     tls:
-      - secretName: gitea-tls
+      - secretName: gitea-vpn-tls
         hosts:
-          - gitea.aks.example.com
+          - gitea.vpn.homebase.internal
   persistence:
     enabled: true
     existingClaim: ""
