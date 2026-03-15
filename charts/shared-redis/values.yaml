@@ -1,0 +1,27 @@
+enabled: true
+fullnameOverride: ""
+
+image:
+  registry: docker.io
+  repository: redis
+  tag: "8.0.3"
+  pullPolicy: IfNotPresent
+
+auth:
+  enabled: true
+  existingSecret: ""
+  existingSecretPasswordKey: redis-password
+
+master:
+  persistence:
+    enabled: true
+    size: 30Gi
+    storageClass: ""
+
+service:
+  port: 6379
+
+resources: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}

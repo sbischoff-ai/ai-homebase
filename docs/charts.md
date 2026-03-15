@@ -48,6 +48,8 @@ It also adds shared backend dependencies for centralized state services:
 - `sharedPostgresql.enabled` (shared PostgreSQL pinned to official `postgres` image with persistent PVC + secret-backed auth)
 - `sharedRedis.enabled` (shared Redis pinned to official `redis` image with persistent PVC + secret-backed auth)
 
+Shared backend implementations are local charts under `charts/shared-postgresql` and `charts/shared-redis`, and the umbrella chart depends on them via local `file://` references.
+
 It also provides platform-level value placeholders for:
 
 - ingress

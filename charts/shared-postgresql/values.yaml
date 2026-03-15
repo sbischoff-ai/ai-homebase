@@ -1,0 +1,32 @@
+enabled: true
+fullnameOverride: ""
+
+image:
+  registry: docker.io
+  repository: postgres
+  tag: "17.5"
+  pullPolicy: IfNotPresent
+
+auth:
+  existingSecret: ""
+  username: ""
+  database: ""
+  secretKeys:
+    adminPasswordKey: postgres-password
+    userPasswordKey: password
+
+primary:
+  persistence:
+    enabled: true
+    size: 100Gi
+    storageClass: ""
+  initdb:
+    scriptsSecret: ""
+
+service:
+  port: 5432
+
+resources: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
