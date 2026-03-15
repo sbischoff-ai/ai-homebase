@@ -5,7 +5,7 @@ global:
   hosts:
     openclaw: openclaw.homebase.local
     openhands: openhands.homebase.local
-    nextcloud: nextcloud.homebase.local
+    nextcloud: cloud.homebase.local
     gitea: gitea.vpn.homebase.internal
     paperless: paperless.homebase.local
     paperlessNgx: paperless.homebase.local
@@ -130,7 +130,7 @@ openhands:
       memory: 1Gi
 
 nextcloud:
-  enabled: false
+  enabled: true
   image:
     repository: nextcloud
     tag: "29.0.0-apache"
@@ -145,11 +145,14 @@ nextcloud:
     className: ""
     annotations: {}
     hosts:
-      - host: nextcloud.homebase.local
+      - host: cloud.homebase.local
         paths:
           - path: /
             pathType: Prefix
-    tls: []
+    tls:
+      - secretName: nextcloud-tls
+        hosts:
+          - cloud.homebase.local
   persistence:
     enabled: true
     existingClaim: ""

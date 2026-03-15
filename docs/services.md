@@ -11,9 +11,11 @@ Profile-specific defaults can differ from base chart defaults; verify effective 
 | Service | Role | Default expectation |
 | --- | --- | --- |
 | `openclaw` | General AI assistant UI/API | Enabled with private service access by default (`ingress.enabled: false` in baseline and shipped overlays) |
-| `openhands` | Agentic coding UI/API | Enabled with profile-specific ingress posture: baseline/AKS/prod keep ingress off; dev/k3d enable ingress for local workflows |
+| `openhands` | Agentic coding UI/API | Optional core-plane companion service with profile-specific ingress posture: baseline/AKS/prod keep ingress off; dev/k3d may enable ingress for local workflows |
 
 ### Default-on platform services
+
+Minimum baseline for this stack is `openclaw`, `infisical`, and `wgEasy`; other services remain environment-selectable via overlays.
 
 | Service | Toggle | Typical use |
 | --- | --- | --- |
@@ -48,6 +50,7 @@ Profile-specific defaults can differ from base chart defaults; verify effective 
 
 - Stateful user data service.
 - Ingress is enabled by default so the UI/API is reachable when the service is enabled.
+- For homelab public exposure, use `cloud.<domain>` host + TLS for Nextcloud while keeping non-Nextcloud services on internal ingress classes/hosts reachable via wg-easy/WireGuard.
 - Canonical external backend wiring uses structured keys: `nextcloud.externalDatabase.{host,port,database,user,passwordSecret.*}` and `nextcloud.externalRedis.{host,port,passwordSecret.*}`, rendered to `POSTGRES_*` and `REDIS_*` container env vars.
 - Supports bootstrap/runtime env wiring for `NEXTCLOUD_ADMIN_USER`, `NEXTCLOUD_ADMIN_PASSWORD` (from `nextcloud.admin.passwordSecret.{name,key}`), `NEXTCLOUD_TRUSTED_DOMAINS`, `OVERWRITEPROTOCOL`, `PHP_MEMORY_LIMIT`, `PHP_UPLOAD_LIMIT`, and `NEXTCLOUD_INIT_HTACCESS`.
 - Includes a dedicated cron `CronJob` (enabled by default) configured via `nextcloud.cron.*`; it reuses the Nextcloud image, mounts `/var/www/html`, runs `php -f /var/www/html/cron.php`, and supports schedule/concurrency/history/resource tuning while reusing `nextcloud.podSecurityContext` and `nextcloud.containerSecurityContext` for hardened defaults with optional UID/GID overrides per environment.

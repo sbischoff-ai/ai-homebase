@@ -25,10 +25,11 @@ Use profile files to encode environment class behavior:
 - `values-k3d.yaml`: k3d local-smoke overlay (loaded after `values-dev.yaml`).
 - `values-aks.yaml`: AKS assumptions and cloud integration placeholders.
 - `values-prod.yaml`: production-shaped resource/availability posture.
+- `values-homelab-public-nextcloud.yaml`: homelab posture with public Nextcloud (`cloud.<domain>`) and VPN-only ingress hostnames for internal services.
 
 ### Layer C: environment overlays
 
-Create an overlay per real environment (for example `values-aks.prod-eu.yaml`) for:
+Create an overlay per real environment (for example `values-aks.prod-eu.yaml` or `charts/platform-stack/values-homelab-public-nextcloud.yaml`) for:
 
 - Real domains/hosts.
 - Actual secret references.
