@@ -38,8 +38,33 @@ spec:
           ports:
             - name: http
               containerPort: {{ .Values.service.targetPort }}
-          {{- if or .Values.secretRefs .Values.externalDatabase.host .Values.externalDatabase.port .Values.externalDatabase.database .Values.externalDatabase.user (and .Values.externalDatabase.passwordSecret.name .Values.externalDatabase.passwordSecret.key) .Values.externalRedis.host .Values.externalRedis.port (and .Values.externalRedis.passwordSecret.name .Values.externalRedis.passwordSecret.key) }}
+          {{- $trustedDomains := .Values.trustedDomains }}
+          {{- $trustedDomainsValue := "" }}
+          {{- if kindIs "slice" $trustedDomains }}
+          {{- $trustedDomainsValue = join " " $trustedDomains }}
+          {{- else if $trustedDomains }}
+          {{- $trustedDomainsValue = $trustedDomains | toString }}
+          {{- end }}
           env:
+            - name: NEXTCLOUD_ADMIN_USER
+              value: {{ .Values.admin.user | quote }}
+            {{- if and .Values.admin.passwordSecret.name .Values.admin.passwordSecret.key }}
+            - name: NEXTCLOUD_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.admin.passwordSecret.name }}
+                  key: {{ .Values.admin.passwordSecret.key }}
+            {{- end }}
+            - name: NEXTCLOUD_TRUSTED_DOMAINS
+              value: {{ $trustedDomainsValue | quote }}
+            - name: OVERWRITEPROTOCOL
+              value: {{ .Values.overwriteProtocol | quote }}
+            - name: PHP_MEMORY_LIMIT
+              value: {{ .Values.php.memoryLimit | quote }}
+            - name: PHP_UPLOAD_LIMIT
+              value: {{ .Values.php.uploadLimit | quote }}
+            - name: NEXTCLOUD_INIT_HTACCESS
+              value: {{ .Values.initHtaccess | toString | quote }}
             - name: POSTGRES_HOST
               value: {{ .Values.externalDatabase.host | quote }}
             - name: POSTGRES_PORT
@@ -73,7 +98,6 @@ spec:
                   name: {{ .name }}
                   key: {{ .key }}
             {{- end }}
-          {{- end }}
           {{- if .Values.existingSecret }}
           envFrom:
             - secretRef:

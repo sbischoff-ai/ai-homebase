@@ -111,11 +111,13 @@ Current supported runtime contracts:
 - `secretRefs[]`
 - `secretEnv[]`
 - Nextcloud canonical external backend keys: `nextcloud.externalDatabase.*` and `nextcloud.externalRedis.*` (mapped to explicit `POSTGRES_*` and `REDIS_*` env vars in the Nextcloud StatefulSet)
+- Nextcloud bootstrap/runtime keys: `nextcloud.admin.user`, `nextcloud.admin.passwordSecret.{name,key}`, `nextcloud.trustedDomains` (list or delimited string), `nextcloud.overwriteProtocol`, `nextcloud.php.memoryLimit`, `nextcloud.php.uploadLimit`, and `nextcloud.initHtaccess`
 
 Recommended layering:
 
 - Keep provider/bootstrap details out of chart profile files.
 - For Nextcloud external backends, set connection metadata with `nextcloud.externalDatabase.*`/`nextcloud.externalRedis.*` and reference password keys via `passwordSecret.{name,key}`.
+- For Nextcloud trusted hosts, set `nextcloud.trustedDomains` as either a YAML list or a delimited string; ensure `cloud.<domain>` is always present.
 - Put only secret **references** in environment overlays (for Gitea sensitive `app.ini` keys, prefer `gitea.secretRefs[]` + `gitea.gitea.additionalConfigFromEnvs`).
 - Generate target Kubernetes Secrets via External Secrets or controlled secret bootstrap processes.
 
