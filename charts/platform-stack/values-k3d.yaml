@@ -67,6 +67,7 @@ openclaw:
     runAsNonRoot: false
     runAsUser: 0
     runAsGroup: 0
+    capabilities: {}
   existingSecret: openclaw-app-secrets
   secretKeys:
     gatewayToken: OPENCLAW_GATEWAY_TOKEN
@@ -123,6 +124,7 @@ openhands:
     runAsNonRoot: false
     runAsUser: 0
     runAsGroup: 0
+    capabilities: {}
 
 nextcloud:
   enabled: false

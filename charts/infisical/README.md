@@ -124,6 +124,6 @@ Use one `InfisicalSecret` per workload/env to materialize Kubernetes Secrets con
   - `ANTHROPIC_API_KEY`
 - `wg-easy` synced Kubernetes Secret should include:
   - `WG_HOST`
-  - `PASSWORD`
+  - `PASSWORD_HASH`
 
 Then set downstream charts to use those synced Kubernetes Secret names (`existingSecret`).

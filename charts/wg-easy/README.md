@@ -7,14 +7,14 @@ This chart deploys [wg-easy](https://github.com/wg-easy/wg-easy) with WireGuard 
 Create a secret that provides the required runtime keys:
 
 - `WG_HOST`: public hostname or IP clients will use to connect.
-- `PASSWORD`: wg-easy web UI password.
+- `PASSWORD_HASH`: bcrypt hash for the wg-easy web UI password.
 
 Example:
 
 ```bash
 kubectl create secret generic wg-easy-secrets \
   --from-literal=WG_HOST=vpn.example.com \
-  --from-literal=PASSWORD='change-me'
+  --from-literal=PASSWORD_HASH='$2b$12$replace-with-bcrypt-hash'
 ```
 
 By default, the chart reads these keys from a secret named `<release>-wg-easy-secrets` (for `helm install wg-easy`, that is `wg-easy-wg-easy-secrets`).
@@ -33,7 +33,7 @@ Set `existingSecret` to override that name (for example, `wg-easy-secrets`).
 
 At deployment time, the chart wires:
 
-- Required env vars from the configured secret (`existingSecret` if set, otherwise `<release>-wg-easy-secrets`): `WG_HOST`, `PASSWORD`
+- Required env vars from the configured secret (`existingSecret` if set, otherwise `<release>-wg-easy-secrets`): `WG_HOST`, `PASSWORD_HASH`
 - Recommended defaults:
   - `WG_DEFAULT_ADDRESS=10.8.0.x`
   - `WG_DEFAULT_DNS=1.1.1.1`
@@ -65,7 +65,7 @@ http://<cluster-ip>:51821
 ## VPN connection steps
 
 1. Open the wg-easy UI (via your configured service/ingress endpoint).
-2. Log in with the `PASSWORD` from your secret.
+2. Log in with the original plain-text password used to generate `PASSWORD_HASH`.
 3. Create a client profile and download/show the QR code.
 4. Import that profile into your WireGuard client.
 5. Connect and verify tunnel status in wg-easy.
