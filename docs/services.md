@@ -13,6 +13,13 @@ Profile-specific defaults can differ from base chart defaults; verify effective 
 | `openclaw` | General AI assistant UI/API | Enabled with private service access by default (`ingress.enabled: false` in baseline and shipped overlays) |
 | `openhands` | Agentic coding UI/API | Enabled with profile-specific ingress posture: baseline/AKS/prod keep ingress off; dev/k3d enable ingress for local workflows |
 
+### Default-on platform services
+
+| Service | Toggle | Typical use |
+| --- | --- | --- |
+| `infisical` | `infisical.enabled` | Central secret-management service |
+| `wg-easy` | `wgEasy.enabled` | WireGuard VPN management and private access |
+
 ### Optional personal-cloud services
 
 | Service | Toggle | Typical use |
@@ -20,8 +27,6 @@ Profile-specific defaults can differ from base chart defaults; verify effective 
 | `nextcloud` | `nextcloud.enabled` | File sync/collaboration |
 | `gitea` | `gitea.enabled` | Git hosting |
 | `paperless-ngx` | `paperlessNgx.enabled` | Document ingestion/archive |
-| `infisical` | `infisical.enabled` | Secret-management service |
-| `wg-easy` | `wgEasy.enabled` | VPN management and private access |
 
 ## Core plane details
 
@@ -37,7 +42,7 @@ Profile-specific defaults can differ from base chart defaults; verify effective 
 - Ingress behavior is profile-specific: base chart defaults to private (`openhands.ingress.enabled: false`), local overlays (`values-dev.yaml`, `values-k3d.yaml`) can enable ingress, and AKS/prod overlays keep ingress off unless explicitly enabled by environment overlays.
 - Tune isolation/scheduling/persistence independently from OpenClaw.
 
-## Optional service details
+## Service details
 
 ### Nextcloud
 
@@ -67,7 +72,7 @@ Profile-specific defaults can differ from base chart defaults; verify effective 
 
 ### Infisical
 
-- Optional in-cluster secret-management component based on upstream standalone chart semantics; runtime DB/cache are externalized to shared services.
+- Default-on in-cluster secret-management component based on upstream standalone chart semantics; runtime DB/cache are externalized to shared services.
 - Primary knobs are grouped under `infisical.infisical` and `infisical.ingress`; `infisical.postgresql.enabled` and `infisical.redis.enabled` stay `false` for centralized backend mode.
 - Uses `infisical.infisical.kubeSecretRef` to point at the runtime/bootstrap secret.
 - Runtime secret must include `DB_CONNECTION_URI` and `REDIS_URL` for centralized backend mode (plus `AUTH_SECRET`, `ENCRYPTION_KEY`, `SITE_URL`).
