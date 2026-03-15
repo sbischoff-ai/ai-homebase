@@ -80,6 +80,18 @@ spec:
               {{- end }}
             - name: PAPERLESS_REDIS_PREFIX
               value: {{ .Values.redis.prefix | quote }}
+            - name: PAPERLESS_URL
+              value: {{ .Values.appConfig.url | quote }}
+            - name: PAPERLESS_ALLOWED_HOSTS
+              value: {{ .Values.appConfig.allowedHosts | quote }}
+            - name: PAPERLESS_CSRF_TRUSTED_ORIGINS
+              value: {{ .Values.appConfig.csrfTrustedOrigins | quote }}
+            - name: PAPERLESS_CORS_ALLOWED_HOSTS
+              value: {{ .Values.appConfig.corsAllowedHosts | quote }}
+            - name: PAPERLESS_TIME_ZONE
+              value: {{ .Values.appConfig.timeZone | quote }}
+            - name: PAPERLESS_OCR_LANGUAGE
+              value: {{ .Values.appConfig.ocrLanguage | quote }}
             {{- range .Values.secretRefs }}
             - name: {{ .envVar }}
               valueFrom:
