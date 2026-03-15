@@ -3,4 +3,4 @@ name: paperless-ngx
 description: Helm chart for deploying Paperless-ngx
 type: application
 version: 0.1.0
-appVersion: "2.11.0"
+appVersion: "2.20"

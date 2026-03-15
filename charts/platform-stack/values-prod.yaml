@@ -297,8 +297,8 @@ gitea:
 paperlessNgx:
   enabled: false
   image:
-    repository: ghcr.io/example/paperless-ngx
-    tag: stable
+    repository: paperlessngx/paperless-ngx
+    tag: "2.20"
     pullPolicy: IfNotPresent
   service:
     type: ClusterIP
