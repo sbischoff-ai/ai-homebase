@@ -33,6 +33,43 @@ ingress:
           pathType: Prefix
   tls: []
 
+networkPolicy:
+  enabled: false
+  ingress:
+    ingressController:
+      namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: ingress-nginx
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/component: controller
+    wgEasy:
+      enabled: false
+      namespaceSelectors: []
+  egress:
+    dns:
+      namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    postgresql:
+      namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: ai-homebase
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: shared-postgresql
+    redis:
+      namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: ai-homebase
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: shared-redis
+      port: 6379
+
 persistence:
   data:
     enabled: true
