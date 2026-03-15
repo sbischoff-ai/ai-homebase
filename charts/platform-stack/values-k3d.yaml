@@ -1,4 +1,5 @@
 # k3d overlay for local smoke tests.
+# Core app services keep their real upstream images; tune resources/storage here for local runs.
 #
 # Values precedence contract (lowest -> highest):
 # 1) charts/platform-stack/values.yaml
@@ -28,12 +29,7 @@ openclaw:
   enabled: true
   replicaCount: 1
   image:
-    repository: nginx
-    tag: "1.27.5-alpine"
-    pullPolicy: IfNotPresent
-  service:
-    port: 80
-    targetPort: 80
+    repository: ghcr.io/openclaw/openclaw
   ingress:
     enabled: false
     className: nginx
@@ -49,10 +45,10 @@ openclaw:
   probes:
     liveness:
       enabled: true
-      path: /
+      path: /healthz
     readiness:
       enabled: true
-      path: /
+      path: /readyz
     startup:
       enabled: false
   resources:
@@ -63,11 +59,13 @@ openclaw:
       cpu: 100m
       memory: 128Mi
   securityContext:
-    readOnlyRootFilesystem: false
-    runAsNonRoot: false
-    runAsUser: 0
-    runAsGroup: 0
-    capabilities: {}
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    capabilities:
+      drop:
+        - ALL
   existingSecret: openclaw-app-secrets
   secretKeys:
     gatewayToken: OPENCLAW_GATEWAY_TOKEN
@@ -87,9 +85,7 @@ openclaw:
 openhands:
   enabled: true
   image:
-    repository: nginx
-    tag: "1.27.5-alpine"
-    pullPolicy: IfNotPresent
+    repository: ghcr.io/all-hands-ai/openhands
   service:
     enabled: true
     type: ClusterIP
@@ -108,10 +104,12 @@ openhands:
   probes:
     liveness:
       enabled: true
-      path: /
+      type: tcp
+      port: 3000
     readiness:
       enabled: true
-      path: /
+      type: tcp
+      port: 3000
   resources:
     requests:
       cpu: 25m
@@ -121,10 +119,12 @@ openhands:
       memory: 128Mi
   securityContext:
     readOnlyRootFilesystem: false
-    runAsNonRoot: false
-    runAsUser: 0
-    runAsGroup: 0
-    capabilities: {}
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    capabilities:
+      drop:
+        - ALL
 
 nextcloud:
   enabled: false
