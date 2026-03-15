@@ -35,7 +35,7 @@ This workflow is user-focused and script-guided:
 - Creates or reuses the k3d cluster.
 - Writes a dedicated kubeconfig (`~/.kube/k3d-<cluster>.yaml`) so local setup is independent from any other project kubeconfigs.
 - Installs ingress-nginx.
-- Generates required local bootstrap secrets (shared Postgres/Redis auth, OpenClaw token, wg-easy keys, Infisical app secret).
+- Generates required local bootstrap secrets (shared Postgres/Redis auth, OpenClaw gateway token, wg-easy keys, Infisical app secret).
 - Deploys `platform-stack` with `values-dev.yaml + values-k3d.yaml`.
 - Runs local smoke checks.
 
