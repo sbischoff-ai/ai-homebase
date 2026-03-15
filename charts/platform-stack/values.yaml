@@ -356,6 +356,9 @@ infisical:
 
 wgEasy:
   enabled: true
+  # Keep generated resource names stable (platform-stack-wg-easy)
+  # even though the umbrella dependency uses alias: wgEasy.
+  nameOverride: wg-easy
   image:
     repository: ghcr.io/wg-easy/wg-easy
     tag: "14"
