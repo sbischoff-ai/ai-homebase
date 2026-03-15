@@ -164,6 +164,45 @@ scripts/ci/check_golden.sh
 For verbose output from bootstrap helpers, add `--verbose` or set `BOOTSTRAP_VERBOSE=1`.
 By default these scripts keep console output concise and write full command logs to `/tmp/ai-homebase-bootstrap-<timestamp>.log`.
 
+## Troubleshooting concise output mode
+
+When running in default concise mode, use this quick workflow to debug failures without switching tools:
+
+- **Log location**: full command logs are written to `/tmp/ai-homebase-bootstrap-<timestamp>.log`.
+- **Rerun with verbose output**: add `--verbose` (or set `BOOTSTRAP_VERBOSE=1`) to stream full command output live.
+- **Common failure signatures and fixes**:
+  - `ERROR: helm dependency build failed` → run `helm dependency update charts/platform-stack` and retry.
+  - `ERROR: kubectl cluster-info failed` or `The connection to the server ... was refused` → ensure your target cluster is running and kube context is correct (`kubectl config current-context`).
+  - `ERROR: ingress-nginx rollout did not complete` → inspect controller pods/events (`kubectl -n ingress-nginx get pods`, `kubectl -n ingress-nginx describe pod <pod-name>`), then rerun once healthy.
+
+### Example concise success transcript
+
+```text
+$ ./scripts/k3d-local-bootstrap.sh --cluster-name ai-homebase-dev
+[1/7] Checking prerequisites
+[2/7] Creating k3d cluster ai-homebase-dev
+[3/7] Installing ingress-nginx
+[4/7] Validating cluster access
+[5/7] Linting chart values
+[6/7] Installing platform-stack
+[7/7] Running smoke checks
+SUCCESS: bootstrap complete
+Log file: /tmp/ai-homebase-bootstrap-20260118-103512.log
+```
+
+### Example concise failure transcript
+
+```text
+$ ./scripts/k3d-local-bootstrap.sh --cluster-name ai-homebase-dev
+[1/7] Checking prerequisites
+[2/7] Creating k3d cluster ai-homebase-dev
+[3/7] Installing ingress-nginx
+[4/7] Validating cluster access
+ERROR: kubectl cluster-info failed
+Hint: rerun with --verbose for full command output
+Log file: /tmp/ai-homebase-bootstrap-20260118-104044.log
+```
+
 ### Install/upgrade wrappers
 
 ```bash
