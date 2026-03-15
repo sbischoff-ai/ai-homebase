@@ -24,6 +24,10 @@ spec:
         {{- end }}
       {{- end }}
     spec:
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       {{- $pullSecrets := concat (.Values.global.imagePullSecrets | default (list)) (.Values.imagePullSecrets | default (list)) | uniq }}
       {{- if $pullSecrets }}
       imagePullSecrets:
@@ -110,6 +114,10 @@ spec:
           {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          {{- with .Values.containerSecurityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

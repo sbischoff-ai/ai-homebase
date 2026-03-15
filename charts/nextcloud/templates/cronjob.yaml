@@ -17,6 +17,10 @@ spec:
           labels:
             {{- include "nextcloud.selectorLabels" . | nindent 12 }}
         spec:
+          {{- with .Values.podSecurityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           restartPolicy: OnFailure
           {{- $pullSecrets := concat (.Values.global.imagePullSecrets | default (list)) (.Values.imagePullSecrets | default (list)) | uniq }}
           {{- if $pullSecrets }}
@@ -79,7 +83,7 @@ spec:
               {{- end }}
               resources:
                 {{- toYaml .Values.cron.resources | nindent 16 }}
-              {{- with .Values.cron.securityContext }}
+              {{- with .Values.containerSecurityContext }}
               securityContext:
                 {{- toYaml . | nindent 16 }}
               {{- end }}
