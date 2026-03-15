@@ -58,7 +58,7 @@ For OpenClaw and OpenHands, make sure secret key names match each chart contract
 - OpenClaw reads `secretKeys.gatewayToken` from `charts/openclaw/values.yaml` (default key: `OPENCLAW_GATEWAY_TOKEN`).
 - OpenHands secret examples in `charts/openhands/values.yaml` use `secretRefs`/`secretEnv` with `LLM_API_KEY` (plus optional values like `LLM_MODEL` and `OH_WEB_URL` as needed).
 
-For Gitea, use the official chart wiring in overlays: enumerate secret-backed env names in `gitea.gitea.additionalConfigFromEnvs` and optionally reference secret-backed config snippets via `gitea.gitea.additionalConfigSources`, so sensitive `app.ini` values stay out of plaintext YAML.
+For Gitea (including AKS overlays), keep secret wiring only on official chart paths: `gitea.gitea.admin.existingSecret`, `gitea.gitea.additionalConfigFromEnvs`, and optional `gitea.gitea.additionalConfigSources`; avoid unsupported top-level keys like `gitea.existingSecret`/`gitea.secretRefs` because they are not consumed by the Gitea dependency.
 
 For Nextcloud, prefer mapping required credentials with explicit value keys (`nextcloud.admin.passwordSecret`, `nextcloud.externalDatabase.passwordSecret`, `nextcloud.externalRedis.passwordSecret`) and keep ingress on a dedicated `cloud.<domain>` host at `/` rather than a shared subpath.
 
