@@ -186,6 +186,8 @@ gitea:
 
 paperlessNgx:
   enabled: false
+  service:
+    type: ClusterIP
   persistence:
     data:
       enabled: false

@@ -231,7 +231,7 @@ paperlessNgx:
     port: 8000
     targetPort: 8000
   ingress:
-    enabled: true
+    enabled: false
     className: internal-nginx
     annotations: {}
     hosts:
