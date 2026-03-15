@@ -37,6 +37,22 @@ jobs:
             fi
           done
 
+      - name: Validate values schema compatibility across platform-stack profiles
+        run: |
+          set -euo pipefail
+          profiles=(
+            "values.yaml"
+            "values-dev.yaml"
+            "values-aks.yaml"
+            "values-prod.yaml"
+          )
+
+          for profile in "${profiles[@]}"; do
+            echo "Schema-validating platform-stack with $profile"
+            helm lint charts/platform-stack \
+              -f "charts/platform-stack/$profile"
+          done
+
 
       - name: Lint platform-stack k3d profile
         run: |

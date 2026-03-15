@@ -39,6 +39,27 @@ Create an overlay per real environment (for example `values-aks.prod-eu.yaml`) f
 
 Use CLI overrides only for temporary experiments, never as the only source of critical production config.
 
+## Values schema validation
+
+Helm now validates values against JSON schemas when running `helm lint`, `helm template`, and `helm install/upgrade` for charts that include `values.schema.json`.
+
+Current schema coverage:
+
+- `charts/platform-stack/values.schema.json` validates top-level structure for `global`, `openclaw`, `openhands`, and optional-service toggles (`nextcloud.enabled`, `gitea.enabled`, `paperlessNgx.enabled`, `infisical.enabled`, `wgEasy.enabled`).
+- `charts/openclaw/values.schema.json` validates OpenClaw-specific high-risk fields such as ingress hosts, service type, persistence storage class, and secret reference mappings.
+- `charts/openhands/values.schema.json` validates OpenHands-specific high-risk fields such as ingress host name, service type, persistence storage class, and secret reference mappings.
+
+### Extending schema coverage safely
+
+When adding or changing values keys, update both `values.yaml` and `values.schema.json` in the same chart so CI catches invalid configurations early.
+
+Recommended schema conventions:
+
+- Add `description` to operator-sensitive fields (hosts, storage class, service exposure, secret references).
+- Use `enum` where Kubernetes expects constrained values (for example service `type`).
+- Keep `additionalProperties: true` on parent objects unless strict lock-down is intentional, so overlays can evolve incrementally.
+- Add `required` only for fields that must always exist to avoid breaking layered profiles unintentionally.
+
 ## Global vs service-specific values
 
 Use `global.*` for shared conventions:
