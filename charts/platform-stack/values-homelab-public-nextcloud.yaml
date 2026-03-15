@@ -8,11 +8,8 @@ global:
     openhands: openhands.vpn.homebase.internal
     nextcloud: cloud.homebase.example.com
     gitea: gitea.vpn.homebase.internal
-    paperless: paperless.vpn.homebase.internal
     paperlessNgx: paperless.vpn.homebase.internal
     infisical: infisical.vpn.homebase.internal
-    wg: wg.homebase.example.com
-    vpn: wg.homebase.example.com
     wgEasy: wg.homebase.example.com
 
 nextcloud:

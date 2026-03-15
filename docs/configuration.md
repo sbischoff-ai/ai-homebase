@@ -11,6 +11,8 @@ This project uses Helm values layering to keep environment configuration explici
 
 Prefer files over `--set` for anything long-lived or shared.
 
+Canonical global host keys for service ingress defaults are `global.hosts.paperlessNgx` (Paperless) and `global.hosts.wgEasy` (wg-easy).
+
 ## Layering model
 
 ### Layer A: base chart defaults

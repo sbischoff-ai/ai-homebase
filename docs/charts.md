@@ -1,7 +1,7 @@
 # Helm chart notes
 
 ## Shared global values
-`openclaw`, `openhands`, `nextcloud`, `gitea`, `paperless-ngx`, `infisical`, and `wg-easy` support a shared `global` block (with chart-specific host keys) for:
+`openclaw`, `openhands`, `nextcloud`, `gitea`, `paperless-ngx`, `infisical`, and `wg-easy` support a shared `global` block (with canonical host keys such as `global.hosts.paperlessNgx` and `global.hosts.wgEasy`) for:
 
 - `imagePullSecrets`
 - `storageClass`

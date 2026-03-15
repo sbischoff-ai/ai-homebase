@@ -7,11 +7,8 @@ global:
     openhands: openhands.homebase.local
     nextcloud: cloud.homebase.local
     gitea: gitea.vpn.homebase.internal
-    paperless: paperless.homebase.local
     paperlessNgx: paperless.homebase.local
     infisical: infisical.homebase.local
-    wg: wg.homebase.local
-    vpn: wg.homebase.local
     wgEasy: wg.homebase.local
   commonLabels: {}
   podAnnotations: {}

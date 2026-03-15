@@ -5,11 +5,8 @@ global:
     openhands: openhands.vpn.homebase.internal
     nextcloud: cloud.localtest.me
     gitea: gitea.vpn.homebase.internal
-    paperless: paperless.vpn.homebase.internal
     paperlessNgx: paperless.vpn.homebase.internal
     infisical: infisical.vpn.homebase.internal
-    wg: wg.localtest.me
-    vpn: wg.localtest.me
     wgEasy: wg.localtest.me
 
 openclaw:

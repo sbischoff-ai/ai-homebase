@@ -31,6 +31,9 @@ jobs:
       - name: Lint all charts
         run: ./scripts/ci/lint_all_charts.sh
 
+      - name: Assert canonical host keys in values/docs/examples
+        run: ./scripts/ci/assert_canonical_host_keys.sh
+
       - name: Validate values schema compatibility across platform-stack profiles
         run: |
           set -euo pipefail
