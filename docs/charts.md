@@ -17,6 +17,16 @@ Most service charts also expose `existingSecret` and `secretRefs[]` to consume c
 
 For `openclaw`, `existingSecret` is used with explicit key mappings under `secretKeys.*` (including `secretKeys.gatewayToken` for gateway token auth).
 
+## Gitea chart source
+`gitea` is pinned to the official upstream Helm chart (`repository: https://dl.gitea.com/charts/`, `version: 12.5.0`) in both the standalone `charts/gitea` wrapper and the `platform-stack` umbrella dependency list.
+
+When chart metadata changes, refresh lock/vendor state with:
+
+```bash
+helm dependency update charts/gitea
+helm dependency update charts/platform-stack
+```
+
 ## platform-stack composition
 `platform-stack` is an umbrella chart with dependency toggles:
 
