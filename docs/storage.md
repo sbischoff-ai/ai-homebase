@@ -29,7 +29,7 @@ This allows one shared default plus targeted overrides where needed.
 
 ## Optional service storage characteristics
 
-- **Nextcloud**: fast growth in primary user data.
+- **Nextcloud**: fast growth in primary user data. The Nextcloud chart baseline defaults to `100Gi` and should be treated as a starting point for production-like profiles; local/dev overlays may intentionally stay lower when capacity is constrained.
 - **Gitea**: repositories, artifacts, and attachments accumulate over time.
 - **Paperless-ngx**: data/media/consume/export volumes should be sized independently.
 - **Infisical**: persistent state is externalized to shared backend releases; protect and back up `sharedPostgresql.primary.persistence.*` (critical encrypted secret data at rest) and `sharedRedis.master.persistence.*`.
@@ -48,6 +48,7 @@ Minimum production expectations:
 - Snapshot/backup policy documented per persistent service.
 - Restore rehearsals performed (not just backup job success).
 - Retention aligned to service criticality and compliance needs.
+- For growth-heavy services (especially Nextcloud), backup windows/frequency must scale with data change rate and include periodic verification that restored data, metadata, and permissions are usable.
 
 ## Intentional placeholders and hardening gaps
 
