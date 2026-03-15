@@ -23,10 +23,10 @@ helm dependency update charts/platform-stack
 make lint
 make render > /tmp/platform-stack-dev.yaml
 ./scripts/test-local-k3d.sh
-./scripts/install-dev.sh --values-file charts/platform-stack/values-dev.yaml
+./scripts/install.sh --profile dev --values-file charts/platform-stack/values-dev.yaml
 ```
 
-`./scripts/install-dev.sh` assumes your kube context is already reachable and correctly selected.
+`./scripts/install.sh --profile dev` assumes your kube context is already reachable and correctly selected.
 
 For complete command coverage (Make targets, lint/render variants, CI-equivalent checks, and helper scripts), see [`docs/commands.md`](./docs/commands.md).
 

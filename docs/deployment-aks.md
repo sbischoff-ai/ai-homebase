@@ -117,6 +117,16 @@ Check for:
 
 ## 7) Install/upgrade
 
+Preferred helper script:
+
+```bash
+./scripts/install.sh --profile aks \
+  --values-file charts/platform-stack/values-aks.yaml \
+  --values-file values-aks.<env>.yaml
+```
+
+Equivalent raw Helm command:
+
 ```bash
 helm upgrade --install platform-stack charts/platform-stack \
   -n ai-homebase \

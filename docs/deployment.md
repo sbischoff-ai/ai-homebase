@@ -46,3 +46,8 @@ After installation, use these docs to confirm service exposure and access patter
 - [AKS post-deploy verification](./deployment-aks.md#8-post-deploy-verification)
 - [Storage planning guidance](./storage.md)
 - [Networking hardening and policy guidance](./networking.md#networkpolicy-guidance)
+
+
+## Unified install helper
+
+Use `./scripts/install.sh --profile <dev|aks>` for profile-based installs with shared arguments (`--values-file`, `--enable-service`, `--disable-service`, `--kube-context`). Compatibility wrappers (`install-dev.sh`, `install-aks.sh`) remain available for existing workflows.

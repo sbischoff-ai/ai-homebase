@@ -49,6 +49,14 @@ Install/upgrade the stack with default local values and run health checks:
 ./scripts/test-local-k3d.sh --release-name platform-stack --namespace ai-homebase
 ```
 
+If you only want to run the install/upgrade step (without smoke checks), use:
+
+```bash
+./scripts/install.sh --profile dev \
+  --values-file charts/platform-stack/values-dev.yaml \
+  --values-file charts/platform-stack/values-k3d.yaml
+```
+
 Default values layers used by the script:
 
 1. `charts/platform-stack/values-dev.yaml`
