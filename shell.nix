@@ -5,6 +5,7 @@ let
     kubectl
     k3d
     docker-client
+    curl
     jq
     yq-go
   ];
@@ -17,7 +18,8 @@ let
         export KUBECONFIG="${KUBECONFIG:-$HOME/.kube/config}"
 
         echo "ai-homebase nix-shell profile: dev"
-        echo "Available tools: helm, kubectl, k3d, docker, jq, yq"
+        echo "Available tools: helm, kubectl, k3d, docker, curl, jq, yq"
+        echo "Tip: k3d requires a running Docker daemon (check: docker info)"
         echo "Use --argstr profile devops to add Azure deployment tooling"
       '';
     };
@@ -32,7 +34,8 @@ let
         export KUBECONFIG="${KUBECONFIG:-$HOME/.kube/config}"
 
         echo "ai-homebase nix-shell profile: devops"
-        echo "Available tools: helm, kubectl, k3d, docker, jq, yq, az, kubelogin"
+        echo "Available tools: helm, kubectl, k3d, docker, curl, jq, yq, az, kubelogin"
+        echo "Tip: k3d requires a running Docker daemon (check: docker info)"
       '';
     };
   };
