@@ -43,6 +43,11 @@ Operational expectation: `GET /api/healthz` returns **HTTP 200** for healthy pod
 - `infisical.enabled`
 - `wgEasy.enabled`
 
+It also adds shared backend dependencies for centralized state services:
+
+- `sharedPostgresql.enabled` (Bitnami PostgreSQL with persistent PVC + secret-backed auth)
+- `sharedRedis.enabled` (Bitnami Redis with persistent PVC + secret-backed auth)
+
 It also provides platform-level value placeholders for:
 
 - ingress

@@ -161,26 +161,19 @@ These commands mirror `.github/workflows/helm-ci.yml` so local runs match CI beh
 
 ## Infisical secret contract
 
-For this repository, **in-cluster mode is the default** for Infisical (`charts/infisical/values.yaml` keeps `postgresql.enabled=true` and `redis.enabled=true`).
+For this repository, **externalized database/cache is the default** for Infisical (`charts/infisical/values.yaml` sets `postgresql.enabled=false` and `redis.enabled=false`).
 
-Stateful retention for in-cluster Infisical lives on dependency PVCs, not an app-level Infisical PVC:
-
-- `postgresql.primary.persistence.size`
-- `postgresql.primary.persistence.storageClass`
-- `redis.master.persistence.size`
-- `redis.master.persistence.storageClass`
-
-The PostgreSQL PVC is the critical data volume because it holds Infisical's encrypted secret data at rest. Treat it as a protected/backup-required volume.
-
-Set `infisical.kubeSecretRef` to a Kubernetes Secret that includes:
+The `infisical.kubeSecretRef` Secret must include:
 
 - `AUTH_SECRET`
 - `ENCRYPTION_KEY`
 - `SITE_URL`
+- `DB_CONNECTION_URI`
+- `REDIS_URL`
 
 `SITE_URL` must exactly match the internal URL users on VPN/private network use to access the Infisical UI (same scheme + hostname, and port if non-default).
 
-These keys are always wired into the Infisical container in chart templates for in-cluster mode.
+Use centralized service DNS names in connection strings (for this repo defaults: `platform-stack-shared-postgresql:5432` and `platform-stack-shared-redis:6379`).
 
 ### Auto-bootstrap credentials
 
@@ -201,7 +194,7 @@ When auto-bootstrap is disabled, Infisical falls back to default first-run behav
 
 For Gitea specifically, the shipped `charts/platform-stack/values*.yaml` profiles keep `gitea.service.type: ClusterIP` and use an internal-only ingress hostname (`gitea.vpn.homebase.internal`) intended to resolve only on your WireGuard/private DNS zone. The expected operator/user access path is: connect to wg-easy VPN, then browse to `https://gitea.vpn.homebase.internal`.
 
-Shipped Gitea overlays also pin the official-chart database/cache posture to in-cluster services (`gitea.postgresql.enabled=true`, `gitea.postgresql-ha.enabled=false`, `gitea.redis.enabled=true`) and force Postgres at app config level (`gitea.gitea.config.database.DB_TYPE=postgres`). The wrapper defaults also set `gitea.gitea.actions.enabled=false` intentionally for phase-one Git/PR/wiki usage; Actions runners are deferred to a later dedicated deployment. Non-sensitive app defaults stay in values files (for example `gitea.gitea.config.service.DISABLE_REGISTRATION=true`), while sensitive `app.ini` values should come from secrets via `gitea.gitea.additionalConfigFromEnvs` plus Kubernetes Secret refs (`gitea.secretRefs[]` and/or `gitea.gitea.additionalConfigSources`). Admin bootstrap follows official chart values (`gitea.gitea.admin.username=git-admin`, `gitea.gitea.admin.existingSecret=<kubernetes-secret-name>`) so credentials stay in Kubernetes Secrets synced from Infisical rather than plaintext values. Gitea and PostgreSQL persistence sizing/storage-class settings are profile-specific via `gitea.persistence.*` and `gitea.postgresql.primary.persistence.*`.
+Shipped Gitea overlays disable all bundled backend dependencies (`gitea.postgresql.enabled=false`, `gitea.postgresql-ha.enabled=false`, `gitea.redis.enabled=false`, `gitea.redis-cluster.enabled=false`) and use centralized PostgreSQL + Redis through `gitea.gitea.config.*`. Sensitive fields are supplied through `gitea.gitea.additionalConfigFromEnvs` plus Kubernetes Secret refs (`gitea.secretRefs[]` and/or `gitea.gitea.additionalConfigSources`) so credentials and Redis URIs are not committed to values files. Admin bootstrap follows official chart values (`gitea.gitea.admin.username=git-admin`, `gitea.gitea.admin.existingSecret=<kubernetes-secret-name>`) so credentials stay in Kubernetes Secrets synced from Infisical rather than plaintext values.
 
 For internal-only ingress posture, prefer private/VPN hostnames and an internal ingress class. Example:
 
@@ -218,15 +211,6 @@ ingress:
       hosts:
         - infisical.vpn.homebase.internal
 ```
-
-### External mode (optional / future path)
-
-If you disable in-cluster PostgreSQL and/or Redis and point Infisical to external services, the same `infisical.kubeSecretRef` Secret can additionally provide:
-
-- `DB_CONNECTION_URI`
-- `REDIS_URL`
-
-These keys are optional and only used when in-cluster dependencies are disabled.
 
 ## Production-hardening gaps to close before go-live
 

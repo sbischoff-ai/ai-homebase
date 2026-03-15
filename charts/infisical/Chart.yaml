@@ -1,6 +1,6 @@
 apiVersion: v2
 name: infisical
-description: Self-hosted Infisical with in-cluster PostgreSQL/Redis persistence and VPN-first ingress defaults
+description: Self-hosted Infisical with externalized PostgreSQL/Redis and VPN-first ingress defaults
 type: application
 version: 0.2.0
 appVersion: "0.151.0"

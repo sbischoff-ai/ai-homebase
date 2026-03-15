@@ -33,3 +33,13 @@ dependencies:
     version: 0.1.0
     repository: file://../wg-easy
     condition: wgEasy.enabled
+  - name: postgresql
+    version: 16.7.21
+    repository: oci://registry-1.docker.io/bitnamicharts
+    alias: sharedPostgresql
+    condition: sharedPostgresql.enabled
+  - name: redis
+    version: 21.2.13
+    repository: oci://registry-1.docker.io/bitnamicharts
+    alias: sharedRedis
+    condition: sharedRedis.enabled

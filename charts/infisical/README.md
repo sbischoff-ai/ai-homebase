@@ -1,6 +1,6 @@
 # Infisical chart notes
 
-This chart deploys a durable, VPN-reachable **self-hosted Infisical** instance using in-cluster PostgreSQL and Redis (both with PVC persistence enabled).
+This chart deploys a durable, VPN-reachable **self-hosted Infisical** instance that connects to external PostgreSQL and Redis services.
 
 ## Prerequisites
 
@@ -14,8 +14,8 @@ This chart deploys a durable, VPN-reachable **self-hosted Infisical** instance u
 - `ingress.enabled: true` with an internal hostname default (`infisical.internal.home.arpa`)
 - Infisical image pinned to `infisical/infisical:v0.151.0`
 - `infisical.replicaCount: 2`
-- In-cluster PostgreSQL and Redis enabled by default
-- PostgreSQL and Redis persistence enabled by default
+- In-cluster PostgreSQL and Redis disabled by default (`postgresql.enabled=false`, `redis.enabled=false`)
+- Runtime connectivity comes from `DB_CONNECTION_URI` and `REDIS_URL` in `infisical.kubeSecretRef`
 
 This chart is designed to keep Infisical private to VPN/internal users unless you explicitly configure public exposure.
 
@@ -29,8 +29,7 @@ Create (or reuse) the Kubernetes Secret referenced by `infisical.kubeSecretRef` 
 
 ### External DB/Redis note
 
-This repo defaults to **in-cluster Postgres + Redis** and does not require external connection keys.
-If you later switch to external services, provide:
+This repo defaults to **externalized Postgres + Redis**. Provide:
 
 - `DB_CONNECTION_URI`
 - `REDIS_URL`

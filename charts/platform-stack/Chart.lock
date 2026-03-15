@@ -20,5 +20,11 @@ dependencies:
 - name: wg-easy
   repository: file://../wg-easy
   version: 0.1.0
-digest: sha256:21860fa1099f7df380892536512e9eb826ac56c8f00af4eb3006d0f0e8c8be5c
-generated: "2026-03-15T00:24:46.741773513Z"
+- name: postgresql
+  repository: oci://registry-1.docker.io/bitnamicharts
+  version: 16.7.21
+- name: redis
+  repository: oci://registry-1.docker.io/bitnamicharts
+  version: 21.2.13
+digest: sha256:5782e1a0c44c14d38517857d8411aef8cab2a3c6767540918b25ad25cf2a0961
+generated: "2026-03-15T01:30:49.591375158Z"

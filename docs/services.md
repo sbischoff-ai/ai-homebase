@@ -52,12 +52,12 @@ Profile-specific defaults can differ from base chart defaults; verify effective 
 - Intended access path is VPN-first: user connects through wg-easy/WireGuard, then reaches the internal Gitea hostname.
 - Avoid public DNS annotations for Gitea unless your annotation targets a private-only DNS zone.
 - Ensure backup for repository integrity.
-- Official-chart dependency defaults in shipped overlays use in-cluster PostgreSQL + Redis (`gitea.postgresql.enabled=true`, `gitea.redis.enabled=true`, `gitea.postgresql-ha.enabled=false`) with `gitea.gitea.config.database.DB_TYPE=postgres` to avoid SQLite drift.
+- Official-chart dependency defaults in shipped overlays disable bundled backends (`gitea.postgresql.enabled=false`, `gitea.postgresql-ha.enabled=false`, `gitea.redis.enabled=false`, `gitea.redis-cluster.enabled=false`) and use external PostgreSQL/Redis settings under `gitea.gitea.config.*`.
 - Official-chart Actions are intentionally disabled (`gitea.gitea.actions.enabled=false`) for first-phase Git/PR/wiki workflows; Actions runners are deferred to a later dedicated deployment.
 - Admin bootstrap uses official chart fields (`gitea.gitea.admin.username` and `gitea.gitea.admin.existingSecret`) so admin credentials are sourced from Kubernetes Secrets (typically synced from Infisical) instead of plaintext values.
 - Sensitive `app.ini` values (DB password, SMTP password, OAuth client secret, internal/security tokens) should be wired with official-chart mechanisms: set env vars from Kubernetes Secrets (`gitea.secretRefs[]` / `gitea.existingSecret`) and list the env names in `gitea.gitea.additionalConfigFromEnvs`; optionally load secret-backed config snippets via `gitea.gitea.additionalConfigSources`.
 - Keep non-sensitive defaults (for example `gitea.gitea.config.database.DB_TYPE` and `gitea.gitea.config.service.DISABLE_REGISTRATION`) in versioned values files.
-- Size and storage class for Gitea app data and PostgreSQL data should follow the active profile storage conventions (`gitea.persistence.*` and `gitea.postgresql.primary.persistence.*`).
+- Size and storage class for Gitea app data should follow the active profile storage conventions (`gitea.persistence.*`). Database/cache persistence is handled by shared backend releases (`sharedPostgresql.*` and `sharedRedis.*`).
 
 ### Paperless-ngx
 
@@ -67,9 +67,10 @@ Profile-specific defaults can differ from base chart defaults; verify effective 
 
 ### Infisical
 
-- Optional in-cluster secret-management component based on upstream standalone chart semantics.
-- Primary knobs are grouped under `infisical.infisical`, `infisical.ingress`, `infisical.postgresql`, and `infisical.redis`.
+- Optional in-cluster secret-management component based on upstream standalone chart semantics; runtime DB/cache are externalized to shared services.
+- Primary knobs are grouped under `infisical.infisical` and `infisical.ingress`; `infisical.postgresql.enabled` and `infisical.redis.enabled` stay `false` for centralized backend mode.
 - Uses `infisical.infisical.kubeSecretRef` to point at the runtime/bootstrap secret.
+- Runtime secret must include `DB_CONNECTION_URI` and `REDIS_URL` for centralized backend mode (plus `AUTH_SECRET`, `ENCRYPTION_KEY`, `SITE_URL`).
 - Can coexist with external secret-provider patterns.
 
 ### wg-easy
