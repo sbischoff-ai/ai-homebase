@@ -53,6 +53,24 @@ nodeSelector: {}
 tolerations: []
 affinity: {}
 
+probes:
+  liveness:
+    enabled: true
+    path: /api/healthz
+    port: http
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
+  readiness:
+    enabled: true
+    path: /api/healthz
+    port: http
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
+
 # Secret injection conventions:
 # - Secret names: kebab-case (example: gitea-app-secrets)
 # - Secret data keys should match the consuming chart contract (for official admin bootstrap: username/password in gitea.admin.existingSecret).
