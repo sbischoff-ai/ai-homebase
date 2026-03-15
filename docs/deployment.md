@@ -28,6 +28,7 @@ Before choosing a deployment path, confirm:
 
 - Local cluster workflow: [docs/deployment-k3d.md](./deployment-k3d.md)
 - AKS workflow: [docs/deployment-aks.md](./deployment-aks.md)
+- Generic Kubernetes/homelab operations runbook: [docs/runbook-homelab.md](./runbook-homelab.md)
 
 ## Post-deploy: how to access services
 

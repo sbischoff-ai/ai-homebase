@@ -15,6 +15,8 @@ Start with the canonical deployment landing page:
 
 From there, choose the environment-specific flow for k3d local, AKS, or generic Kubernetes/homelab deployments.
 
+For day-2 operations on generic cluster/homelab installs, use the [Homelab operations runbook (`docs/runbook-homelab.md`)](./docs/runbook-homelab.md).
+
 ## Documentation map
 
 - [Full docs taxonomy (`docs/README.md`)](./docs/README.md)
