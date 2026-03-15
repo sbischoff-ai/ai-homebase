@@ -53,6 +53,7 @@ Profile-specific defaults can differ from base chart defaults; verify effective 
 - Avoid public DNS annotations for Gitea unless your annotation targets a private-only DNS zone.
 - Ensure backup for repository integrity.
 - Official-chart dependency defaults in shipped overlays use in-cluster PostgreSQL + Redis (`gitea.postgresql.enabled=true`, `gitea.redis.enabled=true`, `gitea.postgresql-ha.enabled=false`) with `gitea.gitea.config.database.DB_TYPE=postgres` to avoid SQLite drift.
+- Admin bootstrap uses official chart fields (`gitea.gitea.admin.username` and `gitea.gitea.admin.existingSecret`) so admin credentials are sourced from Kubernetes Secrets (typically synced from Infisical) instead of plaintext values.
 - Size and storage class for Gitea app data and PostgreSQL data should follow the active profile storage conventions (`gitea.persistence.*` and `gitea.postgresql.primary.persistence.*`).
 
 ### Paperless-ngx

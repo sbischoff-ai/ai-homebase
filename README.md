@@ -183,7 +183,7 @@ When auto-bootstrap is disabled, Infisical falls back to default first-run behav
 
 For Gitea specifically, the shipped `charts/platform-stack/values*.yaml` profiles keep `gitea.service.type: ClusterIP` and use an internal-only ingress hostname (`gitea.vpn.homebase.internal`) intended to resolve only on your WireGuard/private DNS zone. The expected operator/user access path is: connect to wg-easy VPN, then browse to `https://gitea.vpn.homebase.internal`.
 
-Shipped Gitea overlays also pin the official-chart database/cache posture to in-cluster services (`gitea.postgresql.enabled=true`, `gitea.postgresql-ha.enabled=false`, `gitea.redis.enabled=true`) and force Postgres at app config level (`gitea.gitea.config.database.DB_TYPE=postgres`). Gitea and PostgreSQL persistence sizing/storage-class settings are profile-specific via `gitea.persistence.*` and `gitea.postgresql.primary.persistence.*`.
+Shipped Gitea overlays also pin the official-chart database/cache posture to in-cluster services (`gitea.postgresql.enabled=true`, `gitea.postgresql-ha.enabled=false`, `gitea.redis.enabled=true`) and force Postgres at app config level (`gitea.gitea.config.database.DB_TYPE=postgres`). Admin bootstrap follows official chart values (`gitea.gitea.admin.username=git-admin`, `gitea.gitea.admin.existingSecret=<kubernetes-secret-name>`) so credentials stay in Kubernetes Secrets synced from Infisical rather than plaintext values. Gitea and PostgreSQL persistence sizing/storage-class settings are profile-specific via `gitea.persistence.*` and `gitea.postgresql.primary.persistence.*`.
 
 For internal-only ingress posture, prefer private/VPN hostnames and an internal ingress class. Example:
 

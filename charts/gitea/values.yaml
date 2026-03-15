@@ -55,12 +55,15 @@ affinity: {}
 
 # Secret injection conventions:
 # - Secret names: kebab-case (example: gitea-app-secrets)
-# - Secret data keys: UPPER_SNAKE_CASE (example: GITEA_ADMIN_PASSWORD)
+# - Secret data keys should match the consuming chart contract (for official admin bootstrap: username/password in gitea.admin.existingSecret).
 existingSecret: "" # Optional envFrom source for app credentials/secrets.
-secretRefs: [] # [{name: gitea-app-secrets, key: GITEA_ADMIN_PASSWORD, envVar: GITEA_ADMIN_PASSWORD}]
+secretRefs: [] # [{name: app-secrets, key: SOME_KEY, envVar: SOME_ENV}]
 
 # Values passed through to the official Gitea chart dependency.
 gitea:
+  admin:
+    username: git-admin
+    existingSecret: ""
   config:
     database:
       DB_TYPE: postgres

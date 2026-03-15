@@ -208,6 +208,9 @@ gitea:
     storageClass: managed-csi
     annotations: {}
   gitea:
+    admin:
+      username: git-admin
+      existingSecret: gitea-app-secrets
     config:
       database:
         DB_TYPE: postgres
@@ -230,7 +233,7 @@ gitea:
     readiness:
       enabled: true
       path: /api/healthz
-  existingSecret: gitea-app-secrets
+  existingSecret: ""
   secretRefs: []
 
 paperlessNgx:
