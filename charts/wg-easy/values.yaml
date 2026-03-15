@@ -62,10 +62,9 @@ podAnnotations: {}
 podSecurityContext:
   seccompProfile:
     type: RuntimeDefault
-  # wg-easy/wg-quick requires forwarding-related sysctls for VPN routing.
+  # Kubernetes treats net.ipv4.ip_forward as an unsafe sysctl, so forwarding must be enabled at the node level.
+  # Keep pod-level sysctls limited to kubelet-allowed keys.
   sysctls:
-    - name: net.ipv4.ip_forward
-      value: "1"
     - name: net.ipv4.conf.all.src_valid_mark
       value: "1"
 
