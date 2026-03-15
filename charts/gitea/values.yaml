@@ -1,60 +1,10 @@
-nameOverride: ""
-fullnameOverride: ""
-
-replicaCount: 1
-
-image:
-  repository: gitea/gitea
-  tag: "1.22.0"
-  pullPolicy: IfNotPresent
-
-imagePullSecrets: []
-
-global:
-  imagePullSecrets: []
-  storageClass: ""
-  hosts:
-    gitea: ""
-  commonLabels: {}
-
-service:
-  type: ClusterIP
-  port: 3000
-  targetPort: 3000
-  annotations: {}
-
-ingress:
-  enabled: false
-  className: ""
-  annotations: {}
-  hosts:
-    - host: ""
-      paths:
-        - path: /
-          pathType: Prefix
-  tls: []
-
-persistence:
-  enabled: true
-  existingClaim: ""
-  accessModes:
-    - ReadWriteOnce
-  size: 10Gi
-  storageClass: ""
-  annotations: {}
-
-podAnnotations: {}
-
-backup:
-  annotations: {}
-
-resources: {}
-nodeSelector: {}
-tolerations: []
-affinity: {}
-
-# Secret injection conventions:
-# - Secret names: kebab-case (example: gitea-app-secrets)
-# - Secret data keys: UPPER_SNAKE_CASE (example: GITEA_ADMIN_PASSWORD)
-existingSecret: "" # Optional envFrom source for app credentials/secrets.
-secretRefs: [] # [{name: gitea-app-secrets, key: GITEA_ADMIN_PASSWORD, envVar: GITEA_ADMIN_PASSWORD}]
+# Values are passed through to the official upstream `gitea` chart dependency.
+# See upstream defaults and docs for supported keys.
+# Example:
+# gitea:
+#   ingress:
+#     enabled: true
+#     hosts:
+#       - host: gitea.homebase.local
+#
+gitea: {}

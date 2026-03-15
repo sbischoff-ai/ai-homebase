@@ -80,6 +80,10 @@ Profiles:
 ### Dependency install/update
 
 ```bash
+# Refresh the pinned upstream Gitea dependency used by charts/gitea.
+helm dependency update charts/gitea
+
+# Refresh umbrella dependencies (including the local gitea wrapper at 12.5.0).
 helm dependency update charts/platform-stack
 ```
 

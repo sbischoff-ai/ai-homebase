@@ -18,7 +18,7 @@ dependencies:
     repository: file://../nextcloud
     condition: nextcloud.enabled
   - name: gitea
-    version: 0.1.0
+    version: 12.5.0
     repository: file://../gitea
     condition: gitea.enabled
   - name: paperless-ngx

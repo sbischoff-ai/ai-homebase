@@ -10,7 +10,7 @@ dependencies:
   version: 0.1.0
 - name: gitea
   repository: file://../gitea
-  version: 0.1.0
+  version: 12.5.0
 - name: paperless-ngx
   repository: file://../paperless-ngx
   version: 0.1.0
@@ -20,5 +20,5 @@ dependencies:
 - name: wg-easy
   repository: file://../wg-easy
   version: 0.1.0
-digest: sha256:21860fa1099f7df380892536512e9eb826ac56c8f00af4eb3006d0f0e8c8be5c
-generated: "2026-03-14T17:01:24.193331667Z"
+digest: sha256:1693df052c459b313cf87abc36fb464e9dea17c453ca87f4eb685d8d7ca5636f
+generated: "2026-03-15T00:05:39.28915337Z"

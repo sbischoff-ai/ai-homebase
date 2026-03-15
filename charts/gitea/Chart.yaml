@@ -1,6 +1,10 @@
 apiVersion: v2
 name: gitea
-description: Helm chart for deploying Gitea
+description: Wrapper chart that pins the official Gitea Helm chart dependency
 type: application
-version: 0.1.0
-appVersion: "1.22.0"
+version: 12.5.0
+appVersion: "12.5.0"
+dependencies:
+  - name: gitea
+    version: 12.5.0
+    repository: https://dl.gitea.com/charts/
