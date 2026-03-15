@@ -4,11 +4,13 @@ on:
   push:
     paths:
       - "charts/**"
+      - "scripts/ci/**"
       - ".github/workflows/helm-ci.yml"
       - "README.md"
   pull_request:
     paths:
       - "charts/**"
+      - "scripts/ci/**"
       - ".github/workflows/helm-ci.yml"
       - "README.md"
 
@@ -27,15 +29,7 @@ jobs:
         run: helm dependency build charts/platform-stack
 
       - name: Lint all charts
-        run: |
-          set -euo pipefail
-          mapfile -t charts < <(find charts -mindepth 1 -maxdepth 1 -type d | sort)
-          for chart in "${charts[@]}"; do
-            if [ -f "$chart/Chart.yaml" ]; then
-              echo "Linting $chart"
-              helm lint "$chart"
-            fi
-          done
+        run: ./scripts/ci/lint_all_charts.sh
 
       - name: Validate values schema compatibility across platform-stack profiles
         run: |
@@ -62,125 +56,16 @@ jobs:
             -f charts/platform-stack/values-k3d.yaml
 
       - name: Render platform-stack for each values profile
-        run: |
-          set -euo pipefail
-          profiles=(
-            "values.yaml"
-            "values-dev.yaml"
-            "values-aks.yaml"
-            "values-prod.yaml"
-          )
-
-          for profile in "${profiles[@]}"; do
-            echo "Rendering platform-stack with $profile"
-            helm template platform-stack charts/platform-stack \
-              -f "charts/platform-stack/$profile" \
-              > "rendered-${profile%.yaml}.yaml"
-          done
-
-
-      - name: Render platform-stack for k3d layered profile
-        run: |
-          set -euo pipefail
-          helm template platform-stack charts/platform-stack \
-            -f charts/platform-stack/values-dev.yaml \
-            -f charts/platform-stack/values-k3d.yaml \
-            > rendered-values-dev-k3d.yaml
+        run: ./scripts/ci/render_profiles.sh
 
       - name: Validate rendered YAML syntax (lightweight)
         run: |
           set -euo pipefail
           python -m pip install --quiet pyyaml
-          python <<'PY'
-          import glob
-          import yaml
-
-          rendered_files = sorted(glob.glob("rendered-*.yaml"))
-          if not rendered_files:
-              raise SystemExit("No rendered manifests found.")
-
-          for filename in rendered_files:
-              with open(filename, "r", encoding="utf-8") as handle:
-                  documents = list(yaml.safe_load_all(handle))
-              print(f"{filename}: parsed {len(documents)} YAML document(s)")
-          PY
+          python scripts/ci/validate_rendered_yaml.py
 
       - name: Render service-combination matrix and assert key resources
         run: |
           set -euo pipefail
           python -m pip install --quiet pyyaml
-          python <<'PY'
-          import subprocess
-          import yaml
-
-          matrix = [
-              {
-                  "name": "core-only",
-                  "set": {
-                      "nextcloud.enabled": "false",
-                      "gitea.enabled": "false",
-                      "paperlessNgx.enabled": "false",
-                      "infisical.enabled": "false",
-                      "wgEasy.enabled": "false",
-                  },
-                  "expect_present": {
-                      ("Deployment", "platform-stack-openclaw"),
-                      ("Deployment", "platform-stack-openhands"),
-                  },
-              },
-              {
-                  "name": "core-plus-storage-heavy",
-                  "set": {
-                      "nextcloud.enabled": "true",
-                      "gitea.enabled": "true",
-                      "paperlessNgx.enabled": "true",
-                      "infisical.enabled": "false",
-                      "wgEasy.enabled": "false",
-                  },
-                  "expect_present": {
-                      ("StatefulSet", "platform-stack-nextcloud"),
-                      ("StatefulSet", "platform-stack-gitea"),
-                      ("StatefulSet", "platform-stack-paperless-ngx"),
-                  },
-              },
-              {
-                  "name": "all-services-enabled",
-                  "set": {
-                      "nextcloud.enabled": "true",
-                      "gitea.enabled": "true",
-                      "paperlessNgx.enabled": "true",
-                      "infisical.enabled": "true",
-                      "wgEasy.enabled": "true",
-                  },
-                  "expect_present": {
-                      ("Deployment", "platform-stack-infisical"),
-                      ("Deployment", "platform-stack-wg-easy"),
-                      ("StatefulSet", "platform-stack-nextcloud"),
-                      ("StatefulSet", "platform-stack-gitea"),
-                      ("StatefulSet", "platform-stack-paperless-ngx"),
-                  },
-              },
-          ]
-
-          def render(case):
-              cmd = [
-                  "helm",
-                  "template",
-                  "platform-stack",
-                  "charts/platform-stack",
-                  "-f",
-                  "charts/platform-stack/values.yaml",
-              ]
-              for key, value in case["set"].items():
-                  cmd.extend(["--set", f"{key}={value}"])
-              result = subprocess.run(cmd, check=True, capture_output=True, text=True)
-              docs = [doc for doc in yaml.safe_load_all(result.stdout) if isinstance(doc, dict)]
-              return {(doc.get("kind"), doc.get("metadata", {}).get("name")) for doc in docs}
-
-          for case in matrix:
-              resources = render(case)
-              missing = sorted(case["expect_present"] - resources)
-              if missing:
-                  raise SystemExit(f"{case['name']} missing expected resources: {missing}")
-              print(f"{case['name']}: asserted {len(case['expect_present'])} resource(s)")
-          PY
+          python scripts/ci/assert_service_matrix.py
