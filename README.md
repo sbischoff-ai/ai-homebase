@@ -1,11 +1,11 @@
 # ai-homebase
 
 ## What is this repo?
-`ai-homebase` is an AI-driven, developer-centric home lab stack for general use and agentic coding workflows. OpenClaw is the core assistant experience: it is the primary interface you use and the component that connects the rest of the stack into one cohesive environment.
+`ai-homebase` is an AI-driven home lab stack for private self-hosting, general use, and agentic coding. OpenClaw is the core assistant experience: it is the main interface you use and the component that ties the rest of the stack into one cohesive environment.
 
-Helm charts are the packaging and distribution mechanism that make this stack deployable across local and cluster targets, not the project’s primary identity. Defaults and service toggles are kept intentionally concise in the umbrella values, with deeper layering and service contract details documented in [`docs/configuration.md`](./docs/configuration.md) and [`docs/services.md`](./docs/services.md).
+Helm charts are used to package and deploy the stack across local and cluster targets, including optional services such as Nextcloud, Paperless-ngx, and Gitea. Defaults and service toggles are kept concise in umbrella values; see [`docs/configuration.md`](./docs/configuration.md) and [`docs/services.md`](./docs/services.md) for full layering and service contract details.
 
-Use this repo when you want a single platform that gives developers an AI-first workspace plus optional homelab services, with a clear path from local iteration to production-style environments.
+Use this repo when you want one self-hosted platform that combines an AI-first workspace with optional homelab services and a clear path from local iteration to full deployment.
 
 ## Quick start: deploy and use
 
