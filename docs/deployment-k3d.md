@@ -36,6 +36,7 @@ This workflow is user-focused and script-guided:
 - Writes a dedicated kubeconfig (`~/.kube/k3d-<cluster>.yaml`) so local setup is independent from any other project kubeconfigs.
 - Installs ingress-nginx.
 - Generates required local bootstrap secrets (shared Postgres/Redis auth, OpenClaw token, wg-easy keys, Infisical app secret).
+- Applies a k3d-only Infisical runtime compatibility override (`infisical.infisical.securityContext.runAsNonRoot=false`) to avoid local kubelet user-verification failures while preserving stricter baseline/dev defaults.
 - Deploys `platform-stack` with `values-dev.yaml + values-k3d.yaml`.
 - Runs local smoke checks.
 

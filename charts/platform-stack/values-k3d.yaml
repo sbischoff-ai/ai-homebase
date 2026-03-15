@@ -194,6 +194,9 @@ paperlessNgx:
 
 infisical:
   enabled: true
+  infisical:
+    securityContext:
+      runAsNonRoot: false
   ingress:
     enabled: true
     hostName: infisical.localtest.me

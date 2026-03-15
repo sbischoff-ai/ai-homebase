@@ -118,6 +118,7 @@ The table below is the single source of truth for baseline defaults and is keyed
 - Default-on in-cluster secret-management component based on upstream standalone chart semantics; runtime DB/cache are externalized to shared services.
 - Primary knobs are grouped under `infisical.infisical` and `infisical.ingress`; `infisical.postgresql.enabled` and `infisical.redis.enabled` stay `false` for centralized backend mode.
 - Uses `infisical.infisical.kubeSecretRef` to point at the runtime/bootstrap secret.
+- Local k3d overlay intentionally sets `infisical.infisical.securityContext.runAsNonRoot: false` in `charts/platform-stack/values-k3d.yaml` to avoid kubelet user-verification failures in local runtimes; baseline/dev defaults stay hardened.
 - Runtime secret must include `DB_CONNECTION_URI` and `REDIS_URL` for centralized backend mode (plus `AUTH_SECRET`, `ENCRYPTION_KEY`, `SITE_URL`).
 - Can coexist with external secret-provider patterns.
 
