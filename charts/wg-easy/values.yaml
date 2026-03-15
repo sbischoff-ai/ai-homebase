@@ -26,6 +26,7 @@ service:
   wireguardPort: 51820
   uiPort: 51821
   annotations: {}
+  loadBalancerSourceRanges: []
 
 ingress:
   enabled: false

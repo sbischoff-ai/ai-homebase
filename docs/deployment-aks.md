@@ -45,10 +45,13 @@ In your overlay, explicitly decide enabled state for optional services:
 - `nextcloud.enabled`
 - `gitea.enabled`
 - `paperlessNgx.enabled`
+
+Core access services should remain enabled:
+
 - `infisical.enabled`
 - `wgEasy.enabled`
 
-Recommendation: enable only required services per environment to reduce attack surface and ops overhead.
+Recommendation: keep `wgEasy.enabled: true` for AKS environments because it is the expected access plane for internal services; enable optional services only when required to reduce attack surface and ops overhead.
 
 ## 3) Storage-class and PVC planning
 
@@ -73,7 +76,17 @@ AKS notes:
 
 - `openhands.service.type=ClusterIP` remains valid; if you enable ingress in an environment overlay, that ingress can provide external UI/API exposure.
 - Use internal ingress patterns instead of public exposure for admin/internal tools.
-- For wg-easy, prefer private web UI + controlled UDP VPN exposure.
+- AKS baseline keeps wg-easy UI ingress disabled (`wgEasy.ingress.enabled: false`) and `wgEasy.service.type: ClusterIP`.
+- Publish the WireGuard UDP endpoint explicitly via a dedicated overlay (example: `examples/aks.wg-easy-udp-lb.override.yaml`) that sets `wgEasy.service.type: LoadBalancer` and constrains `wgEasy.service.loadBalancerSourceRanges`.
+
+### AKS pre-flight check: wg-easy UDP reachability
+
+Before rollout, verify expected VPN reachability and exposure intent:
+
+1. Confirm the effective values keep wg-easy enabled and web UI ingress private unless intentionally overridden.
+2. If using UDP exposure overlay, verify the expected LB settings render (`type: LoadBalancer`, UDP port `51820`, and intended source CIDR allow-list).
+3. Validate that `WG_HOST` in the runtime secret matches the reachable VPN endpoint/FQDN you plan to publish.
+4. Confirm network controls (NSG/firewall and any cluster policy) allow inbound UDP/51820 from the approved source ranges only.
 
 ## 5) Prepare values files
 

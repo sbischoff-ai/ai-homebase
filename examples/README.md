@@ -175,6 +175,23 @@ paperlessNgx:
       size: 50Gi
 ```
 
+
+## AKS wg-easy UDP exposure override
+
+Use `examples/aks.wg-easy-udp-lb.override.yaml` when you need external WireGuard client access on AKS while keeping the wg-easy web UI private:
+
+```bash
+./scripts/template.sh \
+  --release-name <your-release> \
+  --namespace <your-namespace> \
+  --kube-context <your-kube-context> \
+  --values-file charts/platform-stack/values-aks.yaml \
+  --values-file examples/aks.values.override.yaml \
+  --values-file examples/aks.wg-easy-udp-lb.override.yaml
+```
+
+Adjust `wgEasy.service.loadBalancerSourceRanges` in that file to your approved client CIDRs.
+
 ## AKS deployment sequence (core + new services)
 
 Use this order for AKS:

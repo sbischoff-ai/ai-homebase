@@ -340,12 +340,17 @@ wgEasy:
     tag: stable
     pullPolicy: IfNotPresent
   service:
+    # Keep baseline service private. Use the AKS UDP exposure example overlay
+    # (examples/aks.wg-easy-udp-lb.override.yaml) to publish the VPN endpoint
+    # with constrained source ranges in real environments.
     type: ClusterIP
     wireguardPort: 51820
     uiPort: 51821
     annotations: {}
   ingress:
-    enabled: true
+    # Keep the web UI private by default on AKS; access it through the VPN
+    # tunnel after the UDP endpoint is published.
+    enabled: false
     className: nginx
     annotations:
       cert-manager.io/cluster-issuer: letsencrypt-prod
@@ -375,4 +380,3 @@ wgEasy:
       path: /
   existingSecret: wgeasy-app-secrets
   secretRefs: []
-

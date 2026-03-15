@@ -1,0 +1,21 @@
+# AKS override example: expose wg-easy WireGuard UDP endpoint via Azure LoadBalancer
+# while keeping the web UI private (accessed through the VPN tunnel).
+#
+# Usage:
+#   helm template platform-stack charts/platform-stack \
+#     -n ai-homebase \
+#     -f charts/platform-stack/values-aks.yaml \
+#     -f values-aks.<env>.yaml \
+#     -f examples/aks.wg-easy-udp-lb.override.yaml
+
+wgEasy:
+  service:
+    type: LoadBalancer
+    annotations:
+      # Internet-facing LB; switch to "true" for private/internal-only VPN endpoint.
+      service.beta.kubernetes.io/azure-load-balancer-internal: "false"
+    loadBalancerSourceRanges:
+      - 203.0.113.0/24
+      - 198.51.100.0/24
+  ingress:
+    enabled: false

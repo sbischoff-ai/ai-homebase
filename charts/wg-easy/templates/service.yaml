@@ -10,6 +10,10 @@ metadata:
   {{- end }}
 spec:
   type: {{ .Values.service.type }}
+  {{- with .Values.service.loadBalancerSourceRanges }}
+  loadBalancerSourceRanges:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   ports:
     - name: web
       port: {{ .Values.service.uiPort }}
