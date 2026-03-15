@@ -131,7 +131,8 @@ The table below is the single source of truth for baseline defaults and is keyed
 - AKS baseline keeps UI/API ingress disabled (`wgEasy.ingress.enabled: false`) so the admin UI is reached over the VPN tunnel.
 - WireGuard endpoint exposure should be explicit and tightly controlled (for example `wgEasy.service.type: LoadBalancer` with `wgEasy.service.loadBalancerSourceRanges`).
 - Pod/container security contexts are explicit values; defaults keep conservative hardening while preserving required runtime compatibility (`runAsNonRoot: false` for the current wg-easy image) and required WireGuard capabilities (`NET_ADMIN`, `SYS_MODULE`) in `securityContext`.
-- Pod `sysctls` are limited to kubelet-allowed keys (default `net.ipv4.conf.all.src_valid_mark=1`); `net.ipv4.ip_forward` is intentionally not set on pods and must be enabled on nodes (`net.ipv4.ip_forward=1`).
+- Do not configure pod-level `sysctls` for wg-easy by default; many clusters reject unsafe sysctls unless kubelet is explicitly configured with `allowed-unsafe-sysctls`.
+- Node-level prerequisites must be configured on cluster nodes: `net.ipv4.ip_forward=1` and `net.ipv4.conf.all.src_valid_mark=1`.
 - Host prerequisite (all environments, including local Docker/k3d): nodes must provide WireGuard + iptables NAT kernel support (`wireguard`, `iptable_nat`/`nf_nat`) or `wg-quick up wg0` fails when adding the POSTROUTING MASQUERADE rule.
 - Runtime secret contract: the effective `existingSecret` (or the default `<release>-wg-easy-secrets` when unset) must provide `WG_HOST` and `PASSWORD_HASH`; these are wired via `valueFrom.secretKeyRef` in the Deployment.
 - `secretRefs[]` is optional additive env wiring only; use it for extra variables, not as a replacement for required `WG_HOST`/`PASSWORD_HASH` keys.
