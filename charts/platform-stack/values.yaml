@@ -6,7 +6,7 @@ global:
     openclaw: openclaw.homebase.local
     openhands: openhands.homebase.local
     nextcloud: nextcloud.homebase.local
-    gitea: gitea.homebase.local
+    gitea: gitea.vpn.homebase.internal
     paperless: paperless.homebase.local
     paperlessNgx: paperless.homebase.local
     infisical: infisical.homebase.local
@@ -188,10 +188,10 @@ gitea:
     annotations: {}
   ingress:
     enabled: true
-    className: ""
+    className: internal-nginx
     annotations: {}
     hosts:
-      - host: gitea.homebase.local
+      - host: gitea.vpn.homebase.internal
         paths:
           - path: /
             pathType: Prefix

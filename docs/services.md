@@ -48,7 +48,9 @@ Profile-specific defaults can differ from base chart defaults; verify effective 
 ### Gitea
 
 - Source control service with persistent repositories.
-- Ingress is enabled by default so developer UI/API access is available when the service is enabled.
+- Shipped profiles keep `gitea.service.type: ClusterIP` and configure ingress for internal-only access (`className: internal-nginx`, host `gitea.vpn.homebase.internal`).
+- Intended access path is VPN-first: user connects through wg-easy/WireGuard, then reaches the internal Gitea hostname.
+- Avoid public DNS annotations for Gitea unless your annotation targets a private-only DNS zone.
 - Ensure backup for repository integrity.
 
 ### Paperless-ngx

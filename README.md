@@ -181,6 +181,8 @@ When `infisical.autoBootstrap.enabled=true`, `credentialSecret.name` must refere
 
 When auto-bootstrap is disabled, Infisical falls back to default first-run behavior where the first signup becomes the admin user.
 
+For Gitea specifically, the shipped `charts/platform-stack/values*.yaml` profiles keep `gitea.service.type: ClusterIP` and use an internal-only ingress hostname (`gitea.vpn.homebase.internal`) intended to resolve only on your WireGuard/private DNS zone. The expected operator/user access path is: connect to wg-easy VPN, then browse to `https://gitea.vpn.homebase.internal`.
+
 For internal-only ingress posture, prefer private/VPN hostnames and an internal ingress class. Example:
 
 ```yaml

@@ -19,7 +19,7 @@ global:
     openclaw: openclaw.localtest.me
     openhands: openhands.localtest.me
     nextcloud: nextcloud.localtest.me
-    gitea: gitea.localtest.me
+    gitea: gitea.vpn.homebase.internal
     paperless: paperless.localtest.me
     paperlessNgx: paperless.localtest.me
     infisical: infisical.localtest.me

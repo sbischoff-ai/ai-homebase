@@ -88,6 +88,9 @@ Deprecation timeline: compatibility support for `openhands.workspace.*` is plann
 
 Treat optional services as explicit decisions in each environment overlay:
 
+Profile note: Gitea values in shipped `charts/platform-stack/values*.yaml` are intentionally internal-only (`service.type: ClusterIP`, `ingress.className: internal-nginx`, host `gitea.vpn.homebase.internal`). Keep DNS for that host private (for example reachable only through wg-easy/WireGuard).
+
+
 - `nextcloud.enabled`
 - `gitea.enabled`
 - `paperlessNgx.enabled`
