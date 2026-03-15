@@ -20,7 +20,7 @@ Before choosing a deployment path, confirm:
 - Environment-specific tooling is available:
   - Local k3d path: [k3d](https://k3d.io/) and [Docker](https://docs.docker.com/get-docker/)
   - AKS path: Azure/AKS cluster access and ingress/TLS prerequisites in the AKS runbook
-  - Nix shell profiles (optional): `nix-shell --argstr profile dev` for local k3d workflows, `nix-shell --argstr profile devops` for AKS tooling (`az`, `kubelogin`)
+  - Nix shell profiles (optional): `nix-shell --argstr profile dev` for local k3d workflows and documented Make/python scripts, `nix-shell --argstr profile devops` for AKS tooling (`az`, `kubelogin`) plus the same baseline tools (`make`, `python3`)
 - You have planned values overlays and service toggles:
   - [Configuration and values layering](./configuration.md)
   - [Services reference and toggles](./services.md)
