@@ -284,6 +284,11 @@ gitea:
       key: GITEA__global_lock__SERVICE_CONN_STR
       envVar: GITEA__global_lock__SERVICE_CONN_STR
 
+# Compatibility bridge for paperless-ngx subchart-local gating:
+# keep this true so umbrella toggle paperlessNgx.enabled remains the single operator switch.
+paperless-ngx:
+  enabled: true
+
 paperlessNgx:
   enabled: false
   image:
