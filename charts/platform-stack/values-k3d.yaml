@@ -139,7 +139,24 @@ nextcloud:
 gitea:
   enabled: false
   persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: ""
+  gitea:
+    config:
+      database:
+        DB_TYPE: postgres
+  postgresql:
+    enabled: true
+    primary:
+      persistence:
+        enabled: true
+        size: 10Gi
+        storageClass: ""
+  postgresql-ha:
     enabled: false
+  redis:
+    enabled: true
 
 paperlessNgx:
   enabled: false

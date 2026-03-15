@@ -52,6 +52,8 @@ Profile-specific defaults can differ from base chart defaults; verify effective 
 - Intended access path is VPN-first: user connects through wg-easy/WireGuard, then reaches the internal Gitea hostname.
 - Avoid public DNS annotations for Gitea unless your annotation targets a private-only DNS zone.
 - Ensure backup for repository integrity.
+- Official-chart dependency defaults in shipped overlays use in-cluster PostgreSQL + Redis (`gitea.postgresql.enabled=true`, `gitea.redis.enabled=true`, `gitea.postgresql-ha.enabled=false`) with `gitea.gitea.config.database.DB_TYPE=postgres` to avoid SQLite drift.
+- Size and storage class for Gitea app data and PostgreSQL data should follow the active profile storage conventions (`gitea.persistence.*` and `gitea.postgresql.primary.persistence.*`).
 
 ### Paperless-ngx
 

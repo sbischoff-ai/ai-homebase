@@ -73,6 +73,7 @@ Use service-specific blocks when behavior must diverge:
 
 - `openclaw.*` and `openhands.*` for core-plane differences.
 - Optional service blocks for app-specific scaling/storage/ingress.
+- Gitea official-chart dependency knobs are configured under `gitea.gitea.config.*`, `gitea.postgresql.*`, `gitea.postgresql-ha.*`, and `gitea.redis.*` in platform overlays.
 - Service-level secret references and env contracts.
 - OpenClaw runtime configuration should be expressed via structured `openclaw.*` values (rendered to `openclaw.json`) rather than generic key/value config blobs.
 
