@@ -162,10 +162,10 @@ scripts/ci/check_golden.sh
 
 ```bash
 # Install/upgrade dev profile
-./scripts/install-dev.sh --values-file charts/platform-stack/values-dev.yaml
+./scripts/install.sh --profile dev --values-file charts/platform-stack/values-dev.yaml
 
 # Install/upgrade AKS profile
-./scripts/install-aks.sh --values-file charts/platform-stack/values-aks.yaml
+./scripts/install.sh --profile aks --values-file charts/platform-stack/values-aks.yaml
 ```
 
 For script options, run each command with `--help`.
