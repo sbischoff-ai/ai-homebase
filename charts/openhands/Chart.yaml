@@ -3,7 +3,7 @@ name: openhands
 description: Helm chart for deploying the OpenHands orchestration service
 type: application
 version: 0.1.0
-appVersion: "1.5"
+appVersion: "1.5.0"
 keywords:
   - ai
   - platform
