@@ -21,8 +21,8 @@ openclaw:
 
 openhands:
   image:
-    repository: <registry>/openhands
-    tag: <image-tag>
+    repository: ghcr.io/openhands/openhands
+    tag: "1.5.0"
   queue:
     enabled: true
     provider: <queue-provider>
