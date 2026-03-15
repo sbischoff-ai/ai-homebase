@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "openclaw values",
+  "additionalProperties": true,
+  "required": ["image", "service", "ingress", "persistence"],
+  "properties": {
+    "image": {
+      "type": "object",
+      "required": ["repository", "pullPolicy"],
+      "additionalProperties": true,
+      "properties": {
+        "repository": { "type": "string", "minLength": 1 },
+        "tag": { "type": "string" },
+        "pullPolicy": {
+          "type": "string",
+          "enum": ["Always", "IfNotPresent", "Never"],
+          "default": "IfNotPresent"
+        }
+      }
+    },
+    "service": {
+      "type": "object",
+      "required": ["type", "port", "targetPort"],
+      "additionalProperties": true,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["ClusterIP", "NodePort", "LoadBalancer", "ExternalName"],
+          "default": "ClusterIP",
+          "description": "Kubernetes Service type for OpenClaw."
+        },
+        "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+        "targetPort": {
+          "oneOf": [
+            { "type": "integer", "minimum": 1, "maximum": 65535 },
+            { "type": "string", "minLength": 1 }
+          ]
+        }
+      }
+    },
+    "ingress": {
+      "type": "object",
+      "required": ["enabled", "hosts"],
+      "additionalProperties": true,
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "className": { "type": "string", "default": "" },
+        "defaultHost": {
+          "type": "string",
+          "default": "openclaw.example.com",
+          "description": "Fallback host when a hosts[*].host entry is omitted."
+        },
+        "hosts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["host"],
+            "properties": {
+              "host": {
+                "type": "string",
+                "description": "Ingress hostname for OpenClaw; empty allows fallback to ingress.defaultHost/global host."
+              }
+            },
+            "additionalProperties": true
+          }
+        }
+      }
+    },
+    "persistence": {
+      "type": "object",
+      "required": ["enabled", "size"],
+      "additionalProperties": true,
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "size": { "type": "string", "default": "10Gi" },
+        "storageClass": {
+          "type": "string",
+          "default": "",
+          "description": "PVC storageClass override for OpenClaw state."
+        },
+        "existingClaim": { "type": "string", "default": "" }
+      }
+    },
+    "existingSecret": {
+      "type": "string",
+      "default": "openclaw-secrets",
+      "description": "Secret used for explicit key mapping via secretKeys.*."
+    },
+    "secretRefs": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "object",
+        "required": ["name", "key", "envVar"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "key": { "type": "string", "minLength": 1 },
+          "envVar": { "type": "string", "minLength": 1 }
+        },
+        "additionalProperties": true
+      }
+    }
+  }
+}

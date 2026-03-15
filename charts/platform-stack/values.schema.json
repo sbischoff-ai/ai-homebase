@@ -1,0 +1,236 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "platform-stack values",
+  "additionalProperties": true,
+  "required": ["global", "openclaw", "openhands"],
+  "properties": {
+    "global": {
+      "type": "object",
+      "description": "Shared conventions applied across subcharts.",
+      "required": ["domain", "hosts"],
+      "additionalProperties": true,
+      "properties": {
+        "imagePullSecrets": {
+          "type": "array",
+          "default": [],
+          "items": { "$ref": "#/definitions/nameOrLocalRef" }
+        },
+        "storageClass": {
+          "type": "string",
+          "default": "",
+          "description": "Default StorageClass used when a service-specific storageClass is not set."
+        },
+        "domain": {
+          "type": "string",
+          "minLength": 1,
+          "default": "homebase.local",
+          "description": "Base domain used by host-based values and overlays."
+        },
+        "hosts": {
+          "type": "object",
+          "description": "Default hostnames by service.",
+          "additionalProperties": { "$ref": "#/definitions/hostname" },
+          "properties": {
+            "openclaw": { "$ref": "#/definitions/hostname" },
+            "openhands": { "$ref": "#/definitions/hostname" },
+            "nextcloud": { "$ref": "#/definitions/hostname" },
+            "gitea": { "$ref": "#/definitions/hostname" },
+            "paperless": { "$ref": "#/definitions/hostname" },
+            "paperlessNgx": { "$ref": "#/definitions/hostname" },
+            "infisical": { "$ref": "#/definitions/hostname" },
+            "wg": { "$ref": "#/definitions/hostname" },
+            "vpn": { "$ref": "#/definitions/hostname" },
+            "wgEasy": { "$ref": "#/definitions/hostname" }
+          }
+        }
+      }
+    },
+    "openclaw": {
+      "type": "object",
+      "required": ["enabled", "service", "ingress"],
+      "additionalProperties": true,
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "existingSecret": {
+          "type": "string",
+          "default": "openclaw-app-secrets",
+          "description": "Kubernetes Secret name containing OpenClaw credentials."
+        },
+        "service": { "$ref": "#/definitions/service" },
+        "ingress": { "$ref": "#/definitions/ingressWithHosts" },
+        "persistence": { "$ref": "#/definitions/persistence" },
+        "secretRefs": { "$ref": "#/definitions/secretRefs" }
+      }
+    },
+    "openhands": {
+      "type": "object",
+      "required": ["enabled", "service", "ingress"],
+      "additionalProperties": true,
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "existingSecret": {
+          "type": "string",
+          "default": "",
+          "description": "Optional Kubernetes Secret name injected as envFrom for OpenHands."
+        },
+        "service": {
+          "allOf": [
+            { "$ref": "#/definitions/service" },
+            {
+              "properties": {
+                "enabled": { "type": "boolean", "default": true }
+              }
+            }
+          ]
+        },
+        "ingress": { "$ref": "#/definitions/ingressWithHostName" },
+        "workspace": { "$ref": "#/definitions/persistence" },
+        "secretRefs": { "$ref": "#/definitions/secretRefs" },
+        "secretEnv": { "$ref": "#/definitions/secretEnv" }
+      }
+    },
+    "nextcloud": { "$ref": "#/definitions/optionalServiceToggle" },
+    "gitea": { "$ref": "#/definitions/optionalServiceToggle" },
+    "paperlessNgx": { "$ref": "#/definitions/optionalServiceToggle" },
+    "infisical": { "$ref": "#/definitions/optionalServiceToggle" },
+    "wgEasy": { "$ref": "#/definitions/optionalServiceToggle" }
+  },
+  "definitions": {
+    "nameOrLocalRef": {
+      "oneOf": [
+        { "type": "string", "minLength": 1 },
+        {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string", "minLength": 1 }
+          },
+          "required": ["name"],
+          "additionalProperties": true
+        }
+      ]
+    },
+    "hostname": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?$",
+      "description": "DNS host name.",
+      "default": "example.homebase.local"
+    },
+    "service": {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": true,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["ClusterIP", "NodePort", "LoadBalancer", "ExternalName"],
+          "default": "ClusterIP",
+          "description": "Kubernetes Service type."
+        },
+        "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+        "targetPort": {
+          "oneOf": [
+            { "type": "integer", "minimum": 1, "maximum": 65535 },
+            { "type": "string", "minLength": 1 }
+          ]
+        }
+      }
+    },
+    "ingressWithHosts": {
+      "type": "object",
+      "required": ["enabled", "hosts"],
+      "additionalProperties": true,
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "className": { "type": "string", "default": "" },
+        "hosts": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "object",
+            "required": ["host"],
+            "properties": {
+              "host": { "$ref": "#/definitions/hostname" }
+            },
+            "additionalProperties": true
+          }
+        }
+      }
+    },
+    "ingressWithHostName": {
+      "type": "object",
+      "required": ["enabled", "hostName"],
+      "additionalProperties": true,
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "hostName": {
+          "type": "string",
+          "default": "openhands.homebase.local",
+          "description": "Primary hostname for OpenHands ingress."
+        },
+        "ingressClassName": { "type": "string", "default": "" }
+      }
+    },
+    "persistence": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "size": {
+          "type": "string",
+          "default": "10Gi",
+          "description": "PersistentVolumeClaim requested storage size."
+        },
+        "storageClass": {
+          "type": "string",
+          "default": "",
+          "description": "PVC StorageClass override for this service."
+        }
+      }
+    },
+    "secretRefs": {
+      "type": "array",
+      "default": [],
+      "description": "List of explicit secret key-to-env mappings.",
+      "items": {
+        "type": "object",
+        "required": ["name", "key", "envVar"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "key": { "type": "string", "minLength": 1 },
+          "envVar": { "type": "string", "minLength": 1 }
+        },
+        "additionalProperties": true
+      }
+    },
+    "secretEnv": {
+      "type": "array",
+      "default": [],
+      "description": "Structured secretKeyRef-based env mappings.",
+      "items": {
+        "type": "object",
+        "required": ["name", "secretName", "key"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "secretName": { "type": "string", "minLength": 1 },
+          "key": { "type": "string", "minLength": 1 },
+          "optional": { "type": "boolean", "default": false }
+        },
+        "additionalProperties": true
+      }
+    },
+    "optionalServiceToggle": {
+      "type": "object",
+      "required": ["enabled"],
+      "additionalProperties": true,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Service toggle. Explicitly set per environment overlay."
+        }
+      }
+    }
+  }
+}
