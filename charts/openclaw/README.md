@@ -6,6 +6,7 @@ This chart deploys OpenClaw as a **single trusted-boundary, long-running gateway
 
 - **One replica** (`replicaCount: 1`) because the gateway owns mutable state.
 - **Durable state** (`persistence.enabled: true`) mounted at `/home/node/.openclaw` and exported as `OPENCLAW_STATE_DIR`.
+- **Writable runtime tempdir** mounted at `/tmp` via `emptyDir` (`medium: Memory`) so non-root UID `1000` can always create OpenClaw startup temp paths (for example `/tmp/openclaw-1000`) even when the root filesystem is read-only.
 - A rendered `openclaw.json` from chart values, mounted read-only and set via `OPENCLAW_CONFIG_PATH=/etc/openclaw/openclaw.json`.
 - Gateway defaults for remote access:
   - `gateway.bind: lan`
