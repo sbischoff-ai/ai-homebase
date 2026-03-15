@@ -9,15 +9,11 @@ Use this repo when you want one place to manage chart composition, service enabl
 
 ## Quick start: deploy and use
 
-### Local path (k3d)
-For a local development cluster and smoke workflow, follow the k3d deployment guide:
+Start with the canonical deployment landing page:
 
-- [Deploy on k3d (`docs/deployment-k3d.md`)](./docs/deployment-k3d.md)
+- [How do I deploy and use it? (`docs/deployment.md`)](./docs/deployment.md)
 
-### Cloud/homelab path (AKS or cluster-first)
-For AKS-oriented deployment steps (and patterns you can adapt to homelab clusters), use:
-
-- [Deploy on AKS (`docs/deployment-aks.md`)](./docs/deployment-aks.md)
+From there, choose the environment-specific flow for k3d local, AKS, or generic Kubernetes/homelab deployments.
 
 ## Where to go next
 - Configuration layering and toggle model: [`docs/configuration.md`](./docs/configuration.md)
