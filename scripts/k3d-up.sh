@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
+
+source "$(dirname "$0")/lib/logging.sh"
 
 CLUSTER_NAME="${CLUSTER_NAME:-ai-homebase-dev}"
 HTTP_PORT="${HTTP_PORT:-80}"
@@ -22,6 +24,7 @@ Options:
   --https-port <port>           Host HTTPS port mapped to LB 443 (default: ${HTTPS_PORT})
   --without-https               Do not map host HTTPS port 443 to the k3s load balancer
   --kubeconfig <path>           Write/use dedicated kubeconfig path (default: ${KUBECONFIG_PATH})
+  --verbose                     Stream full command output
   -h, --help                    Show this help message
 USAGE
 }
@@ -33,14 +36,18 @@ while [[ $# -gt 0 ]]; do
     --https-port) HTTPS_PORT="$2"; shift 2 ;;
     --without-https) ENABLE_HTTPS="false"; shift ;;
     --kubeconfig) KUBECONFIG_PATH="$2"; shift 2 ;;
+    --verbose) BOOTSTRAP_VERBOSE=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
   esac
 done
 
+bootstrap_init_logging
+trap 'fail "k3d bootstrap failed. Log: ${BOOTSTRAP_LOG_FILE}"' ERR
+
 for cmd in k3d kubectl helm; do
   if ! command -v "$cmd" >/dev/null 2>&1; then
-    echo "Missing required dependency: $cmd" >&2
+    fail "Missing required dependency: $cmd"
     exit 1
   fi
 done
@@ -49,10 +56,10 @@ K3D_CONTEXT="k3d-${CLUSTER_NAME}"
 KUBECTL_ARGS=(--kubeconfig "$KUBECONFIG_PATH")
 HELM_ARGS=(--kubeconfig "$KUBECONFIG_PATH")
 
-mkdir -p "$(dirname "$KUBECONFIG_PATH")"
+run_quiet mkdir -p "$(dirname "$KUBECONFIG_PATH")"
 
-if k3d kubeconfig get "$CLUSTER_NAME" >/dev/null 2>&1; then
-  echo "Cluster ${CLUSTER_NAME} already exists; reusing it"
+if run_quiet k3d kubeconfig get "$CLUSTER_NAME"; then
+  step "Reusing existing k3d cluster ${CLUSTER_NAME}"
 else
   CREATE_ARGS=(
     --wait
@@ -63,27 +70,26 @@ else
     CREATE_ARGS+=( -p "${HTTPS_PORT}:443@loadbalancer" )
   fi
 
-  echo "Creating k3d cluster ${CLUSTER_NAME}"
-  k3d cluster create "$CLUSTER_NAME" "${CREATE_ARGS[@]}"
+  step "Creating k3d cluster ${CLUSTER_NAME}"
+  run_quiet k3d cluster create "$CLUSTER_NAME" "${CREATE_ARGS[@]}"
 fi
 
-echo "Writing dedicated kubeconfig to ${KUBECONFIG_PATH}"
-k3d kubeconfig get "$CLUSTER_NAME" > "$KUBECONFIG_PATH"
+step "Writing dedicated kubeconfig to ${KUBECONFIG_PATH}"
+run_quiet bash -c 'k3d kubeconfig get "$1" > "$2"' _ "$CLUSTER_NAME" "$KUBECONFIG_PATH"
 
-kubectl "${KUBECTL_ARGS[@]}" config use-context "$K3D_CONTEXT" >/dev/null
+run_quiet kubectl "${KUBECTL_ARGS[@]}" config use-context "$K3D_CONTEXT"
 CURRENT_CONTEXT="$(kubectl "${KUBECTL_ARGS[@]}" config current-context)"
 if [[ "$CURRENT_CONTEXT" != "$K3D_CONTEXT" ]]; then
-  echo "Failed to switch kubectl context to ${K3D_CONTEXT} (current: ${CURRENT_CONTEXT})" >&2
+  fail "Failed to switch kubectl context to ${K3D_CONTEXT} (current: ${CURRENT_CONTEXT})"
   exit 1
 fi
-echo "kubectl context is ${CURRENT_CONTEXT}"
+ok "kubectl context is ${CURRENT_CONTEXT}"
 
-echo "Running cluster warm-up checks to prevent transient API discovery errors during initial Helm install"
-echo "Waiting for cluster nodes to report Ready"
-kubectl "${KUBECTL_ARGS[@]}" wait --for=condition=Ready node --all --timeout=180s
+step "Running cluster warm-up checks"
+run_quiet kubectl "${KUBECTL_ARGS[@]}" wait --for=condition=Ready node --all --timeout=180s
 
-if kubectl "${KUBECTL_ARGS[@]}" get apiservice v1beta1.metrics.k8s.io >/dev/null 2>&1; then
-  echo "Waiting for APIService v1beta1.metrics.k8s.io to become Available"
+if run_quiet kubectl "${KUBECTL_ARGS[@]}" get apiservice v1beta1.metrics.k8s.io; then
+  step "Waiting for APIService v1beta1.metrics.k8s.io to become Available"
   metrics_deadline=$((SECONDS + 120))
   metrics_ready="false"
 
@@ -97,16 +103,16 @@ if kubectl "${KUBECTL_ARGS[@]}" get apiservice v1beta1.metrics.k8s.io >/dev/null
   done
 
   if [[ "$metrics_ready" != "true" ]]; then
-    echo "Warning: APIService v1beta1.metrics.k8s.io did not become Available within 120s; continuing bootstrap" >&2
+    warn "APIService v1beta1.metrics.k8s.io did not become Available within 120s; continuing bootstrap"
   fi
 fi
 
-echo "Ensuring ingress-nginx Helm repo"
-helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx >/dev/null 2>&1 || true
-helm repo update ingress-nginx >/dev/null
+step "Ensuring ingress-nginx Helm repo"
+run_quiet helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx || true
+run_quiet helm repo update ingress-nginx
 
-echo "Installing/upgrading ingress-nginx controller"
-helm upgrade --install "$INGRESS_RELEASE_NAME" "$INGRESS_CHART_REF" \
+step "Installing/upgrading ingress-nginx controller"
+run_quiet helm upgrade --install "$INGRESS_RELEASE_NAME" "$INGRESS_CHART_REF" \
   "${HELM_ARGS[@]}" \
   --namespace "$INGRESS_NAMESPACE" \
   --create-namespace \
@@ -114,13 +120,13 @@ helm upgrade --install "$INGRESS_RELEASE_NAME" "$INGRESS_CHART_REF" \
   --set controller.ingressClass=nginx \
   --set controller.watchIngressWithoutClass=false
 
-echo "Waiting for ingress-nginx controller readiness"
-kubectl "${KUBECTL_ARGS[@]}" wait --namespace "$INGRESS_NAMESPACE" \
+step "Waiting for ingress-nginx controller readiness"
+run_quiet kubectl "${KUBECTL_ARGS[@]}" wait --namespace "$INGRESS_NAMESPACE" \
   --for=condition=Available \
   deployment/${INGRESS_RELEASE_NAME}-controller \
   --timeout=180s
 
-kubectl "${KUBECTL_ARGS[@]}" wait --namespace "$INGRESS_NAMESPACE" \
+run_quiet kubectl "${KUBECTL_ARGS[@]}" wait --namespace "$INGRESS_NAMESPACE" \
   --for=condition=Ready \
   pods \
   -l app.kubernetes.io/component=controller,app.kubernetes.io/instance=${INGRESS_RELEASE_NAME} \
@@ -128,4 +134,5 @@ kubectl "${KUBECTL_ARGS[@]}" wait --namespace "$INGRESS_NAMESPACE" \
 
 echo "k3d cluster ${CLUSTER_NAME} is ready with ingress-nginx"
 echo "Kubeconfig written to: ${KUBECONFIG_PATH}"
+echo "Bootstrap log: ${BOOTSTRAP_LOG_FILE}"
 echo "Use it with: export KUBECONFIG=${KUBECONFIG_PATH}"

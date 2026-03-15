@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+source "$(dirname "$0")/lib/logging.sh"
+
 RELEASE_NAME="${RELEASE_NAME:-platform-stack}"
 NAMESPACE="${NAMESPACE:-ai-homebase}"
 VALUES_FILES=()
@@ -19,6 +21,7 @@ Options:
   --values-file <path>        Values file path (repeatable)
   --kube-context <context>    Optional kube context
   --kubeconfig <path>         Optional kubeconfig path (overrides KUBECONFIG env)
+  --verbose                   Stream full command output
   -h, --help                  Show this help message
 USAGE
 }
@@ -30,10 +33,13 @@ while [[ $# -gt 0 ]]; do
     --values-file) VALUES_FILES+=("$2"); shift 2 ;;
     --kube-context) KUBE_CONTEXT="$2"; shift 2 ;;
     --kubeconfig) KUBECONFIG_PATH="$2"; shift 2 ;;
+    --verbose) BOOTSTRAP_VERBOSE=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
   esac
 done
+
+bootstrap_init_logging
 
 if [[ ${#VALUES_FILES[@]} -eq 0 ]]; then
   VALUES_FILES=(
@@ -44,7 +50,7 @@ fi
 
 for cmd in helm kubectl curl python3; do
   if ! command -v "$cmd" >/dev/null 2>&1; then
-    echo "Missing required dependency: $cmd" >&2
+    fail "Missing required dependency: $cmd"
     exit 1
   fi
 done
@@ -86,8 +92,9 @@ dump_diagnostics() {
 
 on_error() {
   local line="$1"
-  echo "Error: local k3d smoke test failed near line ${line}." >&2
+  fail "Local k3d smoke test failed near line ${line}."
   dump_diagnostics
+  echo "Bootstrap log: ${BOOTSTRAP_LOG_FILE}" >&2
 }
 trap 'on_error ${LINENO}' ERR
 
@@ -99,7 +106,7 @@ resolve_deployment_name() {
     -o jsonpath='{.items[0].metadata.name}')"
 
   if [[ -z "$deployment_name" ]]; then
-    echo "Unable to find deployment for app=${app_name}, release=${RELEASE_NAME} in namespace=${NAMESPACE}" >&2
+    fail "Unable to find deployment for app=${app_name}, release=${RELEASE_NAME} in namespace=${NAMESPACE}"
     return 1
   fi
 
@@ -111,11 +118,11 @@ wait_for_workload() {
   local deployment_name
   deployment_name="$(resolve_deployment_name "$app_name")"
 
-  echo "Waiting for deployment/${deployment_name} rollout"
-  kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" rollout status "deployment/${deployment_name}" --timeout=300s
+  step "Waiting for deployment/${deployment_name} rollout"
+  run_quiet kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" rollout status "deployment/${deployment_name}" --timeout=300s
 
-  echo "Waiting for pods to become Ready (app=${app_name})"
-  kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" wait \
+  step "Waiting for pods to become Ready (app=${app_name})"
+  run_quiet kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" wait \
     --for=condition=Ready \
     pod \
     -l "app.kubernetes.io/instance=${RELEASE_NAME},app.kubernetes.io/name=${app_name}" \
@@ -138,11 +145,11 @@ print("true" if enabled else "false")
 '
 }
 
-echo "Updating Helm dependencies"
-helm dependency update charts/platform-stack
+step "Updating Helm dependencies"
+run_quiet helm dependency update charts/platform-stack
 
-echo "Installing/upgrading release ${RELEASE_NAME}"
-helm upgrade --install "$RELEASE_NAME" charts/platform-stack \
+step "Installing/upgrading release ${RELEASE_NAME}"
+run_quiet helm upgrade --install "$RELEASE_NAME" charts/platform-stack \
   "${HELM_KUBECONFIG_ARGS[@]}" \
   "${HELM_CONTEXT_ARGS[@]}" \
   --namespace "$NAMESPACE" \
@@ -153,17 +160,18 @@ wait_for_workload openclaw
 wait_for_workload openhands
 
 if [[ "$(is_openclaw_ingress_enabled)" == "true" ]]; then
-  echo "Checking openclaw ingress endpoint"
-  curl --silent --show-error --fail \
+  step "Checking openclaw ingress endpoint"
+  run_quiet curl --silent --show-error --fail \
     -H 'Host: openclaw.localtest.me' \
-    http://127.0.0.1/ >/dev/null
+    http://127.0.0.1/
 else
-  echo "Info: skipping OpenClaw ingress endpoint check because openclaw.ingress.enabled=false in effective values"
+  warn "Skipping OpenClaw ingress endpoint check because openclaw.ingress.enabled=false in effective values"
 fi
 
-echo "Checking openhands ingress endpoint"
-curl --silent --show-error --fail \
+step "Checking openhands ingress endpoint"
+run_quiet curl --silent --show-error --fail \
   -H 'Host: openhands.localtest.me' \
-  http://127.0.0.1/ >/dev/null
+  http://127.0.0.1/
 
 echo "Local k3d smoke checks passed for release=${RELEASE_NAME} namespace=${NAMESPACE}"
+echo "Bootstrap log: ${BOOTSTRAP_LOG_FILE}"

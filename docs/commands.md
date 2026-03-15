@@ -154,9 +154,15 @@ scripts/ci/check_golden.sh
 # Create/prepare local k3d cluster + ingress-nginx
 ./scripts/k3d-up.sh
 
+# Create full local bootstrap flow (cluster + secrets + deploy + smoke checks)
+./scripts/k3d-local-bootstrap.sh
+
 # Tear down local k3d cluster
 ./scripts/k3d-down.sh
 ```
+
+For verbose output from bootstrap helpers, add `--verbose` or set `BOOTSTRAP_VERBOSE=1`.
+By default these scripts keep console output concise and write full command logs to `/tmp/ai-homebase-bootstrap-<timestamp>.log`.
 
 ### Install/upgrade wrappers
 
