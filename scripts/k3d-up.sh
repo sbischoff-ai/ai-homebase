@@ -82,20 +82,57 @@ run_k3d_concise() {
   fi
 }
 
-if run_k3d_concise k3d kubeconfig get "$CLUSTER_NAME"; then
-  step "Reusing existing k3d cluster ${CLUSTER_NAME}"
-else
-  CREATE_ARGS=(
-    --wait
-    -p "${HTTP_PORT}:80@loadbalancer"
-  )
+probe_k3d_cluster() {
+  local cmd_output
+  local status
 
-  if [[ "$ENABLE_HTTPS" == "true" ]]; then
-    CREATE_ARGS+=( -p "${HTTPS_PORT}:443@loadbalancer" )
+  if cmd_output="$(k3d kubeconfig get "$CLUSTER_NAME" 2>&1)"; then
+    status=0
+  else
+    status=$?
   fi
 
-  step "Creating k3d cluster ${CLUSTER_NAME}"
-  run_k3d_concise k3d cluster create "$CLUSTER_NAME" "${CREATE_ARGS[@]}"
+  if [[ -n "$cmd_output" ]]; then
+    printf "%s\n" "$cmd_output" >>"$BOOTSTRAP_LOG_FILE"
+  fi
+
+  if [[ $status -eq 0 ]]; then
+    return 0
+  fi
+
+  if printf '%s' "$cmd_output" | tr '[:upper:]' '[:lower:]' | grep -Eq '(cluster.*not found|no such cluster|does not exist|nodes don.t exist|no nodes found)'; then
+    return 1
+  fi
+
+  if [[ -n "$cmd_output" ]]; then
+    printf "%s\n" "$cmd_output" >&2
+  fi
+
+  return 2
+}
+
+if probe_k3d_cluster; then
+  step "Reusing existing k3d cluster ${CLUSTER_NAME}"
+else
+  cluster_probe_status=$?
+
+  if [[ $cluster_probe_status -eq 1 ]]; then
+    echo "ℹ Cluster not found; creating new cluster ${CLUSTER_NAME}."
+    CREATE_ARGS=(
+      --wait
+      -p "${HTTP_PORT}:80@loadbalancer"
+    )
+
+    if [[ "$ENABLE_HTTPS" == "true" ]]; then
+      CREATE_ARGS+=( -p "${HTTPS_PORT}:443@loadbalancer" )
+    fi
+
+    step "Creating k3d cluster ${CLUSTER_NAME}"
+    run_k3d_concise k3d cluster create "$CLUSTER_NAME" "${CREATE_ARGS[@]}"
+  else
+    fail "Failed to probe cluster ${CLUSTER_NAME}; see output above."
+    exit 1
+  fi
 fi
 
 step "Writing dedicated kubeconfig to ${KUBECONFIG_PATH}"
