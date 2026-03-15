@@ -29,7 +29,9 @@ kubectl --context <your-kube-context> -n <your-namespace> create secret generic 
   --from-literal=OH_WEB_URL=<optional-openhands-web-url>
 
 kubectl --context <your-kube-context> -n <your-namespace> create secret generic nextcloud-app-secrets \
-  --from-literal=NEXTCLOUD_ADMIN_PASSWORD=<dummy-nextcloud-admin-password>
+  --from-literal=NEXTCLOUD_ADMIN_PASSWORD=<dummy-nextcloud-admin-password> \
+  --from-literal=POSTGRES_PASSWORD=<dummy-nextcloud-postgres-password> \
+  --from-literal=REDIS_HOST_PASSWORD=<dummy-nextcloud-redis-password>
 
 kubectl --context <your-kube-context> -n <your-namespace> create secret generic gitea-app-secrets \
   --from-literal=username=<dummy-gitea-admin-username-not-admin> \
@@ -56,6 +58,8 @@ For OpenClaw and OpenHands, make sure secret key names match each chart contract
 - OpenHands secret examples in `charts/openhands/values.yaml` use `secretRefs`/`secretEnv` with `LLM_API_KEY` (plus optional values like `LLM_MODEL` and `OH_WEB_URL` as needed).
 
 For Gitea, use the official chart wiring in overlays: map secret keys with `gitea.secretRefs[]`, then enumerate those env names in `gitea.gitea.additionalConfigFromEnvs` so sensitive `app.ini` values are loaded from Secrets (not plaintext YAML).
+
+For Nextcloud, prefer mapping required credentials with explicit value keys (`nextcloud.admin.passwordSecret`, `nextcloud.externalDatabase.passwordSecret`, `nextcloud.externalRedis.passwordSecret`) and keep ingress on a dedicated `cloud.<domain>` host at `/` rather than a shared subpath.
 
 ## Install/upgrade with value overlays and service toggles
 

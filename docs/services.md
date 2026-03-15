@@ -48,18 +48,22 @@ Minimum baseline for this stack is `openclaw`, `infisical`, and `wgEasy`; other 
 
 ### Nextcloud
 
-- Stateful user data service.
+- Stateful user data service deployed as the standard `nextcloud:<tag>-apache` container in a `StatefulSet`, with a dedicated cron `CronJob` (`nextcloud.cron.*`) running `php -f /var/www/html/cron.php` against the same data volume.
 - Baseline chart default for `nextcloud.persistence.size` is `100Gi`; overlays should size up (or intentionally down for constrained local/dev profiles) based on expected data growth.
-- Ingress is enabled by default so the UI/API is reachable when the service is enabled.
-- For homelab public exposure, use `cloud.<domain>` host + TLS for Nextcloud while keeping non-Nextcloud services on internal ingress classes/hosts reachable via wg-easy/WireGuard.
+- Public exposure posture is **dedicated-host only**: publish Nextcloud on `cloud.<domain>` with TLS and `/` path routing; do not publish under a shared subpath (for example `/cloud`) due to WebDAV/public-link/mobile-client compatibility risks.
+- For homelab public exposure, keep non-Nextcloud services on internal ingress classes/hosts reachable through wg-easy/WireGuard while exposing only `cloud.<domain>` publicly.
 - Canonical external backend wiring uses structured keys: `nextcloud.externalDatabase.{host,port,database,user,passwordSecret.*}` and `nextcloud.externalRedis.{host,port,passwordSecret.*}`, rendered to `POSTGRES_*` and `REDIS_*` container env vars.
-- Supports bootstrap/runtime env wiring for `NEXTCLOUD_ADMIN_USER`, `NEXTCLOUD_ADMIN_PASSWORD` (from `nextcloud.admin.passwordSecret.{name,key}`), `NEXTCLOUD_TRUSTED_DOMAINS`, `OVERWRITEPROTOCOL`, `PHP_MEMORY_LIMIT`, `PHP_UPLOAD_LIMIT`, `NEXTCLOUD_INIT_HTACCESS`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_NAME`, `SMTP_PASSWORD` (from `nextcloud.smtp.passwordSecret.{name,key}`), `MAIL_FROM_ADDRESS`, and `MAIL_DOMAIN`.
-- Includes a dedicated cron `CronJob` (enabled by default) configured via `nextcloud.cron.*`; it reuses the Nextcloud image, mounts `/var/www/html`, runs `php -f /var/www/html/cron.php`, and supports schedule/concurrency/history/resource tuning while reusing `nextcloud.podSecurityContext` and `nextcloud.containerSecurityContext` for hardened defaults with optional UID/GID overrides per environment.
+- Required credential contracts should be set explicitly via:
+  - `nextcloud.admin.passwordSecret.{name,key}` -> `NEXTCLOUD_ADMIN_PASSWORD`
+  - `nextcloud.externalDatabase.passwordSecret.{name,key}` -> `POSTGRES_PASSWORD`
+  - `nextcloud.externalRedis.passwordSecret.{name,key}` -> `REDIS_HOST_PASSWORD` (when Redis auth is enabled)
+- Optional SMTP auth uses `nextcloud.smtp.passwordSecret.{name,key}` -> `SMTP_PASSWORD`.
+- Supports bootstrap/runtime env wiring for `NEXTCLOUD_ADMIN_USER`, `NEXTCLOUD_ADMIN_PASSWORD`, `NEXTCLOUD_TRUSTED_DOMAINS`, `OVERWRITEPROTOCOL`, `PHP_MEMORY_LIMIT`, `PHP_UPLOAD_LIMIT`, `NEXTCLOUD_INIT_HTACCESS`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_NAME`, `SMTP_PASSWORD`, `MAIL_FROM_ADDRESS`, and `MAIL_DOMAIN`.
 - Cron pods inherit the same database/redis env wiring and compatibility secret injection (`existingSecret`, `secretRefs[]`) as the main workload.
 - `nextcloud.initialApps[]` optionally installs/enables apps via a Nextcloud entrypoint post-install hook; recommended optional apps are `calendar`, `contacts`, `tasks`, `notes`, `deck`, and `twofactor_totp`.
-- `nextcloud.trustedDomains` accepts either a YAML list or a string (comma- or space-delimited). Always include `cloud.<domain>` in the effective list/string so the public host is trusted.
+- `nextcloud.trustedDomains` accepts either a YAML list or a string (comma- or space-delimited). Always include the canonical `cloud.<domain>` hostname used by ingress.
 - Compatibility secret injection patterns (`nextcloud.existingSecret`, `nextcloud.secretRefs[]`) remain supported for additional app/runtime secrets.
-- Plan for larger and growing PVC usage, and define routine snapshot/file backup cadence with restore rehearsals for both PVC data and external DB/Redis dependencies.
+- Upgrade policy: move one Nextcloud major version at a time and take both external PostgreSQL backups and Nextcloud PVC snapshots before each major step; verify restore before continuing.
 - Optional `nextcloud.networkPolicy.*` values render a default-deny `NetworkPolicy` for Nextcloud pods, allowing only ingress-controller traffic to the app port and required egress for DNS, PostgreSQL, Redis, and optional SMTP.
 
 ### Gitea
