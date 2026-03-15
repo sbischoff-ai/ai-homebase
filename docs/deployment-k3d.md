@@ -28,6 +28,8 @@ Run the full local setup flow:
 ./scripts/k3d-local-bootstrap.sh --cluster-name ai-homebase-dev
 ```
 
+Use `--verbose` (or `BOOTSTRAP_VERBOSE=1`) when you want full command output streamed live instead of the default concise progress mode.
+
 This workflow is user-focused and script-guided:
 
 - Creates or reuses the k3d cluster.
@@ -73,6 +75,8 @@ Useful options:
 ```
 
 The script prints the generated wg-easy UI password at the end.
+
+All bootstrap scripts now write full command logs to `/tmp/ai-homebase-bootstrap-<timestamp>.log` and print that path in both success and failure summaries.
 
 ### 2.3 Deploy and run local smoke checks
 
