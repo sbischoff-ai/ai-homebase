@@ -80,6 +80,13 @@ def render(case: dict[str, object]) -> tuple[str, set[tuple[str | None, str | No
     return result.stdout, resources
 
 
+def assert_removed_platform_settings_configmap(resources: set[tuple[str | None, str | None]]) -> None:
+    removed = ("ConfigMap", "platform-stack-platform-stack-settings")
+    if removed in resources:
+        raise SystemExit(
+            "render unexpectedly includes removed umbrella settings ConfigMap platform-stack-platform-stack-settings"
+        )
+
 def assert_gitea_single_path(case: dict[str, object], rendered: str, resources: set[tuple[str | None, str | None]]) -> None:
     gitea_enabled = case["set"].get("gitea.enabled") == "true"
     if not gitea_enabled:
@@ -109,6 +116,7 @@ def main() -> None:
         missing = sorted(case["expect_present"] - resources)
         if missing:
             raise SystemExit(f"{case['name']} missing expected resources: {missing}")
+        assert_removed_platform_settings_configmap(resources)
         assert_gitea_single_path(case, rendered, resources)
         print(f"{case['name']}: asserted {len(case['expect_present'])} resource(s)")
 

@@ -16,24 +16,11 @@ metadata:
     platform: aks
   name: platform-stack-openclaw
 ---
-apiVersion: v1
-data:
-  domain: aks.example.com
-  ingressEnabled: 'false'
-kind: ConfigMap
-metadata:
-  labels:
-    app.kubernetes.io/instance: platform-stack
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: platform-stack
-    platform: aks
-  name: platform-stack-platform-stack-settings
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   annotations:
-    updatedAt: 2026-03-03 UTC 11:55:54
+    updatedAt: 2026-03-03 UTC 12:54:41
   labels:
     app: infisical
     chart: infisical-0.2.0
@@ -51,7 +38,7 @@ spec:
   template:
     metadata:
       annotations:
-        updatedAt: 2026-03-03 UTC 11:55:54
+        updatedAt: 2026-03-03 UTC 12:54:41
       labels:
         app: infisical
         component: infisical
@@ -410,19 +397,19 @@ spec:
           valueFrom:
             secretKeyRef:
               key: WG_HOST
-              name: platform-stack-wg-easy-secrets
+              name: wgeasy-app-secrets
         - name: PASSWORD
           valueFrom:
             secretKeyRef:
               key: PASSWORD
-              name: platform-stack-wg-easy-secrets
+              name: wgeasy-app-secrets
         - name: WG_DEFAULT_ADDRESS
           value: 10.8.0.x
         - name: WG_DEFAULT_DNS
           value: 1.1.1.1
         - name: WG_ALLOWED_IPS
           value: 0.0.0.0/0
-        image: ghcr.io/wg-easy/wg-easy:14
+        image: myregistry.azurecr.io/wg-easy:stable
         imagePullPolicy: IfNotPresent
         name: wg-easy
         ports:
@@ -565,7 +552,7 @@ spec:
   - ReadWriteOnce
   resources:
     requests:
-      storage: 1Gi
+      storage: 10Gi
   storageClassName: managed-csi
 ---
 apiVersion: policy/v1
@@ -717,7 +704,7 @@ spec:
   selector:
     app.kubernetes.io/instance: platform-stack
     app.kubernetes.io/name: wg-easy
-  type: LoadBalancer
+  type: ClusterIP
 ---
 apiVersion: v1
 automountServiceAccountToken: false
