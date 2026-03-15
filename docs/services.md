@@ -59,6 +59,7 @@ The table below is the single source of truth for baseline defaults and is keyed
 - Enabled by default in umbrella values (`openhands.enabled: true`).
 - Ingress behavior is profile-specific: base chart defaults to private (`openhands.ingress.enabled: false`), local overlays (`values-dev.yaml`, `values-k3d.yaml`) can enable ingress, and AKS/prod overlays keep ingress off unless explicitly enabled by environment overlays.
 - Canonical OpenHands ingress keys are `openhands.ingress.enabled`, `openhands.ingress.ingressClassName`, `openhands.ingress.hostName`, and `openhands.ingress.tls`.
+- Ingress class precedence: use `openhands.ingress.ingressClassName` as primary; only use legacy `openhands.ingress.annotations["kubernetes.io/ingress.class"]` when `ingressClassName` is empty. Avoid setting both simultaneously; if both are set, the OpenHands chart drops the legacy annotation in rendered manifests.
 - Tune isolation/scheduling/persistence independently from OpenClaw.
 
 ## Service details

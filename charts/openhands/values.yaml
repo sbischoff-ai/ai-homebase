@@ -45,8 +45,7 @@ ingress:
   enabled: false
   hostName: ""
   ingressClassName: ""
-  annotations:
-    kubernetes.io/ingress.class: internal
+  annotations: {}
   tls: []
 
 persistence:
