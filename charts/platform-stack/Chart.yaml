@@ -32,6 +32,7 @@ dependencies:
   - name: wg-easy
     version: 0.1.0
     repository: file://../wg-easy
+    alias: wgEasy
     condition: wgEasy.enabled
   - name: shared-postgresql
     version: 0.1.0

@@ -10,8 +10,20 @@
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["ClusterIP", "NodePort", "LoadBalancer", "ExternalName"],
+          "enum": [
+            "ClusterIP",
+            "NodePort",
+            "LoadBalancer",
+            "ExternalName"
+          ],
           "description": "Kubernetes Service type for wg-easy exposure."
+        },
+        "loadBalancerSourceRanges": {
+          "type": "array",
+          "description": "Optional CIDR allow-list applied to LoadBalancer Services.",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
@@ -23,9 +35,13 @@
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["host"],
+            "required": [
+              "host"
+            ],
             "properties": {
-              "host": { "type": "string" }
+              "host": {
+                "type": "string"
+              }
             },
             "additionalProperties": true
           }
@@ -36,19 +52,36 @@
       "type": "object",
       "additionalProperties": true,
       "properties": {
-        "storageClass": { "type": "string" }
+        "storageClass": {
+          "type": "string"
+        }
       }
     },
-    "existingSecret": { "type": "string" },
+    "existingSecret": {
+      "type": "string"
+    },
     "secretRefs": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["name", "key", "envVar"],
+        "required": [
+          "name",
+          "key",
+          "envVar"
+        ],
         "properties": {
-          "name": { "type": "string", "minLength": 1 },
-          "key": { "type": "string", "minLength": 1 },
-          "envVar": { "type": "string", "minLength": 1 }
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "envVar": {
+            "type": "string",
+            "minLength": 1
+          }
         },
         "additionalProperties": true
       }
