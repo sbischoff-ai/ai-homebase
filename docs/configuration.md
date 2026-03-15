@@ -73,7 +73,7 @@ Use service-specific blocks when behavior must diverge:
 
 - `openclaw.*` and `openhands.*` for core-plane differences.
 - Optional service blocks for app-specific scaling/storage/ingress.
-- Gitea official-chart dependency knobs are configured under `gitea.gitea.config.*`, `gitea.gitea.admin.*` (including `gitea.gitea.admin.existingSecret`), `gitea.postgresql.*`, `gitea.postgresql-ha.*`, and `gitea.redis.*` in platform overlays.
+- Gitea official-chart dependency knobs are configured under `gitea.gitea.config.*`, `gitea.gitea.admin.*` (including `gitea.gitea.admin.existingSecret`), `gitea.gitea.additionalConfigFromEnvs`, `gitea.gitea.additionalConfigSources`, `gitea.postgresql.*`, `gitea.postgresql-ha.*`, and `gitea.redis.*` in platform overlays.
 - Service-level secret references and env contracts.
 - OpenClaw runtime configuration should be expressed via structured `openclaw.*` values (rendered to `openclaw.json`) rather than generic key/value config blobs.
 
@@ -114,7 +114,7 @@ Current supported runtime contracts:
 Recommended layering:
 
 - Keep provider/bootstrap details out of chart profile files.
-- Put only secret **references** in environment overlays.
+- Put only secret **references** in environment overlays (for Gitea sensitive `app.ini` keys, prefer `gitea.secretRefs[]` + `gitea.gitea.additionalConfigFromEnvs`).
 - Generate target Kubernetes Secrets via External Secrets or controlled secret bootstrap processes.
 
 ## Example deployment command pattern

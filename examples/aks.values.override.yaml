@@ -38,6 +38,38 @@ openhands:
     annotations:
       azure.workload.identity/client-id: <openhands-client-id>
 
+gitea:
+  # Keep non-sensitive defaults in profile values; wire secrets from Kubernetes Secret refs.
+  existingSecret: gitea-app-secrets
+  secretRefs:
+    - name: gitea-app-secrets
+      key: GITEA__database__PASSWD
+      envVar: GITEA__database__PASSWD
+    - name: gitea-app-secrets
+      key: GITEA__mailer__PASSWD
+      envVar: GITEA__mailer__PASSWD
+    - name: gitea-app-secrets
+      key: GITEA__oauth2_client__HOMEBASE__CLIENT_SECRET
+      envVar: GITEA__oauth2_client__HOMEBASE__CLIENT_SECRET
+    - name: gitea-app-secrets
+      key: GITEA__security__SECRET_KEY
+      envVar: GITEA__security__SECRET_KEY
+    - name: gitea-app-secrets
+      key: GITEA__security__INTERNAL_TOKEN
+      envVar: GITEA__security__INTERNAL_TOKEN
+  gitea:
+    admin:
+      existingSecret: gitea-app-secrets
+    additionalConfigFromEnvs:
+      - GITEA__database__PASSWD
+      - GITEA__mailer__PASSWD
+      - GITEA__oauth2_client__HOMEBASE__CLIENT_SECRET
+      - GITEA__security__SECRET_KEY
+      - GITEA__security__INTERNAL_TOKEN
+    additionalConfigSources:
+      - secret:
+          secretName: gitea-app-secrets
+
 externalSecrets:
   enabled: true
   secretStoreRef:

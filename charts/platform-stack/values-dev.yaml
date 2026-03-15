@@ -158,6 +158,10 @@ gitea:
     config:
       database:
         DB_TYPE: postgres
+      service:
+        DISABLE_REGISTRATION: true
+    additionalConfigFromEnvs: []
+    additionalConfigSources: []
   postgresql:
     enabled: true
     primary:
