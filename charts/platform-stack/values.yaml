@@ -348,7 +348,7 @@ paperlessNgx:
   secretRefs: []
 
 infisical:
-  enabled: false
+  enabled: true
   infisical:
     enabled: true
     image:
@@ -386,7 +386,7 @@ infisical:
     enabled: false
 
 wgEasy:
-  enabled: false
+  enabled: true
   image:
     repository: ghcr.io/wg-easy/wg-easy
     tag: "14"

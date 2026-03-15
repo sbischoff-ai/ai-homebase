@@ -85,9 +85,9 @@ Canonical schema for OpenHands storage is `openhands.persistence.*`. All shipped
 
 Deprecation timeline: compatibility support for `openhands.workspace.*` is planned for removal in the first chart release after **2026-01-31**. Update any custom overlays to `openhands.persistence.*` before that release.
 
-## Toggle strategy for optional services
+## Toggle strategy for service composition
 
-Treat optional services as explicit decisions in each environment overlay:
+`infisical.enabled` and `wgEasy.enabled` are default-on in shipped profiles, while other personal-cloud services remain optional. Treat all service toggles as explicit decisions in each environment overlay:
 
 Profile note: Gitea values in shipped `charts/platform-stack/values*.yaml` are intentionally internal-only (`service.type: ClusterIP`, `ingress.className: internal-nginx`, host `gitea.vpn.homebase.internal`). Keep DNS for that host private (for example reachable only through wg-easy/WireGuard).
 

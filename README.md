@@ -1,7 +1,7 @@
 # ai-homebase
 
 ## What is this repo?
-`ai-homebase` is a Kubernetes + Helm starter for running a core AI platform with optional homelab services from a single umbrella chart. The default shape is a core plane (`openclaw` and `openhands`) plus opt-in services such as Nextcloud, Gitea, Paperless-ngx, Infisical, and wg-easy.
+`ai-homebase` is a Kubernetes + Helm starter for running a core AI platform with optional homelab services from a single umbrella chart. The default shape is a core plane (`openclaw` and `openhands`) plus default-on platform services (`infisical` and `wg-easy`) and opt-in services such as Nextcloud, Gitea, and Paperless-ngx.
 
 The repository is designed around predictable values layering and environment overlays so you can keep local, cloud, and production-style deployments aligned while still choosing different service toggles per environment. It is intentionally opinionated about composition, but leaves environment-specific details (domains, secrets, storage classes, and hardening choices) to operator-managed overlays.
 
