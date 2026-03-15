@@ -29,7 +29,7 @@ For complete command coverage (Make targets, lint/render variants, CI-equivalent
 
 For day-2 operations on generic cluster/homelab installs, use the [Homelab operations runbook (`docs/runbook-homelab.md`)](./docs/runbook-homelab.md).
 
-For a VPN-first homelab posture with public Nextcloud only, layer `charts/platform-stack/values-homelab-public-nextcloud.yaml` after `values-dev.yaml`.
+For a VPN-first homelab posture with public Nextcloud only, layer `charts/platform-stack/values-homelab-public-nextcloud.yaml` after `values-dev.yaml`. Keep Nextcloud on a dedicated host (`cloud.<domain>`) rather than a subpath for mobile/WebDAV/public-link compatibility.
 
 ## Documentation map
 
