@@ -131,8 +131,8 @@ probes:
     enabled: true
     path: /healthz
     initialDelaySeconds: 10
-    periodSeconds: 10
-    timeoutSeconds: 2
+    periodSeconds: 15
+    timeoutSeconds: 5
     failureThreshold: 3
   readiness:
     enabled: true
@@ -142,12 +142,12 @@ probes:
     timeoutSeconds: 2
     failureThreshold: 3
   startup:
-    enabled: false
+    enabled: true
     path: /startupz
-    initialDelaySeconds: 5
+    initialDelaySeconds: 0
     periodSeconds: 5
     timeoutSeconds: 2
-    failureThreshold: 30
+    failureThreshold: 12
 
 autoscaling:
   enabled: false

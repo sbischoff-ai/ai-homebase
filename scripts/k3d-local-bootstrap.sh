@@ -22,6 +22,7 @@ Options:
   --release-name <name>    Helm release name (default: ${RELEASE_NAME})
   --kubeconfig <path>      Dedicated kubeconfig path (default: ${KUBECONFIG_PATH})
   --wg-host <host>         WireGuard host clients should use (default: ${WG_HOST})
+  OPENAI_API_KEY env var   Required OpenAI API key for bootstrap secret generation
   --verbose                Stream full command output
   -h, --help               Show this help message
 USAGE
@@ -51,6 +52,11 @@ on_error() {
   echo "  Bootstrap log: ${BOOTSTRAP_LOG_FILE}"
 }
 trap on_error ERR
+
+if [[ -z "${OPENAI_API_KEY:-}" ]]; then
+  fail "OPENAI_API_KEY is required. Export it before running this script (for example: export OPENAI_API_KEY=\"sk-...\")."
+  exit 1
+fi
 
 step "Bootstrapping k3d cluster and ingress"
 run_quiet ./scripts/k3d-up.sh \

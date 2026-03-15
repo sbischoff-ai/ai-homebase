@@ -11,6 +11,7 @@ WG_PASSWORD="${WG_PASSWORD:-}"
 WG_PASSWORD_OUTPUT_PATH="${WG_PASSWORD_OUTPUT_PATH:-}"
 WG_PASSWORD_HASH="${WG_PASSWORD_HASH:-}"
 OPENCLAW_GATEWAY_TOKEN="${OPENCLAW_GATEWAY_TOKEN:-local-dev-token}"
+OPENAI_API_KEY="${OPENAI_API_KEY:-}"
 POSTGRES_ADMIN_PASSWORD="${POSTGRES_ADMIN_PASSWORD:-postgres-local-dev}"
 REDIS_PASSWORD="${REDIS_PASSWORD:-redis-local-dev}"
 INFISICAL_AUTH_SECRET="${INFISICAL_AUTH_SECRET:-}"
@@ -30,6 +31,7 @@ Options:
   --wg-password <password>       wg-easy UI password (auto-generated if omitted; hashed before storing)
   --wg-password-out <path>       Write resolved wg-easy password to file
   --openclaw-gateway-token <v>   OpenClaw gateway token (default: ${OPENCLAW_GATEWAY_TOKEN})
+  OPENAI_API_KEY env var         Required OpenAI API key for OpenClaw local bootstrap secret
   --postgres-admin-password <v>  shared PostgreSQL admin password (default: generated local value)
   --redis-password <v>           shared Redis password (default: generated local value)
   --verbose                      Stream full command output
@@ -63,6 +65,11 @@ for cmd in kubectl openssl; do
     exit 1
   fi
 done
+
+if [[ -z "$OPENAI_API_KEY" ]]; then
+  fail 'OPENAI_API_KEY is required. Export it before running this script (for example: export OPENAI_API_KEY="sk-...").'
+  exit 1
+fi
 
 generate_wg_password_hash() {
   local plain_password="$1"
@@ -171,7 +178,8 @@ create_and_apply_secret shared-postgresql-initdb \
   --from-literal=00_bootstrap.sql="-- reserved for local bootstrap init scripts"
 
 create_and_apply_secret openclaw-app-secrets \
-  --from-literal=OPENCLAW_GATEWAY_TOKEN="$OPENCLAW_GATEWAY_TOKEN"
+  --from-literal=OPENCLAW_GATEWAY_TOKEN="$OPENCLAW_GATEWAY_TOKEN" \
+  --from-literal=OPENAI_API_KEY="$OPENAI_API_KEY"
 
 create_and_apply_secret "$WG_SECRET_NAME" \
   --from-literal=WG_HOST="$WG_HOST" \

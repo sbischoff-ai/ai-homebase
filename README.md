@@ -18,6 +18,7 @@ From there, choose the environment-specific flow for k3d local, AKS, or generic 
 Essential commands:
 
 ```bash
+export OPENAI_API_KEY="<your-openai-api-key>"
 ./scripts/k3d-local-bootstrap.sh --cluster-name ai-homebase-dev
 helm dependency update charts/platform-stack
 make lint
