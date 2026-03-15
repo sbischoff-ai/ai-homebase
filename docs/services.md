@@ -53,6 +53,7 @@ The table below is the single source of truth for baseline defaults and is keyed
 - Exposed via ingress when enabled.
 - Requires secret references for API/auth integrations.
 - `secretKeys.gatewayToken` is required when token auth is enabled; provider/search keys under `secretKeys.*ApiKey` are optional and default to empty mappings until explicitly configured in an environment overlay.
+- Runtime hardening keeps OpenClaw non-root (`runAsUser: 1000`, `runAsGroup: 1000`, `podSecurityContext.fsGroup: 1000`) and mounts an in-memory writable `/tmp` (`emptyDir`) so startup can create `/tmp/openclaw-1000` under read-only root filesystem policies.
 
 ### OpenHands
 
