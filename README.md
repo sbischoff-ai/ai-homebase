@@ -18,12 +18,15 @@ From there, choose the environment-specific flow for k3d local, AKS, or generic 
 Essential commands:
 
 ```bash
+./scripts/k3d-up.sh
 helm dependency update charts/platform-stack
 make lint
 make render > /tmp/platform-stack-dev.yaml
+./scripts/test-local-k3d.sh
 ./scripts/install-dev.sh --values-file charts/platform-stack/values-dev.yaml
-./scripts/k3d-up.sh
 ```
+
+`./scripts/install-dev.sh` assumes your kube context is already reachable and correctly selected.
 
 For complete command coverage (Make targets, lint/render variants, CI-equivalent checks, and helper scripts), see [`docs/commands.md`](./docs/commands.md).
 
