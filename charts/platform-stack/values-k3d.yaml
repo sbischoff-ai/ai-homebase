@@ -98,13 +98,9 @@ openhands:
   # Local internal ingress mirrors OpenClaw ingress class/annotation convention.
   ingress:
     enabled: true
-    className: nginx
+    hostName: openhands.localtest.me
+    ingressClassName: nginx
     annotations: {}
-    hosts:
-      - host: openhands.localtest.me
-        paths:
-          - path: /
-            pathType: Prefix
     tls: []
   persistence:
     enabled: false

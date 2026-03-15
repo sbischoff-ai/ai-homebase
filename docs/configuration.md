@@ -84,6 +84,8 @@ Use service-specific blocks when behavior must diverge:
 ## OpenHands persistence key migration
 
 Canonical schema for OpenHands storage is `openhands.persistence.*`. All shipped platform profiles (`charts/platform-stack/values-*.yaml`) and storage examples now use `persistence.*` directly.
+Canonical ingress schema for OpenHands is `openhands.ingress.{enabled,ingressClassName,hostName,tls}`. Shipped platform profiles use these keys directly.
+
 
 `openhands.workspace.*` remains a temporary compatibility alias that maps to the same behavior during the migration window.
 

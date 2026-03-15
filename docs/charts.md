@@ -175,7 +175,7 @@ OpenHands also renders the following env vars by default:
 Ingress controls are available under `openhands.ingress.*`:
 
 - `ingress.enabled`
-- `ingress.hostName` (preferred single host entry)
+- `ingress.hostName` (canonical single host entry)
 - `ingress.ingressClassName`
 - `ingress.annotations`
 - `ingress.tls`
