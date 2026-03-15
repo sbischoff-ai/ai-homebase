@@ -2,7 +2,7 @@
 
 This document summarizes each service's role, default posture, toggle, and integration notes.
 
-Profile-specific defaults can differ from base chart defaults; verify effective behavior via values layering in [`docs/configuration.md`](./configuration.md#values-hierarchy-lowest-to-highest-precedence).
+Canonical default posture in this document refers to umbrella defaults from `charts/platform-stack/values.yaml` (before profile overlays). Profile overlays can intentionally change behavior; verify layered outcomes in [`docs/configuration.md`](./configuration.md#values-hierarchy-lowest-to-highest-precedence).
 
 ## Composition overview
 
@@ -11,11 +11,11 @@ Profile-specific defaults can differ from base chart defaults; verify effective 
 | Service | Role | Default expectation |
 | --- | --- | --- |
 | `openclaw` | General AI assistant UI/API | Enabled with private service access by default (`ingress.enabled: false` in baseline and shipped overlays) |
-| `openhands` | Agentic coding UI/API | Optional core-plane companion service with profile-specific ingress posture: baseline/AKS/prod keep ingress off; dev/k3d may enable ingress for local workflows |
+| `openhands` | Agentic coding UI/API | Enabled by default in umbrella values; ingress posture is profile-specific (baseline/AKS/prod keep ingress off, dev/k3d may enable for local workflows) |
 
 ### Default-on platform services
 
-Minimum baseline for this stack is `openclaw`, `infisical`, and `wgEasy`; other services remain environment-selectable via overlays.
+Normal (non-minimal) umbrella defaults include `infisical` and `wgEasy` and keep `openhands` enabled in the core plane. Minimal-cluster required services are `openclaw`, `infisical`, and `wgEasy`; `wgEasy`, `openclaw`, and `infisical` are not intended to be disabled.
 
 | Service | Toggle | Typical use |
 | --- | --- | --- |
@@ -30,6 +30,21 @@ Minimum baseline for this stack is `openclaw`, `infisical`, and `wgEasy`; other 
 | `gitea` | `gitea.enabled` | Git hosting |
 | `paperless-ngx` | `paperlessNgx.enabled` | Document ingestion/archive |
 
+
+## Effective defaults (umbrella baseline)
+
+The table below is the single source of truth for baseline defaults and is keyed to `charts/platform-stack/values.yaml`.
+
+| Service | Operator-facing toggle | Default in `charts/platform-stack/values.yaml` | Disable intent |
+| --- | --- | --- | --- |
+| `openclaw` | `openclaw.enabled` | `true` | Not intended to be disabled in minimal clusters |
+| `openhands` | `openhands.enabled` | `true` | Can be disabled in minimal/core-only environments |
+| `nextcloud` | `nextcloud.enabled` | `true` | Can be disabled |
+| `gitea` | `gitea.enabled` | `false` | Opt-in only |
+| `paperless-ngx` | `paperlessNgx.enabled` | `false` | Opt-in only |
+| `infisical` | `infisical.enabled` | `true` | Not intended to be disabled in minimal clusters |
+| `wg-easy` | `wgEasy.enabled` | `true` | Not intended to be disabled in minimal clusters |
+
 ## Core plane details
 
 ### OpenClaw
@@ -41,6 +56,7 @@ Minimum baseline for this stack is `openclaw`, `infisical`, and `wgEasy`; other 
 ### OpenHands
 
 - Agentic coding service that provides a user-facing UI/API.
+- Enabled by default in umbrella values (`openhands.enabled: true`).
 - Ingress behavior is profile-specific: base chart defaults to private (`openhands.ingress.enabled: false`), local overlays (`values-dev.yaml`, `values-k3d.yaml`) can enable ingress, and AKS/prod overlays keep ingress off unless explicitly enabled by environment overlays.
 - Tune isolation/scheduling/persistence independently from OpenClaw.
 
@@ -49,7 +65,7 @@ Minimum baseline for this stack is `openclaw`, `infisical`, and `wgEasy`; other 
 ### Nextcloud
 
 - Stateful user data service deployed as the standard `nextcloud:<tag>-apache` container in a `StatefulSet`, with a dedicated cron `CronJob` (`nextcloud.cron.*`) running `php -f /var/www/html/cron.php` against the same data volume.
-- Baseline chart default for `nextcloud.persistence.size` is `100Gi`; overlays should size up (or intentionally down for constrained local/dev profiles) based on expected data growth.
+- Baseline umbrella default for `nextcloud.persistence.size` is `250Gi` (`charts/platform-stack/values.yaml`). The standalone Nextcloud subchart default is `100Gi` (`charts/nextcloud/values.yaml`) and is intentionally overridden by the umbrella chart.
 - Public exposure posture is **dedicated-host only**: publish Nextcloud on `cloud.<domain>` with TLS and `/` path routing; do not publish under a shared subpath (for example `/cloud`) due to WebDAV/public-link/mobile-client compatibility risks.
 - For homelab public exposure, keep non-Nextcloud services on internal ingress classes/hosts reachable through wg-easy/WireGuard while exposing only `cloud.<domain>` publicly.
 - Canonical external backend wiring uses structured keys: `nextcloud.externalDatabase.{host,port,database,user,passwordSecret.*}` and `nextcloud.externalRedis.{host,port,passwordSecret.*}`, rendered to `POSTGRES_*` and `REDIS_*` container env vars.

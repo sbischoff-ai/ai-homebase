@@ -88,7 +88,9 @@ Deprecation timeline: compatibility support for `openhands.workspace.*` is plann
 
 ## Toggle strategy for service composition
 
-`infisical.enabled` and `wgEasy.enabled` are default-on in shipped profiles, while other personal-cloud services remain optional. Treat all service toggles as explicit decisions in each environment overlay:
+Canonical baseline defaults come from `charts/platform-stack/values.yaml`: `openclaw.enabled`, `openhands.enabled`, `nextcloud.enabled`, `infisical.enabled`, and `wgEasy.enabled` are `true`, while `gitea.enabled` and `paperlessNgx.enabled` are `false`.
+
+Treat all service toggles as explicit decisions in each environment overlay:
 
 Profile note: Gitea values in shipped `charts/platform-stack/values*.yaml` are intentionally internal-only (`service.type: ClusterIP`, `ingress.className: internal-nginx`, host `gitea.vpn.homebase.internal`). Keep DNS for that host private (for example reachable only through wg-easy/WireGuard).
 
