@@ -11,25 +11,34 @@ This chart aligns with the upstream wg-easy container requirements by setting:
   - `net.ipv4.ip_forward=1`
   - `net.ipv4.conf.all.src_valid_mark=1`
 
-Your Kubernetes node/host kernel must also provide WireGuard and iptables NAT support.
+Your Kubernetes node/host kernel must also provide WireGuard and **legacy xtables iptables NAT** support.
 If either is missing, wg-easy can fail during `wg-quick up wg0` when adding the MASQUERADE rule.
+
+Important: treat this as a **node prerequisite**, not a Pod-spec tuning issue.
+Current `wg-easy` / `wg-quick` startup flows still execute legacy `iptables` commands in `PostUp`.
 
 Host verification commands:
 
 ```bash
-lsmod | grep -E '(^wireguard|iptable_nat|nf_nat)'
-sudo modprobe wireguard iptable_nat
+lsmod | grep -E '(^wireguard|^ip_tables|^iptable_filter|^iptable_nat|^nf_nat)'
+sudo modprobe wireguard ip_tables iptable_filter iptable_nat
 sudo sysctl net.ipv4.ip_forward
 sudo sysctl net.ipv4.conf.all.src_valid_mark
-sudo iptables -t nat -S >/dev/null
+sudo iptables -t nat -L >/dev/null
 ```
 
 Expected outcomes:
 
-- `wireguard` and `iptable_nat` modules load or are already present.
+- `wireguard`, `ip_tables`, and `iptable_nat` modules load or are already present.
+- `iptable_filter` is usually also present.
 - `net.ipv4.ip_forward = 1` on the host.
 - `net.ipv4.conf.all.src_valid_mark = 1` on the host.
 - `iptables -t nat` succeeds (no `Table does not exist` error).
+
+Persist these kernel modules at node boot (distribution-specific: for example `/etc/modules-load.d/*.conf`) so nodes are ready before scheduling wg-easy.
+
+If your Kubernetes nodes are nftables-only / legacy-xtables-disabled, `wg-quick up wg0` can still fail even when WireGuard itself is available.
+In that case, run wg-easy only on compatible nodes or redesign networking to avoid wg-easy-managed NAT.
 
 ## Prerequisites
 
