@@ -90,7 +90,7 @@ openhands:
           - path: /
             pathType: Prefix
     tls: []
-  workspace:
+  persistence:
     enabled: true
     size: 100Gi
     storageClass: premium-rwo
