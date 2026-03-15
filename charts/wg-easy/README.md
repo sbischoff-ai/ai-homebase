@@ -2,6 +2,31 @@
 
 This chart deploys [wg-easy](https://github.com/wg-easy/wg-easy) with WireGuard UDP and the web UI service.
 
+## Runtime requirements (all Kubernetes targets)
+
+This chart aligns with the upstream wg-easy container requirements by setting:
+
+- container capabilities: `NET_ADMIN`, `SYS_MODULE`
+- forwarding sysctls on the Pod: `net.ipv4.ip_forward=1`, `net.ipv4.conf.all.src_valid_mark=1`
+
+Your Kubernetes node/host kernel must also provide WireGuard and iptables NAT support.
+If either is missing, wg-easy can fail during `wg-quick up wg0` when adding the MASQUERADE rule.
+
+Host verification commands:
+
+```bash
+lsmod | grep -E '(^wireguard|iptable_nat|nf_nat)'
+sudo modprobe wireguard iptable_nat
+sudo sysctl net.ipv4.ip_forward
+sudo iptables -t nat -S >/dev/null
+```
+
+Expected outcomes:
+
+- `wireguard` and `iptable_nat` modules load or are already present.
+- `net.ipv4.ip_forward = 1` on the host.
+- `iptables -t nat` succeeds (no `Table does not exist` error).
+
 ## Prerequisites
 
 Create a secret that provides the required runtime keys:
