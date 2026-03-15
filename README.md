@@ -69,11 +69,29 @@ Profiles:
 ## Prerequisites
 
 - [Git](https://git-scm.com/)
+- [Nix](https://nixos.org/download/) (optional, for reproducible dev/devops shells)
 - [Helm 3](https://helm.sh/docs/intro/install/)
 - [kubectl](https://kubernetes.io/docs/tasks/tools/)
 - [Docker](https://docs.docker.com/get-docker/) (required by k3d)
 - [k3d](https://k3d.io/) (for local cluster lifecycle scripts)
 - Access to Kubernetes (AKS, homelab, or other distribution)
+
+## Nix development shells (optional)
+
+For NixOS (or any machine with Nix), `shell.nix` defines two profiles:
+
+- `dev`: local chart development with Helm/kubectl/k3d tooling.
+- `devops`: adds Azure deployment tooling (`az` and `kubelogin`) on top of `dev`.
+
+Usage:
+
+```bash
+# local development profile
+nix-shell
+
+# devops profile for AKS/Azure workflows
+nix-shell --argstr profile devops
+```
 
 ## Common commands
 
