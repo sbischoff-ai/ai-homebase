@@ -77,53 +77,40 @@ Profiles:
 
 ## Common commands
 
+### Primary workflow (Makefile wrappers)
+
+```bash
+make help
+make lint
+make lint-k3d
+make render > /tmp/platform-stack-dev.yaml
+make render-k3d > /tmp/platform-stack-k3d.yaml
+make smoke-k3d
+```
+
 ### Dependency install/update
 
 ```bash
 helm dependency update charts/platform-stack
 ```
 
-### Linting
-
-```bash
-helm lint charts/platform-stack
-helm lint charts/platform-stack -f charts/platform-stack/values-dev.yaml
-helm lint charts/platform-stack -f charts/platform-stack/values-dev.yaml -f charts/platform-stack/values-k3d.yaml
-helm lint charts/platform-stack -f charts/platform-stack/values-aks.yaml
-helm lint charts/platform-stack -f charts/platform-stack/values-prod.yaml
-```
-
-### Template rendering
-
-```bash
-helm template platform-stack charts/platform-stack
-helm template platform-stack charts/platform-stack -f charts/platform-stack/values-dev.yaml
-helm template platform-stack charts/platform-stack -f charts/platform-stack/values-dev.yaml -f charts/platform-stack/values-k3d.yaml
-helm template platform-stack charts/platform-stack -f charts/platform-stack/values-aks.yaml
-helm template platform-stack charts/platform-stack -f charts/platform-stack/values-prod.yaml
-```
-
-### Local validation (base + k3d)
+### Equivalent script commands (reference)
 
 ```bash
 ./scripts/lint.sh --values-file charts/platform-stack/values-dev.yaml
 ./scripts/lint.sh --values-file charts/platform-stack/values-dev.yaml --values-file charts/platform-stack/values-k3d.yaml
-./scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values-dev.yaml > /tmp/platform-stack-dev.yaml
-./scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values-dev.yaml --values-file charts/platform-stack/values-k3d.yaml > /tmp/platform-stack-k3d.yaml
-```
-
-### Scripted helpers
-
-```bash
-./scripts/lint.sh --values-file charts/platform-stack/values-dev.yaml  # base/dev overlay
-./scripts/lint.sh --values-file charts/platform-stack/values-dev.yaml --values-file charts/platform-stack/values-k3d.yaml  # k3d profile
 ./scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values-dev.yaml
 ./scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values-dev.yaml --values-file charts/platform-stack/values-k3d.yaml
+./scripts/test-local-k3d.sh --release-name platform-stack --namespace ai-homebase
+```
+
+### Additional scripted helpers
+
+```bash
 ./scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values-dev.yaml --values-file charts/platform-stack/values-k3d.yaml --values-file examples/k3d.values.override.yaml
 ./scripts/install-dev.sh --release-name platform-stack --namespace ai-homebase
 ./scripts/install-aks.sh --release-name platform-stack --namespace ai-homebase --kube-context <your-kube-context>
 ./scripts/k3d-up.sh --cluster-name ai-homebase-dev
-./scripts/test-local-k3d.sh --release-name platform-stack --namespace ai-homebase
 ./scripts/k3d-down.sh --cluster-name ai-homebase-dev
 ```
 
