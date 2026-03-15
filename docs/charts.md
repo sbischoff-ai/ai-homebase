@@ -32,6 +32,11 @@ The wrapper currently retains local templates (including `templates/statefulset.
 
 Operational expectation: `GET /api/healthz` returns **HTTP 200** for healthy pods. If wrapper templates are further reduced during migration to official-chart-only rendering, re-verify probe values are still present in rendered manifests (not just values declarations).
 
+### Paperless-ngx probe wiring note
+`charts/paperless-ngx/templates/statefulset.yaml` renders `livenessProbe` and `readinessProbe` from `charts/paperless-ngx/values.yaml` under `probes.liveness` and `probes.readiness`.
+
+Defaults align with existing platform overlays: `httpGet` to `/api/health/` on container port `8000`, with configurable timings (`initialDelaySeconds`, `periodSeconds`) per probe.
+
 ## platform-stack composition
 `platform-stack` is an umbrella chart with dependency toggles:
 
