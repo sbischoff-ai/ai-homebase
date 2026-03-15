@@ -204,7 +204,23 @@ Fix:
 - Use the dedicated kubeconfig written by `scripts/k3d-up.sh` (or pass `--kubeconfig <path>` explicitly).
 - Run all follow-up commands with `--kubeconfig <path>` or `export KUBECONFIG=<path>` for this session.
 
-### B) `ImagePullBackOff` on placeholder/private images
+### B) First-run `k3d-up.sh` probe reports cluster not found
+
+Symptoms:
+
+- During first bootstrap of a new cluster name, `k3d-up.sh` logs an info message: `Cluster not found; creating new cluster ...`.
+
+Why this happens:
+
+- `scripts/k3d-up.sh` probes `k3d kubeconfig get <cluster>` to decide whether to reuse or create a cluster.
+- On the very first run for a cluster name, "not found" is expected and triggers cluster creation.
+
+Fix:
+
+- No action needed for first run; this is normal behavior.
+- If the probe fails for another reason, `k3d-up.sh` still prints the real error and exits so unexpected failures are surfaced.
+
+### C) `ImagePullBackOff` on placeholder/private images
 
 Symptoms:
 
@@ -217,7 +233,7 @@ Fixes:
 - Add pull secrets and reference them via `global.imagePullSecrets` (or service-specific fields).
 - Validate image exists and is reachable from local Docker/k3s runtime.
 
-### C) Ingress class mismatch
+### D) Ingress class mismatch
 
 Symptoms:
 
@@ -230,7 +246,7 @@ Fixes:
 - Confirm ingress controller was installed by `scripts/k3d-up.sh` and is Ready.
 - Re-check host header matches ingress host exactly.
 
-### D) Pods Pending due to storage class assumptions
+### E) Pods Pending due to storage class assumptions
 
 Symptoms:
 
