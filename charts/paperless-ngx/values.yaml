@@ -75,3 +75,12 @@ resources: {}
 # - Secret data keys: UPPER_SNAKE_CASE (example: PAPERLESS_SECRET_KEY)
 existingSecret: "" # Optional envFrom source for app credentials/secrets.
 secretRefs: [] # [{name: paperlessngx-app-secrets, key: PAPERLESS_SECRET_KEY, envVar: PAPERLESS_SECRET_KEY}]
+
+externalDatabase:
+  host: ""
+  port: 5432
+  name: "paperless"
+  user: "paperless"
+  passwordSecret:
+    name: ""
+    key: ""

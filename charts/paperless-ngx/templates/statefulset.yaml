@@ -32,8 +32,22 @@ spec:
           ports:
             - name: http
               containerPort: {{ .Values.service.targetPort }}
-          {{- if .Values.secretRefs }}
           env:
+            - name: PAPERLESS_DBENGINE
+              value: postgresql
+            - name: PAPERLESS_DBHOST
+              value: {{ .Values.externalDatabase.host | quote }}
+            - name: PAPERLESS_DBPORT
+              value: {{ .Values.externalDatabase.port | toString | quote }}
+            - name: PAPERLESS_DBNAME
+              value: {{ .Values.externalDatabase.name | quote }}
+            - name: PAPERLESS_DBUSER
+              value: {{ .Values.externalDatabase.user | quote }}
+            - name: PAPERLESS_DBPASS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.externalDatabase.passwordSecret.name }}
+                  key: {{ .Values.externalDatabase.passwordSecret.key }}
             {{- range .Values.secretRefs }}
             - name: {{ .envVar }}
               valueFrom:
@@ -41,7 +55,6 @@ spec:
                   name: {{ .name }}
                   key: {{ .key }}
             {{- end }}
-          {{- end }}
           {{- if .Values.existingSecret }}
           envFrom:
             - secretRef:
