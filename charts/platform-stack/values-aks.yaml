@@ -207,6 +207,21 @@ gitea:
     size: 20Gi
     storageClass: managed-csi
     annotations: {}
+  gitea:
+    config:
+      database:
+        DB_TYPE: postgres
+  postgresql:
+    enabled: true
+    primary:
+      persistence:
+        enabled: true
+        size: 20Gi
+        storageClass: managed-csi
+  postgresql-ha:
+    enabled: false
+  redis:
+    enabled: true
   resources: {}
   probes:
     liveness:

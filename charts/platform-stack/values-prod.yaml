@@ -221,6 +221,21 @@ gitea:
     size: 100Gi
     storageClass: premium-rwo
     annotations: {}
+  gitea:
+    config:
+      database:
+        DB_TYPE: postgres
+  postgresql:
+    enabled: true
+    primary:
+      persistence:
+        enabled: true
+        size: 100Gi
+        storageClass: premium-rwo
+  postgresql-ha:
+    enabled: false
+  redis:
+    enabled: true
   resources:
     requests:
       cpu: 250m
