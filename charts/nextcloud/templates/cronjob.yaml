@@ -1,0 +1,92 @@
+{{- if .Values.cron.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "nextcloud.fullname" . }}-cron
+  labels:
+    {{- include "nextcloud.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.cron.schedule | quote }}
+  concurrencyPolicy: {{ .Values.cron.concurrencyPolicy }}
+  successfulJobsHistoryLimit: {{ .Values.cron.successfulJobsHistoryLimit }}
+  failedJobsHistoryLimit: {{ .Values.cron.failedJobsHistoryLimit }}
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            {{- include "nextcloud.selectorLabels" . | nindent 12 }}
+        spec:
+          restartPolicy: OnFailure
+          {{- $pullSecrets := concat (.Values.global.imagePullSecrets | default (list)) (.Values.imagePullSecrets | default (list)) | uniq }}
+          {{- if $pullSecrets }}
+          imagePullSecrets:
+            {{- range $pullSecrets }}
+            - name: {{ . }}
+            {{- end }}
+          {{- end }}
+          containers:
+            - name: nextcloud-cron
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              command:
+                - /bin/sh
+                - -c
+                - php -f /var/www/html/cron.php
+              env:
+                - name: POSTGRES_HOST
+                  value: {{ .Values.externalDatabase.host | quote }}
+                - name: POSTGRES_PORT
+                  value: {{ .Values.externalDatabase.port | toString | quote }}
+                - name: POSTGRES_DB
+                  value: {{ .Values.externalDatabase.database | quote }}
+                - name: POSTGRES_USER
+                  value: {{ .Values.externalDatabase.user | quote }}
+                {{- if and .Values.externalDatabase.passwordSecret.name .Values.externalDatabase.passwordSecret.key }}
+                - name: POSTGRES_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.externalDatabase.passwordSecret.name }}
+                      key: {{ .Values.externalDatabase.passwordSecret.key }}
+                {{- end }}
+                - name: REDIS_HOST
+                  value: {{ .Values.externalRedis.host | quote }}
+                - name: REDIS_HOST_PORT
+                  value: {{ .Values.externalRedis.port | toString | quote }}
+                {{- if and .Values.externalRedis.passwordSecret.name .Values.externalRedis.passwordSecret.key }}
+                - name: REDIS_HOST_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.externalRedis.passwordSecret.name }}
+                      key: {{ .Values.externalRedis.passwordSecret.key }}
+                {{- end }}
+                {{- range .Values.secretRefs }}
+                - name: {{ .envVar }}
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .name }}
+                      key: {{ .key }}
+                {{- end }}
+              {{- if .Values.existingSecret }}
+              envFrom:
+                - secretRef:
+                    name: {{ .Values.existingSecret }}
+              {{- end }}
+              {{- if .Values.persistence.enabled }}
+              volumeMounts:
+                - name: data
+                  mountPath: /var/www/html
+              {{- end }}
+              resources:
+                {{- toYaml .Values.cron.resources | nindent 16 }}
+              {{- with .Values.cron.securityContext }}
+              securityContext:
+                {{- toYaml . | nindent 16 }}
+              {{- end }}
+          {{- if and .Values.persistence.enabled .Values.persistence.existingClaim }}
+          volumes:
+            - name: data
+              persistentVolumeClaim:
+                claimName: {{ .Values.persistence.existingClaim }}
+          {{- end }}
+{{- end }}

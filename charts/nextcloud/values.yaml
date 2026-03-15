@@ -94,3 +94,12 @@ externalRedis:
   passwordSecret:
     name: ""
     key: ""
+
+cron:
+  enabled: true
+  schedule: "*/5 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  resources: {}
+  securityContext: {}

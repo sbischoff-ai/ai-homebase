@@ -50,6 +50,8 @@ Profile-specific defaults can differ from base chart defaults; verify effective 
 - Ingress is enabled by default so the UI/API is reachable when the service is enabled.
 - Canonical external backend wiring uses structured keys: `nextcloud.externalDatabase.{host,port,database,user,passwordSecret.*}` and `nextcloud.externalRedis.{host,port,passwordSecret.*}`, rendered to `POSTGRES_*` and `REDIS_*` container env vars.
 - Supports bootstrap/runtime env wiring for `NEXTCLOUD_ADMIN_USER`, `NEXTCLOUD_ADMIN_PASSWORD` (from `nextcloud.admin.passwordSecret.{name,key}`), `NEXTCLOUD_TRUSTED_DOMAINS`, `OVERWRITEPROTOCOL`, `PHP_MEMORY_LIMIT`, `PHP_UPLOAD_LIMIT`, and `NEXTCLOUD_INIT_HTACCESS`.
+- Includes a dedicated cron `CronJob` (enabled by default) configured via `nextcloud.cron.*`; it reuses the Nextcloud image, mounts `/var/www/html`, runs `php -f /var/www/html/cron.php`, and supports schedule/concurrency/history/resource/security-context tuning.
+- Cron pods inherit the same database/redis env wiring and compatibility secret injection (`existingSecret`, `secretRefs[]`) as the main workload.
 - `nextcloud.trustedDomains` accepts either a YAML list or a string (comma- or space-delimited). Always include `cloud.<domain>` in the effective list/string so the public host is trusted.
 - Compatibility secret injection patterns (`nextcloud.existingSecret`, `nextcloud.secretRefs[]`) remain supported for additional app/runtime secrets.
 - Plan for larger and growing PVC usage.
