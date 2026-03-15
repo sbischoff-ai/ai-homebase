@@ -433,6 +433,10 @@ wgEasy:
 sharedPostgresql:
   enabled: true
   fullnameOverride: platform-stack-shared-postgresql
+  image:
+    registry: docker.io
+    repository: postgres
+    tag: "17.5"
   auth:
     existingSecret: shared-postgresql-auth
     secretKeys:
@@ -449,6 +453,10 @@ sharedPostgresql:
 sharedRedis:
   enabled: true
   fullnameOverride: platform-stack-shared-redis
+  image:
+    registry: docker.io
+    repository: redis
+    tag: "8.0.3"
   architecture: standalone
   auth:
     enabled: true

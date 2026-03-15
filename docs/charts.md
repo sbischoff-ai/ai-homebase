@@ -45,8 +45,8 @@ Operational expectation: `GET /api/healthz` returns **HTTP 200** for healthy pod
 
 It also adds shared backend dependencies for centralized state services:
 
-- `sharedPostgresql.enabled` (Bitnami PostgreSQL with persistent PVC + secret-backed auth)
-- `sharedRedis.enabled` (Bitnami Redis with persistent PVC + secret-backed auth)
+- `sharedPostgresql.enabled` (shared PostgreSQL pinned to official `postgres` image with persistent PVC + secret-backed auth)
+- `sharedRedis.enabled` (shared Redis pinned to official `redis` image with persistent PVC + secret-backed auth)
 
 It also provides platform-level value placeholders for:
 
