@@ -78,6 +78,29 @@ if [[ "$CURRENT_CONTEXT" != "$K3D_CONTEXT" ]]; then
 fi
 echo "kubectl context is ${CURRENT_CONTEXT}"
 
+echo "Running cluster warm-up checks to prevent transient API discovery errors during initial Helm install"
+echo "Waiting for cluster nodes to report Ready"
+kubectl "${KUBECTL_ARGS[@]}" wait --for=condition=Ready node --all --timeout=180s
+
+if kubectl "${KUBECTL_ARGS[@]}" get apiservice v1beta1.metrics.k8s.io >/dev/null 2>&1; then
+  echo "Waiting for APIService v1beta1.metrics.k8s.io to become Available"
+  metrics_deadline=$((SECONDS + 120))
+  metrics_ready="false"
+
+  while [[ $SECONDS -lt $metrics_deadline ]]; do
+    if kubectl "${KUBECTL_ARGS[@]}" get apiservice v1beta1.metrics.k8s.io \
+      -o jsonpath='{range .status.conditions[?(@.type=="Available")]}{.status}{end}' 2>/dev/null | grep -q '^True$'; then
+      metrics_ready="true"
+      break
+    fi
+    sleep 5
+  done
+
+  if [[ "$metrics_ready" != "true" ]]; then
+    echo "Warning: APIService v1beta1.metrics.k8s.io did not become Available within 120s; continuing bootstrap" >&2
+  fi
+fi
+
 echo "Ensuring ingress-nginx Helm repo"
 helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx >/dev/null 2>&1 || true
 helm repo update ingress-nginx >/dev/null
