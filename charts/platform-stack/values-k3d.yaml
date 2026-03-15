@@ -143,6 +143,9 @@ gitea:
     size: 10Gi
     storageClass: ""
   gitea:
+    admin:
+      username: git-admin
+      existingSecret: ""
     config:
       database:
         DB_TYPE: postgres

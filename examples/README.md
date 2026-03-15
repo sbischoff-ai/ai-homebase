@@ -32,7 +32,8 @@ kubectl --context <your-kube-context> -n <your-namespace> create secret generic 
   --from-literal=NEXTCLOUD_ADMIN_PASSWORD=<dummy-nextcloud-admin-password>
 
 kubectl --context <your-kube-context> -n <your-namespace> create secret generic gitea-app-secrets \
-  --from-literal=GITEA_ADMIN_PASSWORD=<dummy-gitea-admin-password>
+  --from-literal=username=<dummy-gitea-admin-username-not-admin> \
+  --from-literal=password=<dummy-gitea-admin-password>
 
 kubectl --context <your-kube-context> -n <your-namespace> create secret generic paperlessngx-app-secrets \
   --from-literal=PAPERLESS_SECRET_KEY=<dummy-paperless-secret-key>

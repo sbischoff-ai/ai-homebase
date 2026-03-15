@@ -205,6 +205,9 @@ gitea:
     storageClass: ""
     annotations: {}
   gitea:
+    admin:
+      username: git-admin
+      existingSecret: ""
     config:
       database:
         DB_TYPE: postgres
