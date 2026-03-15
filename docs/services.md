@@ -2,14 +2,16 @@
 
 This document summarizes each service's role, default posture, toggle, and integration notes.
 
+Profile-specific defaults can differ from base chart defaults; verify effective behavior via values layering in [`docs/configuration.md`](./configuration.md#values-hierarchy-lowest-to-highest-precedence).
+
 ## Composition overview
 
 ### Core plane
 
 | Service | Role | Default expectation |
 | --- | --- | --- |
-| `openclaw` | General AI assistant UI/API | Enabled and externally reachable via ingress |
-| `openhands` | Agentic coding UI/API | Enabled and exposed via ingress |
+| `openclaw` | General AI assistant UI/API | Enabled with private service access by default (`ingress.enabled: false` in baseline and shipped overlays) |
+| `openhands` | Agentic coding UI/API | Enabled with profile-specific ingress posture: baseline/AKS/prod keep ingress off; dev/k3d enable ingress for local workflows |
 
 ### Optional personal-cloud services
 
@@ -32,7 +34,7 @@ This document summarizes each service's role, default posture, toggle, and integ
 ### OpenHands
 
 - Agentic coding service that provides a user-facing UI/API.
-- Exposed via ingress when enabled.
+- Ingress behavior is profile-specific: base chart defaults to private (`openhands.ingress.enabled: false`), local overlays (`values-dev.yaml`, `values-k3d.yaml`) can enable ingress, and AKS/prod overlays keep ingress off unless explicitly enabled by environment overlays.
 - Tune isolation/scheduling/persistence independently from OpenClaw.
 
 ## Optional service details

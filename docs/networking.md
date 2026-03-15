@@ -6,12 +6,13 @@ This platform is designed with explicit public/private boundaries between core a
 
 - **OpenClaw is private by default:** `Service` type `ClusterIP` with `openclaw.ingress.enabled: false` unless you explicitly configure internal/private ingress.
 - **OpenClaw access path:** through VPN/private networking, for example `http://openclaw.default.svc.cluster.local:18789`.
-- **Exposed by default (when enabled):** other user-facing UIs/APIs (OpenHands, Nextcloud, Gitea, Paperless-ngx, Infisical, wg-easy web UI).
+- **Baseline chart defaults are private for core ingress:** both `openclaw.ingress.enabled: false` and `openhands.ingress.enabled: false` in `values.yaml`.
 - **Optional private posture per environment:** use internal ingress classes, VPN-only access, or private load balancers when required.
 
 ## Ingress controls
 
 Each service has independent ingress values under `<service>.ingress.*`.
+For precedence details when profile defaults differ, see values layering in [`docs/configuration.md`](./configuration.md#values-hierarchy-lowest-to-highest-precedence).
 
 Common requirements per exposed service:
 
@@ -19,7 +20,7 @@ Common requirements per exposed service:
 - TLS configured with valid certificate issuer.
 - Stable hostnames mapped in DNS.
 
-OpenHands ingress is enabled by default in the platform profiles so the UI/API is reachable.
+OpenHands ingress is profile-specific: `values-dev.yaml` and `values-k3d.yaml` may enable ingress for local workflows, while AKS/prod profiles keep `openhands.ingress.enabled: false` unless explicitly enabled in environment overlays.
 
 ## AKS ingress posture
 
