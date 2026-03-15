@@ -208,6 +208,10 @@ gitea:
     admin:
       username: git-admin
       existingSecret: ""
+    # First phase intentionally limits Gitea to Git/PR/wiki usage.
+    # Actions/runners move to a later dedicated deployment.
+    actions:
+      enabled: false
     config:
       database:
         DB_TYPE: postgres

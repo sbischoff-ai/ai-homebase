@@ -53,6 +53,7 @@ Profile-specific defaults can differ from base chart defaults; verify effective 
 - Avoid public DNS annotations for Gitea unless your annotation targets a private-only DNS zone.
 - Ensure backup for repository integrity.
 - Official-chart dependency defaults in shipped overlays use in-cluster PostgreSQL + Redis (`gitea.postgresql.enabled=true`, `gitea.redis.enabled=true`, `gitea.postgresql-ha.enabled=false`) with `gitea.gitea.config.database.DB_TYPE=postgres` to avoid SQLite drift.
+- Official-chart Actions are intentionally disabled (`gitea.gitea.actions.enabled=false`) for first-phase Git/PR/wiki workflows; Actions runners are deferred to a later dedicated deployment.
 - Admin bootstrap uses official chart fields (`gitea.gitea.admin.username` and `gitea.gitea.admin.existingSecret`) so admin credentials are sourced from Kubernetes Secrets (typically synced from Infisical) instead of plaintext values.
 - Sensitive `app.ini` values (DB password, SMTP password, OAuth client secret, internal/security tokens) should be wired with official-chart mechanisms: set env vars from Kubernetes Secrets (`gitea.secretRefs[]` / `gitea.existingSecret`) and list the env names in `gitea.gitea.additionalConfigFromEnvs`; optionally load secret-backed config snippets via `gitea.gitea.additionalConfigSources`.
 - Keep non-sensitive defaults (for example `gitea.gitea.config.database.DB_TYPE` and `gitea.gitea.config.service.DISABLE_REGISTRATION`) in versioned values files.
