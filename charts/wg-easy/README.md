@@ -7,7 +7,8 @@ This chart deploys [wg-easy](https://github.com/wg-easy/wg-easy) with WireGuard 
 This chart aligns with the upstream wg-easy container requirements by setting:
 
 - container capabilities: `NET_ADMIN`, `SYS_MODULE`
-- forwarding sysctls on the Pod: `net.ipv4.ip_forward=1`, `net.ipv4.conf.all.src_valid_mark=1`
+- pod-level sysctl: `net.ipv4.conf.all.src_valid_mark=1`
+- node-level requirement: `net.ipv4.ip_forward=1` (must be configured on Kubernetes nodes, not in the Pod spec)
 
 Your Kubernetes node/host kernel must also provide WireGuard and iptables NAT support.
 If either is missing, wg-easy can fail during `wg-quick up wg0` when adding the MASQUERADE rule.
