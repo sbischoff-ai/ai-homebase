@@ -56,6 +56,31 @@ Internal/admin-oriented charts expose optional `networkPolicy.*` values and temp
 - `infisical.networkPolicy.*`
 - `wgEasy.networkPolicy.*`
 
+## Snapshot (golden manifest) policy
+
+This repository uses snapshot-based tests for umbrella chart rendering under `tests/golden/`.
+
+- Profiles covered:
+  - `values` (`charts/platform-stack/values.yaml`)
+  - `values-dev` (`charts/platform-stack/values-dev.yaml`)
+  - `values-dev-k3d` (`values-dev.yaml` layered with `values-k3d.yaml`)
+  - `values-aks` (`charts/platform-stack/values-aks.yaml`)
+  - `values-prod` (`charts/platform-stack/values-prod.yaml`)
+- Golden files are generated with `scripts/ci/update_golden.sh`.
+- Verification runs with `scripts/ci/check_golden.sh`, which re-renders and diffs against committed fixtures.
+
+To reduce flakiness, snapshots are normalized and scoped to stable Kubernetes resource kinds (`Deployment`, `StatefulSet`, `Service`, `Ingress`, `ConfigMap`, and related core workload/service objects). Volatile metadata fields and dynamic Helm-release annotations are removed during normalization.
+
+Use this workflow when you intentionally change rendering output:
+
+```bash
+helm dependency build charts/platform-stack
+scripts/ci/update_golden.sh
+scripts/ci/check_golden.sh
+```
+
+If `check_golden.sh` fails unexpectedly, inspect the diff first; only update fixtures when manifest changes are intentional.
+
 ## OpenClaw dedicated config file
 The `openclaw` chart renders an `openclaw.json` ConfigMap entry from structured `openclaw.*` values and mounts it to `/etc/openclaw/openclaw.json` in the pod.
 
@@ -144,4 +169,3 @@ OpenHands-focused secret examples:
 - Optional/future: provider/git credentials such as `OPENAI_API_KEY`, `GITHUB_TOKEN`
 
 For Infisical integration, sync secret material into Kubernetes Secret names (for example `openhands-app-secrets`) and point OpenHands values (`existingSecret`, `envFromSecrets`, `secretRefs`, `secretEnv`) at those Secret names. This matches the OpenClaw-style contract of referencing Kubernetes Secrets from chart values.
-

@@ -129,6 +129,14 @@ helm lint charts/platform-stack -f charts/platform-stack/values-dev.yaml -f char
 python -m pip install --quiet pyyaml
 python scripts/ci/validate_rendered_yaml.py
 python scripts/ci/assert_service_matrix.py
+scripts/ci/check_golden.sh
+```
+
+To intentionally accept rendered-manifest changes, refresh fixtures and re-check:
+
+```bash
+scripts/ci/update_golden.sh
+scripts/ci/check_golden.sh
 ```
 
 These commands mirror `.github/workflows/helm-ci.yml` so local runs match CI behavior exactly.
