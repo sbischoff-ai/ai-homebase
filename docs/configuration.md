@@ -142,6 +142,7 @@ Current supported runtime contracts:
 - `envFromSecrets[]`
 - `secretRefs[]`
 - `secretEnv[]`
+- wg-easy required secret keys: `WG_HOST` and `PASSWORD_HASH` (bcrypt hash consumed as env `PASSWORD_HASH`)
 - Nextcloud canonical external backend keys: `nextcloud.externalDatabase.*` and `nextcloud.externalRedis.*` (mapped to explicit `POSTGRES_*` and `REDIS_*` env vars in the Nextcloud StatefulSet)
 - Paperless admin/bootstrap keys: required `paperless-ngx.admin.user`, optional `paperless-ngx.admin.mail`, and required secret ref `paperless-ngx.admin.passwordSecret.{name,key}` -> `PAPERLESS_ADMIN_PASSWORD`.
 - Paperless canonical secret refs: `paperless-ngx.secretKeySecret.{name,key}` -> `PAPERLESS_SECRET_KEY`, `paperless-ngx.externalDatabase.passwordSecret.{name,key}` -> `PAPERLESS_DBPASS`, `paperless-ngx.redis.urlSecret.{name,key}` (or `paperless-ngx.redis.passwordSecret.{name,key}` when storing a composed Redis URL) -> `PAPERLESS_REDIS`, and `paperless-ngx.admin.passwordSecret.{name,key}` -> `PAPERLESS_ADMIN_PASSWORD`; `paperless-ngx.redis.url` remains supported for direct non-secret URL input and `paperless-ngx.redis.prefix` maps to `PAPERLESS_REDIS_PREFIX`.

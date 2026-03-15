@@ -31,7 +31,7 @@ At least one secret strategy must be ready before install:
 1. **Pre-created Kubernetes Secrets** referenced by `existingSecret`/`secretRefs`.
 2. **External Secrets workflow** with valid `secretStoreRef` and mappings.
 
-For `wg-easy`, when `existingSecret` is set in your overlay, that Secret must include both `WG_HOST` and `PASSWORD` keys.
+For `wg-easy`, when `existingSecret` is set in your overlay, that Secret must include both `WG_HOST` and `PASSWORD_HASH` keys.
 
 ### Registry/image prerequisites
 

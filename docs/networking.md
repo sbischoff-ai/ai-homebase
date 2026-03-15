@@ -45,7 +45,7 @@ Recommended AKS pattern:
 - Keep AKS baseline private (`wgEasy.service.type: ClusterIP`, `wgEasy.ingress.enabled: false`).
 - Add explicit UDP exposure through a dedicated override (for example `examples/aks.wg-easy-udp-lb.override.yaml`) that sets `wgEasy.service.type: LoadBalancer`, keeps ingress disabled, and defines `wgEasy.service.loadBalancerSourceRanges`.
 - If the web UI is intentionally exposed, protect it with strong authn/authz and IP/rate controls.
-- Ensure the configured wg-easy runtime Secret contains `WG_HOST` (reachable endpoint/FQDN) and `PASSWORD` (UI auth) before rollout.
+- Ensure the configured wg-easy runtime Secret contains `WG_HOST` (reachable endpoint/FQDN) and `PASSWORD_HASH` (UI auth bcrypt hash) before rollout.
 
 ## NetworkPolicy guidance
 
