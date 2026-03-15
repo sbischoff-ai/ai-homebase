@@ -49,6 +49,7 @@ Minimum baseline for this stack is `openclaw`, `infisical`, and `wgEasy`; other 
 ### Nextcloud
 
 - Stateful user data service.
+- Baseline chart default for `nextcloud.persistence.size` is `100Gi`; overlays should size up (or intentionally down for constrained local/dev profiles) based on expected data growth.
 - Ingress is enabled by default so the UI/API is reachable when the service is enabled.
 - For homelab public exposure, use `cloud.<domain>` host + TLS for Nextcloud while keeping non-Nextcloud services on internal ingress classes/hosts reachable via wg-easy/WireGuard.
 - Canonical external backend wiring uses structured keys: `nextcloud.externalDatabase.{host,port,database,user,passwordSecret.*}` and `nextcloud.externalRedis.{host,port,passwordSecret.*}`, rendered to `POSTGRES_*` and `REDIS_*` container env vars.
@@ -57,7 +58,7 @@ Minimum baseline for this stack is `openclaw`, `infisical`, and `wgEasy`; other 
 - Cron pods inherit the same database/redis env wiring and compatibility secret injection (`existingSecret`, `secretRefs[]`) as the main workload.
 - `nextcloud.trustedDomains` accepts either a YAML list or a string (comma- or space-delimited). Always include `cloud.<domain>` in the effective list/string so the public host is trusted.
 - Compatibility secret injection patterns (`nextcloud.existingSecret`, `nextcloud.secretRefs[]`) remain supported for additional app/runtime secrets.
-- Plan for larger and growing PVC usage.
+- Plan for larger and growing PVC usage, and define routine snapshot/file backup cadence with restore rehearsals for both PVC data and external DB/Redis dependencies.
 - Optional `nextcloud.networkPolicy.*` values render a default-deny `NetworkPolicy` for Nextcloud pods, allowing only ingress-controller traffic to the app port and required egress for DNS, PostgreSQL, Redis, and optional SMTP.
 
 ### Gitea
