@@ -46,6 +46,8 @@ Recommended AKS pattern:
 - Add explicit UDP exposure through a dedicated override (for example `examples/aks.wg-easy-udp-lb.override.yaml`) that sets `wgEasy.service.type: LoadBalancer`, keeps ingress disabled, and defines `wgEasy.service.loadBalancerSourceRanges`.
 - If the web UI is intentionally exposed, protect it with strong authn/authz and IP/rate controls.
 - Ensure the configured wg-easy runtime Secret contains `WG_HOST` (reachable endpoint/FQDN) and `PASSWORD_HASH` (UI auth bcrypt hash) before rollout.
+- Ensure target nodes provide legacy iptables NAT support before scheduling wg-easy (`wireguard`, `ip_tables`, `iptable_nat`, and usually `iptable_filter` modules loaded) and verify `iptables -t nat -L` succeeds on the node.
+- If nodes are nftables-only / legacy-xtables-disabled, plan node affinity/tolerations to keep wg-easy on compatible nodes or redesign NAT handling outside wg-easy.
 
 ## NetworkPolicy guidance
 

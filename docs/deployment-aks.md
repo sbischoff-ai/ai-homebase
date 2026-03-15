@@ -87,6 +87,8 @@ Before rollout, verify expected VPN reachability and exposure intent:
 2. If using UDP exposure overlay, verify the expected LB settings render (`type: LoadBalancer`, UDP port `51820`, and intended source CIDR allow-list).
 3. Validate that `WG_HOST` in the runtime secret matches the reachable VPN endpoint/FQDN you plan to publish.
 4. Confirm network controls (NSG/firewall and any cluster policy) allow inbound UDP/51820 from the approved source ranges only.
+5. On every target node pool that may run wg-easy, verify legacy xtables NAT support exists before rollout: required modules (`wireguard`, `ip_tables`, `iptable_nat`; usually `iptable_filter`) and `iptables -t nat -L` succeeds.
+6. If a node pool is nftables-only / legacy-xtables-disabled, constrain scheduling so wg-easy runs only on compatible nodes (or use a different VPN/NAT pattern).
 
 ## 5) Prepare values files
 

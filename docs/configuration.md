@@ -188,5 +188,6 @@ Application charts in this repository now share a baseline security contract:
 
 - `podSecurityContext` and `securityContext` (or upstream equivalent pass-through for wrapper charts) are explicit values, not implicit template defaults.
 - Default posture is conservative: runtime-default seccomp, no privilege escalation, and dropped Linux capabilities. Service exceptions are explicit where upstream runtime behavior requires it (for example wg-easy/Infisical set `runAsNonRoot: false`; wg-easy also adds `NET_ADMIN`/`SYS_MODULE`). For wg-easy, keep sysctls as node-level prerequisites (`net.ipv4.ip_forward=1` and `net.ipv4.conf.all.src_valid_mark=1`) unless your cluster explicitly whitelists unsafe pod sysctls at the kubelet layer.
+- wg-easy node compatibility requirement: nodes must provide WireGuard + legacy xtables NAT support (`wireguard`, `ip_tables`, `iptable_nat`; usually `iptable_filter`) and `iptables -t nat -L` must succeed on the node before scheduling wg-easy. This is a node/kernel prerequisite, not a pod-spec tuning issue.
 - Operators should override these keys only when required by workload compatibility and must keep overrides in overlay files for traceability.
 - Validation schemas include these security context objects so malformed overlays fail early during `helm lint`/`helm template`.
