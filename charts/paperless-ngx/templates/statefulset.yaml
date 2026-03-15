@@ -33,6 +33,16 @@ spec:
             - name: http
               containerPort: {{ .Values.service.targetPort }}
           env:
+            - name: PAPERLESS_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secretKeySecret.name }}
+                  key: {{ .Values.secretKeySecret.key }}
+            - name: PAPERLESS_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.adminPasswordSecret.name }}
+                  key: {{ .Values.adminPasswordSecret.key }}
             - name: PAPERLESS_DBENGINE
               value: postgresql
             - name: PAPERLESS_DBHOST
@@ -54,6 +64,11 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.redis.urlSecret.name }}
                   key: {{ .Values.redis.urlSecret.key }}
+              {{- else if and .Values.redis.passwordSecret.name .Values.redis.passwordSecret.key }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.redis.passwordSecret.name }}
+                  key: {{ .Values.redis.passwordSecret.key }}
               {{- else }}
               value: {{ .Values.redis.url | quote }}
               {{- end }}
