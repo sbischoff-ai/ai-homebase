@@ -83,7 +83,7 @@ Minimum baseline for this stack is `openclaw`, `infisical`, and `wgEasy`; other 
 ### Paperless-ngx
 
 - Multi-volume document pipeline (`data`, `media`, etc.).
-- Umbrella toggle is `paperlessNgx.enabled`; the Paperless subchart also has a chart-local `enabled` gate (default `false`) so standalone renders are safe unless explicitly enabled.
+- Umbrella toggle is `paperlessNgx.enabled`; the Paperless subchart also has a chart-local `enabled` gate (default `false`) so standalone renders are safe unless explicitly enabled. The umbrella chart sets `paperless-ngx.enabled: true` internally so operators continue using `paperlessNgx.enabled` as the single service toggle.
 - Ingress is enabled by default so the UI/API is reachable when the service is enabled.
 - Validate storage growth and retention behavior.
 
