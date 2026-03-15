@@ -18,13 +18,15 @@ From there, choose the environment-specific flow for k3d local, AKS, or generic 
 Essential commands:
 
 ```bash
-./scripts/k3d-up.sh
+./scripts/k3d-local-bootstrap.sh --cluster-name ai-homebase-dev
 helm dependency update charts/platform-stack
 make lint
 make render > /tmp/platform-stack-dev.yaml
 ./scripts/test-local-k3d.sh
 ./scripts/install.sh --profile dev --values-file charts/platform-stack/values-dev.yaml
 ```
+
+`k3d-local-bootstrap.sh` creates a dedicated kubeconfig for the local cluster so your setup is isolated from other projects and does not depend on your existing `KUBECONFIG` merge state.
 
 `./scripts/install.sh --profile dev` assumes your kube context is already reachable and correctly selected.
 

@@ -20,7 +20,26 @@ kubectl version --client
 helm version
 ```
 
-## 1) Bootstrap the local cluster
+## 1) Recommended: one-command local bootstrap (cluster + secrets + deploy)
+
+Run the full local setup flow:
+
+```bash
+./scripts/k3d-local-bootstrap.sh --cluster-name ai-homebase-dev
+```
+
+This workflow is user-focused and script-guided:
+
+- Creates or reuses the k3d cluster.
+- Writes a dedicated kubeconfig (`~/.kube/k3d-<cluster>.yaml`) so local setup is independent from any other project kubeconfigs.
+- Installs ingress-nginx.
+- Generates required local bootstrap secrets (shared Postgres/Redis auth, OpenClaw token, wg-easy keys, Infisical app secret).
+- Deploys `platform-stack` with `values-dev.yaml + values-k3d.yaml`.
+- Runs local smoke checks.
+
+## 2) Manual step-by-step flow (advanced/debug)
+
+### 2.1 Bootstrap the local cluster
 
 Create (or reuse) the cluster and install `ingress-nginx`:
 
@@ -41,12 +60,28 @@ Useful options:
 - `--http-port <port>` and `--https-port <port>` if host ports are already in use.
 - `--without-https` to skip mapping host HTTPS.
 
-## 2) Deploy and run local smoke checks
+`k3d-up.sh` writes and uses a dedicated kubeconfig by default (`~/.kube/k3d-<cluster>.yaml`), so this flow works even when your shell has a multi-entry `KUBECONFIG` for other projects.
+
+### 2.2 Generate minimal bootstrap secrets
+
+```bash
+./scripts/k3d-bootstrap-secrets.sh \
+  --namespace ai-homebase \
+  --release-name platform-stack \
+  --kubeconfig ~/.kube/k3d-ai-homebase-dev.yaml
+```
+
+The script prints the generated wg-easy UI password at the end.
+
+### 2.3 Deploy and run local smoke checks
 
 Install/upgrade the stack with default local values and run health checks:
 
 ```bash
-./scripts/test-local-k3d.sh --release-name platform-stack --namespace ai-homebase
+./scripts/test-local-k3d.sh \
+  --release-name platform-stack \
+  --namespace ai-homebase \
+  --kubeconfig ~/.kube/k3d-ai-homebase-dev.yaml
 ```
 
 If you only want to run the install/upgrade step (without smoke checks), use:
@@ -87,7 +122,37 @@ Example command with OpenClaw ingress explicitly enabled:
   --values-file examples/k3d.values.override.yaml
 ```
 
-## 3) Teardown
+## 3) Connect and use services (user flow)
+
+### 3.1 Access service UIs from your browser
+
+- **wg-easy UI:** `http://wg.localtest.me`
+- **OpenHands UI:** `http://openhands.localtest.me`
+- **Infisical UI:** `http://infisical.localtest.me`
+
+`openclaw` remains service-only by default in shipped local layering (`openclaw.ingress.enabled=false`).
+That is intentional for VPN/internal posture. To expose OpenClaw via local ingress for browser access,
+layer `examples/k3d.values.override.yaml` (or your own override) with `openclaw.ingress.enabled=true`.
+
+### 3.2 Connect WireGuard VPN via wg-easy
+
+1. Open `http://wg.localtest.me`.
+2. Log in with the generated password printed by `scripts/k3d-bootstrap-secrets.sh` (or `scripts/k3d-local-bootstrap.sh`).
+3. Create a client profile in wg-easy and download/show the QR code.
+4. Import the profile into your WireGuard client.
+5. Connect and verify tunnel status in wg-easy.
+
+### 3.3 Verify service reachability after VPN connection
+
+```bash
+kubectl --kubeconfig ~/.kube/k3d-ai-homebase-dev.yaml -n ai-homebase get pods
+kubectl --kubeconfig ~/.kube/k3d-ai-homebase-dev.yaml -n ai-homebase get ingress
+curl -sS -H 'Host: wg.localtest.me' http://127.0.0.1/ -o /dev/null -w '%{http_code}\n'
+curl -sS -H 'Host: openhands.localtest.me' http://127.0.0.1/ -o /dev/null -w '%{http_code}\n'
+curl -sS -H 'Host: infisical.localtest.me' http://127.0.0.1/ -o /dev/null -w '%{http_code}\n'
+```
+
+## 4) Teardown
 
 Delete the local cluster when done:
 
@@ -95,7 +160,7 @@ Delete the local cluster when done:
 ./scripts/k3d-down.sh --cluster-name ai-homebase-dev
 ```
 
-## 4) Local ingress host access (DNS/hosts)
+## 5) Local ingress host access (DNS/hosts)
 
 Local ingress host checks always include `openhands.localtest.me`; `openclaw.localtest.me` is only used when effective `openclaw.ingress.enabled=true`.
 
@@ -116,9 +181,25 @@ If DNS is filtered or unavailable, add host mappings manually:
 
 If you changed values to custom hostnames, map those hosts to `127.0.0.1` as well.
 
-## 5) Common failure modes and fixes
+## 6) Common failure modes and fixes
 
-### A) `ImagePullBackOff` on placeholder/private images
+### A) Multiple kubeconfigs and missing context after cluster create
+
+Symptoms:
+
+- `k3d` reports cluster creation succeeded, but `kubectl config use-context` fails.
+- Errors like `no context exists with the name: k3d-<cluster>` or connection attempts to `localhost:8080`.
+
+Why this happens:
+
+- Your environment uses a multi-entry `KUBECONFIG` for several projects.
+
+Fix:
+
+- Use the dedicated kubeconfig written by `scripts/k3d-up.sh` (or pass `--kubeconfig <path>` explicitly).
+- Run all follow-up commands with `--kubeconfig <path>` or `export KUBECONFIG=<path>` for this session.
+
+### B) `ImagePullBackOff` on placeholder/private images
 
 Symptoms:
 
@@ -131,7 +212,7 @@ Fixes:
 - Add pull secrets and reference them via `global.imagePullSecrets` (or service-specific fields).
 - Validate image exists and is reachable from local Docker/k3s runtime.
 
-### B) Ingress class mismatch
+### C) Ingress class mismatch
 
 Symptoms:
 
@@ -144,7 +225,7 @@ Fixes:
 - Confirm ingress controller was installed by `scripts/k3d-up.sh` and is Ready.
 - Re-check host header matches ingress host exactly.
 
-### C) Pods Pending due to storage class assumptions
+### D) Pods Pending due to storage class assumptions
 
 Symptoms:
 
@@ -157,7 +238,7 @@ Fixes:
 - Override per service where needed.
 - If your test scenario allows ephemeral storage, use values that avoid PVC-backed components.
 
-## 6) What success looks like
+## 7) What success looks like
 
 After bootstrap + deploy with default layering (`values-dev.yaml` + `values-k3d.yaml`), run these checks:
 

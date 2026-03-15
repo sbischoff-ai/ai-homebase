@@ -129,6 +129,7 @@ The table below is the single source of truth for baseline defaults and is keyed
 - Pod/container security contexts are explicit values; defaults keep conservative hardening while retaining required WireGuard capabilities (`NET_ADMIN`, `SYS_MODULE`) in `securityContext`.
 - Runtime secret contract: the effective `existingSecret` (or the default `<release>-wg-easy-secrets` when unset) must provide `WG_HOST` and `PASSWORD`; these are wired via `valueFrom.secretKeyRef` in the Deployment.
 - `secretRefs[]` is optional additive env wiring only; use it for extra variables, not as a replacement for required `WG_HOST`/`PASSWORD` keys.
+- For local k3d, `scripts/k3d-bootstrap-secrets.sh` can generate the minimal wg-easy Secret contract and print the UI password for first login.
 
 ## Secret contract model (all services)
 

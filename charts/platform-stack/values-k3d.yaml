@@ -194,6 +194,12 @@ paperlessNgx:
 
 infisical:
   enabled: true
+  ingress:
+    enabled: true
+    hostName: infisical.localtest.me
+    ingressClassName: nginx
+    annotations: {}
+    tls: []
   postgresql:
     enabled: false
     primary:
@@ -206,4 +212,3 @@ wgEasy:
   enabled: true
   persistence:
     enabled: false
-

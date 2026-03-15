@@ -5,6 +5,7 @@ RELEASE_NAME="${RELEASE_NAME:-platform-stack}"
 NAMESPACE="${NAMESPACE:-ai-homebase}"
 VALUES_FILES=()
 KUBE_CONTEXT="${KUBE_CONTEXT:-}"
+KUBECONFIG_PATH="${KUBECONFIG_PATH:-${KUBECONFIG:-}}"
 
 usage() {
   cat <<USAGE
@@ -17,6 +18,7 @@ Options:
   --namespace <name>          Kubernetes namespace (default: ${NAMESPACE})
   --values-file <path>        Values file path (repeatable)
   --kube-context <context>    Optional kube context
+  --kubeconfig <path>         Optional kubeconfig path (overrides KUBECONFIG env)
   -h, --help                  Show this help message
 USAGE
 }
@@ -27,6 +29,7 @@ while [[ $# -gt 0 ]]; do
     --namespace) NAMESPACE="$2"; shift 2 ;;
     --values-file) VALUES_FILES+=("$2"); shift 2 ;;
     --kube-context) KUBE_CONTEXT="$2"; shift 2 ;;
+    --kubeconfig) KUBECONFIG_PATH="$2"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
   esac
@@ -53,6 +56,13 @@ if [[ -n "$KUBE_CONTEXT" ]]; then
   KUBECTL_CONTEXT_ARGS=(--context "$KUBE_CONTEXT")
 fi
 
+HELM_KUBECONFIG_ARGS=()
+KUBECTL_KUBECONFIG_ARGS=()
+if [[ -n "$KUBECONFIG_PATH" ]]; then
+  HELM_KUBECONFIG_ARGS=(--kubeconfig "$KUBECONFIG_PATH")
+  KUBECTL_KUBECONFIG_ARGS=(--kubeconfig "$KUBECONFIG_PATH")
+fi
+
 VALUES_ARGS=()
 for values_file in "${VALUES_FILES[@]}"; do
   VALUES_ARGS+=(--values "$values_file")
@@ -61,15 +71,15 @@ done
 dump_diagnostics() {
   echo
   echo "--- Diagnostics for namespace ${NAMESPACE} ---" >&2
-  kubectl "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" get pods -o wide >&2 || true
-  kubectl "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" get deployments >&2 || true
+  kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" get pods -o wide >&2 || true
+  kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" get deployments >&2 || true
 
-  mapfile -t failing_pods < <(kubectl "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" get pods --no-headers 2>/dev/null | awk '$3 != "Running" && $3 != "Completed" {print $1}')
+  mapfile -t failing_pods < <(kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" get pods --no-headers 2>/dev/null | awk '$3 != "Running" && $3 != "Completed" {print $1}')
   if [[ ${#failing_pods[@]} -gt 0 ]]; then
     echo "\nDescribing non-running pods:" >&2
     for pod in "${failing_pods[@]}"; do
       echo "\n# kubectl describe pod/${pod}" >&2
-      kubectl "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" describe "pod/${pod}" >&2 || true
+      kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" describe "pod/${pod}" >&2 || true
     done
   fi
 }
@@ -84,7 +94,7 @@ trap 'on_error ${LINENO}' ERR
 resolve_deployment_name() {
   local app_name="$1"
   local deployment_name
-  deployment_name="$(kubectl "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" get deployment \
+  deployment_name="$(kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" get deployment \
     -l "app.kubernetes.io/instance=${RELEASE_NAME},app.kubernetes.io/name=${app_name}" \
     -o jsonpath='{.items[0].metadata.name}')"
 
@@ -102,10 +112,10 @@ wait_for_workload() {
   deployment_name="$(resolve_deployment_name "$app_name")"
 
   echo "Waiting for deployment/${deployment_name} rollout"
-  kubectl "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" rollout status "deployment/${deployment_name}" --timeout=300s
+  kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" rollout status "deployment/${deployment_name}" --timeout=300s
 
   echo "Waiting for pods to become Ready (app=${app_name})"
-  kubectl "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" wait \
+  kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" wait \
     --for=condition=Ready \
     pod \
     -l "app.kubernetes.io/instance=${RELEASE_NAME},app.kubernetes.io/name=${app_name}" \
@@ -114,6 +124,7 @@ wait_for_workload() {
 
 is_openclaw_ingress_enabled() {
   helm get values "$RELEASE_NAME" \
+    "${HELM_KUBECONFIG_ARGS[@]}" \
     "${HELM_CONTEXT_ARGS[@]}" \
     --namespace "$NAMESPACE" \
     --all \
@@ -132,6 +143,7 @@ helm dependency update charts/platform-stack
 
 echo "Installing/upgrading release ${RELEASE_NAME}"
 helm upgrade --install "$RELEASE_NAME" charts/platform-stack \
+  "${HELM_KUBECONFIG_ARGS[@]}" \
   "${HELM_CONTEXT_ARGS[@]}" \
   --namespace "$NAMESPACE" \
   --create-namespace \
