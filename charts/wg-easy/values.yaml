@@ -81,6 +81,6 @@ securityContext:
 
 # Secret injection conventions:
 # - Secret names: kebab-case (example: wgeasy-app-secrets)
-# - Secret data keys: UPPER_SNAKE_CASE (example: WG_HOST, PASSWORD)
-existingSecret: "" # Optional override for secret name containing required keys WG_HOST and PASSWORD.
+# - Secret data keys: UPPER_SNAKE_CASE (example: WG_HOST, PASSWORD_HASH)
+existingSecret: "" # Optional override for secret name containing required keys WG_HOST and PASSWORD_HASH.
 secretRefs: [] # [{name: wgeasy-app-secrets, key: WG_DEFAULT_DNS, envVar: WG_DEFAULT_DNS}]

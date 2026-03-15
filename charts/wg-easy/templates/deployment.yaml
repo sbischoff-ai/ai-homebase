@@ -44,11 +44,11 @@ spec:
                 secretKeyRef:
                   name: {{ $secretName }}
                   key: WG_HOST
-            - name: PASSWORD
+            - name: PASSWORD_HASH
               valueFrom:
                 secretKeyRef:
                   name: {{ $secretName }}
-                  key: PASSWORD
+                  key: PASSWORD_HASH
             - name: WG_DEFAULT_ADDRESS
               value: {{ default (regexReplaceAll "\\.0/[0-9]+$" .Values.wg.subnet ".x") .Values.wg.defaultAddress | quote }}
             - name: WG_DEFAULT_DNS

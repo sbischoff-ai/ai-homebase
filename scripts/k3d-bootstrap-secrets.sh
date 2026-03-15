@@ -9,6 +9,7 @@ KUBECONFIG_PATH="${KUBECONFIG_PATH:-${KUBECONFIG:-}}"
 WG_HOST="${WG_HOST:-wg.localtest.me}"
 WG_PASSWORD="${WG_PASSWORD:-}"
 WG_PASSWORD_OUTPUT_PATH="${WG_PASSWORD_OUTPUT_PATH:-}"
+WG_PASSWORD_HASH="${WG_PASSWORD_HASH:-}"
 OPENCLAW_GATEWAY_TOKEN="${OPENCLAW_GATEWAY_TOKEN:-local-dev-token}"
 POSTGRES_ADMIN_PASSWORD="${POSTGRES_ADMIN_PASSWORD:-postgres-local-dev}"
 REDIS_PASSWORD="${REDIS_PASSWORD:-redis-local-dev}"
@@ -26,7 +27,7 @@ Options:
   --release-name <name>          Helm release name (default: ${RELEASE_NAME})
   --kubeconfig <path>            Optional kubeconfig path
   --wg-host <host>               WireGuard endpoint host for clients (default: ${WG_HOST})
-  --wg-password <password>       wg-easy UI password (auto-generated if omitted)
+  --wg-password <password>       wg-easy UI password (auto-generated if omitted; hashed before storing)
   --wg-password-out <path>       Write resolved wg-easy password to file
   --openclaw-gateway-token <v>   OpenClaw gateway token (default: ${OPENCLAW_GATEWAY_TOKEN})
   --postgres-admin-password <v>  shared PostgreSQL admin password (default: generated local value)
@@ -62,6 +63,34 @@ for cmd in kubectl openssl; do
     exit 1
   fi
 done
+
+generate_wg_password_hash() {
+  local plain_password="$1"
+
+  if command -v htpasswd >/dev/null 2>&1; then
+    htpasswd -bnBC 10 "" "$plain_password" | tr -d ':\n'
+    return 0
+  fi
+
+  if command -v docker >/dev/null 2>&1; then
+    docker run --rm ghcr.io/wg-easy/wg-easy:14 wgpw "$plain_password"
+    return 0
+  fi
+
+  fail "Unable to generate wg-easy PASSWORD_HASH. Install 'htpasswd' (apache2-utils) or Docker."
+  return 1
+}
+
+generate_infisical_encryption_key() {
+  while true; do
+    local candidate
+    candidate="$(openssl rand -base64 48 | tr -dc 'A-Za-z0-9' | head -c 32)"
+    if [[ ${#candidate} -eq 32 ]]; then
+      printf '%s' "$candidate"
+      return 0
+    fi
+  done
+}
 
 KUBECTL_ARGS=()
 if [[ -n "$KUBECONFIG_PATH" ]]; then
@@ -106,11 +135,15 @@ if [[ -z "$WG_PASSWORD" ]]; then
   WG_PASSWORD="$(openssl rand -hex 12)"
 fi
 
+if [[ -z "$WG_PASSWORD_HASH" ]]; then
+  WG_PASSWORD_HASH="$(generate_wg_password_hash "$WG_PASSWORD")"
+fi
+
 if [[ -z "$INFISICAL_AUTH_SECRET" ]]; then
   INFISICAL_AUTH_SECRET="$(openssl rand -hex 32)"
 fi
 if [[ -z "$INFISICAL_ENCRYPTION_KEY" ]]; then
-  INFISICAL_ENCRYPTION_KEY="$(openssl rand -hex 32)"
+  INFISICAL_ENCRYPTION_KEY="$(generate_infisical_encryption_key)"
 fi
 
 WG_SECRET_NAME="${RELEASE_NAME}-wg-easy-secrets"
@@ -142,7 +175,7 @@ create_and_apply_secret openclaw-app-secrets \
 
 create_and_apply_secret "$WG_SECRET_NAME" \
   --from-literal=WG_HOST="$WG_HOST" \
-  --from-literal=PASSWORD="$WG_PASSWORD"
+  --from-literal=PASSWORD_HASH="$WG_PASSWORD_HASH"
 
 create_and_apply_secret infisical-secrets \
   --from-literal=AUTH_SECRET="$INFISICAL_AUTH_SECRET" \
