@@ -63,8 +63,8 @@ infisical:
   podAnnotations: {}
   # -- Custom annotations for Infisical deployment
   deploymentAnnotations: {}
-  # -- Number of pod replicas for high availability
-  replicaCount: 2
+  # -- Number of pod replicas.
+  replicaCount: 1
 
   podSecurityContext:
     seccompProfile:

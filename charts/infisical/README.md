@@ -13,7 +13,7 @@ This chart deploys a durable, VPN-reachable **self-hosted Infisical** instance t
 - `infisical.service.type: ClusterIP`
 - `ingress.enabled: true` with an internal hostname default (`infisical.internal.home.arpa`)
 - Infisical image pinned to `infisical/infisical:v0.151.0`
-- `infisical.replicaCount: 2`
+- `infisical.replicaCount: 1`
 - In-cluster PostgreSQL and Redis disabled by default (`postgresql.enabled=false`, `redis.enabled=false`)
 - Runtime connectivity comes from `DB_CONNECTION_URI` and `REDIS_URL` in `infisical.kubeSecretRef`
 
