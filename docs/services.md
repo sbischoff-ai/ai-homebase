@@ -55,6 +55,7 @@ Profile-specific defaults can differ from base chart defaults; verify effective 
 - `nextcloud.trustedDomains` accepts either a YAML list or a string (comma- or space-delimited). Always include `cloud.<domain>` in the effective list/string so the public host is trusted.
 - Compatibility secret injection patterns (`nextcloud.existingSecret`, `nextcloud.secretRefs[]`) remain supported for additional app/runtime secrets.
 - Plan for larger and growing PVC usage.
+- Optional `nextcloud.networkPolicy.*` values render a default-deny `NetworkPolicy` for Nextcloud pods, allowing only ingress-controller traffic to the app port and required egress for DNS, PostgreSQL, Redis, and optional SMTP.
 
 ### Gitea
 

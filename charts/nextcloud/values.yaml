@@ -34,6 +34,39 @@ ingress:
           pathType: Prefix
   tls: []
 
+networkPolicy:
+  enabled: false
+  ingress:
+    ingressController:
+      namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: ingress-nginx
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/component: controller
+  egress:
+    dns:
+      namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    postgresql:
+      to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: shared-postgresql
+    redis:
+      to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: shared-redis
+    smtp:
+      enabled: false
+      port: 587
+      to: []
+
 persistence:
   enabled: true
   existingClaim: ""
