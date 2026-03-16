@@ -142,7 +142,7 @@ Primary value paths:
 
 The container uses `OPENCLAW_CONFIG_PATH=/etc/openclaw/openclaw.json` while `OPENCLAW_HOME` and `OPENCLAW_STATE_DIR` remain aligned with the persistence mount path, and sets `OPENCLAW_GATEWAY_PORT`/`OPENCLAW_GATEWAY_BIND=0.0.0.0` explicitly for Kubernetes runtime clarity.
 
-The OpenClaw chart defaults to an explicit foreground gateway process command (`node openclaw.mjs gateway start --foreground --allow-unconfigured`) to avoid startup paths that rely on user-level service-manager checks.
+The OpenClaw chart defaults to an explicit foreground gateway process command (`node openclaw.mjs gateway --allow-unconfigured`) to avoid startup paths that rely on user-level service-manager checks.
 
 Default exposure posture for OpenClaw is internal-only: `Service` type `ClusterIP` with no ingress enabled. Recommended access is over VPN/private networking, for example `http://openclaw.default.svc.cluster.local:18789`.
 
