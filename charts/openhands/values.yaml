@@ -133,14 +133,14 @@ podAnnotations: {}
 podLabels: {}
 
 podSecurityContext:
-  fsGroup: 1000
+  fsGroup: 42420
 
 securityContext:
   allowPrivilegeEscalation: false
   readOnlyRootFilesystem: false
   runAsNonRoot: true
-  runAsUser: 1000
-  runAsGroup: 1000
+  runAsUser: 42420
+  runAsGroup: 42420
   capabilities:
     drop:
       - ALL
