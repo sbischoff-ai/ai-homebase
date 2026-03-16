@@ -34,11 +34,19 @@ openclaw:
     enabled: false
   resources:
     requests:
+<<<<<<< codex/fix-openhands-crashing-on-startup
       cpu: 1000m
       memory: 4Gi
     limits:
       cpu: 2000m
       memory: 8Gi
+=======
+      cpu: 500m
+      memory: 2Gi
+    limits:
+      cpu: 1000m
+      memory: 4Gi
+>>>>>>> main
   existingSecret: openclaw-app-secrets
   secretKeys:
     gatewayToken: OPENCLAW_GATEWAY_TOKEN

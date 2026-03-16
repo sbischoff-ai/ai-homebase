@@ -11,6 +11,7 @@ INGRESS_NAMESPACE="${INGRESS_NAMESPACE:-ingress-nginx}"
 INGRESS_RELEASE_NAME="${INGRESS_RELEASE_NAME:-ingress-nginx}"
 INGRESS_CHART_REF="${INGRESS_CHART_REF:-ingress-nginx/ingress-nginx}"
 KUBECONFIG_PATH="${KUBECONFIG_PATH:-${HOME}/.kube/k3d-${CLUSTER_NAME}.yaml}"
+EXTRA_CREATE_ARGS=()
 
 usage() {
   cat <<USAGE
@@ -25,6 +26,8 @@ Options:
                                 Also maps wg-easy ports 51820/udp and 51821/tcp from server node
   --without-https               Do not map host HTTPS port 443 to the k3s load balancer
   --kubeconfig <path>           Write/use dedicated kubeconfig path (default: ${KUBECONFIG_PATH})
+  --k3d-create-arg <arg>        Additional raw arg forwarded to 'k3d cluster create'
+                                (repeatable, for advanced runtime/security flags)
   --verbose                     Stream full command output
   -h, --help                    Show this help message
 USAGE
@@ -37,6 +40,7 @@ while [[ $# -gt 0 ]]; do
     --https-port) HTTPS_PORT="$2"; shift 2 ;;
     --without-https) ENABLE_HTTPS="false"; shift ;;
     --kubeconfig) KUBECONFIG_PATH="$2"; shift 2 ;;
+    --k3d-create-arg) EXTRA_CREATE_ARGS+=("$2"); shift 2 ;;
     --verbose) BOOTSTRAP_VERBOSE=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
@@ -128,6 +132,10 @@ else
 
     if [[ "$ENABLE_HTTPS" == "true" ]]; then
       CREATE_ARGS+=( -p "${HTTPS_PORT}:443@loadbalancer" )
+    fi
+
+    if [[ ${#EXTRA_CREATE_ARGS[@]} -gt 0 ]]; then
+      CREATE_ARGS+=( "${EXTRA_CREATE_ARGS[@]}" )
     fi
 
     step "Creating k3d cluster ${CLUSTER_NAME}"
