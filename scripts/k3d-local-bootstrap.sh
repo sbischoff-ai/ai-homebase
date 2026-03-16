@@ -9,7 +9,6 @@ RELEASE_NAME="${RELEASE_NAME:-platform-stack}"
 KUBECONFIG_PATH="${KUBECONFIG_PATH:-${HOME}/.kube/k3d-${CLUSTER_NAME}.yaml}"
 WG_HOST="${WG_HOST:-wg.localtest.me}"
 WG_PASSWORD_OUTPUT=""
-K3D_CREATE_ARGS=()
 
 usage() {
   cat <<USAGE
@@ -23,8 +22,6 @@ Options:
   --release-name <name>    Helm release name (default: ${RELEASE_NAME})
   --kubeconfig <path>      Dedicated kubeconfig path (default: ${KUBECONFIG_PATH})
   --wg-host <host>         WireGuard host clients should use (default: ${WG_HOST})
-  --k3d-create-arg <arg>   Additional raw arg forwarded to 'k3d cluster create' via k3d-up.sh
-                           (repeatable, for advanced runtime/security flags)
   OPENAI_API_KEY env var   Required OpenAI API key for bootstrap secret generation
   --verbose                Stream full command output
   -h, --help               Show this help message
@@ -38,7 +35,6 @@ while [[ $# -gt 0 ]]; do
     --release-name) RELEASE_NAME="$2"; shift 2 ;;
     --kubeconfig) KUBECONFIG_PATH="$2"; shift 2 ;;
     --wg-host) WG_HOST="$2"; shift 2 ;;
-    --k3d-create-arg) K3D_CREATE_ARGS+=("$2"); shift 2 ;;
     --verbose) BOOTSTRAP_VERBOSE=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
@@ -69,11 +65,6 @@ K3D_UP_CMD=(
   --kubeconfig "$KUBECONFIG_PATH"
 )
 
-if [[ ${#K3D_CREATE_ARGS[@]} -gt 0 ]]; then
-  for create_arg in "${K3D_CREATE_ARGS[@]}"; do
-    K3D_UP_CMD+=(--k3d-create-arg "$create_arg")
-  done
-fi
 
 run_quiet "${K3D_UP_CMD[@]}"
 ok "Cluster is ready"
