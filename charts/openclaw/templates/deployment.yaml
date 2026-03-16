@@ -68,7 +68,21 @@ spec:
             - name: http
               containerPort: {{ .Values.service.targetPort }}
               protocol: TCP
+          {{- with .Values.runtime.command }}
+          command:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.runtime.args }}
+          args:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           env:
+            - name: OPENCLAW_GATEWAY_PORT
+              value: {{ .Values.service.targetPort | quote }}
+            - name: OPENCLAW_GATEWAY_BIND
+              value: 0.0.0.0
+            - name: OPENCLAW_HOME
+              value: {{ .Values.persistence.mountPath | quote }}
             - name: OPENCLAW_STATE_DIR
               value: {{ .Values.persistence.mountPath | quote }}
             - name: OPENCLAW_CONFIG_PATH
