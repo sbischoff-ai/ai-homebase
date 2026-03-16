@@ -54,6 +54,8 @@ The table below is the single source of truth for baseline defaults and is keyed
 - Requires secret references for API/auth integrations.
 - `secretKeys.gatewayToken` is required when token auth is enabled; provider/search keys under `secretKeys.*ApiKey` are optional by default, and the shipped k3d overlay maps `secretKeys.openaiApiKey` to `OPENAI_API_KEY` in `openclaw-app-secrets`.
 - Runtime hardening keeps OpenClaw non-root (`runAsUser: 1000`, `runAsGroup: 1000`, `podSecurityContext.fsGroup: 1000`) and mounts an in-memory writable `/tmp` (`emptyDir`) so startup can create `/tmp/openclaw-1000` under read-only root filesystem policies.
+- The chart runs the gateway in foreground mode by default (`node openclaw.mjs gateway start --foreground --allow-unconfigured`) and explicitly sets `OPENCLAW_GATEWAY_PORT`, `OPENCLAW_GATEWAY_BIND=0.0.0.0`, `OPENCLAW_HOME`, and `OPENCLAW_STATE_DIR` to avoid container-runtime startup ambiguity.
+- Startup probe defaults are intentionally lenient for cold start behavior (`initialDelaySeconds: 10`, `periodSeconds: 10`, `failureThreshold: 30`).
 
 ### OpenHands
 

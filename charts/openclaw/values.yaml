@@ -126,6 +126,16 @@ resources:
     cpu: 500m
     memory: 512Mi
 
+runtime:
+  command:
+    - node
+    - openclaw.mjs
+    - gateway
+    - start
+    - --foreground
+    - --allow-unconfigured
+  args: []
+
 probes:
   liveness:
     enabled: true
@@ -144,10 +154,10 @@ probes:
   startup:
     enabled: true
     path: /startupz
-    initialDelaySeconds: 0
-    periodSeconds: 5
-    timeoutSeconds: 2
-    failureThreshold: 12
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 30
 
 autoscaling:
   enabled: false
