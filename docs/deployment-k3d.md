@@ -27,7 +27,7 @@ Run the full local setup flow:
 ```bash
 export OPENAI_API_KEY="<your-openai-api-key>"
 ./scripts/k3d-local-bootstrap.sh --cluster-name ai-homebase-dev \
-  --k3d-create-arg "--volume /lib/modules:/lib/modules@all"
+  --k3d-create-arg --volume --k3d-create-arg /lib/modules:/lib/modules@all
 ```
 
 Use `--verbose` (or `BOOTSTRAP_VERBOSE=1`) when you want full command output streamed live instead of the default concise progress mode.
@@ -49,7 +49,7 @@ Create (or reuse) the cluster and install `ingress-nginx`:
 
 ```bash
 ./scripts/k3d-up.sh --cluster-name ai-homebase-dev \
-  --k3d-create-arg "--volume /lib/modules:/lib/modules@all"
+  --k3d-create-arg --volume --k3d-create-arg /lib/modules:/lib/modules@all
 ```
 
 What this does:
@@ -66,6 +66,7 @@ Useful options:
 - `--http-port <port>` and `--https-port <port>` if host ports are already in use.
 - `--without-https` to skip mapping host HTTPS.
 - `--k3d-create-arg <arg>` (repeatable) to forward advanced flags directly to `k3d cluster create`.
+- Prefer passing flag and value as separate repeats when needed (example: `--k3d-create-arg --volume --k3d-create-arg /lib/modules:/lib/modules@all`).
 
 `k3d-up.sh` writes and uses a dedicated kubeconfig by default (`~/.kube/k3d-<cluster>.yaml`), so this flow works even when your shell has a multi-entry `KUBECONFIG` for other projects.
 
