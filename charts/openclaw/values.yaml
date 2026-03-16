@@ -131,8 +131,6 @@ runtime:
     - node
     - openclaw.mjs
     - gateway
-    - start
-    - --foreground
     - --allow-unconfigured
   args: []
 
