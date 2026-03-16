@@ -10,7 +10,7 @@ This chart deploys OpenHands with a private-by-default posture aligned to this r
 
 Expected access path is through existing private connectivity (WireGuard/VPN) and internal DNS, for example `http://openhands.default.svc.cluster.local:3000` or your internal ingress hostname.
 
-Security/runtime defaults align with the upstream image user contract (`runAsUser: 42420`, `runAsGroup: 42420`, `podSecurityContext.fsGroup: 42420`, `runAsNonRoot: true`). Avoid mounting any extra volume at `/app` (or `/app/*`) because it shadows the baked-in `/app/entrypoint.sh` and prevents container startup.
+Security/runtime defaults run as root (`runAsUser: 0`, `runAsGroup: 0`, `podSecurityContext.fsGroup: 0`, `runAsNonRoot: false`) because the upstream image currently requires `/app/entrypoint.sh` to start as root. Avoid mounting any extra volume at `/app` (or `/app/*`) because it shadows the baked-in `/app/entrypoint.sh` and prevents container startup.
 
 ## Secret inputs
 

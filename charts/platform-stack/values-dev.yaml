@@ -65,11 +65,11 @@ openhands:
     enabled: false
   resources:
     requests:
-      cpu: 100m
-      memory: 128Mi
+      cpu: 1000m
+      memory: 4Gi
     limits:
-      cpu: 500m
-      memory: 512Mi
+      cpu: 2000m
+      memory: 8Gi
 
 nextcloud:
   enabled: true

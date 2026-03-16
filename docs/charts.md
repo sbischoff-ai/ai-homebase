@@ -166,6 +166,10 @@ Baseline OpenHands deployment defaults in this repo:
 - `runtime.className: ""` (optional Kubernetes RuntimeClass selector; portable scheduling control)
 - `agentServer.image.repository: ghcr.io/openhands/agent-server`
 - `agentServer.image.tag: 1.12.0-python`
+- `resources.requests.cpu: 1000m`
+- `resources.requests.memory: 4Gi`
+- `resources.limits.cpu: 2000m`
+- `resources.limits.memory: 8Gi`
 
 OpenHands also renders the following env vars by default:
 
