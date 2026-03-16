@@ -26,7 +26,8 @@ Run the full local setup flow:
 
 ```bash
 export OPENAI_API_KEY="<your-openai-api-key>"
-./scripts/k3d-local-bootstrap.sh --cluster-name ai-homebase-dev
+./scripts/k3d-local-bootstrap.sh --cluster-name ai-homebase-dev \
+  --k3d-create-arg "--volume /lib/modules:/lib/modules@all"
 ```
 
 Use `--verbose` (or `BOOTSTRAP_VERBOSE=1`) when you want full command output streamed live instead of the default concise progress mode.
