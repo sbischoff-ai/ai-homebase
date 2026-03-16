@@ -160,5 +160,7 @@ infisical:
 
 wgEasy:
   enabled: true
+  securityContext:
+    privileged: true
   persistence:
     enabled: false

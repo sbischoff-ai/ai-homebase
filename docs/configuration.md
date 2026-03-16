@@ -24,7 +24,7 @@ Use `values.yaml` for safe, reusable defaults that should apply broadly.
 Use profile files to encode environment class behavior:
 
 - `values-dev.yaml`: low-cost local/dev defaults.
-- `values-k3d.yaml`: k3d local-smoke overlay (loaded after `values-dev.yaml`).
+- `values-k3d.yaml`: k3d local-smoke overlay (loaded after `values-dev.yaml`), including local-only `wgEasy.securityContext.privileged: true` for Docker-backed WireGuard/NAT compatibility.
 - `values-aks.yaml`: AKS assumptions and cloud integration placeholders.
 - `values-prod.yaml`: production-shaped resource/availability posture.
 - `values-homelab-public-nextcloud.yaml`: homelab posture with public Nextcloud (`cloud.<domain>`) and VPN-only ingress hostnames for internal services.

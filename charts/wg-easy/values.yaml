@@ -83,8 +83,6 @@ securityContext:
     add:
       - NET_ADMIN
       - SYS_MODULE
-    drop:
-      - ALL
 
 # Secret injection conventions:
 # - Secret names: kebab-case (example: wgeasy-app-secrets)
