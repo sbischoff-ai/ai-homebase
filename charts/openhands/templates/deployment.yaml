@@ -185,8 +185,12 @@ spec:
             - name: workspace
               mountPath: {{ $persistence.mountPath }}
             {{- end }}
-            {{- with .Values.extraVolumeMounts }}
-            {{- toYaml . | nindent 12 }}
+            {{- range .Values.extraVolumeMounts }}
+            {{- $mountPath := default "" .mountPath }}
+            {{- if or (eq $mountPath "/app") (hasPrefix "/app/" $mountPath) }}
+            {{- fail (printf "extraVolumeMounts mountPath %q is not allowed because it shadows the image entrypoint under /app" $mountPath) }}
+            {{- end }}
+            {{- toYaml (list .) | nindent 12 }}
             {{- end }}
           {{- end }}
       {{- if or $persistence.enabled .Values.extraVolumes }}
