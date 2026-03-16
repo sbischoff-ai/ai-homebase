@@ -13,6 +13,22 @@ INGRESS_CHART_REF="${INGRESS_CHART_REF:-ingress-nginx/ingress-nginx}"
 KUBECONFIG_PATH="${KUBECONFIG_PATH:-${HOME}/.kube/k3d-${CLUSTER_NAME}.yaml}"
 EXTRA_CREATE_ARGS=()
 
+append_create_arg() {
+  local raw_arg="$1"
+
+  if [[ "$raw_arg" =~ [[:space:]] ]]; then
+    local split_args=()
+    # Support callers passing a combined flag+value string, e.g.
+    # --k3d-create-arg "--volume /lib/modules:/lib/modules@all".
+    # shellcheck disable=SC2206
+    split_args=($raw_arg)
+    EXTRA_CREATE_ARGS+=("${split_args[@]}")
+    return
+  fi
+
+  EXTRA_CREATE_ARGS+=("$raw_arg")
+}
+
 usage() {
   cat <<USAGE
 Usage: $0 [options]
@@ -27,7 +43,8 @@ Options:
   --without-https               Do not map host HTTPS port 443 to the k3s load balancer
   --kubeconfig <path>           Write/use dedicated kubeconfig path (default: ${KUBECONFIG_PATH})
   --k3d-create-arg <arg>        Additional raw arg forwarded to 'k3d cluster create'
-                                (repeatable, for advanced runtime/security flags)
+                                (repeatable, for advanced runtime/security flags;
+                                 supports either split args or a quoted flag+value pair)
   --verbose                     Stream full command output
   -h, --help                    Show this help message
 USAGE
@@ -40,7 +57,7 @@ while [[ $# -gt 0 ]]; do
     --https-port) HTTPS_PORT="$2"; shift 2 ;;
     --without-https) ENABLE_HTTPS="false"; shift ;;
     --kubeconfig) KUBECONFIG_PATH="$2"; shift 2 ;;
-    --k3d-create-arg) EXTRA_CREATE_ARGS+=("$2"); shift 2 ;;
+    --k3d-create-arg) append_create_arg "$2"; shift 2 ;;
     --verbose) BOOTSTRAP_VERBOSE=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
