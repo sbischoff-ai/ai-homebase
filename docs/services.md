@@ -65,7 +65,8 @@ The table below is the single source of truth for baseline defaults and is keyed
 - Canonical OpenHands ingress keys are `openhands.ingress.enabled`, `openhands.ingress.ingressClassName`, `openhands.ingress.hostName`, and `openhands.ingress.tls`.
 - Ingress class precedence: use `openhands.ingress.ingressClassName` as primary; only use legacy `openhands.ingress.annotations["kubernetes.io/ingress.class"]` when `ingressClassName` is empty. Avoid setting both simultaneously; if both are set, the OpenHands chart drops the legacy annotation in rendered manifests.
 - Tune isolation/scheduling/persistence independently from OpenClaw.
-- Runtime hardening aligns with the upstream image user contract (`runAsUser: 42420`, `runAsGroup: 42420`, `podSecurityContext.fsGroup: 42420`, `runAsNonRoot: true`) so the baked-in `/app/entrypoint.sh` remains executable at container startup.
+- Runtime defaults run OpenHands as root (`runAsUser: 0`, `runAsGroup: 0`, `podSecurityContext.fsGroup: 0`, `runAsNonRoot: false`) because current upstream `entrypoint.sh` explicitly requires root at startup.
+- Baseline OpenHands resources are sized for heavier startup/runtime workloads (`requests: 1000m CPU / 4Gi memory`, `limits: 2000m CPU / 8Gi memory`).
 - `extraVolumeMounts` must not mount `/app` (or subpaths) because that shadows the image entrypoint and causes OCI runtime startup failures before OpenHands boots.
 
 ## Service details
