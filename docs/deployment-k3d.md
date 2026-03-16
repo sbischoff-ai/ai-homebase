@@ -26,8 +26,7 @@ Run the full local setup flow:
 
 ```bash
 export OPENAI_API_KEY="<your-openai-api-key>"
-./scripts/k3d-local-bootstrap.sh --cluster-name ai-homebase-dev \
-  --k3d-create-arg --volume --k3d-create-arg /lib/modules:/lib/modules@all
+./scripts/k3d-local-bootstrap.sh --cluster-name ai-homebase-dev
 ```
 
 Use `--verbose` (or `BOOTSTRAP_VERBOSE=1`) when you want full command output streamed live instead of the default concise progress mode.
@@ -48,8 +47,7 @@ This workflow is user-focused and script-guided:
 Create (or reuse) the cluster and install `ingress-nginx`:
 
 ```bash
-./scripts/k3d-up.sh --cluster-name ai-homebase-dev \
-  --k3d-create-arg --volume --k3d-create-arg /lib/modules:/lib/modules@all
+./scripts/k3d-up.sh --cluster-name ai-homebase-dev
 ```
 
 What this does:
@@ -65,12 +63,10 @@ Useful options:
 
 - `--http-port <port>` and `--https-port <port>` if host ports are already in use.
 - `--without-https` to skip mapping host HTTPS.
-- `--k3d-create-arg <arg>` (repeatable) to forward advanced flags directly to `k3d cluster create`.
-- Prefer passing flag and value as separate repeats when needed (example: `--k3d-create-arg --volume --k3d-create-arg /lib/modules:/lib/modules@all`).
 
 `k3d-up.sh` writes and uses a dedicated kubeconfig by default (`~/.kube/k3d-<cluster>.yaml`), so this flow works even when your shell has a multi-entry `KUBECONFIG` for other projects.
 
-For WireGuard local testing, `k3d-up.sh` maps host ports `51820/udp` and `51821/tcp` to the k3d server node so `wg-easy` remains reachable from your host. If your `k3d` version supports runtime flags for privileged node containers, pass them through with repeated `--k3d-create-arg` values (for example runtime args and `/lib/modules` mounts) to satisfy `wg-quick` NAT requirements.
+For WireGuard local testing, `k3d-up.sh` maps host ports `51820/udp` and `51821/tcp` to the k3d server node and mounts host `/lib/modules` into all k3d nodes (`/lib/modules:/lib/modules@all`) so wg-easy can load kernel module metadata needed by `wg-quick`.
 
 ### 2.2 Generate minimal bootstrap secrets
 
