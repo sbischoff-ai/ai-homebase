@@ -265,6 +265,7 @@ Fixes:
 
 ## 7) What success looks like
 
+- If `openclaw` enters `CrashLoopBackOff` with `connect: connection refused` on `/startupz`, check `kubectl -n ai-homebase logs deploy/platform-stack-openclaw --previous` and validate resource sizing from the active overlay. The shipped k3d profile now uses significantly larger OpenClaw resources (`requests: 500m/2Gi`, `limits: 1000m/4Gi`) to avoid under-provisioned startup crashes.
 After bootstrap + deploy with default layering (`values-dev.yaml` + `values-k3d.yaml`), run these checks:
 
 ```bash
