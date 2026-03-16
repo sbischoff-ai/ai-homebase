@@ -141,16 +141,6 @@ layer `examples/k3d.values.override.yaml` (or your own override) with `openclaw.
 
 ### 3.2 Connect WireGuard VPN via wg-easy
 
-Node prerequisite check (run on the k3d node host before troubleshooting CrashLoopBackOff on wg-easy):
-
-```bash
-docker ps --format "{{.Names}}" | grep "^k3d-.*-server-0$"
-docker exec <k3d-server-container> lsmod | grep -E "(^wireguard|^ip_tables|^iptable_filter|^iptable_nat|^nf_nat)"
-docker exec <k3d-server-container> iptables -t nat -L
-```
-
-If `iptables -t nat -L` fails with `Table does not exist`, the node lacks legacy xtables NAT support required by `wg-quick`; fix node modules/boot config first.
-
 1. Open `http://wg.localtest.me`.
 2. Log in with the generated password printed by `scripts/k3d-bootstrap-secrets.sh` (or `scripts/k3d-local-bootstrap.sh`).
 3. Create a client profile in wg-easy and download/show the QR code.

@@ -90,21 +90,7 @@ helm upgrade --install platform-stack charts/platform-stack \
   -f charts/platform-stack/values-k3d.yaml
 ```
 
-## 5) wg-easy node compatibility pre-check
-
-Before deploying or restarting wg-easy, verify target worker nodes expose legacy xtables NAT support required by `wg-quick`:
-
-```bash
-lsmod | grep -E "(^wireguard|^ip_tables|^iptable_filter|^iptable_nat|^nf_nat)"
-sudo iptables -t nat -L >/dev/null
-```
-
-Expected result: `iptables -t nat -L` succeeds without `Table does not exist`.
-If this fails, load/persist required modules on the node OS first (`wireguard`, `ip_tables`, `iptable_nat`, usually `iptable_filter`) before scheduling wg-easy.
-
-If nodes are nftables-only / legacy-xtables-disabled, schedule wg-easy only on compatible nodes or use a different NAT design.
-
-## 6) Backup and secret-handling reminders
+## 5) Backup and secret-handling reminders
 
 - Store durable app data on persistent volumes and confirm restore procedures for your storage class. See [storage planning](./storage.md).
 - Keep runtime credentials in Kubernetes Secrets and wire them using chart secret contracts (`existingSecret`, `secretRefs`, `secretEnv`, `envFromSecrets`). See [services and secret contracts](./services.md#secret-contract-model-all-services).
