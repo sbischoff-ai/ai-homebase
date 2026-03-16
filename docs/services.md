@@ -130,7 +130,8 @@ The table below is the single source of truth for baseline defaults and is keyed
 - Provides VPN lifecycle UI and WireGuard endpoint.
 - AKS baseline keeps UI/API ingress disabled (`wgEasy.ingress.enabled: false`) so the admin UI is reached over the VPN tunnel.
 - WireGuard endpoint exposure should be explicit and tightly controlled (for example `wgEasy.service.type: LoadBalancer` with `wgEasy.service.loadBalancerSourceRanges`).
-- Pod/container security contexts are explicit values; defaults keep conservative hardening while preserving required runtime compatibility (`runAsNonRoot: false` for the current wg-easy image) and required WireGuard capabilities (`NET_ADMIN`, `SYS_MODULE`) in `securityContext`.
+- Pod/container security contexts are explicit values. Defaults run wg-easy as root (`runAsUser: 0`, `runAsGroup: 0`) with `allowPrivilegeEscalation: true`, `privileged: false`, and WireGuard-required capabilities (`NET_ADMIN`, `SYS_MODULE`) so `wg-quick` can apply iptables/netfilter rules.
+- For k3d/local Docker-backed clusters, even a privileged/root pod may still fail `wg-quick up wg0` NAT steps because node containers add another isolation layer. Treat this as an environment constraint unless node containers are started with broader privileges.
 - Do not configure pod-level `sysctls` for wg-easy by default; many clusters reject unsafe sysctls unless kubelet is explicitly configured with `allowed-unsafe-sysctls`.
 - Node-level prerequisites must be configured on cluster nodes: `net.ipv4.ip_forward=1` and `net.ipv4.conf.all.src_valid_mark=1`.
 - Host prerequisite (all environments, including local Docker/k3d): nodes must provide WireGuard + legacy xtables iptables NAT support (`wireguard`, `ip_tables`, `iptable_nat`; usually `iptable_filter` too) or `wg-quick up wg0` fails when adding the POSTROUTING MASQUERADE rule.

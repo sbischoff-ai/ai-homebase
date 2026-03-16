@@ -174,7 +174,7 @@ When running in default concise mode, use this quick workflow to debug failures 
   - `ERROR: helm dependency build failed` → run `helm dependency update charts/platform-stack` and retry.
   - `ERROR: kubectl cluster-info failed` or `The connection to the server ... was refused` → ensure your target cluster is running and kube context is correct (`kubectl config current-context`).
   - `ERROR: ingress-nginx rollout did not complete` → inspect controller pods/events (`kubectl -n ingress-nginx get pods`, `kubectl -n ingress-nginx describe pod <pod-name>`), then rerun once healthy.
-  - `wg-quick up wg0` with `iptables ... can't initialize iptables table 'nat'` → fix node prerequisites (load `wireguard`, `ip_tables`, `iptable_nat`, usually `iptable_filter`) and confirm `iptables -t nat -L` succeeds on target nodes before redeploying wg-easy.
+  - `wg-quick up wg0` with `iptables ... can't initialize iptables table 'nat'` → first confirm wg-easy runs as root with `NET_ADMIN`/`SYS_MODULE`, then fix node prerequisites (load `wireguard`, `ip_tables`, `iptable_nat`, usually `iptable_filter`) and confirm `iptables -t nat -L` succeeds on target nodes before redeploying wg-easy. On k3d, this can still fail due to nested Docker isolation in node containers even when the pod is privileged/root.
 
 ### Example concise success transcript
 
