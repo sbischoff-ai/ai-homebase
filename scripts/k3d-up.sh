@@ -121,7 +121,6 @@ else
     echo "ℹ Cluster not found; creating new cluster ${CLUSTER_NAME}."
     CREATE_ARGS=(
       --wait
-      --k3d-node-arg "--privileged@all"
       -p "${HTTP_PORT}:80@loadbalancer"
       -p "51820:51820/udp@server:0"
       -p "51821:51821@server:0"

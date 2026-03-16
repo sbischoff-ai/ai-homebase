@@ -66,7 +66,7 @@ Useful options:
 
 `k3d-up.sh` writes and uses a dedicated kubeconfig by default (`~/.kube/k3d-<cluster>.yaml`), so this flow works even when your shell has a multi-entry `KUBECONFIG` for other projects.
 
-For WireGuard local testing, `k3d-up.sh` creates node containers in privileged mode and maps host ports `51820/udp` and `51821/tcp` to the k3d server node so `wg-easy` can create interfaces/iptables rules and remain reachable from your host.
+For WireGuard local testing, `k3d-up.sh` maps host ports `51820/udp` and `51821/tcp` to the k3d server node so `wg-easy` remains reachable from your host. Older k3d versions may not expose cluster-create flags needed to run node containers with broader privileges, so treat remaining `wg-quick` NAT failures as an environment limitation and validate node prerequisites directly.
 
 ### 2.2 Generate minimal bootstrap secrets
 

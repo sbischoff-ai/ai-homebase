@@ -174,7 +174,7 @@ When running in default concise mode, use this quick workflow to debug failures 
   - `ERROR: helm dependency build failed` → run `helm dependency update charts/platform-stack` and retry.
   - `ERROR: kubectl cluster-info failed` or `The connection to the server ... was refused` → ensure your target cluster is running and kube context is correct (`kubectl config current-context`).
   - `ERROR: ingress-nginx rollout did not complete` → inspect controller pods/events (`kubectl -n ingress-nginx get pods`, `kubectl -n ingress-nginx describe pod <pod-name>`), then rerun once healthy.
-  - `wg-quick up wg0` with `iptables ... can't initialize iptables table 'nat'` → first confirm wg-easy runs as root with `NET_ADMIN`/`SYS_MODULE`, then fix node prerequisites (load `wireguard`, `ip_tables`, `iptable_nat`, usually `iptable_filter`) and confirm `iptables -t nat -L` succeeds on target nodes before redeploying wg-easy. `scripts/k3d-up.sh` now creates k3d nodes with `--privileged@all` and maps `51820/udp` + `51821/tcp` from the server node to reduce nested Docker isolation issues for local WireGuard testing.
+  - `wg-quick up wg0` with `iptables ... can't initialize iptables table 'nat'` → first confirm wg-easy runs as root with `NET_ADMIN`/`SYS_MODULE`, then fix node prerequisites (load `wireguard`, `ip_tables`, `iptable_nat`, usually `iptable_filter`) and confirm `iptables -t nat -L` succeeds on target nodes before redeploying wg-easy. `scripts/k3d-up.sh` maps `51820/udp` + `51821/tcp` from the server node for local WireGuard reachability, but older k3d versions may still enforce nested-container limitations.
 
 ### Example concise success transcript
 
