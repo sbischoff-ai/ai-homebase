@@ -43,7 +43,7 @@ bootstrap_init_logging
 
 if [[ ${#VALUES_FILES[@]} -eq 0 ]]; then
   VALUES_FILES=(
-    "charts/platform-stack/values-dev.yaml"
+    "charts/platform-stack/values.yaml"
     "charts/platform-stack/values-k3d.yaml"
   )
 fi

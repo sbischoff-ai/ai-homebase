@@ -5,8 +5,14 @@ data:
     \    \"token\": \"${OPENCLAW_GATEWAY_TOKEN}\"\n    },\n    \"controlUi\": {\n\
     \      \"enabled\": true,\n      \"allowedOrigins\": [\"http://openclaw.homebase.local\"\
     ]\n    }\n  },\n  \"agents\": {\n    \"defaults\": {\n      \"workspace\": \"\
-    ~/.openclaw/workspace\"\n    },\n    \"list\": [{\"id\":\"default\",\"name\":\"\
-    OpenClaw Assistant\",\"workspace\":\"~/.openclaw/workspace\"}]\n  }\n}\n"
+    ~/.openclaw/workspace\",\n      \"sandbox\": {\"docker\":{\"capDrop\":[\"ALL\"\
+    ],\"env\":{\"LANG\":\"C.UTF-8\"},\"image\":\"openclaw-sandbox:bookworm-slim\"\
+    ,\"network\":\"none\",\"readOnlyRoot\":true,\"tmpfs\":[\"/tmp\",\"/var/tmp\",\"\
+    /run\"],\"user\":\"1000:1000\",\"workdir\":\"/workspace\"},\"mode\":false,\"prune\"\
+    :{\"idleHours\":24,\"maxAgeDays\":7},\"scope\":\"agent\",\"workspaceAccess\":\"\
+    none\",\"workspaceRoot\":\"~/.openclaw/sandboxes\"}\n    },\n    \"list\": [{\"\
+    id\":\"default\",\"name\":\"OpenClaw Assistant\",\"workspace\":\"~/.openclaw/workspace\"\
+    }]\n  }\n}\n"
 kind: ConfigMap
 metadata:
   labels:
@@ -80,8 +86,6 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  annotations:
-    updatedAt: 2026-03-03 UTC 12:54:38
   labels:
     app: infisical
     chart: infisical-0.2.0
@@ -90,7 +94,7 @@ metadata:
     release: platform-stack
   name: platform-stack-infisical
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: infisical
@@ -98,8 +102,6 @@ spec:
       release: platform-stack
   template:
     metadata:
-      annotations:
-        updatedAt: 2026-03-03 UTC 12:54:38
       labels:
         app: infisical
         component: infisical
@@ -192,7 +194,7 @@ spec:
             drop:
             - ALL
           readOnlyRootFilesystem: false
-          runAsNonRoot: true
+          runAsNonRoot: false
       initContainers:
       - args:
         - job
@@ -226,42 +228,30 @@ spec:
         app.kubernetes.io/name: openclaw
     spec:
       containers:
-      - env:
+      - command:
+        - node
+        - openclaw.mjs
+        - gateway
+        - --allow-unconfigured
+        env:
+        - name: OPENCLAW_GATEWAY_PORT
+          value: '18789'
+        - name: OPENCLAW_GATEWAY_BIND
+          value: 0.0.0.0
+        - name: OPENCLAW_HOME
+          value: /home/node/.openclaw
         - name: OPENCLAW_STATE_DIR
           value: /home/node/.openclaw
         - name: OPENCLAW_CONFIG_PATH
           value: /etc/openclaw/openclaw.json
+        - name: OPENCLAW_SANDBOX
+          value: '0'
         - name: OPENCLAW_GATEWAY_TOKEN
           valueFrom:
             secretKeyRef:
               key: OPENCLAW_GATEWAY_TOKEN
               name: openclaw-app-secrets
-        - name: OPENAI_API_KEY
-          valueFrom:
-            secretKeyRef:
-              key: OPENAI_API_KEY
-              name: openclaw-app-secrets
-        - name: ANTHROPIC_API_KEY
-          valueFrom:
-            secretKeyRef:
-              key: ANTHROPIC_API_KEY
-              name: openclaw-app-secrets
-        - name: TAVILY_API_KEY
-          valueFrom:
-            secretKeyRef:
-              key: TAVILY_API_KEY
-              name: openclaw-app-secrets
-        - name: GOOGLE_API_KEY
-          valueFrom:
-            secretKeyRef:
-              key: GOOGLE_API_KEY
-              name: openclaw-app-secrets
-        - name: BRAVE_SEARCH_API_KEY
-          valueFrom:
-            secretKeyRef:
-              key: BRAVE_SEARCH_API_KEY
-              name: openclaw-app-secrets
-        image: ghcr.io/example/openclaw:2026.3.12
+        image: ghcr.io/openclaw/openclaw:2026.3.12
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 3
@@ -269,11 +259,11 @@ spec:
             path: /healthz
             port: http
           initialDelaySeconds: 10
-          periodSeconds: 10
-          timeoutSeconds: 2
+          periodSeconds: 15
+          timeoutSeconds: 5
         name: openclaw
         ports:
-        - containerPort: 8080
+        - containerPort: 18789
           name: http
           protocol: TCP
         readinessProbe:
@@ -300,7 +290,17 @@ spec:
           runAsGroup: 1000
           runAsNonRoot: true
           runAsUser: 1000
+        startupProbe:
+          failureThreshold: 30
+          httpGet:
+            path: /startupz
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
         volumeMounts:
+        - mountPath: /tmp
+          name: tmp
         - mountPath: /home/node/.openclaw
           name: data
         - mountPath: /etc/openclaw/openclaw.json
@@ -311,6 +311,9 @@ spec:
         fsGroup: 1000
       serviceAccountName: platform-stack-openclaw
       volumes:
+      - emptyDir:
+          medium: Memory
+        name: tmp
       - name: data
         persistentVolumeClaim:
           claimName: platform-stack-openclaw
@@ -361,7 +364,7 @@ spec:
           value: ''
         - name: WORKER_CONCURRENCY
           value: '4'
-        image: ghcr.io/example/openhands:1.5
+        image: ghcr.io/openhands/openhands:1.5.0
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 6
@@ -384,20 +387,20 @@ spec:
           timeoutSeconds: 5
         resources:
           limits:
-            cpu: '1'
-            memory: 1Gi
+            cpu: '2'
+            memory: 8Gi
           requests:
-            cpu: 250m
-            memory: 256Mi
+            cpu: 1000m
+            memory: 4Gi
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
             drop:
             - ALL
           readOnlyRootFilesystem: false
-          runAsGroup: 1000
+          runAsGroup: 42420
           runAsNonRoot: true
-          runAsUser: 1000
+          runAsUser: 42420
         startupProbe:
           failureThreshold: 30
           periodSeconds: 10
@@ -405,7 +408,7 @@ spec:
             port: 3000
           timeoutSeconds: 5
       securityContext:
-        fsGroup: 1000
+        fsGroup: 42420
       serviceAccountName: platform-stack-openhands
 ---
 apiVersion: apps/v1
@@ -435,10 +438,10 @@ spec:
             secretKeyRef:
               key: WG_HOST
               name: platform-stack-wg-easy-secrets
-        - name: PASSWORD
+        - name: PASSWORD_HASH
           valueFrom:
             secretKeyRef:
-              key: PASSWORD
+              key: PASSWORD_HASH
               name: platform-stack-wg-easy-secrets
         - name: WG_DEFAULT_ADDRESS
           value: 10.8.0.x
@@ -456,15 +459,16 @@ spec:
           name: vpn
           protocol: UDP
         securityContext:
-          allowPrivilegeEscalation: false
+          allowPrivilegeEscalation: true
           capabilities:
             add:
             - NET_ADMIN
             - SYS_MODULE
-            drop:
-            - ALL
+          privileged: false
           readOnlyRootFilesystem: false
-          runAsNonRoot: true
+          runAsGroup: 0
+          runAsNonRoot: false
+          runAsUser: 0
         volumeMounts:
         - mountPath: /etc/wireguard
           name: data
@@ -668,9 +672,9 @@ metadata:
 spec:
   ports:
   - name: http
-    port: 80
+    port: 18789
     protocol: TCP
-    targetPort: 8080
+    targetPort: 18789
   selector:
     app.kubernetes.io/instance: platform-stack
     app.kubernetes.io/name: openclaw

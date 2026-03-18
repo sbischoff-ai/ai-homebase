@@ -8,10 +8,8 @@ GOLDEN_DIR="${GOLDEN_DIR:-tests/golden}"
 
 profiles=(
   "values=${CHART_PATH}/values.yaml"
-  "values-dev=${CHART_PATH}/values-dev.yaml"
-  "values-dev-k3d=${CHART_PATH}/values-dev.yaml,${CHART_PATH}/values-k3d.yaml"
-  "values-aks=${CHART_PATH}/values-aks.yaml"
-  "values-prod=${CHART_PATH}/values-prod.yaml"
+  "values-k3d=${CHART_PATH}/values.yaml,${CHART_PATH}/values-k3d.yaml"
+  "values-k3s=${CHART_PATH}/values.yaml,${CHART_PATH}/values-k3s.yaml"
 )
 
 mkdir -p "${GOLDEN_DIR}"
@@ -68,6 +66,7 @@ def cleanup(node):
                     "meta.helm.sh/release-name",
                     "meta.helm.sh/release-namespace",
                     "kubectl.kubernetes.io/last-applied-configuration",
+                    "updatedAt",
                 ]:
                     annotations.pop(key, None)
                 if not annotations:

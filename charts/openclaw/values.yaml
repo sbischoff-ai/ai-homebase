@@ -79,6 +79,28 @@ openclaw:
   agents:
     defaults:
       workspace: ~/.openclaw/workspace
+      sandbox:
+        mode: off
+        scope: agent
+        workspaceAccess: none
+        workspaceRoot: ~/.openclaw/sandboxes
+        docker:
+          image: openclaw-sandbox:bookworm-slim
+          workdir: /workspace
+          readOnlyRoot: true
+          tmpfs:
+            - /tmp
+            - /var/tmp
+            - /run
+          network: none
+          user: "1000:1000"
+          capDrop:
+            - ALL
+          env:
+            LANG: C.UTF-8
+        prune:
+          idleHours: 24
+          maxAgeDays: 7
     list:
       - id: default
         name: OpenClaw Assistant
@@ -183,6 +205,11 @@ affinity: {}
 topologySpreadConstraints: []
 priorityClassName: ""
 runtimeClassName: ""
+
+hostDockerSocket:
+  enabled: false
+  hostPath: /var/run/docker.sock
+  mountPath: /var/run/docker.sock
 
 extraVolumes: []
 extraVolumeMounts: []

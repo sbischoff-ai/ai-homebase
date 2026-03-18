@@ -10,6 +10,10 @@
 {{- if and (eq $gatewayAuthMode "token") (not .Values.secretKeys.gatewayToken) }}
 {{- fail "openclaw.secretKeys.gatewayToken is required when openclaw.gateway.auth.mode=token" }}
 {{- end }}
+{{- $sandboxMode := .Values.openclaw.agents.defaults.sandbox.mode | default "off" }}
+{{- if and (ne (toString $sandboxMode) "off") (not .Values.hostDockerSocket.enabled) }}
+{{- fail "openclaw.hostDockerSocket.enabled must be true when openclaw.agents.defaults.sandbox.mode is not off" }}
+{{- end }}
 {{- if and $nonLoopbackBind $controlUiEnabled (eq (len $allowedOrigins) 0) }}
 {{- fail "openclaw.gateway.controlUi.allowedOrigins must be non-empty when gateway bind is non-loopback and control UI is enabled" }}
 {{- end }}
@@ -87,6 +91,12 @@ spec:
               value: {{ .Values.persistence.mountPath | quote }}
             - name: OPENCLAW_CONFIG_PATH
               value: /etc/openclaw/openclaw.json
+            - name: OPENCLAW_SANDBOX
+              value: {{ ternary "1" "0" (ne (toString $sandboxMode) "off") | quote }}
+            {{- if .Values.hostDockerSocket.enabled }}
+            - name: OPENCLAW_DOCKER_SOCKET
+              value: {{ .Values.hostDockerSocket.mountPath | quote }}
+            {{- end }}
             {{- with .Values.global.env }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -238,6 +248,10 @@ spec:
               subPath: openclaw.json
               readOnly: true
             {{- end }}
+            {{- if .Values.hostDockerSocket.enabled }}
+            - name: docker-socket
+              mountPath: {{ .Values.hostDockerSocket.mountPath }}
+            {{- end }}
             {{- with .Values.extraVolumeMounts }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -257,6 +271,12 @@ spec:
             items:
               - key: openclaw.json
                 path: openclaw.json
+        {{- end }}
+        {{- if .Values.hostDockerSocket.enabled }}
+        - name: docker-socket
+          hostPath:
+            path: {{ .Values.hostDockerSocket.hostPath | quote }}
+            type: Socket
         {{- end }}
         {{- with .Values.extraVolumes }}
         {{- toYaml . | nindent 8 }}

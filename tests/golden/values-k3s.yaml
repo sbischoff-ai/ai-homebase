@@ -3,24 +3,91 @@ data:
   openclaw.json: "{\n  \"gateway\": {\n    \"mode\": \"local\",\n    \"bind\": \"\
     lan\",\n    \"port\": 18789,\n    \"auth\": {\n      \"mode\": \"token\",\n  \
     \    \"token\": \"${OPENCLAW_GATEWAY_TOKEN}\"\n    },\n    \"controlUi\": {\n\
-    \      \"enabled\": true,\n      \"allowedOrigins\": [\"https://openclaw.aks.example.com\"\
+    \      \"enabled\": true,\n      \"allowedOrigins\": [\"http://openclaw.vpn.homebase.internal\"\
     ]\n    }\n  },\n  \"agents\": {\n    \"defaults\": {\n      \"workspace\": \"\
-    ~/.openclaw/workspace\"\n    },\n    \"list\": [{\"id\":\"default\",\"name\":\"\
-    OpenClaw Assistant\",\"workspace\":\"~/.openclaw/workspace\"}]\n  }\n}\n"
+    ~/.openclaw/workspace\",\n      \"sandbox\": {\"docker\":{\"capDrop\":[\"ALL\"\
+    ],\"env\":{\"LANG\":\"C.UTF-8\"},\"image\":\"openclaw-sandbox:bookworm-slim\"\
+    ,\"network\":\"none\",\"readOnlyRoot\":true,\"tmpfs\":[\"/tmp\",\"/var/tmp\",\"\
+    /run\"],\"user\":\"1000:1000\",\"workdir\":\"/workspace\"},\"mode\":\"non-main\"\
+    ,\"prune\":{\"idleHours\":24,\"maxAgeDays\":7},\"scope\":\"agent\",\"workspaceAccess\"\
+    :\"none\",\"workspaceRoot\":\"~/.openclaw/sandboxes\"}\n    },\n    \"list\":\
+    \ [{\"id\":\"default\",\"name\":\"OpenClaw Assistant\",\"workspace\":\"~/.openclaw/workspace\"\
+    }]\n  }\n}\n"
 kind: ConfigMap
 metadata:
   labels:
     app.kubernetes.io/instance: platform-stack
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: openclaw
-    platform: aks
+    environment: k3s
   name: platform-stack-openclaw
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nextcloud
+    environment: k3s
+  name: platform-stack-nextcloud-cron
+spec:
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/instance: platform-stack
+            app.kubernetes.io/name: nextcloud
+        spec:
+          containers:
+          - command:
+            - /bin/sh
+            - -c
+            - php -f /var/www/html/cron.php
+            env:
+            - name: POSTGRES_HOST
+              value: ''
+            - name: POSTGRES_PORT
+              value: '5432'
+            - name: POSTGRES_DB
+              value: ''
+            - name: POSTGRES_USER
+              value: ''
+            - name: REDIS_HOST
+              value: ''
+            - name: REDIS_HOST_PORT
+              value: '6379'
+            - name: SMTP_HOST
+              value: ''
+            - name: SMTP_PORT
+              value: '587'
+            - name: SMTP_NAME
+              value: ''
+            - name: MAIL_FROM_ADDRESS
+              value: ''
+            - name: MAIL_DOMAIN
+              value: ''
+            image: nextcloud:29.0.0-apache
+            imagePullPolicy: IfNotPresent
+            name: nextcloud-cron
+            volumeMounts:
+            - mountPath: /var/www/html
+              name: data
+          restartPolicy: OnFailure
+          securityContext:
+            fsGroup: 33
+            fsGroupChangePolicy: OnRootMismatch
+            seccompProfile:
+              type: RuntimeDefault
+  schedule: '*/5 * * * *'
+  successfulJobsHistoryLimit: 3
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  annotations:
-    updatedAt: 2026-03-03 UTC 12:54:41
   labels:
     app: infisical
     chart: infisical-0.2.0
@@ -29,7 +96,7 @@ metadata:
     release: platform-stack
   name: platform-stack-infisical
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: infisical
@@ -37,8 +104,6 @@ spec:
       release: platform-stack
   template:
     metadata:
-      annotations:
-        updatedAt: 2026-03-03 UTC 12:54:41
       labels:
         app: infisical
         component: infisical
@@ -50,66 +115,66 @@ spec:
           valueFrom:
             secretKeyRef:
               key: AUTH_SECRET
-              name: infisical-app-secrets
+              name: infisical-secrets
         - name: ENCRYPTION_KEY
           valueFrom:
             secretKeyRef:
               key: ENCRYPTION_KEY
-              name: infisical-app-secrets
+              name: infisical-secrets
         - name: SITE_URL
           valueFrom:
             secretKeyRef:
               key: SITE_URL
-              name: infisical-app-secrets
+              name: infisical-secrets
         - name: SMTP_HOST
           valueFrom:
             secretKeyRef:
               key: SMTP_HOST
-              name: infisical-app-secrets
+              name: infisical-secrets
               optional: true
         - name: SMTP_PORT
           valueFrom:
             secretKeyRef:
               key: SMTP_PORT
-              name: infisical-app-secrets
+              name: infisical-secrets
               optional: true
         - name: SMTP_USERNAME
           valueFrom:
             secretKeyRef:
               key: SMTP_USERNAME
-              name: infisical-app-secrets
+              name: infisical-secrets
               optional: true
         - name: SMTP_PASSWORD
           valueFrom:
             secretKeyRef:
               key: SMTP_PASSWORD
-              name: infisical-app-secrets
+              name: infisical-secrets
               optional: true
         - name: SMTP_FROM_ADDRESS
           valueFrom:
             secretKeyRef:
               key: SMTP_FROM_ADDRESS
-              name: infisical-app-secrets
+              name: infisical-secrets
               optional: true
         - name: SMTP_FROM_NAME
           valueFrom:
             secretKeyRef:
               key: SMTP_FROM_NAME
-              name: infisical-app-secrets
+              name: infisical-secrets
               optional: true
         - name: DB_CONNECTION_URI
           valueFrom:
             secretKeyRef:
               key: DB_CONNECTION_URI
-              name: infisical-app-secrets
+              name: infisical-secrets
               optional: true
         - name: REDIS_URL
           valueFrom:
             secretKeyRef:
               key: REDIS_URL
-              name: infisical-app-secrets
+              name: infisical-secrets
               optional: true
-        image: myregistry.azurecr.io/infisical:stable
+        image: infisical/infisical:v0.151.0
         imagePullPolicy: IfNotPresent
         name: infisical-infisical
         ports:
@@ -131,7 +196,7 @@ spec:
             drop:
             - ALL
           readOnlyRootFilesystem: false
-          runAsNonRoot: true
+          runAsNonRoot: false
       initContainers:
       - args:
         - job
@@ -151,7 +216,7 @@ metadata:
     app.kubernetes.io/instance: platform-stack
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: openclaw
-    platform: aks
+    environment: k3s
   name: platform-stack-openclaw
 spec:
   replicas: 1
@@ -166,42 +231,32 @@ spec:
         app.kubernetes.io/name: openclaw
     spec:
       containers:
-      - env:
+      - command:
+        - node
+        - openclaw.mjs
+        - gateway
+        - --allow-unconfigured
+        env:
+        - name: OPENCLAW_GATEWAY_PORT
+          value: '18789'
+        - name: OPENCLAW_GATEWAY_BIND
+          value: 0.0.0.0
+        - name: OPENCLAW_HOME
+          value: /home/node/.openclaw
         - name: OPENCLAW_STATE_DIR
           value: /home/node/.openclaw
         - name: OPENCLAW_CONFIG_PATH
           value: /etc/openclaw/openclaw.json
+        - name: OPENCLAW_SANDBOX
+          value: '1'
+        - name: OPENCLAW_DOCKER_SOCKET
+          value: /var/run/docker.sock
         - name: OPENCLAW_GATEWAY_TOKEN
           valueFrom:
             secretKeyRef:
               key: OPENCLAW_GATEWAY_TOKEN
               name: openclaw-app-secrets
-        - name: OPENAI_API_KEY
-          valueFrom:
-            secretKeyRef:
-              key: OPENAI_API_KEY
-              name: openclaw-app-secrets
-        - name: ANTHROPIC_API_KEY
-          valueFrom:
-            secretKeyRef:
-              key: ANTHROPIC_API_KEY
-              name: openclaw-app-secrets
-        - name: TAVILY_API_KEY
-          valueFrom:
-            secretKeyRef:
-              key: TAVILY_API_KEY
-              name: openclaw-app-secrets
-        - name: GOOGLE_API_KEY
-          valueFrom:
-            secretKeyRef:
-              key: GOOGLE_API_KEY
-              name: openclaw-app-secrets
-        - name: BRAVE_SEARCH_API_KEY
-          valueFrom:
-            secretKeyRef:
-              key: BRAVE_SEARCH_API_KEY
-              name: openclaw-app-secrets
-        image: myregistry.azurecr.io/openclaw:stable
+        image: ghcr.io/openclaw/openclaw:2026.3.12
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 3
@@ -209,11 +264,11 @@ spec:
             path: /healthz
             port: http
           initialDelaySeconds: 10
-          periodSeconds: 10
-          timeoutSeconds: 2
+          periodSeconds: 15
+          timeoutSeconds: 5
         name: openclaw
         ports:
-        - containerPort: 8080
+        - containerPort: 18789
           name: http
           protocol: TCP
         readinessProbe:
@@ -226,11 +281,11 @@ spec:
           timeoutSeconds: 2
         resources:
           limits:
+            cpu: '2'
+            memory: 2Gi
+          requests:
             cpu: 500m
             memory: 512Mi
-          requests:
-            cpu: 100m
-            memory: 128Mi
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -240,19 +295,32 @@ spec:
           runAsGroup: 1000
           runAsNonRoot: true
           runAsUser: 1000
+        startupProbe:
+          failureThreshold: 30
+          httpGet:
+            path: /startupz
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
         volumeMounts:
+        - mountPath: /tmp
+          name: tmp
         - mountPath: /home/node/.openclaw
           name: data
         - mountPath: /etc/openclaw/openclaw.json
           name: config
           readOnly: true
           subPath: openclaw.json
-      imagePullSecrets:
-      - name: acr-pull
+        - mountPath: /var/run/docker.sock
+          name: docker-socket
       securityContext:
         fsGroup: 1000
       serviceAccountName: platform-stack-openclaw
       volumes:
+      - emptyDir:
+          medium: Memory
+        name: tmp
       - name: data
         persistentVolumeClaim:
           claimName: platform-stack-openclaw
@@ -262,6 +330,10 @@ spec:
             path: openclaw.json
           name: platform-stack-openclaw
         name: config
+      - hostPath:
+          path: /var/run/docker.sock
+          type: Socket
+        name: docker-socket
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -270,9 +342,10 @@ metadata:
     app.kubernetes.io/instance: platform-stack
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: openhands
-    platform: aks
+    environment: k3s
   name: platform-stack-openhands
 spec:
+  replicas: 1
   selector:
     matchLabels:
       app.kubernetes.io/instance: platform-stack
@@ -283,15 +356,6 @@ spec:
         app.kubernetes.io/instance: platform-stack
         app.kubernetes.io/name: openhands
     spec:
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-            - matchExpressions:
-              - key: workload-tier
-                operator: In
-                values:
-                - isolated
       containers:
       - env:
         - name: AGENT_SERVER_IMAGE_REPOSITORY
@@ -301,18 +365,18 @@ spec:
         - name: RUNTIME_MODE
           value: ''
         - name: QUEUE_ENABLED
-          value: 'true'
+          value: 'false'
         - name: QUEUE_PROVIDER
-          value: azure-servicebus
+          value: ''
         - name: QUEUE_ENDPOINT
-          value: sb://<namespace>.servicebus.windows.net/
+          value: ''
         - name: QUEUE_NAME
-          value: openhands-jobs
+          value: ''
         - name: QUEUE_DLQ_NAME
-          value: openhands-jobs-deadletter
+          value: ''
         - name: WORKER_CONCURRENCY
           value: '4'
-        image: myregistry.azurecr.io/openhands:stable
+        image: ghcr.io/openhands/openhands:1.5.0
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 6
@@ -335,40 +399,37 @@ spec:
           timeoutSeconds: 5
         resources:
           limits:
-            cpu: '1'
-            memory: 1Gi
+            cpu: '2'
+            memory: 8Gi
           requests:
-            cpu: 250m
-            memory: 256Mi
+            cpu: 1000m
+            memory: 4Gi
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
             drop:
             - ALL
           readOnlyRootFilesystem: false
-          runAsGroup: 1000
+          runAsGroup: 42420
           runAsNonRoot: true
-          runAsUser: 1000
+          runAsUser: 42420
         startupProbe:
           failureThreshold: 30
           periodSeconds: 10
           tcpSocket:
             port: 3000
           timeoutSeconds: 5
-      imagePullSecrets:
-      - name: acr-pull
-      nodeSelector:
-        kubernetes.azure.com/mode: user
-        workload-tier: isolated
-      runtimeClassName: kata-cc
+        volumeMounts:
+        - mountPath: /var/run/docker.sock
+          name: docker-socket
       securityContext:
-        fsGroup: 1000
+        fsGroup: 42420
       serviceAccountName: platform-stack-openhands
-      tolerations:
-      - effect: NoSchedule
-        key: workload-tier
-        operator: Equal
-        value: isolated
+      volumes:
+      - hostPath:
+          path: /var/run/docker.sock
+          type: Socket
+        name: docker-socket
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -377,7 +438,7 @@ metadata:
     app.kubernetes.io/instance: platform-stack
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: wg-easy
-    platform: aks
+    environment: k3s
   name: platform-stack-wg-easy
 spec:
   replicas: 1
@@ -397,19 +458,19 @@ spec:
           valueFrom:
             secretKeyRef:
               key: WG_HOST
-              name: wgeasy-app-secrets
-        - name: PASSWORD
+              name: platform-stack-wg-easy-secrets
+        - name: PASSWORD_HASH
           valueFrom:
             secretKeyRef:
-              key: PASSWORD
-              name: wgeasy-app-secrets
+              key: PASSWORD_HASH
+              name: platform-stack-wg-easy-secrets
         - name: WG_DEFAULT_ADDRESS
           value: 10.8.0.x
         - name: WG_DEFAULT_DNS
           value: 1.1.1.1
         - name: WG_ALLOWED_IPS
           value: 0.0.0.0/0
-        image: myregistry.azurecr.io/wg-easy:stable
+        image: ghcr.io/wg-easy/wg-easy:14
         imagePullPolicy: IfNotPresent
         name: wg-easy
         ports:
@@ -419,15 +480,16 @@ spec:
           name: vpn
           protocol: UDP
         securityContext:
-          allowPrivilegeEscalation: false
+          allowPrivilegeEscalation: true
           capabilities:
             add:
             - NET_ADMIN
             - SYS_MODULE
-            drop:
-            - ALL
+          privileged: false
           readOnlyRootFilesystem: false
-          runAsNonRoot: true
+          runAsGroup: 0
+          runAsNonRoot: false
+          runAsUser: 0
         volumeMounts:
         - mountPath: /etc/wireguard
           name: data
@@ -439,41 +501,14 @@ spec:
         persistentVolumeClaim:
           claimName: platform-stack-wg-easy
 ---
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  labels:
-    app.kubernetes.io/instance: platform-stack
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: openhands
-    platform: aks
-  name: platform-stack-openhands
-spec:
-  maxReplicas: 8
-  metrics:
-  - resource:
-      name: cpu
-      target:
-        averageUtilization: 70
-        type: Utilization
-    type: Resource
-  minReplicas: 2
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: platform-stack-openhands
----
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-prod
-    external-dns.alpha.kubernetes.io/hostname: infisical.aks.example.com
   name: infisical-ingress
 spec:
   ingressClassName: nginx
   rules:
-  - host: infisical.aks.example.com
+  - host: infisical.vpn.homebase.internal
     http:
       paths:
       - backend:
@@ -490,10 +525,78 @@ spec:
               number: 8080
         path: /ss-webhook
         pathType: Exact
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nextcloud
+    environment: k3s
+  name: platform-stack-nextcloud
+spec:
+  rules:
+  - host: cloud.homebase.local
+    http:
+      paths:
+      - backend:
+          service:
+            name: platform-stack-nextcloud
+            port:
+              number: 80
+        path: /
+        pathType: Prefix
   tls:
   - hosts:
-    - infisical.aks.example.com
-    secretName: infisical-tls
+    - cloud.homebase.local
+    secretName: nextcloud-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: openhands
+    environment: k3s
+  name: platform-stack-openhands
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: openhands.vpn.homebase.internal
+    http:
+      paths:
+      - backend:
+          service:
+            name: platform-stack-openhands
+            port:
+              number: 3000
+        path: /
+        pathType: Prefix
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: wg-easy
+    environment: k3s
+  name: platform-stack-wg-easy
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: wg.homebase.internal
+    http:
+      paths:
+      - backend:
+          service:
+            name: platform-stack-wg-easy
+            port:
+              number: 51821
+        path: /
+        pathType: Prefix
 ---
 apiVersion: batch/v1
 kind: Job
@@ -515,8 +618,8 @@ spec:
         - migration:latest
         envFrom:
         - secretRef:
-            name: infisical-app-secrets
-        image: myregistry.azurecr.io/infisical:stable
+            name: infisical-secrets
+        image: infisical/infisical:v0.151.0
         name: infisical-schema-migration
       restartPolicy: OnFailure
       serviceAccountName: platform-stack-infisical
@@ -527,16 +630,101 @@ metadata:
   labels:
     app.kubernetes.io/instance: platform-stack
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: openclaw
-    platform: aks
-  name: platform-stack-openclaw
+    app.kubernetes.io/name: paperless-ngx
+    environment: k3s
+  name: consume
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: local-path
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nextcloud
+    environment: k3s
+  name: data
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 250Gi
+  storageClassName: local-path
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: paperless-ngx
+    environment: k3s
+  name: data
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: local-path
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: paperless-ngx
+    environment: k3s
+  name: export
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: local-path
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: paperless-ngx
+    environment: k3s
+  name: media
 spec:
   accessModes:
   - ReadWriteOnce
   resources:
     requests:
       storage: 20Gi
-  storageClassName: managed-csi
+  storageClassName: local-path
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: openclaw
+    environment: k3s
+  name: platform-stack-openclaw
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
+  storageClassName: local-path
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -545,47 +733,15 @@ metadata:
     app.kubernetes.io/instance: platform-stack
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: wg-easy
-    platform: aks
+    environment: k3s
   name: platform-stack-wg-easy
 spec:
   accessModes:
   - ReadWriteOnce
   resources:
     requests:
-      storage: 10Gi
-  storageClassName: managed-csi
----
-apiVersion: policy/v1
-kind: PodDisruptionBudget
-metadata:
-  labels:
-    app.kubernetes.io/instance: platform-stack
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: openclaw
-    platform: aks
-  name: platform-stack-openclaw
-spec:
-  minAvailable: 1
-  selector:
-    matchLabels:
-      app.kubernetes.io/instance: platform-stack
-      app.kubernetes.io/name: openclaw
----
-apiVersion: policy/v1
-kind: PodDisruptionBudget
-metadata:
-  labels:
-    app.kubernetes.io/instance: platform-stack
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: openhands
-    platform: aks
-  name: platform-stack-openhands
-spec:
-  minAvailable: 1
-  selector:
-    matchLabels:
-      app.kubernetes.io/instance: platform-stack
-      app.kubernetes.io/name: openhands
+      storage: 5Gi
+  storageClassName: local-path
 ---
 apiVersion: v1
 kind: Service
@@ -614,15 +770,35 @@ metadata:
   labels:
     app.kubernetes.io/instance: platform-stack
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: openclaw
-    platform: aks
-  name: platform-stack-openclaw
+    app.kubernetes.io/name: nextcloud
+    environment: k3s
+  name: platform-stack-nextcloud
 spec:
   ports:
   - name: http
     port: 80
     protocol: TCP
-    targetPort: 8080
+    targetPort: 80
+  selector:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/name: nextcloud
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: openclaw
+    environment: k3s
+  name: platform-stack-openclaw
+spec:
+  ports:
+  - name: http
+    port: 18789
+    protocol: TCP
+    targetPort: 18789
   selector:
     app.kubernetes.io/instance: platform-stack
     app.kubernetes.io/name: openclaw
@@ -635,7 +811,7 @@ metadata:
     app.kubernetes.io/instance: platform-stack
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: openhands
-    platform: aks
+    environment: k3s
   name: platform-stack-openhands
 spec:
   ports:
@@ -646,6 +822,25 @@ spec:
   selector:
     app.kubernetes.io/instance: platform-stack
     app.kubernetes.io/name: openhands
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: paperless-ngx
+    environment: k3s
+  name: platform-stack-paperless-ngx
+spec:
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+  selector:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/name: paperless-ngx
   type: ClusterIP
 ---
 apiVersion: v1
@@ -689,7 +884,7 @@ metadata:
     app.kubernetes.io/instance: platform-stack
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: wg-easy
-    platform: aks
+    environment: k3s
   name: platform-stack-wg-easy
 spec:
   ports:
@@ -710,26 +905,22 @@ apiVersion: v1
 automountServiceAccountToken: false
 kind: ServiceAccount
 metadata:
-  annotations:
-    azure.workload.identity/client-id: <openclaw-workload-identity-client-id>
   labels:
     app.kubernetes.io/instance: platform-stack
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: openclaw
-    platform: aks
+    environment: k3s
   name: platform-stack-openclaw
 ---
 apiVersion: v1
 automountServiceAccountToken: false
 kind: ServiceAccount
 metadata:
-  annotations:
-    azure.workload.identity/client-id: <openhands-workload-identity-client-id>
   labels:
     app.kubernetes.io/instance: platform-stack
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: openhands
-    platform: aks
+    environment: k3s
   name: platform-stack-openhands
 ---
 apiVersion: v1
@@ -743,6 +934,181 @@ metadata:
     release: platform-stack
   name: platform-stack-infisical
   namespace: ai-homebase
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nextcloud
+    environment: k3s
+  name: platform-stack-nextcloud
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: platform-stack
+      app.kubernetes.io/name: nextcloud
+  serviceName: platform-stack-nextcloud
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: platform-stack
+        app.kubernetes.io/name: nextcloud
+    spec:
+      containers:
+      - env:
+        - name: NEXTCLOUD_ADMIN_USER
+          value: ''
+        - name: NEXTCLOUD_TRUSTED_DOMAINS
+          value: ''
+        - name: OVERWRITEPROTOCOL
+          value: https
+        - name: PHP_MEMORY_LIMIT
+          value: 512M
+        - name: PHP_UPLOAD_LIMIT
+          value: 16G
+        - name: NEXTCLOUD_INIT_HTACCESS
+          value: 'true'
+        - name: SMTP_HOST
+          value: ''
+        - name: SMTP_PORT
+          value: '587'
+        - name: SMTP_NAME
+          value: ''
+        - name: MAIL_FROM_ADDRESS
+          value: ''
+        - name: MAIL_DOMAIN
+          value: ''
+        - name: POSTGRES_HOST
+          value: ''
+        - name: POSTGRES_PORT
+          value: '5432'
+        - name: POSTGRES_DB
+          value: ''
+        - name: POSTGRES_USER
+          value: ''
+        - name: REDIS_HOST
+          value: ''
+        - name: REDIS_HOST_PORT
+          value: '6379'
+        image: nextcloud:29.0.0-apache
+        imagePullPolicy: IfNotPresent
+        name: nextcloud
+        ports:
+        - containerPort: 80
+          name: http
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+        volumeMounts:
+        - mountPath: /var/www/html
+          name: data
+      securityContext:
+        fsGroup: 33
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: paperless-ngx
+    environment: k3s
+  name: platform-stack-paperless-ngx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: platform-stack
+      app.kubernetes.io/name: paperless-ngx
+  serviceName: platform-stack-paperless-ngx
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: platform-stack
+        app.kubernetes.io/name: paperless-ngx
+    spec:
+      containers:
+      - env:
+        - name: PAPERLESS_SECRET_KEY
+        - name: PAPERLESS_ADMIN_USER
+          value: ''
+        - name: PAPERLESS_ADMIN_PASSWORD
+        - name: PAPERLESS_DBENGINE
+          value: postgresql
+        - name: PAPERLESS_DBHOST
+          value: ''
+        - name: PAPERLESS_DBPORT
+          value: '5432'
+        - name: PAPERLESS_DBNAME
+          value: paperless
+        - name: PAPERLESS_DBUSER
+          value: paperless
+        - name: PAPERLESS_DBPASS
+        - name: PAPERLESS_REDIS
+          value: ''
+        - name: PAPERLESS_REDIS_PREFIX
+          value: ''
+        - name: PAPERLESS_URL
+          value: ''
+        - name: PAPERLESS_ALLOWED_HOSTS
+          value: ''
+        - name: PAPERLESS_CSRF_TRUSTED_ORIGINS
+          value: ''
+        - name: PAPERLESS_CORS_ALLOWED_HOSTS
+          value: ''
+        - name: PAPERLESS_TIME_ZONE
+          value: Europe/Berlin
+        - name: PAPERLESS_OCR_LANGUAGE
+          value: deu+eng
+        image: paperlessngx/paperless-ngx:2.20
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /api/health/
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        name: paperless-ngx
+        ports:
+        - containerPort: 8000
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /api/health/
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+        volumeMounts:
+        - mountPath: /usr/src/paperless/data
+          name: data
+        - mountPath: /usr/src/paperless/media
+          name: media
+        - mountPath: /usr/src/paperless/consume
+          name: consume
+        - mountPath: /usr/src/paperless/export
+          name: export
+      securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -796,6 +1162,7 @@ spec:
       resources:
         requests:
           storage: 100Gi
+      storageClassName: local-path
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -859,3 +1226,4 @@ spec:
       resources:
         requests:
           storage: 30Gi
+      storageClassName: local-path

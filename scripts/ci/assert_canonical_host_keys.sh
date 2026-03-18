@@ -1,20 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Canonical keys are global.hosts.paperlessNgx and global.hosts.wgEasy.
-# Keep template-level coalesce fallbacks for compatibility, but reject legacy
-# key usage in operator-facing values/examples/docs.
-
 scan_targets=(
   "README.md"
   "docs"
   "examples"
   "charts/platform-stack/values.yaml"
-  "charts/platform-stack/values-dev.yaml"
   "charts/platform-stack/values-k3d.yaml"
-  "charts/platform-stack/values-aks.yaml"
-  "charts/platform-stack/values-prod.yaml"
-  "charts/platform-stack/values-homelab-public-nextcloud.yaml"
+  "charts/platform-stack/values-k3s.yaml"
   "charts/platform-stack/values.schema.json"
   "charts/paperless-ngx/values.yaml"
   "charts/wg-easy/values.yaml"

@@ -83,7 +83,7 @@ run_quiet ./scripts/test-local-k3d.sh \
   --release-name "$RELEASE_NAME" \
   --namespace "$NAMESPACE" \
   --kubeconfig "$KUBECONFIG_PATH" \
-  --values-file charts/platform-stack/values-dev.yaml \
+  --values-file charts/platform-stack/values.yaml \
   --values-file charts/platform-stack/values-k3d.yaml
 ok "Smoke checks passed"
 

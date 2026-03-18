@@ -23,7 +23,8 @@ data:
       },
       "agents": {
         "defaults": {
-          "workspace": {{ .Values.openclaw.agents.defaults.workspace | quote }}
+          "workspace": {{ .Values.openclaw.agents.defaults.workspace | quote }},
+          "sandbox": {{ toJson .Values.openclaw.agents.defaults.sandbox }}
         },
         "list": {{ toJson .Values.openclaw.agents.list }}
       }

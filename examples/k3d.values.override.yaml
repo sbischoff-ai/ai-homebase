@@ -1,4 +1,4 @@
-# Optional k3d user overrides loaded *after* values-dev.yaml + values-k3d.yaml.
+# Optional k3d user overrides loaded *after* values.yaml + values-k3d.yaml.
 # Keep this file out of source control in real environments if it contains secrets.
 
 # Enable OpenClaw ingress for local ingress curl checks.

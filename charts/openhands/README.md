@@ -12,6 +12,19 @@ Expected access path is through existing private connectivity (WireGuard/VPN) an
 
 Security/runtime defaults run as root (`runAsUser: 0`, `runAsGroup: 0`, `podSecurityContext.fsGroup: 0`, `runAsNonRoot: false`) because the upstream image currently requires `/app/entrypoint.sh` to start as root. Avoid mounting any extra volume at `/app` (or `/app/*`) because it shadows the baked-in `/app/entrypoint.sh` and prevents container startup.
 
+## Docker-backed sandboxing
+
+OpenHands' documented local runtime expects Docker access and mounts the default Docker socket at `/var/run/docker.sock`. For this homelab-focused chart, that same model is exposed through:
+
+```yaml
+hostDockerSocket:
+  enabled: true
+  hostPath: /var/run/docker.sock
+  mountPath: /var/run/docker.sock
+```
+
+This is intentionally a trusted-boundary deployment pattern for self-hosted k3d/k3s environments, not a safe multi-tenant default.
+
 ## Secret inputs
 
 Provide app credentials using `existingSecret`, `secretRefs`, and/or `secretEnv`.
@@ -51,7 +64,7 @@ secretRefs:
 persistence:
   enabled: true
   size: 50Gi
-  storageClass: managed-csi
+  storageClass: local-path
 ```
 
 ### 3) Optional internal ingress enablement
@@ -75,4 +88,3 @@ Ingress class precedence:
 - Prefer `ingress.ingressClassName` on modern Kubernetes.
 - `ingress.annotations["kubernetes.io/ingress.class"]` is treated as a legacy fallback and is only applied when `ingress.ingressClassName` is empty.
 - Do not set both fields at the same time; when both are present, the chart removes the legacy annotation from the rendered Ingress to avoid conflicting class mechanisms.
-

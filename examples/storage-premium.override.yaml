@@ -1,34 +1,37 @@
+# Generic storage-class override example for the k3s target.
+# Replace class names with those available in your cluster.
+
 global:
-  storageClass: managed-csi
+  storageClass: <default-storage-class>
 
 openhands:
   persistence:
     enabled: true
-    storageClass: managed-csi-premium
+    storageClass: <fast-storage-class>
     size: 200Gi
 
 nextcloud:
   persistence:
-    storageClass: managed-csi-premium
+    storageClass: <capacity-storage-class>
     size: 500Gi
 
 gitea:
   gitea:
     persistence:
-      storageClass: managed-csi
+      storageClass: <default-storage-class>
       size: 200Gi
 
 paperlessNgx:
   persistence:
     data:
-      storageClass: managed-csi-premium
+      storageClass: <fast-storage-class>
       size: 200Gi
     media:
-      storageClass: managed-csi-premium
+      storageClass: <capacity-storage-class>
       size: 1Ti
     consume:
-      storageClass: managed-csi
+      storageClass: <default-storage-class>
       size: 50Gi
     export:
-      storageClass: managed-csi
+      storageClass: <default-storage-class>
       size: 50Gi

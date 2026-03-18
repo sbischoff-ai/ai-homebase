@@ -1,18 +1,10 @@
 # Documentation map
 
-Use this guide to quickly find the right docs page for your task.
-- **Command reference:** [`docs/commands.md`](./commands.md)  
-  *When to read this:* When you need Make targets, lint/template variants, CI-equivalent checks, and helper script usage in one place.
-
-- **Start here (deploy):** [`docs/deployment.md`](./deployment.md)  
-  *When to read this:* When you want the fastest path to deploy the platform in a target environment.
-- **Configure behavior:** [`docs/configuration.md`](./configuration.md)  
-  *When to read this:* When you need to understand values layering, precedence, and profile overlays.
-- **Enable/disable services:** [`docs/services.md`](./services.md)  
-  *When to read this:* When you are choosing which optional services run and how their secrets/contracts are wired.
-- **Platform design:** [`docs/architecture.md`](./architecture.md)  
-  *When to read this:* When you need component boundaries and high-level design intent before making structural changes.
-- **Networking/security posture:** [`docs/networking.md`](./networking.md)  
-  *When to read this:* When you are configuring ingress, exposure, and network hardening expectations.
-- **Storage/data lifecycle:** [`docs/storage.md`](./storage.md)  
-  *When to read this:* When you are planning persistence classes, capacity, backup, and retention behavior.
+- **Command reference:** [`docs/commands.md`](./commands.md)
+- **Start here (deploy):** [`docs/deployment.md`](./deployment.md)
+- **Configure behavior:** [`docs/configuration.md`](./configuration.md)
+- **Enable/disable services:** [`docs/services.md`](./services.md)
+- **Platform design:** [`docs/architecture.md`](./architecture.md)
+- **Networking/security posture:** [`docs/networking.md`](./networking.md)
+- **Storage/data lifecycle:** [`docs/storage.md`](./storage.md)
+- **Homelab operations:** [`docs/runbook-homelab.md`](./runbook-homelab.md)

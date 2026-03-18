@@ -193,6 +193,27 @@
         },
         "additionalProperties": true
       }
+    },
+    "hostDockerSocket": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Mount the host Docker socket into OpenHands for Docker-backed sandboxing."
+        },
+        "hostPath": {
+          "type": "string",
+          "default": "/var/run/docker.sock",
+          "description": "Host path for the Docker socket mounted into the pod."
+        },
+        "mountPath": {
+          "type": "string",
+          "default": "/var/run/docker.sock",
+          "description": "Container path where the Docker socket is mounted."
+        }
+      }
     }
   }
 }
