@@ -1,0 +1,150 @@
+# k3s overlay for the productive homelab deployment.
+# Load this after charts/platform-stack/values.yaml.
+
+global:
+  storageClass: local-path
+  domain: homebase.internal
+  hosts:
+    openclaw: openclaw.vpn.homebase.internal
+    openhands: openhands.vpn.homebase.internal
+    nextcloud: cloud.homebase.internal
+    gitea: gitea.vpn.homebase.internal
+    paperlessNgx: paperless.vpn.homebase.internal
+    infisical: infisical.vpn.homebase.internal
+    wgEasy: wg.homebase.internal
+  commonLabels:
+    environment: k3s
+
+openclaw:
+  enabled: true
+  ingress:
+    enabled: false
+  persistence:
+    enabled: true
+    size: 50Gi
+    storageClass: local-path
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+  hostDockerSocket:
+    enabled: true
+    hostPath: /var/run/docker.sock
+    mountPath: /var/run/docker.sock
+  openclaw:
+    gateway:
+      controlUi:
+        allowedOrigins:
+          - http://openclaw.vpn.homebase.internal
+    agents:
+      defaults:
+        sandbox:
+          mode: non-main
+
+openhands:
+  enabled: true
+  replicaCount: 1
+  ingress:
+    enabled: true
+    hostName: openhands.vpn.homebase.internal
+    ingressClassName: nginx
+    annotations: {}
+    tls: []
+  persistence:
+    enabled: true
+    size: 100Gi
+    storageClass: local-path
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 4Gi
+    limits:
+      cpu: "2"
+      memory: 8Gi
+  hostDockerSocket:
+    enabled: true
+    hostPath: /var/run/docker.sock
+    mountPath: /var/run/docker.sock
+
+nextcloud:
+  enabled: true
+  persistence:
+    enabled: true
+    size: 250Gi
+    storageClass: local-path
+
+gitea:
+  enabled: true
+  gitea:
+    persistence:
+      enabled: true
+      size: 120Gi
+      storageClass: local-path
+    admin:
+      username: git-admin
+      existingSecret: ""
+
+paperlessNgx:
+  enabled: true
+  persistence:
+    data:
+      enabled: true
+      size: 30Gi
+      storageClass: local-path
+    media:
+      enabled: true
+      size: 250Gi
+      storageClass: local-path
+    consume:
+      enabled: true
+      size: 20Gi
+      storageClass: local-path
+    export:
+      enabled: true
+      size: 20Gi
+      storageClass: local-path
+
+infisical:
+  enabled: true
+  ingress:
+    enabled: true
+    hostName: infisical.vpn.homebase.internal
+    ingressClassName: nginx
+    annotations: {}
+    tls: []
+  postgresql:
+    enabled: false
+  redis:
+    enabled: false
+
+wgEasy:
+  enabled: true
+  ingress:
+    enabled: true
+    className: nginx
+    annotations: {}
+    hosts:
+      - host: wg.homebase.internal
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+
+sharedPostgresql:
+  enabled: true
+  primary:
+    persistence:
+      enabled: true
+      size: 100Gi
+      storageClass: local-path
+
+sharedRedis:
+  enabled: true
+  master:
+    persistence:
+      enabled: true
+      size: 30Gi
+      storageClass: local-path

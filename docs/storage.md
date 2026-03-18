@@ -1,6 +1,6 @@
 # Storage strategy
 
-This document covers storage-class selection, persistence toggles, and sizing for core + optional services.
+This document covers storage-class selection, persistence toggles, and sizing for the supported k3d and k3s targets.
 
 ## Storage resolution order
 
@@ -10,52 +10,30 @@ PVC templates resolve storage class in this order:
 2. `global.storageClass` fallback.
 3. Cluster default StorageClass.
 
-This allows one shared default plus targeted overrides where needed.
-
 ## Core plane storage
 
 ### OpenClaw
 
-- Usually smaller durable state.
-- By default, the chart persists OpenClaw state at `/home/node/.openclaw` (matching the container home for the upstream image user).
-- Prioritize reliability and backup consistency.
-- Keep recovery objectives aligned with API/control-plane requirements.
+- Smaller durable state.
+- Persisted by default for k3s-style deployments.
 
 ### OpenHands
 
-- Workspace-heavy and potentially high churn.
-- May require larger PVCs and different class/performance profile.
-- Isolation by node pool/class can help contain noisy workloads.
+- Workspace-heavy and high churn.
+- The k3s overlay enables persistent storage; the k3d overlay keeps it ephemeral.
 
 ## Optional service storage characteristics
 
-- **Nextcloud**: fast growth in primary user data. The Nextcloud chart baseline defaults to `100Gi` and should be treated as a starting point for production-like profiles; local/dev overlays may intentionally stay lower when capacity is constrained.
-- **Gitea**: repositories, artifacts, and attachments accumulate over time.
-- **Paperless-ngx**: data/media/consume/export volumes should be sized independently.
-- **Infisical**: persistent state is externalized to shared backend releases; protect and back up `sharedPostgresql.primary.persistence.*` (critical encrypted secret data at rest) and `sharedRedis.master.persistence.*`.
+- **Nextcloud**: heavy long-term data growth.
+- **Gitea**: repositories and attachments accumulate over time.
+- **Paperless-ngx**: size `data`, `media`, `consume`, and `export` independently.
+- **Infisical**: protect the shared PostgreSQL and Redis backends.
 - **wg-easy**: small but durable configuration/state volume.
-
-## AKS-focused guidance
-
-- Start with AKS CSI-backed classes, then tune per workload.
-- Validate `allowVolumeExpansion` and snapshot support on all classes used.
-- Avoid one-size-fits-all class choice for all services in production.
 
 ## Backup and restore expectations
 
 Minimum production expectations:
 
-- Snapshot/backup policy documented per persistent service.
-- Restore rehearsals performed (not just backup job success).
-- Retention aligned to service criticality and compliance needs.
-- For growth-heavy services (especially Nextcloud), backup windows/frequency must scale with data change rate and include periodic verification that restored data, metadata, and permissions are usable.
-
-## Intentional placeholders and hardening gaps
-
-The repository includes backup annotation hooks and sizing defaults, but does **not** include:
-
-- A complete backup controller installation.
-- Environment-specific retention/SLA policy.
-- Automated restore validation workflows.
-
-Operators must close these gaps before production rollout.
+- documented snapshot/backup policy,
+- restore rehearsals,
+- retention aligned to service criticality.

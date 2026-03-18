@@ -179,11 +179,15 @@ spec:
             {{- toYaml .Values.resources | nindent 12 }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
-          {{- if or $persistence.enabled .Values.extraVolumeMounts }}
+          {{- if or $persistence.enabled .Values.hostDockerSocket.enabled .Values.extraVolumeMounts }}
           volumeMounts:
             {{- if $persistence.enabled }}
             - name: workspace
               mountPath: {{ $persistence.mountPath }}
+            {{- end }}
+            {{- if .Values.hostDockerSocket.enabled }}
+            - name: docker-socket
+              mountPath: {{ .Values.hostDockerSocket.mountPath }}
             {{- end }}
             {{- range .Values.extraVolumeMounts }}
             {{- $mountPath := default "" .mountPath }}
@@ -193,12 +197,18 @@ spec:
             {{- toYaml (list .) | nindent 12 }}
             {{- end }}
           {{- end }}
-      {{- if or $persistence.enabled .Values.extraVolumes }}
+      {{- if or $persistence.enabled .Values.hostDockerSocket.enabled .Values.extraVolumes }}
       volumes:
         {{- if $persistence.enabled }}
         - name: workspace
           persistentVolumeClaim:
             claimName: {{ default (printf "%s-workspace" (include "openhands.fullname" .)) $persistence.existingClaim }}
+        {{- end }}
+        {{- if .Values.hostDockerSocket.enabled }}
+        - name: docker-socket
+          hostPath:
+            path: {{ .Values.hostDockerSocket.hostPath | quote }}
+            type: Socket
         {{- end }}
         {{- with .Values.extraVolumes }}
         {{- toYaml . | nindent 8 }}

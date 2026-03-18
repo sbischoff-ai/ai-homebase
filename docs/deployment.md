@@ -1,53 +1,29 @@
 # Deployment guide landing page
 
-Use this page as the canonical starting point for deploying `ai-homebase` and finding the right environment-specific runbook.
+Use this page as the canonical starting point for deploying `ai-homebase`.
 
-## Choose your path
+## Supported targets
 
-| Path | Best for | Start here |
+| Target | Best for | Start here |
 | --- | --- | --- |
-| k3d local | Local development, smoke tests, and quick iteration on a laptop/workstation. | [k3d deployment flow](./deployment-k3d.md) |
-| AKS | Azure Kubernetes Service deployments with cloud ingress/TLS/storage planning. | [AKS deployment flow](./deployment-aks.md) |
-| Generic Kubernetes / homelab | Existing cluster-first deployments (on-prem or homelab) using layered values and operator-managed ingress/secrets/storage. | Start with [AKS deployment flow](./deployment-aks.md) for the cluster workflow pattern, then adapt with [configuration layering](./configuration.md), [networking](./networking.md), and [storage](./storage.md). |
+| k3d | Local development, smoke tests, and quick iteration on a workstation. | [k3d deployment flow](./deployment-k3d.md) |
+| k3s | Productive homelab deployment on your main server. | [Homelab operations runbook](./runbook-homelab.md) |
 
 ## Prerequisites summary
 
-Before choosing a deployment path, confirm:
+Before choosing a target, confirm:
 
-- Kubernetes + Helm tooling is installed and working:
-  - [`kubectl`](https://kubernetes.io/docs/tasks/tools/)
-  - [Helm 3](https://helm.sh/docs/intro/install/)
-- Environment-specific tooling is available:
-  - Local k3d path: [k3d](https://k3d.io/) and [Docker](https://docs.docker.com/get-docker/)
-  - AKS path: Azure/AKS cluster access and ingress/TLS prerequisites in the AKS runbook
-  - Nix shell profiles (optional): `nix-shell --argstr profile dev` for local k3d workflows and documented Make/python scripts, `nix-shell --argstr profile devops` for AKS tooling (`az`, `kubelogin`) plus the same baseline tools (`make`, `python3`)
-- You have planned values overlays and service toggles:
-  - [Configuration and values layering](./configuration.md)
-  - [Services reference and toggles](./services.md)
+- Kubernetes + Helm tooling is installed and working.
+- Local k3d path has `k3d` and Docker available.
+- k3s path has a reachable cluster and a working default storage class.
+- You have planned your values overlays and secret references.
 
-## Deployment runbooks
+## Runbooks
 
 - Local cluster workflow: [docs/deployment-k3d.md](./deployment-k3d.md)
-- AKS workflow: [docs/deployment-aks.md](./deployment-aks.md)
-- Generic Kubernetes/homelab operations runbook: [docs/runbook-homelab.md](./runbook-homelab.md)
+- Productive homelab operations: [docs/runbook-homelab.md](./runbook-homelab.md)
 
-## Post-deploy: how to access services
+## Install helper
 
-After installation, use these docs to confirm service exposure and access patterns:
-
-- [Networking and exposure model](./networking.md)
-- [Services reference](./services.md)
-- [k3d local ingress host access](./deployment-k3d.md#4-local-ingress-host-access-dnshosts)
-
-## Troubleshooting jump links
-
-- [k3d common failure modes and fixes](./deployment-k3d.md#5-common-failure-modes-and-fixes)
-- [AKS pre-apply validation checks](./deployment-aks.md#6-validate-before-apply)
-- [AKS post-deploy verification](./deployment-aks.md#8-post-deploy-verification)
-- [Storage planning guidance](./storage.md)
-- [Networking hardening and policy guidance](./networking.md#networkpolicy-guidance)
-
-
-## Unified install helper
-
-Use `./scripts/install.sh --profile <dev|aks>` for profile-based installs with shared arguments (`--values-file`, `--enable-service`, `--disable-service`, `--kube-context`). Compatibility wrappers (`install-dev.sh`, `install-aks.sh`) remain available for existing workflows.
+Use `./scripts/install.sh --profile <k3d|k3s>` for supported profile-based installs.
+Wrappers `./scripts/install-k3d.sh` and `./scripts/install-k3s.sh` are available for convenience.

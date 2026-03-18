@@ -50,6 +50,10 @@ openclaw:
       controlUi:
         allowedOrigins:
           - http://openclaw.homebase.local
+    agents:
+      defaults:
+        sandbox:
+          mode: off
   podDisruptionBudget:
     enabled: false
     minAvailable: 1
@@ -71,6 +75,10 @@ openclaw:
     tavilyApiKey: ""
     braveSearchApiKey: ""
   secretRefs: []
+  hostDockerSocket:
+    enabled: false
+    hostPath: /var/run/docker.sock
+    mountPath: /var/run/docker.sock
 
 openhands:
   enabled: true
@@ -124,6 +132,10 @@ openhands:
     limits:
       cpu: "2"
       memory: 8Gi
+  hostDockerSocket:
+    enabled: false
+    hostPath: /var/run/docker.sock
+    mountPath: /var/run/docker.sock
 
 nextcloud:
   enabled: true

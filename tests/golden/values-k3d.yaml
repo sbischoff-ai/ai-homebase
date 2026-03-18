@@ -3,10 +3,16 @@ data:
   openclaw.json: "{\n  \"gateway\": {\n    \"mode\": \"local\",\n    \"bind\": \"\
     lan\",\n    \"port\": 18789,\n    \"auth\": {\n      \"mode\": \"token\",\n  \
     \    \"token\": \"${OPENCLAW_GATEWAY_TOKEN}\"\n    },\n    \"controlUi\": {\n\
-    \      \"enabled\": true,\n      \"allowedOrigins\": [\"http://openclaw.vpn.homebase.internal\"\
+    \      \"enabled\": true,\n      \"allowedOrigins\": [\"http://openclaw.localtest.me\"\
     ]\n    }\n  },\n  \"agents\": {\n    \"defaults\": {\n      \"workspace\": \"\
-    ~/.openclaw/workspace\"\n    },\n    \"list\": [{\"id\":\"default\",\"name\":\"\
-    OpenClaw Assistant\",\"workspace\":\"~/.openclaw/workspace\"}]\n  }\n}\n"
+    ~/.openclaw/workspace\",\n      \"sandbox\": {\"docker\":{\"capDrop\":[\"ALL\"\
+    ],\"env\":{\"LANG\":\"C.UTF-8\"},\"image\":\"openclaw-sandbox:bookworm-slim\"\
+    ,\"network\":\"none\",\"readOnlyRoot\":true,\"tmpfs\":[\"/tmp\",\"/var/tmp\",\"\
+    /run\"],\"user\":\"1000:1000\",\"workdir\":\"/workspace\"},\"mode\":\"non-main\"\
+    ,\"prune\":{\"idleHours\":24,\"maxAgeDays\":7},\"scope\":\"agent\",\"workspaceAccess\"\
+    :\"none\",\"workspaceRoot\":\"~/.openclaw/sandboxes\"}\n    },\n    \"list\":\
+    \ [{\"id\":\"default\",\"name\":\"OpenClaw Assistant\",\"workspace\":\"~/.openclaw/workspace\"\
+    }]\n  }\n}\n"
 kind: ConfigMap
 metadata:
   labels:
@@ -15,73 +21,9 @@ metadata:
     app.kubernetes.io/name: openclaw
   name: platform-stack-openclaw
 ---
-apiVersion: batch/v1
-kind: CronJob
-metadata:
-  labels:
-    app.kubernetes.io/instance: platform-stack
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: nextcloud
-  name: platform-stack-nextcloud-cron
-spec:
-  concurrencyPolicy: Forbid
-  failedJobsHistoryLimit: 1
-  jobTemplate:
-    spec:
-      template:
-        metadata:
-          labels:
-            app.kubernetes.io/instance: platform-stack
-            app.kubernetes.io/name: nextcloud
-        spec:
-          containers:
-          - command:
-            - /bin/sh
-            - -c
-            - php -f /var/www/html/cron.php
-            env:
-            - name: POSTGRES_HOST
-              value: ''
-            - name: POSTGRES_PORT
-              value: '5432'
-            - name: POSTGRES_DB
-              value: ''
-            - name: POSTGRES_USER
-              value: ''
-            - name: REDIS_HOST
-              value: ''
-            - name: REDIS_HOST_PORT
-              value: '6379'
-            - name: SMTP_HOST
-              value: ''
-            - name: SMTP_PORT
-              value: '587'
-            - name: SMTP_NAME
-              value: ''
-            - name: MAIL_FROM_ADDRESS
-              value: ''
-            - name: MAIL_DOMAIN
-              value: ''
-            image: nextcloud:29.0.0-apache
-            imagePullPolicy: IfNotPresent
-            name: nextcloud-cron
-            volumeMounts:
-            - mountPath: /var/www/html
-              name: data
-          restartPolicy: OnFailure
-          securityContext:
-            fsGroup: 33
-            fsGroupChangePolicy: OnRootMismatch
-            seccompProfile:
-              type: RuntimeDefault
-  schedule: '*/5 * * * *'
-  successfulJobsHistoryLimit: 3
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  annotations:
-    updatedAt: 2026-03-03 UTC 12:54:39
   labels:
     app: infisical
     chart: infisical-0.2.0
@@ -90,7 +32,7 @@ metadata:
     release: platform-stack
   name: platform-stack-infisical
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: infisical
@@ -98,8 +40,6 @@ spec:
       release: platform-stack
   template:
     metadata:
-      annotations:
-        updatedAt: 2026-03-03 UTC 12:54:39
       labels:
         app: infisical
         component: infisical
@@ -192,7 +132,7 @@ spec:
             drop:
             - ALL
           readOnlyRootFilesystem: false
-          runAsNonRoot: true
+          runAsNonRoot: false
       initContainers:
       - args:
         - job
@@ -226,11 +166,26 @@ spec:
         app.kubernetes.io/name: openclaw
     spec:
       containers:
-      - env:
+      - command:
+        - node
+        - openclaw.mjs
+        - gateway
+        - --allow-unconfigured
+        env:
+        - name: OPENCLAW_GATEWAY_PORT
+          value: '18789'
+        - name: OPENCLAW_GATEWAY_BIND
+          value: 0.0.0.0
+        - name: OPENCLAW_HOME
+          value: /home/node/.openclaw
         - name: OPENCLAW_STATE_DIR
           value: /home/node/.openclaw
         - name: OPENCLAW_CONFIG_PATH
           value: /etc/openclaw/openclaw.json
+        - name: OPENCLAW_SANDBOX
+          value: '1'
+        - name: OPENCLAW_DOCKER_SOCKET
+          value: /var/run/docker.sock
         - name: OPENCLAW_GATEWAY_TOKEN
           valueFrom:
             secretKeyRef:
@@ -241,27 +196,7 @@ spec:
             secretKeyRef:
               key: OPENAI_API_KEY
               name: openclaw-app-secrets
-        - name: ANTHROPIC_API_KEY
-          valueFrom:
-            secretKeyRef:
-              key: ANTHROPIC_API_KEY
-              name: openclaw-app-secrets
-        - name: TAVILY_API_KEY
-          valueFrom:
-            secretKeyRef:
-              key: TAVILY_API_KEY
-              name: openclaw-app-secrets
-        - name: GOOGLE_API_KEY
-          valueFrom:
-            secretKeyRef:
-              key: GOOGLE_API_KEY
-              name: openclaw-app-secrets
-        - name: BRAVE_SEARCH_API_KEY
-          valueFrom:
-            secretKeyRef:
-              key: BRAVE_SEARCH_API_KEY
-              name: openclaw-app-secrets
-        image: ghcr.io/example/openclaw:2026.3.12
+        image: ghcr.io/openclaw/openclaw:2026.3.12
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 3
@@ -269,11 +204,11 @@ spec:
             path: /healthz
             port: http
           initialDelaySeconds: 10
-          periodSeconds: 10
-          timeoutSeconds: 2
+          periodSeconds: 15
+          timeoutSeconds: 5
         name: openclaw
         ports:
-        - containerPort: 8080
+        - containerPort: 18789
           name: http
           protocol: TCP
         readinessProbe:
@@ -286,11 +221,11 @@ spec:
           timeoutSeconds: 2
         resources:
           limits:
-            cpu: 250m
-            memory: 256Mi
+            cpu: 2000m
+            memory: 8Gi
           requests:
-            cpu: 50m
-            memory: 64Mi
+            cpu: 1000m
+            memory: 4Gi
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -300,26 +235,40 @@ spec:
           runAsGroup: 1000
           runAsNonRoot: true
           runAsUser: 1000
+        startupProbe:
+          failureThreshold: 30
+          httpGet:
+            path: /startupz
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
         volumeMounts:
-        - mountPath: /home/node/.openclaw
-          name: data
+        - mountPath: /tmp
+          name: tmp
         - mountPath: /etc/openclaw/openclaw.json
           name: config
           readOnly: true
           subPath: openclaw.json
+        - mountPath: /var/run/docker.sock
+          name: docker-socket
       securityContext:
         fsGroup: 1000
       serviceAccountName: platform-stack-openclaw
       volumes:
-      - name: data
-        persistentVolumeClaim:
-          claimName: platform-stack-openclaw
+      - emptyDir:
+          medium: Memory
+        name: tmp
       - configMap:
           items:
           - key: openclaw.json
             path: openclaw.json
           name: platform-stack-openclaw
         name: config
+      - hostPath:
+          path: /var/run/docker.sock
+          type: Socket
+        name: docker-socket
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -361,7 +310,7 @@ spec:
           value: ''
         - name: WORKER_CONCURRENCY
           value: '4'
-        image: ghcr.io/example/openhands:1.5
+        image: ghcr.io/openhands/openhands:1.5.0
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 6
@@ -384,29 +333,37 @@ spec:
           timeoutSeconds: 5
         resources:
           limits:
-            cpu: 500m
-            memory: 512Mi
+            cpu: 2000m
+            memory: 8Gi
           requests:
-            cpu: 100m
-            memory: 128Mi
+            cpu: 1000m
+            memory: 4Gi
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
             drop:
             - ALL
           readOnlyRootFilesystem: false
-          runAsGroup: 1000
+          runAsGroup: 42420
           runAsNonRoot: true
-          runAsUser: 1000
+          runAsUser: 42420
         startupProbe:
           failureThreshold: 30
           periodSeconds: 10
           tcpSocket:
             port: 3000
           timeoutSeconds: 5
+        volumeMounts:
+        - mountPath: /var/run/docker.sock
+          name: docker-socket
       securityContext:
-        fsGroup: 1000
+        fsGroup: 42420
       serviceAccountName: platform-stack-openhands
+      volumes:
+      - hostPath:
+          path: /var/run/docker.sock
+          type: Socket
+        name: docker-socket
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -435,10 +392,10 @@ spec:
             secretKeyRef:
               key: WG_HOST
               name: platform-stack-wg-easy-secrets
-        - name: PASSWORD
+        - name: PASSWORD_HASH
           valueFrom:
             secretKeyRef:
-              key: PASSWORD
+              key: PASSWORD_HASH
               name: platform-stack-wg-easy-secrets
         - name: WG_DEFAULT_ADDRESS
           value: 10.8.0.x
@@ -456,34 +413,28 @@ spec:
           name: vpn
           protocol: UDP
         securityContext:
-          allowPrivilegeEscalation: false
+          allowPrivilegeEscalation: true
           capabilities:
             add:
             - NET_ADMIN
             - SYS_MODULE
-            drop:
-            - ALL
+          privileged: true
           readOnlyRootFilesystem: false
-          runAsNonRoot: true
-        volumeMounts:
-        - mountPath: /etc/wireguard
-          name: data
+          runAsGroup: 0
+          runAsNonRoot: false
+          runAsUser: 0
       securityContext:
         seccompProfile:
           type: RuntimeDefault
-      volumes:
-      - name: data
-        persistentVolumeClaim:
-          claimName: platform-stack-wg-easy
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: infisical-ingress
 spec:
-  ingressClassName: internal-nginx
+  ingressClassName: nginx
   rules:
-  - host: infisical.vpn.homebase.internal
+  - host: infisical.localtest.me
     http:
       paths:
       - backend:
@@ -507,36 +458,12 @@ metadata:
   labels:
     app.kubernetes.io/instance: platform-stack
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: nextcloud
-  name: platform-stack-nextcloud
-spec:
-  ingressClassName: nginx
-  rules:
-  - host: cloud.localtest.me
-    http:
-      paths:
-      - backend:
-          service:
-            name: platform-stack-nextcloud
-            port:
-              number: 80
-        path: /
-        pathType: Prefix
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  annotations:
-    kubernetes.io/ingress.class: internal
-  labels:
-    app.kubernetes.io/instance: platform-stack
-    app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: openhands
   name: platform-stack-openhands
 spec:
-  ingressClassName: internal-nginx
+  ingressClassName: nginx
   rules:
-  - host: openhands.homebase.local
+  - host: openhands.localtest.me
     http:
       paths:
       - backend:
@@ -556,9 +483,8 @@ metadata:
     app.kubernetes.io/name: wg-easy
   name: platform-stack-wg-easy
 spec:
-  ingressClassName: nginx
   rules:
-  - host: wg.localtest.me
+  - host: wg.homebase.local
     http:
       paths:
       - backend:
@@ -596,51 +522,6 @@ spec:
       serviceAccountName: platform-stack-infisical
 ---
 apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  labels:
-    app.kubernetes.io/instance: platform-stack
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: nextcloud
-  name: data
-spec:
-  accessModes:
-  - ReadWriteOnce
-  resources:
-    requests:
-      storage: 50Gi
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  labels:
-    app.kubernetes.io/instance: platform-stack
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: openclaw
-  name: platform-stack-openclaw
-spec:
-  accessModes:
-  - ReadWriteOnce
-  resources:
-    requests:
-      storage: 10Gi
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  labels:
-    app.kubernetes.io/instance: platform-stack
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: wg-easy
-  name: platform-stack-wg-easy
-spec:
-  accessModes:
-  - ReadWriteOnce
-  resources:
-    requests:
-      storage: 5Gi
----
-apiVersion: v1
 kind: Service
 metadata:
   labels:
@@ -667,33 +548,14 @@ metadata:
   labels:
     app.kubernetes.io/instance: platform-stack
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: nextcloud
-  name: platform-stack-nextcloud
-spec:
-  ports:
-  - name: http
-    port: 80
-    protocol: TCP
-    targetPort: 80
-  selector:
-    app.kubernetes.io/instance: platform-stack
-    app.kubernetes.io/name: nextcloud
-  type: ClusterIP
----
-apiVersion: v1
-kind: Service
-metadata:
-  labels:
-    app.kubernetes.io/instance: platform-stack
-    app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: openclaw
   name: platform-stack-openclaw
 spec:
   ports:
   - name: http
-    port: 80
+    port: 18789
     protocol: TCP
-    targetPort: 8080
+    targetPort: 18789
   selector:
     app.kubernetes.io/instance: platform-stack
     app.kubernetes.io/name: openclaw
@@ -806,85 +668,6 @@ metadata:
     release: platform-stack
   name: platform-stack-infisical
   namespace: ai-homebase
----
-apiVersion: apps/v1
-kind: StatefulSet
-metadata:
-  labels:
-    app.kubernetes.io/instance: platform-stack
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: nextcloud
-  name: platform-stack-nextcloud
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app.kubernetes.io/instance: platform-stack
-      app.kubernetes.io/name: nextcloud
-  serviceName: platform-stack-nextcloud
-  template:
-    metadata:
-      labels:
-        app.kubernetes.io/instance: platform-stack
-        app.kubernetes.io/name: nextcloud
-    spec:
-      containers:
-      - env:
-        - name: NEXTCLOUD_ADMIN_USER
-          value: ''
-        - name: NEXTCLOUD_TRUSTED_DOMAINS
-          value: ''
-        - name: OVERWRITEPROTOCOL
-          value: https
-        - name: PHP_MEMORY_LIMIT
-          value: 512M
-        - name: PHP_UPLOAD_LIMIT
-          value: 16G
-        - name: NEXTCLOUD_INIT_HTACCESS
-          value: 'true'
-        - name: SMTP_HOST
-          value: ''
-        - name: SMTP_PORT
-          value: '587'
-        - name: SMTP_NAME
-          value: ''
-        - name: MAIL_FROM_ADDRESS
-          value: ''
-        - name: MAIL_DOMAIN
-          value: ''
-        - name: POSTGRES_HOST
-          value: ''
-        - name: POSTGRES_PORT
-          value: '5432'
-        - name: POSTGRES_DB
-          value: ''
-        - name: POSTGRES_USER
-          value: ''
-        - name: REDIS_HOST
-          value: ''
-        - name: REDIS_HOST_PORT
-          value: '6379'
-        image: nextcloud:29.0.0-apache
-        imagePullPolicy: IfNotPresent
-        name: nextcloud
-        ports:
-        - containerPort: 80
-          name: http
-        securityContext:
-          allowPrivilegeEscalation: false
-          capabilities:
-            drop:
-            - ALL
-          readOnlyRootFilesystem: false
-          runAsNonRoot: true
-        volumeMounts:
-        - mountPath: /var/www/html
-          name: data
-      securityContext:
-        fsGroup: 33
-        fsGroupChangePolicy: OnRootMismatch
-        seccompProfile:
-          type: RuntimeDefault
 ---
 apiVersion: apps/v1
 kind: StatefulSet

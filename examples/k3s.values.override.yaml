@@ -1,0 +1,23 @@
+# Overlay this after charts/platform-stack/values.yaml and charts/platform-stack/values-k3s.yaml.
+
+global:
+  hosts:
+    openclaw: <openclaw-k3s-hostname>
+    openhands: <openhands-k3s-hostname>
+    nextcloud: <nextcloud-k3s-hostname>
+    gitea: <gitea-k3s-hostname>
+    paperlessNgx: <paperless-k3s-hostname>
+    infisical: <infisical-k3s-hostname>
+    wgEasy: <wgeasy-k3s-hostname>
+  imagePullSecrets:
+    - <optional-image-pull-secret>
+
+openclaw:
+  image:
+    repository: <registry>/openclaw
+    tag: <image-tag>
+
+openhands:
+  image:
+    repository: ghcr.io/openhands/openhands
+    tag: "1.5.0"

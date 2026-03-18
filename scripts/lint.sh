@@ -20,8 +20,8 @@ Options:
   -h, --help                 Show this help message
 
 Examples:
-  $0 --values-file charts/platform-stack/values-dev.yaml
-  $0 --values-file charts/platform-stack/values-dev.yaml --values-file charts/platform-stack/values-k3d.yaml
+  $0 --values-file charts/platform-stack/values.yaml
+  $0 --values-file charts/platform-stack/values.yaml --values-file charts/platform-stack/values-k3d.yaml
 USAGE
 }
 
@@ -37,7 +37,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ ${#VALUES_FILES[@]} -eq 0 ]]; then
-  VALUES_FILES=("${VALUES_FILE:-charts/platform-stack/values-dev.yaml}")
+  VALUES_FILES=("${VALUES_FILE:-charts/platform-stack/values.yaml}")
 fi
 
 KUBE_CONTEXT_ARGS=()

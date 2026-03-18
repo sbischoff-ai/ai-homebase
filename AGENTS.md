@@ -2,27 +2,31 @@
 
 ## Start here (before editing)
 - Read project intent and workflow boundaries: `README.md`.
-- Read values layering and toggle model: `docs/configuration.md`.
+- Read values layering and target model: `docs/configuration.md`.
 - Read service toggles, defaults, and secret contracts: `docs/services.md`.
 
 ## Canonical validation commands
 - Update umbrella dependencies when chart metadata changes:
   - `helm dependency update charts/platform-stack`
-- Lint baseline/dev:
-  - `./scripts/lint.sh --values-file charts/platform-stack/values-dev.yaml`
-- Lint layered local profile:
-  - `./scripts/lint.sh --values-file charts/platform-stack/values-dev.yaml --values-file charts/platform-stack/values-k3d.yaml`
-- Render baseline/dev:
-  - `./scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values-dev.yaml > /tmp/platform-stack-dev.yaml`
-- Render layered local profile:
-  - `./scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values-dev.yaml --values-file charts/platform-stack/values-k3d.yaml > /tmp/platform-stack-k3d.yaml`
+- Lint shared defaults:
+  - `./scripts/lint.sh --values-file charts/platform-stack/values.yaml`
+- Lint layered k3d profile:
+  - `./scripts/lint.sh --values-file charts/platform-stack/values.yaml --values-file charts/platform-stack/values-k3d.yaml`
+- Lint layered k3s profile:
+  - `./scripts/lint.sh --values-file charts/platform-stack/values.yaml --values-file charts/platform-stack/values-k3s.yaml`
+- Render shared defaults:
+  - `./scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values.yaml > /tmp/platform-stack.yaml`
+- Render layered k3d profile:
+  - `./scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values.yaml --values-file charts/platform-stack/values-k3d.yaml > /tmp/platform-stack-k3d.yaml`
+- Render layered k3s profile:
+  - `./scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values.yaml --values-file charts/platform-stack/values-k3s.yaml > /tmp/platform-stack-k3s.yaml`
 - Render with explicit toggle checks:
-  - `./scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values-dev.yaml --disable-service nextcloud --disable-service gitea > /tmp/platform-stack-core-only.yaml`
+  - `./scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values.yaml --disable-service nextcloud --disable-service gitea > /tmp/platform-stack-core-only.yaml`
 
 ## Change-target rules (charts vs overlays vs docs)
 - Change `charts/<service>/` when you need template, chart metadata, image, probes, resources, secret wiring, or service defaults updated for that service.
 - Change `charts/platform-stack/` when you need composition, dependency wiring, umbrella defaults, or cross-service orchestration updates.
-- Change overlay values files (`charts/platform-stack/values-*.yaml` and environment-specific overrides) when behavior must differ by environment/profile without changing base chart logic.
+- Change overlay values files (`charts/platform-stack/values-k3d.yaml` and `charts/platform-stack/values-k3s.yaml`) when behavior must differ by supported target without changing base chart logic.
 - Change docs in `docs/` and command references in `README.md` whenever operators must do something new, a default/toggle meaning changes, or validation steps change.
 - Do not encode persistent environment decisions only as CLI `--set`; store them in overlay values files.
 

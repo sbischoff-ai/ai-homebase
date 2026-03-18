@@ -17,22 +17,26 @@ normalize_service_key() {
   esac
 }
 
-default_values_file_for_profile() {
+default_values_files_for_profile() {
   case "$1" in
-    dev) echo "charts/platform-stack/values-dev.yaml" ;;
-    aks) echo "charts/platform-stack/values-aks.yaml" ;;
+    k3d)
+      printf '%s\n' "charts/platform-stack/values.yaml" "charts/platform-stack/values-k3d.yaml"
+      ;;
+    k3s)
+      printf '%s\n' "charts/platform-stack/values.yaml" "charts/platform-stack/values-k3s.yaml"
+      ;;
     *) return 1 ;;
   esac
 }
 
 usage() {
   cat <<USAGE
-Usage: $0 --profile <dev|aks> [options]
+Usage: $0 --profile <k3d|k3s> [options]
 
-Install or upgrade a profile with layered values and optional service toggles.
+Install or upgrade a supported target profile with layered values and optional service toggles.
 
 Options:
-  --profile <dev|aks>         Deployment profile (required)
+  --profile <k3d|k3s>         Deployment profile (required)
   --release-name <name>       Helm release name (default: ${RELEASE_NAME})
   --namespace <name>          Kubernetes namespace (default: ${NAMESPACE})
   --values-file <path>        Values file path (repeatable)
@@ -68,18 +72,16 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "$PROFILE" ]]; then
-  echo "Missing required argument: --profile <dev|aks>" >&2
+  echo "Missing required argument: --profile <k3d|k3s>" >&2
   usage
   exit 1
 fi
 
-profile_default_values_file="$(default_values_file_for_profile "$PROFILE")" || {
-  echo "Unsupported profile: $PROFILE (supported: dev, aks)" >&2
-  exit 1
-}
-
 if [[ ${#VALUES_FILES[@]} -eq 0 ]]; then
-  VALUES_FILES=("${VALUES_FILE:-$profile_default_values_file}")
+  mapfile -t VALUES_FILES < <(default_values_files_for_profile "$PROFILE") || {
+    echo "Unsupported profile: $PROFILE (supported: k3d, k3s)" >&2
+    exit 1
+  }
 fi
 
 KUBE_CONTEXT_ARGS=()
@@ -99,4 +101,3 @@ helm upgrade --install "$RELEASE_NAME" charts/platform-stack \
   --create-namespace \
   "${VALUES_ARGS[@]}" \
   "${SET_ARGS[@]}"
-

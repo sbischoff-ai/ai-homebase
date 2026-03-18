@@ -1,63 +1,12 @@
 # Helm chart notes
 
 ## Shared global values
-Use `global.*` as a convenience layer, but not all keys are truly universal across every dependency chart.
 
-### 1) Truly universal `global` keys
-Across the platform-managed service charts, these are the most consistently shared keys:
-
-- `global.hosts.*` for ingress host defaults.
-- `global.storageClass` for PVC defaults.
-- `global.commonLabels` for chart-wide labels.
-
-### 2) Keys supported only by specific charts
-Some `global` paths are intentionally chart-specific rather than universal:
-
-- `global.env` is currently consumed by `openclaw` and `openhands` (not by Nextcloud, Paperless, wg-easy, Gitea, or Infisical).
-- `global.nodeSelector`, `global.tolerations`, and `global.affinity` are currently consumed by `openclaw` and `openhands` as scheduling fallbacks.
-- `global.podAnnotations` is currently consumed by `openclaw` and `openhands`.
-
-### 3) Charts with custom/non-uniform structures
-- **Infisical** uses upstream standalone layout under nested paths such as `infisical.infisical.*`, plus sibling `infisical.ingress.*`, `infisical.postgresql.*`, and `infisical.redis.*` values in umbrella overlays.
-- **Gitea** values are primarily upstream-driven under `gitea.gitea.*` (for example `gitea.gitea.config.*`, `gitea.gitea.admin.*`, `gitea.gitea.additionalConfigFromEnvs`, and backend toggles under `gitea.gitea.postgresql.*` / `gitea.gitea.redis.*`).
-- **OpenClaw** also has custom secret mapping semantics: `existingSecret` + explicit `secretKeys.*` mappings (including `secretKeys.gatewayToken`).
-
-### Service support matrix (quick divergence view)
-
-Legend: ✅ supported natively, ⚠️ partially/indirectly supported, ❌ not a standard path for that chart.
-
-| Service chart | Global hosts | Global env | Global scheduling | `existingSecret` / `secretRefs` | `networkPolicy` |
-| --- | --- | --- | --- | --- | --- |
-| `openclaw` | ✅ | ✅ | ✅ | ✅ (`existingSecret` + `secretRefs[]` + `secretKeys.*`) | ✅ |
-| `openhands` | ✅ | ✅ | ✅ | ✅ (`existingSecret` + `secretRefs[]` + `secretEnv[]`) | ✅ |
-| `nextcloud` | ✅ | ❌ | ❌ | ✅ (`existingSecret` + `secretRefs[]`) | ✅ |
-| `paperless-ngx` | ✅ | ❌ | ❌ | ✅ (`existingSecret` + `secretRefs[]` + structured secret refs) | ✅ |
-| `wg-easy` | ✅ | ❌ | ❌ | ⚠️ (`existingSecret` + `secretRefs[]`, plus chart-generated default secret name) | ✅ |
-| `infisical` | ❌ | ❌ | ❌ | ❌ (`kubeSecretRef` contract instead) | ❌ |
-| `gitea` | ⚠️ (upstream-specific paths; not standardized on umbrella `global.hosts.*`) | ❌ | ❌ | ⚠️ (`gitea.gitea.admin.existingSecret` only; no shared `secretRefs[]` contract) | ❌ |
-
-## Gitea chart source
-`charts/gitea` is a local wrapper pinned to the official upstream Helm chart (`repository: https://dl.gitea.com/charts/`, `version: 12.5.0`). The `platform-stack` umbrella continues to depend on the local `file://../gitea` wrapper so umbrella dependency builds remain local/offline-friendly while still pinning upstream Gitea in one place.
-
-When chart metadata changes, refresh lock/vendor state with:
-
-```bash
-helm dependency update charts/gitea
-helm dependency update charts/platform-stack
-```
-
-### Gitea probe wiring note
-The wrapper currently retains local templates (including `templates/statefulset.yaml`) for platform-level wiring. Probe values are declared in `charts/gitea/values.yaml` under `probes.liveness` and `probes.readiness` and wired into rendered pod probes with `httpGet` on port `http`. Defaults are set to `/api/healthz`.
-
-Operational expectation: `GET /api/healthz` returns **HTTP 200** for healthy pods. If wrapper templates are further reduced during migration to official-chart-only rendering, re-verify probe values are still present in rendered manifests (not just values declarations).
-
-### Paperless-ngx probe wiring note
-`charts/paperless-ngx/templates/statefulset.yaml` renders `livenessProbe` and `readinessProbe` from `charts/paperless-ngx/values.yaml` under `probes.liveness` and `probes.readiness`.
-
-Defaults align with existing platform overlays: `httpGet` to `/api/health/` on container port `8000`, with configurable timings (`initialDelaySeconds`, `periodSeconds`) per probe.
+Use `global.*` for shared defaults such as hostnames, storage class, image pull secrets, labels, and pod annotations.
 
 ## platform-stack composition
-`platform-stack` is an umbrella chart with dependency toggles:
+
+`platform-stack` is an umbrella chart with dependency toggles for:
 
 - `openclaw.enabled`
 - `openhands.enabled`
@@ -67,51 +16,20 @@ Defaults align with existing platform overlays: `httpGet` to `/api/health/` on c
 - `infisical.enabled`
 - `wgEasy.enabled`
 
-It also adds shared backend dependencies for centralized state services:
+It also includes shared backend dependencies:
 
-- `sharedPostgresql.enabled` (shared PostgreSQL pinned to official `postgres` image with persistent PVC + secret-backed auth)
-- `sharedRedis.enabled` (shared Redis pinned to official `redis` image with persistent PVC + secret-backed auth)
-
-Shared backend implementations are local charts under `charts/shared-postgresql` and `charts/shared-redis`, and the umbrella chart depends on them via local `file://` references.
-
-
-### Removed umbrella placeholder keys (breaking cleanup)
-The following top-level umbrella keys were removed because they had no real chart behavior/wiring:
-
-- `externalSecrets`
-- `observability`
-- `persistence` (umbrella-level; service-level `*.persistence` keys remain supported)
-- `autoscaling` (umbrella-level; service-level autoscaling keys remain supported)
-- `workerIsolation`
-
-Migration note: move any intent previously stored in these keys into real service values (`openclaw.*`, `openhands.*`, `nextcloud.*`, `gitea.*`, `paperlessNgx.*`, `infisical.*`, `wgEasy.*`) or environment-specific automation outside this chart.
-
-
-## Network policy placeholders
-Internal/admin-oriented charts expose optional `networkPolicy.*` values and templates:
-
-- `openclaw.networkPolicy.*`
-- `openhands.networkPolicy.*`
-- `infisical.networkPolicy.*`
-- `wgEasy.networkPolicy.*`
-- `nextcloud.networkPolicy.*`
+- `sharedPostgresql.enabled`
+- `sharedRedis.enabled`
 
 ## Snapshot (golden manifest) policy
 
-This repository uses snapshot-based tests for umbrella chart rendering under `tests/golden/`.
+Profiles covered by golden snapshots:
 
-- Profiles covered:
-  - `values` (`charts/platform-stack/values.yaml`)
-  - `values-dev` (`charts/platform-stack/values-dev.yaml`)
-  - `values-dev-k3d` (`values-dev.yaml` layered with `values-k3d.yaml`)
-  - `values-aks` (`charts/platform-stack/values-aks.yaml`)
-  - `values-prod` (`charts/platform-stack/values-prod.yaml`)
-- Golden files are generated with `scripts/ci/update_golden.sh`.
-- Verification runs with `scripts/ci/check_golden.sh`, which re-renders and diffs against committed fixtures.
+- `values` (`charts/platform-stack/values.yaml`)
+- `values-k3d` (`values.yaml` layered with `values-k3d.yaml`)
+- `values-k3s` (`values.yaml` layered with `values-k3s.yaml`)
 
-To reduce flakiness, snapshots are normalized and scoped to stable Kubernetes resource kinds (`Deployment`, `StatefulSet`, `Service`, `Ingress`, `ConfigMap`, and related core workload/service objects). Volatile metadata fields and dynamic Helm-release annotations are removed during normalization.
-
-Use this workflow when you intentionally change rendering output:
+Generate snapshots with:
 
 ```bash
 helm dependency build charts/platform-stack
@@ -119,99 +37,18 @@ scripts/ci/update_golden.sh
 scripts/ci/check_golden.sh
 ```
 
-If `check_golden.sh` fails unexpectedly, inspect the diff first; only update fixtures when manifest changes are intentional.
-
 ## OpenClaw dedicated config file
-The `openclaw` chart renders an `openclaw.json` ConfigMap entry from structured `openclaw.*` values and mounts it to `/etc/openclaw/openclaw.json` in the pod.
 
-Primary value paths:
+The `openclaw` chart renders an `openclaw.json` ConfigMap entry from structured `openclaw.*` values and mounts it into the pod.
 
-- `openclaw.gateway.mode`
-- `openclaw.gateway.bind`
-- `openclaw.gateway.port`
-- `openclaw.gateway.auth.mode`
-- `openclaw.gateway.controlUi.enabled`
-- `openclaw.gateway.controlUi.allowedOrigins`
-- `existingSecret`
-- `secretKeys.gatewayToken`
-- optional `secretKeys.*ApiKey` provider/search mappings
-- `openclaw.agents.defaults.workspace`
-- `openclaw.agents.list`
-- `ingress.enabled` (disabled by default; enable only when intentionally exposing via internal/private or public ingress)
-- `ingress.defaultHost` (optional fallback before `global.hosts.openclaw`)
+Relevant sandbox-related value paths:
 
-The container uses `OPENCLAW_CONFIG_PATH=/etc/openclaw/openclaw.json` while `OPENCLAW_HOME` and `OPENCLAW_STATE_DIR` remain aligned with the persistence mount path, and sets `OPENCLAW_GATEWAY_PORT`/`OPENCLAW_GATEWAY_BIND=0.0.0.0` explicitly for Kubernetes runtime clarity.
+- `openclaw.agents.defaults.sandbox.mode`
+- `openclaw.agents.defaults.sandbox.docker.image`
+- `openclaw.agents.defaults.sandbox.docker.network`
+- `openclaw.agents.defaults.sandbox.prune.*`
+- `hostDockerSocket.*`
 
-The OpenClaw chart defaults to an explicit foreground gateway process command (`node openclaw.mjs gateway --allow-unconfigured`) to avoid startup paths that rely on user-level service-manager checks.
+## OpenHands Docker socket wiring
 
-Default exposure posture for OpenClaw is internal-only: `Service` type `ClusterIP` with no ingress enabled. Recommended access is over VPN/private networking, for example `http://openclaw.default.svc.cluster.local:18789`.
-
-When `openclaw.gateway.auth.mode` is `token`, chart rendering fails fast unless `existingSecret` and `secretKeys.gatewayToken` are set. The rendered config references `${OPENCLAW_GATEWAY_TOKEN}` and expects the env var to be injected from the configured secret key.
-
-When `openclaw.gateway.bind` is non-loopback (for example `lan`) and `openclaw.gateway.controlUi.enabled=true`, chart rendering also requires a non-empty `openclaw.gateway.controlUi.allowedOrigins` list.
-
-When ingress is enabled, ensure each `ingress.hosts[*].host` has a matching exact public origin (scheme + host) in `openclaw.gateway.controlUi.allowedOrigins`.
-
-## OpenHands ingress values
-
-OpenHands keeps `service.type: ClusterIP` by default.
-
-Baseline OpenHands deployment defaults in this repo:
-
-- `image.repository: ghcr.io/openhands/openhands`
-- `image.tag: 1.5.0` (chart `appVersion` is also `1.5.0`)
-- `service.port: 3000`
-- `service.targetPort: 3000`
-- `runtime.mode: ""` (optional neutral runtime mode passed into the app as `RUNTIME_MODE`)
-- `runtime.className: ""` (optional Kubernetes RuntimeClass selector; portable scheduling control)
-- `agentServer.image.repository: ghcr.io/openhands/agent-server`
-- `agentServer.image.tag: 1.12.0-python`
-- `resources.requests.cpu: 1000m`
-- `resources.requests.memory: 4Gi`
-- `resources.limits.cpu: 2000m`
-- `resources.limits.memory: 8Gi`
-
-OpenHands also renders the following env vars by default:
-
-- `AGENT_SERVER_IMAGE_REPOSITORY` from `agentServer.image.repository`
-- `AGENT_SERVER_IMAGE_TAG` from `agentServer.image.tag`
-- `RUNTIME_MODE` from `runtime.mode`
-
-Ingress controls are available under `openhands.ingress.*`:
-
-- `ingress.enabled`
-- `ingress.hostName` (canonical single host entry)
-- `ingress.ingressClassName`
-- `ingress.annotations`
-- `ingress.tls`
-
-Use internal/VPN hostnames for admin/internal deployments (for example `openhands.vpn.homebase.internal`) and pair them with an internal ingress class.
-
-OpenHands persistence controls are available under `openhands.persistence.*`:
-
-- `persistence.enabled` (default `true`)
-- `persistence.mountPath` (default `/.openhands`)
-- `persistence.size`
-- `persistence.storageClass` (falls back to `global.storageClass` when empty)
-- `persistence.accessModes`
-- `persistence.existingClaim`
-- `persistence.annotations`
-
-`openhands.workspace.*` is deprecated and retained only as a temporary compatibility alias for `openhands.persistence.*`. Platform overlays and examples in this repository now use `openhands.persistence.*`.
-
-Deprecation timeline: `openhands.workspace.*` will be removed in the first chart release after **2026-01-31**. Migrate all overlays to `openhands.persistence.*` before that date to avoid breaking upgrades.
-
-OpenHands secret/env controls follow the shared conventions and can be mixed safely:
-
-- `existingSecret` and `envFromSecrets[]` for bulk `envFrom` secret imports.
-- `env[]` for plain env values.
-- `secretRefs[]` for explicit `{name, key, envVar}` mappings.
-- `secretEnv[]` for explicit `{name, secretName, key, optional}` mappings rendered as `valueFrom.secretKeyRef`.
-
-OpenHands-focused secret examples:
-
-- Required/expected: `LLM_API_KEY`
-- Optional: `LLM_MODEL`, `OH_WEB_URL`
-- Optional/future: provider/git credentials such as `OPENAI_API_KEY`, `GITHUB_TOKEN`
-
-For Infisical integration, sync secret material into Kubernetes Secret names (for example `openhands-app-secrets`) and point OpenHands values (`existingSecret`, `envFromSecrets`, `secretRefs`, `secretEnv`) at those Secret names. This matches the OpenClaw-style contract of referencing Kubernetes Secrets from chart values.
+The `openhands` chart exposes `hostDockerSocket.enabled`, `hostDockerSocket.hostPath`, and `hostDockerSocket.mountPath` so the pod can mount the host Docker socket at `/var/run/docker.sock` for Docker-backed sandbox execution.

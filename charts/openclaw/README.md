@@ -82,6 +82,27 @@ If you do not have direct CLI access in the running pod, make sure you have anot
 This deployment is intended for a **single trusted operator / household / team boundary**.
 It is **not intended to be a hostile multi-tenant shared service**.
 
+## Docker-backed sandboxing
+
+The chart now supports the documented Docker-backed sandbox path by rendering `agents.defaults.sandbox.*` into `openclaw.json` and, when enabled, mounting the host Docker socket into the gateway pod:
+
+```yaml
+hostDockerSocket:
+  enabled: true
+  hostPath: /var/run/docker.sock
+  mountPath: /var/run/docker.sock
+
+openclaw:
+  agents:
+    defaults:
+      sandbox:
+        mode: non-main
+        docker:
+          image: openclaw-sandbox:bookworm-slim
+```
+
+The pod also exports `OPENCLAW_SANDBOX=1` and `OPENCLAW_DOCKER_SOCKET=/var/run/docker.sock` when this mode is enabled. Treat this as a deliberate, security-sensitive homelab design rather than a portable multi-tenant pattern.
+
 ## Example: secrets + values (`existingSecret` / `secretRefs` style)
 
 Example Secret (operator-managed):
