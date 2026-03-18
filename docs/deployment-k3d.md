@@ -54,6 +54,7 @@ What this does:
 
 - Creates a k3d cluster and maps host `:80` to cluster load balancer `:80`.
 - Optionally maps host `:443` to cluster load balancer `:443` (enabled by default).
+- Disables the bundled k3s Traefik deployment at cluster creation time so `ingress-nginx` is the only intended HTTP/HTTPS ingress controller in the local cluster.
 - Switches `kubectl` context to `k3d-ai-homebase-dev`.
 - Runs a short warm-up (waits for node readiness and, when present, metrics APIService availability) to reduce transient API discovery errors during first install.
 - Installs/upgrades `ingress-nginx` via Helm with ingress class `nginx`.
@@ -67,6 +68,7 @@ Useful options:
 `k3d-up.sh` writes and uses a dedicated kubeconfig by default (`~/.kube/k3d-<cluster>.yaml`), so this flow works even when your shell has a multi-entry `KUBECONFIG` for other projects.
 
 For WireGuard local testing, `k3d-up.sh` maps host ports `51820/udp` and `51821/tcp` to the k3d server node and mounts host `/lib/modules` into all k3d nodes (`/lib/modules:/lib/modules@all`) so wg-easy can load kernel module metadata needed by `wg-quick`.
+It also passes `--k3s-arg "--disable=traefik@server:*"` during `k3d cluster create` so the cluster does not start the default Traefik controller alongside Helm-managed `ingress-nginx`.
 
 ### 2.2 Generate minimal bootstrap secrets
 
