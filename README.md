@@ -35,6 +35,8 @@ Use `--verbose` (or `BOOTSTRAP_VERBOSE=1`) when you want full live command outpu
 
 For complete command coverage (Make targets, lint/render variants, CI-equivalent checks, and helper scripts), see [`docs/commands.md`](./docs/commands.md).
 
+> Local k3d note: `*.localtest.me` usually resolves to `127.0.0.1` automatically, but some NixOS setups do not provide that resolution out of the box. If browser access to local ingress hosts such as `openhands.localtest.me`, `wg.localtest.me`, or `infisical.localtest.me` fails, add explicit host mappings as described in [`docs/deployment-k3d.md`](./docs/deployment-k3d.md#5-local-ingress-host-access-dnshosts). This only fixes hostname resolution; you still need the ingress controller to be exposed on the expected host ports.
+
 For day-2 operations on generic cluster/homelab installs, use the [Homelab operations runbook (`docs/runbook-homelab.md`)](./docs/runbook-homelab.md).
 
 For a VPN-first homelab posture with public Nextcloud only, layer `charts/platform-stack/values-homelab-public-nextcloud.yaml` after `values-dev.yaml`. Keep Nextcloud on a dedicated host (`cloud.<domain>`) rather than a subpath for mobile/WebDAV/public-link compatibility.
