@@ -34,7 +34,7 @@ This flow:
 ./scripts/k3d-up.sh --cluster-name ai-homebase-dev
 ```
 
-`k3d-up.sh` disables the bundled k3s Traefik deployment so `ingress-nginx` remains the only intended HTTP/HTTPS ingress controller in the local cluster.
+`k3d-up.sh` disables the bundled k3s Traefik deployment so `ingress-nginx` remains the only intended HTTP/HTTPS ingress controller in the local cluster. It also mounts the host machine Docker socket into every k3d node container at `/var/run/docker.sock`, which keeps the existing OpenHands and OpenClaw pod `hostPath` mounts working unchanged inside k3d.
 
 ### 2.2 Generate bootstrap secrets
 
