@@ -163,6 +163,7 @@ scripts/ci/check_golden.sh
 
 For verbose output from bootstrap helpers, add `--verbose` or set `BOOTSTRAP_VERBOSE=1`.
 By default these scripts keep console output concise and write full command logs to `/tmp/ai-homebase-bootstrap-<timestamp>.log`.
+`./scripts/k3d-up.sh` disables the default k3s Traefik add-on during cluster creation so local HTTP/HTTPS ingress is owned only by `ingress-nginx`.
 
 ## Troubleshooting concise output mode
 

@@ -124,6 +124,7 @@ else
       -p "51820:51820/udp@server:0"
       -p "51821:51821@server:0"
       --volume "/lib/modules:/lib/modules@all"
+      --k3s-arg "--disable=traefik@server:*"
     )
 
     if [[ "$ENABLE_HTTPS" == "true" ]]; then
