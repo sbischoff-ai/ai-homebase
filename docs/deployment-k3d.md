@@ -180,13 +180,37 @@ Local ingress host checks always include `openhands.localtest.me`; `openclaw.loc
 - `openclaw.localtest.me` -> `127.0.0.1`
 - `openhands.localtest.me` -> `127.0.0.1`
 
-### Fallback: `/etc/hosts`
+### Fallback: explicit host mappings
 
-If DNS is filtered or unavailable, add host mappings manually:
+If DNS is filtered or unavailable, add host mappings manually. This is also the safer default on some NixOS hosts, where `localtest.me` wildcard resolution may not work automatically through the active resolver stack even though the ingress itself is healthy.
+
+Minimal `/etc/hosts` example:
 
 ```text
-127.0.0.1 openclaw.localtest.me openhands.localtest.me
+127.0.0.1 openclaw.localtest.me openhands.localtest.me wg.localtest.me infisical.localtest.me
 ```
+
+NixOS example using `networking.hosts` in `configuration.nix`:
+
+```nix
+{ config, pkgs, ... }:
+
+{
+  networking.hosts = {
+    "127.0.0.1" = [
+      "openhands.localtest.me"
+      "wg.localtest.me"
+      "infisical.localtest.me"
+      # Optional when you enable the OpenClaw ingress locally:
+      "openclaw.localtest.me"
+    ];
+  };
+}
+```
+
+Apply the NixOS change with your normal rebuild flow (for example `sudo nixos-rebuild switch`) before retrying browser access.
+
+These mappings fix hostname resolution only. They do **not** replace correct ingress controller exposure or host port publishing from `k3d-up.sh`; if `http://127.0.0.1/` with the matching `Host:` header still fails, continue troubleshooting the ingress/controller path as well.
 
 If you changed values to custom hostnames, map those hosts to `127.0.0.1` as well.
 
