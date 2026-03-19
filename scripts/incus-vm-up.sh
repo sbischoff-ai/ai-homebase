@@ -18,7 +18,12 @@ VM_STATIC_IPV4="${VM_STATIC_IPV4:-}"
 HOST_LISTEN_ADDRESS="${HOST_LISTEN_ADDRESS:-}"
 INCUS_NETWORK_IPV4_CIDR="${INCUS_NETWORK_IPV4_CIDR:-}"
 INCUS_NETWORK_BRIDGE_IPV4="${INCUS_NETWORK_BRIDGE_IPV4:-}"
+INCUS_NETWORK_IPV4_NAT="${INCUS_NETWORK_IPV4_NAT:-}"
 INCUS_NETWORK_DNS_NAMESERVERS="${INCUS_NETWORK_DNS_NAMESERVERS:-}"
+INCUS_NETWORK_DNS_MODE="${INCUS_NETWORK_DNS_MODE:-}"
+INCUS_NETWORK_MANAGED="${INCUS_NETWORK_MANAGED:-}"
+INCUS_NETWORK_TYPE="${INCUS_NETWORK_TYPE:-}"
+INCUS_NETWORK_DNS_STRATEGY="${INCUS_NETWORK_DNS_STRATEGY:-}"
 CONNECTION_INFO_PATH="${CONNECTION_INFO_PATH:-}"
 SSH_READY_TIMEOUT_SECONDS="${SSH_READY_TIMEOUT_SECONDS:-600}"
 READINESS_FAILURE_REASON=""
@@ -144,8 +149,36 @@ get_network_ipv4_cidr() {
   incus network get "$INCUS_NETWORK" ipv4.address 2>/dev/null
 }
 
+get_network_ipv4_nat() {
+  incus network get "$INCUS_NETWORK" ipv4.nat 2>/dev/null || true
+}
+
 get_network_dns_nameservers() {
   incus network get "$INCUS_NETWORK" dns.nameservers 2>/dev/null || true
+}
+
+get_network_dns_mode() {
+  incus network get "$INCUS_NETWORK" dns.mode 2>/dev/null || true
+}
+
+get_network_show_field() {
+  local field_name="$1"
+  incus network show "$INCUS_NETWORK" 2>/dev/null | awk -F': ' -v field_name="$field_name" '
+    $1 == field_name {
+      print $2
+      exit
+    }
+  '
+}
+
+trim_network_value() {
+  local raw_value="${1:-}"
+  raw_value="${raw_value#"${raw_value%%[![:space:]]*}"}"
+  raw_value="${raw_value%"${raw_value##*[![:space:]]}"}"
+  if [[ -z "$raw_value" ]]; then
+    return 0
+  fi
+  printf '%s\n' "$raw_value"
 }
 
 derive_ipv4_from_cidr() {
@@ -207,6 +240,60 @@ autodetect_network_addresses() {
   if [[ -z "$INCUS_NETWORK_DNS_NAMESERVERS" ]]; then
     INCUS_NETWORK_DNS_NAMESERVERS="$(get_network_dns_nameservers)"
   fi
+  if [[ -z "$INCUS_NETWORK_IPV4_NAT" ]]; then
+    INCUS_NETWORK_IPV4_NAT="$(trim_network_value "$(get_network_ipv4_nat)")"
+  fi
+  if [[ -z "$INCUS_NETWORK_DNS_MODE" ]]; then
+    INCUS_NETWORK_DNS_MODE="$(trim_network_value "$(get_network_dns_mode)")"
+  fi
+  if [[ -z "$INCUS_NETWORK_MANAGED" ]]; then
+    INCUS_NETWORK_MANAGED="$(trim_network_value "$(get_network_show_field managed)")"
+  fi
+  if [[ -z "$INCUS_NETWORK_TYPE" ]]; then
+    INCUS_NETWORK_TYPE="$(trim_network_value "$(get_network_show_field type)")"
+  fi
+}
+
+validate_network_dns_strategy() {
+  local normalized_nameservers=""
+  local dns_source_description=""
+
+  normalized_nameservers="$(
+    python3 - "$INCUS_NETWORK_DNS_NAMESERVERS" <<'PY'
+import re
+import sys
+
+entries = [
+    entry.strip()
+    for entry in re.split(r"[\s,]+", sys.argv[1])
+    if entry.strip() and entry.strip().lower() != "none"
+]
+print(",".join(entries))
+PY
+  )"
+
+  if [[ -n "$normalized_nameservers" ]]; then
+    dns_source_description="explicit resolvers from ${INCUS_NETWORK}.dns.nameservers (${normalized_nameservers})"
+    INCUS_NETWORK_DNS_STRATEGY="${dns_source_description}"
+  else
+    warn "Incus network ${INCUS_NETWORK} has an empty dns.nameservers setting; falling back to bridge gateway ${INCUS_NETWORK_BRIDGE_IPV4} for guest DNS. Ensure this bridge provides DNS service to guests or cloud-init package installation may fail."
+
+    if [[ "${INCUS_NETWORK_DNS_MODE}" == "none" ]]; then
+      fail "Incus network ${INCUS_NETWORK} is incompatible with guest DNS fallback: dns.nameservers is empty and dns.mode=none, so guests cannot rely on bridge gateway ${INCUS_NETWORK_BRIDGE_IPV4} for DNS. Configure ${INCUS_NETWORK} to provide bridge DNS or set dns.nameservers explicitly before rerunning ${0##*/}."
+      exit 1
+    fi
+
+    if [[ -n "${INCUS_NETWORK_MANAGED}" && "${INCUS_NETWORK_MANAGED}" != "true" ]]; then
+      fail "Incus network ${INCUS_NETWORK} is incompatible with guest DNS fallback: dns.nameservers is empty and the network is not managed by Incus, so bridge gateway ${INCUS_NETWORK_BRIDGE_IPV4} is not a safe DNS assumption. Configure guest-reachable DNS resolvers with 'incus network set ${INCUS_NETWORK} dns.nameservers <ip[,ip...]>' or use a managed bridge that serves DNS."
+      exit 1
+    fi
+
+    dns_source_description="bridge gateway fallback via ${INCUS_NETWORK_BRIDGE_IPV4}"
+    INCUS_NETWORK_DNS_STRATEGY="${dns_source_description}"
+  fi
+
+  step "Resolved guest DNS strategy: ${INCUS_NETWORK_DNS_STRATEGY}"
+  step "Incus network ${INCUS_NETWORK} details: ipv4.address=${INCUS_NETWORK_IPV4_CIDR}, ipv4.nat=${INCUS_NETWORK_IPV4_NAT:-unknown}, dns.nameservers=${INCUS_NETWORK_DNS_NAMESERVERS:-<empty>}, dns.mode=${INCUS_NETWORK_DNS_MODE:-unknown}, managed=${INCUS_NETWORK_MANAGED:-unknown}, type=${INCUS_NETWORK_TYPE:-unknown}"
 }
 
 cloud_init_status_is_done() {
@@ -528,6 +615,7 @@ EOF
 
 ensure_ssh_key
 autodetect_network_addresses
+validate_network_dns_strategy
 CLOUD_INIT_FILE="$(render_cloud_init)"
 NETWORK_CONFIG_FILE="$(render_network_config)"
 trap 'rm -f "${CLOUD_INIT_FILE:-}" "${NETWORK_CONFIG_FILE:-}"' EXIT
