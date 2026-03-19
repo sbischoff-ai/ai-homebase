@@ -57,6 +57,7 @@ KUBECTL_ARGS=(--kubeconfig "$KUBECONFIG_PATH")
 HELM_ARGS=(--kubeconfig "$KUBECONFIG_PATH")
 
 run_quiet mkdir -p "$(dirname "$KUBECONFIG_PATH")"
+export KUBECONFIG="$KUBECONFIG_PATH"
 
 run_k3d_concise() {
   if [[ "${BOOTSTRAP_VERBOSE:-0}" == "1" ]]; then
@@ -208,4 +209,4 @@ ok "Ingress controller is ready"
 echo "k3d cluster ${CLUSTER_NAME} is ready with ingress-nginx"
 echo "Kubeconfig written to: ${KUBECONFIG_PATH}"
 echo "Bootstrap log: ${BOOTSTRAP_LOG_FILE}"
-echo "Use it with: export KUBECONFIG=${KUBECONFIG_PATH}"
+echo "KUBECONFIG exported for this run: ${KUBECONFIG}"
