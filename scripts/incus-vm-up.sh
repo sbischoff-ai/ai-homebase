@@ -17,6 +17,7 @@ HOST_ALIAS="${HOST_ALIAS:-host.k3d.internal}"
 VM_STATIC_IPV4="${VM_STATIC_IPV4:-}"
 HOST_LISTEN_ADDRESS="${HOST_LISTEN_ADDRESS:-}"
 CONNECTION_INFO_PATH="${CONNECTION_INFO_PATH:-}"
+SSH_READY_TIMEOUT_SECONDS="${SSH_READY_TIMEOUT_SECONDS:-600}"
 
 usage() {
   cat <<USAGE
@@ -38,8 +39,13 @@ Options:
   --host-alias <name>        Hostname pods should use for the proxied SSH endpoint (default: ${HOST_ALIAS})
   --host-listen-address <ip> Concrete Incus-host IPv4 for the NAT proxy listener (default: auto-detect from ${INCUS_NETWORK})
   --vm-static-ipv4 <ip>      Stable VM IPv4 for NAT proxying (default: auto-derive from ${INCUS_NETWORK})
+  --ssh-ready-timeout-seconds <seconds>
+                             Wait time for the VM SSH endpoint to become reachable (default: ${SSH_READY_TIMEOUT_SECONDS})
   --verbose                  Stream full command output
   -h, --help                 Show this help message
+
+Environment:
+  SSH_READY_TIMEOUT_SECONDS  Same as --ssh-ready-timeout-seconds; first boot may need several minutes
 USAGE
 }
 
@@ -58,6 +64,7 @@ while [[ $# -gt 0 ]]; do
     --host-alias) HOST_ALIAS="$2"; shift 2 ;;
     --host-listen-address) HOST_LISTEN_ADDRESS="$2"; shift 2 ;;
     --vm-static-ipv4) VM_STATIC_IPV4="$2"; shift 2 ;;
+    --ssh-ready-timeout-seconds) SSH_READY_TIMEOUT_SECONDS="$2"; shift 2 ;;
     --verbose) BOOTSTRAP_VERBOSE=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
@@ -66,6 +73,11 @@ done
 
 if [[ -z "$CONNECTION_INFO_PATH" ]]; then
   CONNECTION_INFO_PATH="${STATE_DIR}/${VM_NAME}.env"
+fi
+
+if ! [[ "$SSH_READY_TIMEOUT_SECONDS" =~ ^[0-9]+$ ]]; then
+  fail "SSH_READY_TIMEOUT_SECONDS must be a non-negative integer"
+  exit 1
 fi
 
 bootstrap_init_logging
@@ -182,7 +194,7 @@ autodetect_network_addresses() {
 }
 
 wait_for_vm_readiness() {
-  local deadline=$((SECONDS + 180))
+  local deadline=$((SECONDS + SSH_READY_TIMEOUT_SECONDS))
   local guest_booted_reported=0
   local guest_agent_unavailable_reported=0
   while [[ $SECONDS -lt $deadline ]]; do
@@ -337,7 +349,7 @@ else
   step "Incus VM ${VM_NAME} is already running"
 fi
 
-step "Waiting for Incus VM SSH readiness"
+step "Waiting for Incus VM SSH readiness (timeout: ${SSH_READY_TIMEOUT_SECONDS}s)"
 wait_for_vm_readiness
 if [[ -n "${VM_IPV4:-}" ]]; then
   ok "Incus VM ${VM_NAME} is ready with runtime IPv4 ${VM_IPV4}"
