@@ -5,6 +5,9 @@ dependencies:
 - name: openhands
   repository: file://../openhands
   version: 0.1.0
+- name: openshell
+  repository: file://../openshell
+  version: 0.1.0
 - name: nextcloud
   repository: file://../nextcloud
   version: 0.1.0
@@ -26,5 +29,5 @@ dependencies:
 - name: shared-redis
   repository: file://../shared-redis
   version: 0.1.0
-digest: sha256:bc52900402b5cbd3e3343331d4e6eed0147c73ecc7c526210b712f2939d0032d
-generated: "2026-03-15T12:28:04.79807465Z"
+digest: sha256:686571a9bb15731173393bb1552693f4a9396e71f0d40268df4983566e82f9b3
+generated: "2026-03-19T07:46:02.231140187Z"

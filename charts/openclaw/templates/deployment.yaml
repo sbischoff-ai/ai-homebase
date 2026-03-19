@@ -11,8 +11,20 @@
 {{- fail "openclaw.secretKeys.gatewayToken is required when openclaw.gateway.auth.mode=token" }}
 {{- end }}
 {{- $sandboxMode := .Values.openclaw.agents.defaults.sandbox.mode | default "off" }}
-{{- if and (ne (toString $sandboxMode) "off") (not .Values.hostDockerSocket.enabled) }}
-{{- fail "openclaw.hostDockerSocket.enabled must be true when openclaw.agents.defaults.sandbox.mode is not off" }}
+{{- $sandboxBackend := .Values.openclaw.agents.defaults.sandbox.backend | default "docker" }}
+{{- $openshellPluginEnabled := false }}
+{{- with .Values.openclaw.plugins }}
+{{- with .entries }}
+{{- with .openshell }}
+{{- $openshellPluginEnabled = (.enabled | default false) }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- if and (ne (toString $sandboxMode) "off") (or (eq (toString $sandboxBackend) "") (eq (toString $sandboxBackend) "docker")) (not .Values.hostDockerSocket.enabled) }}
+{{- fail "openclaw.hostDockerSocket.enabled must be true when using the Docker sandbox backend with sandbox.mode not off" }}
+{{- end }}
+{{- if and (ne (toString $sandboxMode) "off") (eq (toString $sandboxBackend) "openshell") (not $openshellPluginEnabled) }}
+{{- fail "openclaw.plugins.entries.openshell.enabled must be true when openclaw.agents.defaults.sandbox.backend=openshell and sandbox.mode is not off" }}
 {{- end }}
 {{- if and $nonLoopbackBind $controlUiEnabled (eq (len $allowedOrigins) 0) }}
 {{- fail "openclaw.gateway.controlUi.allowedOrigins must be non-empty when gateway bind is non-loopback and control UI is enabled" }}

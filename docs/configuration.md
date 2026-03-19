@@ -51,10 +51,11 @@ Cloud-provider-specific deployment profiles and conditionals have been removed.
 The supported targets now split runtime posture by service:
 
 - `openhands.runtime.mode` is fixed to `kubernetes`, and `openhands.kubernetes.*` renders the upstream `[kubernetes]` config block used for in-cluster runtime sandboxes.
-- `openclaw.hostDockerSocket.*` still controls mounting the host Docker socket into OpenClaw.
-- `openclaw.openclaw.agents.defaults.sandbox.*` renders the OpenClaw sandbox configuration directly into `openclaw.json`.
+- `openshell.*` configures the cluster-local OpenShell gateway service and the endpoint/command values reused by overlays.
+- `openclaw.hostDockerSocket.*` remains available for explicitly opting back into the Docker backend.
+- `openclaw.openclaw.agents.defaults.sandbox.*` and `openclaw.openclaw.plugins.*` render the OpenClaw sandbox/plugin configuration directly into `openclaw.json`.
 
-OpenHands Kubernetes runtime defaults assume OpenHands itself is running inside the cluster and create per-session runtime resources in the configured namespace. OpenClaw's Docker socket model remains an intentional homelab-only trust choice, not a multi-tenant-safe default.
+OpenHands Kubernetes runtime defaults assume OpenHands itself is running inside the cluster and create per-session runtime resources in the configured namespace. The shipped OpenClaw overlays now target the OpenShell backend, while the older Docker socket model remains an explicit opt-in homelab override rather than the default path.
 
 ## Values schema validation
 
@@ -64,6 +65,7 @@ Current schema coverage includes:
 
 - `charts/platform-stack/values.schema.json`
 - `charts/openclaw/values.schema.json`
+- `charts/openshell/values.schema.json`
 - `charts/openhands/values.schema.json`
 - `charts/nextcloud/values.schema.json`
 - `charts/paperless-ngx/values.schema.json`

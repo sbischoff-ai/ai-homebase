@@ -15,6 +15,9 @@ global:
   commonLabels:
     environment: k3s
 
+openshell:
+  enabled: true
+
 openclaw:
   enabled: true
   ingress:
@@ -31,9 +34,7 @@ openclaw:
       cpu: "2"
       memory: 2Gi
   hostDockerSocket:
-    enabled: true
-    hostPath: /var/run/docker.sock
-    mountPath: /var/run/docker.sock
+    enabled: false
   openclaw:
     gateway:
       controlUi:
@@ -43,6 +44,16 @@ openclaw:
       defaults:
         sandbox:
           mode: non-main
+          backend: openshell
+          workspaceAccess: rw
+    plugins:
+      entries:
+        openshell:
+          enabled: true
+          config:
+            mode: remote
+            command: openshell
+            gatewayEndpoint: http://openshell:80
 
 openhands:
   enabled: true

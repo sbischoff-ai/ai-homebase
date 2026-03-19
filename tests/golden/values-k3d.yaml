@@ -5,14 +5,18 @@ data:
     \    \"token\": \"${OPENCLAW_GATEWAY_TOKEN}\"\n    },\n    \"controlUi\": {\n\
     \      \"enabled\": true,\n      \"allowedOrigins\": [\"http://openclaw.localtest.me\"\
     ]\n    }\n  },\n  \"agents\": {\n    \"defaults\": {\n      \"workspace\": \"\
-    ~/.openclaw/workspace\",\n      \"sandbox\": {\"docker\":{\"capDrop\":[\"ALL\"\
-    ],\"env\":{\"LANG\":\"C.UTF-8\"},\"image\":\"openclaw-sandbox:bookworm-slim\"\
+    ~/.openclaw/workspace\",\n      \"sandbox\": {\"backend\":\"openshell\",\"docker\"\
+    :{\"capDrop\":[\"ALL\"],\"env\":{\"LANG\":\"C.UTF-8\"},\"image\":\"openclaw-sandbox:bookworm-slim\"\
     ,\"network\":\"none\",\"readOnlyRoot\":true,\"tmpfs\":[\"/tmp\",\"/var/tmp\",\"\
     /run\"],\"user\":\"1000:1000\",\"workdir\":\"/workspace\"},\"mode\":\"non-main\"\
     ,\"prune\":{\"idleHours\":24,\"maxAgeDays\":7},\"scope\":\"agent\",\"workspaceAccess\"\
-    :\"none\",\"workspaceRoot\":\"~/.openclaw/sandboxes\"}\n    },\n    \"list\":\
-    \ [{\"id\":\"default\",\"name\":\"OpenClaw Assistant\",\"workspace\":\"~/.openclaw/workspace\"\
-    }]\n  }\n}\n"
+    :\"rw\",\"workspaceRoot\":\"~/.openclaw/sandboxes\"}\n    },\n    \"list\": [{\"\
+    id\":\"default\",\"name\":\"OpenClaw Assistant\",\"workspace\":\"~/.openclaw/workspace\"\
+    }]\n  },\n  \"plugins\": {\"entries\":{\"openshell\":{\"config\":{\"autoProviders\"\
+    :true,\"command\":\"openshell\",\"from\":\"openclaw\",\"gateway\":\"\",\"gatewayEndpoint\"\
+    :\"http://openshell:80\",\"gpu\":false,\"mode\":\"remote\",\"policy\":\"\",\"\
+    providers\":[],\"remoteAgentWorkspaceDir\":\"/agent\",\"remoteWorkspaceDir\":\"\
+    /sandbox\",\"timeoutSeconds\":120},\"enabled\":true}}}\n}\n"
 kind: ConfigMap
 metadata:
   labels:
@@ -228,8 +232,6 @@ spec:
           value: /etc/openclaw/openclaw.json
         - name: OPENCLAW_SANDBOX
           value: '1'
-        - name: OPENCLAW_DOCKER_SOCKET
-          value: /var/run/docker.sock
         - name: OPENCLAW_GATEWAY_TOKEN
           valueFrom:
             secretKeyRef:
@@ -294,8 +296,6 @@ spec:
           name: config
           readOnly: true
           subPath: openclaw.json
-        - mountPath: /var/run/docker.sock
-          name: docker-socket
       securityContext:
         fsGroup: 1000
       serviceAccountName: platform-stack-openclaw
@@ -309,10 +309,6 @@ spec:
             path: openclaw.json
           name: platform-stack-openclaw
         name: config
-      - hostPath:
-          path: /var/run/docker.sock
-          type: Socket
-        name: docker-socket
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -410,6 +406,36 @@ spec:
       - configMap:
           name: platform-stack-openhands-config
         name: openhands-config
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: openshell
+  name: platform-stack-openshell
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: platform-stack
+      app.kubernetes.io/name: openshell
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: platform-stack
+        app.kubernetes.io/name: openshell
+    spec:
+      containers:
+      - command: openshell
+        image: ghcr.io/openclaw/openshell:latest
+        imagePullPolicy: IfNotPresent
+        name: openshell
+        ports:
+        - containerPort: 80
+          name: http
+          protocol: TCP
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -529,8 +555,9 @@ metadata:
     app.kubernetes.io/name: wg-easy
   name: platform-stack-wg-easy
 spec:
+  ingressClassName: nginx
   rules:
-  - host: wg.homebase.local
+  - host: wg.localtest.me
     http:
       paths:
       - backend:
@@ -566,6 +593,25 @@ spec:
         name: infisical-schema-migration
       restartPolicy: OnFailure
       serviceAccountName: platform-stack-infisical
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: openshell
+  name: openshell
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/name: openshell
+  type: ClusterIP
 ---
 apiVersion: v1
 kind: Service

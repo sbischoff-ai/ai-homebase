@@ -17,6 +17,21 @@ global:
   affinity: {}
   env: []
 
+openshell:
+  enabled: true
+  image:
+    repository: ghcr.io/openclaw/openshell
+    tag: ""
+    pullPolicy: IfNotPresent
+  service:
+    name: &openshellServiceName openshell
+    type: ClusterIP
+    port: 80
+    targetPort: 80
+    annotations: {}
+  gatewayEndpoint: &openshellGatewayEndpoint http://openshell:80
+  command: &openshellCommand openshell
+
 openclaw:
   enabled: true
   replicaCount: 1
@@ -54,6 +69,23 @@ openclaw:
       defaults:
         sandbox:
           mode: off
+    plugins:
+      entries:
+        openshell:
+          enabled: false
+          config:
+            mode: remote
+            command: *openshellCommand
+            from: openclaw
+            gateway: ""
+            gatewayEndpoint: *openshellGatewayEndpoint
+            policy: ""
+            providers: []
+            gpu: false
+            autoProviders: true
+            remoteWorkspaceDir: /sandbox
+            remoteAgentWorkspaceDir: /agent
+            timeoutSeconds: 120
   podDisruptionBudget:
     enabled: false
     minAvailable: 1
