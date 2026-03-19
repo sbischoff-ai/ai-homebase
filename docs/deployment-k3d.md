@@ -68,7 +68,7 @@ Default values layers used by the k3d scripts:
 
 ## 3) Service access
 
-Expected local browser endpoints:
+Expected local browser endpoints served by the k3d `ingress-nginx` controller:
 
 - `http://wg.localtest.me`
 - `http://openhands.localtest.me`
