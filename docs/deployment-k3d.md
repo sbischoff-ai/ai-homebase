@@ -22,14 +22,14 @@ export OPENAI_API_KEY="<your-openai-api-key>"
 This flow:
 
 - creates or reuses the k3d cluster,
-- creates or reuses a small dedicated Incus VM for future remote Docker sandboxing,
+- creates or reuses a dedicated Incus VM for remote Docker sandboxing,
 - installs ingress-nginx,
 - generates bootstrap secrets,
 - deploys `platform-stack` with `values.yaml + values-k3d.yaml`, and
 - runs local smoke checks.
 
 The bootstrap exports `KUBECONFIG` to the dedicated kubeconfig path for the lifetime of the script so nested `kubectl` and `helm` calls all target the same local cluster.
-The companion Incus VM is intentionally minimal: `images:debian/12/cloud`, about 1 CPU, 2 GiB RAM, a 12 GiB root disk, Docker Engine, and SSH. Instead of exposing the Docker daemon over unauthenticated TCP, the bootstrap configures SSH access so future OpenClaw sandbox settings can target `ssh://docker-remote@host.k3d.internal:2222`.
+The companion Incus VM is intentionally minimal: `images:debian/12/cloud`, **2 vCPU**, **6 GiB RAM**, a 12 GiB root disk, Docker Engine, and SSH. Instead of exposing the Docker daemon over unauthenticated TCP, the bootstrap configures SSH access so OpenClaw can target `ssh://docker-remote@host.k3d.internal:2222` through Docker's SSH transport.
 
 ## 2) Manual flow
 
@@ -99,7 +99,7 @@ If not, add entries such as:
 
 ## 5) Sandbox note
 
-The k3d overlay now enables the OpenShell backend for OpenClaw with `mode=all`, `scope=session`, `workspaceAccess=rw`, and the in-cluster `openshell` Service endpoint (`http://openshell:80`). OpenHands continues to use the upstream in-cluster Kubernetes runtime and therefore does not need any host Docker passthrough either.
+The shared OpenClaw defaults now render the Docker sandbox backend with explicit `docker.*` and `browser.*` settings, but remote-Docker wiring stays opt-in through values overlays because operators must provide an SSH Secret, a derived OpenClaw image that includes Docker CLI + OpenSSH client, and an environment-specific `browser.cdpSourceRange`. OpenHands continues to use the upstream in-cluster Kubernetes runtime.
 
 ## 6) Incus sandbox VM note
 

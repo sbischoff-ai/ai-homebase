@@ -82,6 +82,43 @@
         "existingClaim": { "type": "string", "default": "" }
       }
     },
+    "remoteDocker": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable SSH-backed remote Docker access for OpenClaw sandboxing."
+        },
+        "dockerHost": {
+          "type": "string",
+          "default": "",
+          "description": "Value exported as DOCKER_HOST when remote Docker is enabled."
+        },
+        "home": {
+          "type": "string",
+          "default": "/home/node",
+          "description": "Value exported as HOME so the Docker SSH transport can find mounted keys."
+        },
+        "ssh": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "secretName": {
+              "type": "string",
+              "default": "openclaw-remote-docker-ssh",
+              "description": "Secret containing at least a private key file and known_hosts."
+            },
+            "mountPath": {
+              "type": "string",
+              "default": "/home/node/.ssh",
+              "description": "Target path where the prepared SSH directory is mounted in the container."
+            }
+          }
+        }
+      }
+    },
     "existingSecret": {
       "type": "string",
       "default": "openclaw-secrets",
@@ -105,6 +142,71 @@
       "type": "object",
       "additionalProperties": true,
       "properties": {
+        "agents": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "defaults": {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "sandbox": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "properties": {
+                    "mode": { "type": "string", "default": "non-main" },
+                    "backend": { "type": "string", "default": "docker" },
+                    "scope": { "type": "string", "default": "agent" },
+                    "docker": {
+                      "type": "object",
+                      "additionalProperties": true,
+                      "properties": {
+                        "image": { "type": "string", "default": "openclaw-sandbox:bookworm-slim" },
+                        "workdir": { "type": "string", "default": "/workspace" },
+                        "readOnlyRoot": { "type": "boolean", "default": true },
+                        "tmpfs": {
+                          "type": "array",
+                          "default": ["/tmp", "/var/tmp", "/run"],
+                          "items": { "type": "string", "minLength": 1 }
+                        },
+                        "user": { "type": "string", "default": "1000:1000" },
+                        "capDrop": {
+                          "type": "array",
+                          "default": ["ALL"],
+                          "items": { "type": "string", "minLength": 1 }
+                        },
+                        "pidsLimit": { "type": "integer", "minimum": 1, "default": 256 },
+                        "memory": { "type": "string", "default": "1g" },
+                        "memorySwap": { "type": "string", "default": "2g" },
+                        "cpus": { "type": "number", "exclusiveMinimum": 0, "default": 1 },
+                        "network": { "type": "string", "default": "bridge" }
+                      }
+                    },
+                    "browser": {
+                      "type": "object",
+                      "additionalProperties": true,
+                      "properties": {
+                        "enabled": { "type": "boolean", "default": true },
+                        "image": { "type": "string", "default": "openclaw-sandbox-browser:bookworm-slim" },
+                        "network": { "type": "string", "default": "bridge" },
+                        "cdpPort": { "type": "integer", "minimum": 1, "maximum": 65535, "default": 9222 },
+                        "vncPort": { "type": "integer", "minimum": 1, "maximum": 65535, "default": 5900 },
+                        "noVncPort": { "type": "integer", "minimum": 1, "maximum": 65535, "default": 6080 },
+                        "headless": { "type": "boolean", "default": false },
+                        "enableNoVnc": { "type": "boolean", "default": true },
+                        "cdpSourceRange": {
+                          "type": "string",
+                          "default": "",
+                          "description": "CIDR range allowed to reach the remote browser sandbox CDP endpoint."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
         "plugins": {
           "type": "object",
           "additionalProperties": true,

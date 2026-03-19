@@ -48,10 +48,10 @@ Canonical default posture in this document refers to umbrella defaults from `cha
 - Requires secret references for API/auth integrations.
 - Mounts an in-memory writable `/tmp` and a persistent state directory.
 - The chart renders `openclaw.json` from structured `openclaw.*` values.
-- OpenClaw now defaults to OpenShell sandboxing by rendering `openclaw.agents.defaults.sandbox.mode=all`, `backend=openshell`, `scope=session`, and `workspaceAccess=rw`.
-- The chart enables `openclaw.plugins.entries.openshell` by default and points `plugins.entries.openshell.config.gatewayEndpoint` at the cluster-local OpenShell service URL.
-- The umbrella chart surfaces that CLI path as `openshell.cliCommand` and feeds it into `openclaw.openclaw.plugins.entries.openshell.config.command`, so operators can keep the default `openshell` binary name or point at a custom CLI path in images that bundle the tool elsewhere without colliding with the OpenShell subchart container `command` array.
-- Separately from the Helm charts, local bootstrap now provisions an external Incus VM (`openclaw-sandbox`) as a future single-purpose remote Docker appliance. It is intentionally not chart-managed yet; use the bootstrap scripts if you want that companion VM available for OpenClaw sandbox experiments without changing chart values or manifests.
+- OpenClaw now defaults to Docker sandboxing with `mode=non-main`, `backend=docker`, and `scope=agent`, plus explicit `docker.*` and `browser.*` sandbox image/runtime settings rendered into `openclaw.json`.
+- The browser sandbox config now exposes `openclaw.agents.defaults.sandbox.browser.cdpSourceRange` so operators can match the CIDR that reaches the remote browser container's CDP port.
+- `openclaw.remoteDocker.*` optionally exports `DOCKER_HOST` and `HOME`, then mounts SSH credentials for Docker's `ssh://` transport so OpenClaw can launch Docker/browser sandboxes on a remote daemon without changing the OpenClaw backend away from `docker`.
+- Local bootstrap still provisions an external Incus VM (`openclaw-sandbox`) as a single-purpose remote Docker appliance, but the VM remains outside Helm; chart values control only how the OpenClaw pod reaches it.
 
 ### OpenHands
 

@@ -45,6 +45,13 @@ openclaw:
     storageClass: ""
   autoscaling:
     enabled: false
+  remoteDocker:
+    enabled: false
+    dockerHost: ""
+    home: /home/node
+    ssh:
+      secretName: openclaw-remote-docker-ssh
+      mountPath: /home/node/.ssh
   openclaw:
     gateway:
       controlUi:
@@ -53,10 +60,35 @@ openclaw:
     agents:
       defaults:
         sandbox:
-          mode: all
+          mode: non-main
           backend: docker
-          scope: session
-          workspaceAccess: rw
+          scope: agent
+          docker:
+            image: openclaw-sandbox:bookworm-slim
+            workdir: /workspace
+            readOnlyRoot: true
+            tmpfs:
+              - /tmp
+              - /var/tmp
+              - /run
+            user: 1000:1000
+            capDrop:
+              - ALL
+            pidsLimit: 256
+            memory: 1g
+            memorySwap: 2g
+            cpus: 1
+            network: bridge
+          browser:
+            enabled: true
+            image: openclaw-sandbox-browser:bookworm-slim
+            network: bridge
+            cdpPort: 9222
+            vncPort: 5900
+            noVncPort: 6080
+            headless: false
+            enableNoVnc: true
+            cdpSourceRange: ""
     plugins:
       entries: {}
   podDisruptionBudget:

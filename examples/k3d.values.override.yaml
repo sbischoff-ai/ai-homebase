@@ -22,3 +22,7 @@ openclaw:
 #   persistence:
 #     enabled: true
 #     size: 5Gi
+
+# Example: enable OpenClaw remote Docker sandboxing.
+# Layer examples/openclaw.remote-docker.values.yaml after the target overlay and
+# set openclaw.remoteDocker.dockerHost / SSH Secret / browser.cdpSourceRange for your environment.

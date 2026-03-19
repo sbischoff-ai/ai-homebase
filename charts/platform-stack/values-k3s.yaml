@@ -35,13 +35,6 @@ openclaw:
       controlUi:
         allowedOrigins:
           - http://openclaw.vpn.homebase.internal
-    agents:
-      defaults:
-        sandbox:
-          mode: all
-          backend: docker
-          scope: session
-          workspaceAccess: rw
 
 openhands:
   enabled: true

@@ -46,8 +46,9 @@ Relevant sandbox-related value paths:
 - `openclaw.agents.defaults.sandbox.mode`
 - `openclaw.agents.defaults.sandbox.backend`
 - `openclaw.agents.defaults.sandbox.scope`
-- `openclaw.agents.defaults.sandbox.workspaceAccess`
-- `openclaw.agents.defaults.sandbox.prune.*`
+- `openclaw.agents.defaults.sandbox.docker.*`
+- `openclaw.agents.defaults.sandbox.browser.*`
+- `openclaw.remoteDocker.*`
 - `openclaw.plugins.*`
 
 ## OpenHands Kubernetes runtime wiring

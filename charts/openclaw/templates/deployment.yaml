@@ -4,19 +4,28 @@
 {{- $allowedOrigins := .Values.openclaw.gateway.controlUi.allowedOrigins | default (list) }}
 {{- $allowedOriginsIncludesWildcard := has "*" $allowedOrigins }}
 {{- $nonLoopbackBind := not (or (eq $gatewayBind "") (eq $gatewayBind "localhost") (eq $gatewayBind "127.0.0.1") (eq $gatewayBind "::1") (eq $gatewayBind "loopback") (eq $gatewayBind "local")) }}
+{{- $remoteDockerEnabled := .Values.remoteDocker.enabled | default false }}
 {{- if and (eq $gatewayAuthMode "token") (not .Values.existingSecret) }}
 {{- fail "openclaw.existingSecret is required when openclaw.gateway.auth.mode=token" }}
 {{- end }}
 {{- if and (eq $gatewayAuthMode "token") (not .Values.secretKeys.gatewayToken) }}
 {{- fail "openclaw.secretKeys.gatewayToken is required when openclaw.gateway.auth.mode=token" }}
 {{- end }}
+{{- if and $remoteDockerEnabled (not .Values.remoteDocker.dockerHost) }}
+{{- fail "remoteDocker.dockerHost is required when remoteDocker.enabled=true" }}
+{{- end }}
+{{- if and $remoteDockerEnabled (not .Values.remoteDocker.ssh.secretName) }}
+{{- fail "remoteDocker.ssh.secretName is required when remoteDocker.enabled=true" }}
+{{- end }}
+{{- if and $remoteDockerEnabled (not .Values.remoteDocker.ssh.mountPath) }}
+{{- fail "remoteDocker.ssh.mountPath is required when remoteDocker.enabled=true" }}
+{{- end }}
 {{- $sandboxMode := .Values.openclaw.agents.defaults.sandbox.mode | default "off" }}
-{{- $sandboxBackend := .Values.openclaw.agents.defaults.sandbox.backend | default "docker" }}
 {{- if and $nonLoopbackBind $controlUiEnabled (eq (len $allowedOrigins) 0) }}
 {{- fail "openclaw.gateway.controlUi.allowedOrigins must be non-empty when gateway bind is non-loopback and control UI is enabled" }}
 {{- end }}
 {{- if and $nonLoopbackBind $controlUiEnabled $allowedOriginsIncludesWildcard }}
-{{- fail "openclaw.gateway.controlUi.allowedOrigins cannot include \"*\" when gateway bind is non-loopback; set exact public origin(s)" }}
+{{- fail "openclaw.gateway.controlUi.allowedOrigins cannot include \\\"*\\\" when gateway bind is non-loopback; set exact public origin(s)" }}
 {{- end }}
 apiVersion: apps/v1
 kind: Deployment
@@ -62,6 +71,40 @@ spec:
       {{- end }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- if $remoteDockerEnabled }}
+      initContainers:
+        - name: remote-docker-ssh-permissions
+          image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -eu
+              mkdir -p /ssh-target
+              cp -f /ssh-source/* /ssh-target/
+              chown -R 1000:1000 /ssh-target
+              chmod 0700 /ssh-target
+              find /ssh-target -type f -exec chmod 0600 {} \;
+              if [ -f /ssh-target/known_hosts ]; then
+                chmod 0644 /ssh-target/known_hosts
+              fi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: false
+            runAsUser: 0
+            runAsGroup: 0
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: remote-docker-ssh-secret
+              mountPath: /ssh-source
+              readOnly: true
+            - name: remote-docker-ssh
+              mountPath: /ssh-target
+      {{- end }}
       containers:
         - name: {{ include "openclaw.name" . }}
           image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
@@ -91,6 +134,12 @@ spec:
               value: /etc/openclaw/openclaw.json
             - name: OPENCLAW_SANDBOX
               value: {{ ternary "1" "0" (ne (toString $sandboxMode) "off") | quote }}
+            {{- if $remoteDockerEnabled }}
+            - name: DOCKER_HOST
+              value: {{ .Values.remoteDocker.dockerHost | quote }}
+            - name: HOME
+              value: {{ .Values.remoteDocker.home | quote }}
+            {{- end }}
             {{- with .Values.global.env }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -242,6 +291,11 @@ spec:
               subPath: openclaw.json
               readOnly: true
             {{- end }}
+            {{- if $remoteDockerEnabled }}
+            - name: remote-docker-ssh
+              mountPath: {{ .Values.remoteDocker.ssh.mountPath }}
+              readOnly: true
+            {{- end }}
             {{- with .Values.extraVolumeMounts }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -261,6 +315,13 @@ spec:
             items:
               - key: openclaw.json
                 path: openclaw.json
+        {{- end }}
+        {{- if $remoteDockerEnabled }}
+        - name: remote-docker-ssh-secret
+          secret:
+            secretName: {{ .Values.remoteDocker.ssh.secretName }}
+        - name: remote-docker-ssh
+          emptyDir: {}
         {{- end }}
         {{- with .Values.extraVolumes }}
         {{- toYaml . | nindent 8 }}

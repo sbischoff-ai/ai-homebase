@@ -84,7 +84,21 @@ It is **not intended to be a hostile multi-tenant shared service**.
 
 ## Sandbox configuration
 
-The chart renders `agents.defaults.sandbox.*` plus `plugins.*` into `openclaw.json`. The shipped defaults now set `openclaw.agents.defaults.sandbox.backend: docker`, but this chart does not add Docker socket mounts, sidecars, or other runtime wiring. That follow-up enablement is intentionally left to a later change.
+The chart renders `agents.defaults.sandbox.*` plus `plugins.*` into `openclaw.json`. The shipped defaults now set up Docker sandboxing with explicit `docker.*` and `browser.*` fields, including `browser.cdpSourceRange` for remote browser access control. When `remoteDocker.enabled=true`, the Deployment also exports `DOCKER_HOST`/`HOME`, prepares an SSH directory at `remoteDocker.ssh.mountPath`, and mounts the referenced Secret so Docker's `ssh://` transport can target a remote daemon while OpenClaw still uses the `docker` backend.
+
+Remote Docker mode assumes the OpenClaw container image already includes both:
+
+- Docker CLI
+- OpenSSH client
+
+This repo includes an example Dockerfile at `images/openclaw-remote-docker/Dockerfile` that extends `ghcr.io/openclaw/openclaw:2026.3.12` with those packages.
+
+The SSH Secret mounted through `remoteDocker.ssh.secretName` should include at least:
+
+- `id_ed25519` (or another private key filename referenced by your SSH config)
+- `known_hosts`
+
+The chart copies those files into an `emptyDir`, fixes ownership to UID/GID `1000`, and locks file permissions down before the main container starts so OpenSSH accepts the private key.
 
 ## Example: secrets + values (`existingSecret` / `secretRefs` style)
 
@@ -151,4 +165,30 @@ openclaw:
     controlUi:
       allowedOrigins:
         - https://openclaw.example.com
+```
+
+Example remote-Docker overlay snippet:
+
+```yaml
+image:
+  repository: <registry>/openclaw-remote-docker
+  tag: <image-tag>
+
+remoteDocker:
+  enabled: true
+  dockerHost: ssh://docker-remote@<remote-docker-host>:2222
+  home: /home/node
+  ssh:
+    secretName: openclaw-remote-docker-ssh
+    mountPath: /home/node/.ssh
+
+openclaw:
+  agents:
+    defaults:
+      sandbox:
+        docker:
+          image: openclaw-sandbox:bookworm-slim
+        browser:
+          image: openclaw-sandbox-browser:bookworm-slim
+          cdpSourceRange: 10.42.0.0/16
 ```
