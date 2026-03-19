@@ -26,6 +26,8 @@ This flow:
 - deploys `platform-stack` with `values.yaml + values-k3d.yaml`, and
 - runs local smoke checks.
 
+The bootstrap exports `KUBECONFIG` to the dedicated kubeconfig path for the lifetime of the script so nested `kubectl` and `helm` calls all target the same local cluster.
+
 ## 2) Manual flow
 
 ### 2.1 Bootstrap the local cluster

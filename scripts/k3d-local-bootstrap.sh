@@ -42,13 +42,14 @@ while [[ $# -gt 0 ]]; do
 done
 
 bootstrap_init_logging
+export KUBECONFIG="$KUBECONFIG_PATH"
 WG_PASSWORD_OUTPUT="$(mktemp /tmp/ai-homebase-wg-password.XXXXXX)"
 
 on_error() {
   fail "Local bootstrap failed."
   echo
   echo "Summary:"
-  echo "  Kubeconfig: ${KUBECONFIG_PATH}"
+  echo "  Kubeconfig: ${KUBECONFIG}"
   echo "  Bootstrap log: ${BOOTSTRAP_LOG_FILE}"
 }
 trap on_error ERR
@@ -96,7 +97,7 @@ rm -f "$WG_PASSWORD_OUTPUT"
 echo
 echo "Local bootstrap complete."
 echo "Summary:"
-echo "  Kubeconfig: ${KUBECONFIG_PATH}"
+echo "  Kubeconfig: ${KUBECONFIG}"
 echo "  wg-easy URL (via ingress-nginx): http://${WG_HOST}"
 echo "  OpenHands URL: http://openhands.localtest.me"
 echo "  Infisical URL: http://infisical.localtest.me"
