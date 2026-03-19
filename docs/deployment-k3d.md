@@ -29,7 +29,7 @@ This flow:
 - runs local smoke checks.
 
 The bootstrap exports `KUBECONFIG` to the dedicated kubeconfig path for the lifetime of the script so nested `kubectl` and `helm` calls all target the same local cluster.
-The companion Incus VM is intentionally minimal: `images:debian/12/cloud`, **2 vCPU**, **6 GiB RAM**, a 12 GiB root disk, Docker Engine, and SSH. Instead of exposing the Docker daemon over unauthenticated TCP, the bootstrap configures SSH access, creates the `openclaw-remote-docker-ssh` Secret, and points OpenClaw at `ssh://docker-remote@host.k3d.internal:2222` through Docker's SSH transport by default.
+The companion Incus VM is intentionally minimal: `images:debian/12/cloud`, **2 vCPU**, **6 GiB RAM**, a 12 GiB root disk, Docker Engine, and SSH. The bootstrap now applies the root disk size as an instance-level device override so it works even when the `default` Incus profile provides the root disk device. Instead of exposing the Docker daemon over unauthenticated TCP, the bootstrap configures SSH access, creates the `openclaw-remote-docker-ssh` Secret, and points OpenClaw at `ssh://docker-remote@host.k3d.internal:2222` through Docker's SSH transport by default.
 
 ## 2) Manual flow
 
