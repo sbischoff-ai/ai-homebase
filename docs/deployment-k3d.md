@@ -8,7 +8,7 @@ Install and verify:
 
 - [k3d](https://k3d.io/)
 - [Docker](https://docs.docker.com/get-docker/)
-- [Incus](https://linuxcontainers.org/incus/) installed on the host, with an initialized local daemon/bridge (the bootstrap assumes the default `incusbr0` network)
+- [Incus](https://linuxcontainers.org/incus/) installed on the host, with an initialized local daemon/bridge (the bootstrap assumes the default `incusbr0` network and now fails fast with guidance if that bridge is missing)
 - [kubectl](https://kubernetes.io/docs/tasks/tools/)
 - [Helm 3](https://helm.sh/docs/intro/install/)
 
@@ -41,6 +41,7 @@ The companion Incus VM is intentionally minimal: `images:debian/12/cloud`, **2 v
 ```
 
 `k3d-up.sh` disables the bundled k3s Traefik deployment so `ingress-nginx` remains the only intended HTTP/HTTPS ingress controller in the local cluster. k3d itself still runs on Docker to host the local cluster.
+If your host uses a different Incus bridge, rerun the VM helper with `./scripts/incus-vm-up.sh --vm-name openclaw-sandbox --network <existing-bridge>`.
 
 ### 2.2 Generate bootstrap secrets
 

@@ -89,6 +89,7 @@ scripts/ci/check_golden.sh
 ```bash
 ./scripts/k3d-local-bootstrap.sh --cluster-name ai-homebase-dev
 ./scripts/incus-vm-up.sh --vm-name openclaw-sandbox
+./scripts/incus-vm-up.sh --vm-name openclaw-sandbox --network <existing-bridge>
 ./scripts/incus-vm-down.sh --vm-name openclaw-sandbox
 ./scripts/k3d-local-teardown.sh --cluster-name ai-homebase-dev --vm-name openclaw-sandbox
 ./scripts/openclaw-remote-docker-load-images.sh \

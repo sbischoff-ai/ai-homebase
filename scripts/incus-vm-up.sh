@@ -75,6 +75,10 @@ instance_exists() {
   incus info "$VM_NAME" >/dev/null 2>&1
 }
 
+network_exists() {
+  incus network show "$INCUS_NETWORK" >/dev/null 2>&1
+}
+
 instance_running() {
   [[ "$(incus list "$VM_NAME" -f csv -c s 2>/dev/null || true)" == "RUNNING" ]]
 }
@@ -166,6 +170,10 @@ trap 'rm -f "${CLOUD_INIT_FILE:-}"' EXIT
 if instance_exists; then
   step "Reusing existing Incus VM ${VM_NAME}"
 else
+  if ! network_exists; then
+    fail "Requested Incus network '${INCUS_NETWORK}' was not found. This repository defaults to the 'incusbr0' bridge. Initialize Incus so it creates a bridge, or rerun with an existing bridge name via scripts/incus-vm-up.sh --network <name>."
+    exit 1
+  fi
   step "Creating Incus VM ${VM_NAME} from ${INCUS_IMAGE}"
   run_checked incus init "$INCUS_IMAGE" "$VM_NAME" --vm --network "$INCUS_NETWORK"
   ok "Created Incus VM ${VM_NAME}"
