@@ -79,6 +79,20 @@ instance_running() {
   [[ "$(incus list "$VM_NAME" -f csv -c s 2>/dev/null || true)" == "RUNNING" ]]
 }
 
+instance_has_local_root_device() {
+  incus config show "$VM_NAME" 2>/dev/null | awk '
+    BEGIN { in_devices = 0 }
+    /^devices:$/ { in_devices = 1; next }
+    /^[^ ]/ {
+      if (in_devices) {
+        exit found ? 0 : 1
+      }
+    }
+    in_devices && /^  root:$/ { found = 1 }
+    END { exit found ? 0 : 1 }
+  '
+}
+
 get_vm_ipv4() {
   incus list "$VM_NAME" -f json | python3 -c '
 import json
@@ -159,6 +173,14 @@ ensure_proxy_device() {
   fi
 }
 
+ensure_root_disk_size() {
+  if instance_has_local_root_device; then
+    run_checked incus config device set "$VM_NAME" root size "$DISK_SIZE"
+  else
+    run_checked incus config device override "$VM_NAME" root "size=${DISK_SIZE}"
+  fi
+}
+
 ensure_ssh_key
 CLOUD_INIT_FILE="$(render_cloud_init)"
 trap 'rm -f "${CLOUD_INIT_FILE:-}"' EXIT
@@ -167,7 +189,7 @@ if instance_exists; then
   step "Reusing existing Incus VM ${VM_NAME}"
 else
   step "Creating Incus VM ${VM_NAME} from ${INCUS_IMAGE}"
-  run_checked incus init "$INCUS_IMAGE" "$VM_NAME" --vm --network "$INCUS_NETWORK"
+  run_checked incus init "$INCUS_IMAGE" "$VM_NAME" --vm --network "$INCUS_NETWORK" --device "root,size=${DISK_SIZE}"
   ok "Created Incus VM ${VM_NAME}"
 fi
 
@@ -178,7 +200,7 @@ if [[ "${BOOTSTRAP_VERBOSE:-0}" == "1" ]]; then
 else
   incus config set "$VM_NAME" user.user-data="$(cat "$CLOUD_INIT_FILE")" >>"$BOOTSTRAP_LOG_FILE" 2>&1
 fi
-run_checked incus config device set "$VM_NAME" root size "$DISK_SIZE"
+ensure_root_disk_size
 
 ensure_proxy_device
 
