@@ -15,6 +15,7 @@ Before choosing a target, confirm:
 
 - Kubernetes + Helm tooling is installed and working.
 - Local k3d path has `k3d` and Docker available.
+- Local Incus-assisted sandbox path has `incus` available and initialized if you want the bootstrap-managed OpenClaw sandbox VM.
 - k3s path has a reachable cluster and a working default storage class.
 - You have planned your values overlays and secret references.
 

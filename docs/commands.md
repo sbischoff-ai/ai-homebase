@@ -83,3 +83,12 @@ scripts/ci/check_golden.sh
 ./scripts/install-k3d.sh
 ./scripts/install-k3s.sh
 ```
+
+## Local bootstrap and Incus sandbox helpers
+
+```bash
+./scripts/k3d-local-bootstrap.sh --cluster-name ai-homebase-dev
+./scripts/incus-vm-up.sh --vm-name openclaw-sandbox
+./scripts/incus-vm-down.sh --vm-name openclaw-sandbox
+./scripts/k3d-local-teardown.sh --cluster-name ai-homebase-dev --vm-name openclaw-sandbox
+```
