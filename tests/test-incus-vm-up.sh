@@ -12,6 +12,10 @@ run_case() {
   local guest_ip_available="$5"
   local ssh_success_after="${6:-1}"
   local ssh_ready_timeout_seconds="${7:-}"
+  local dns_nameservers="10.10.10.53,1.1.1.1"
+  if [[ $# -ge 8 ]]; then
+    dns_nameservers="$8"
+  fi
   local sandbox_dir
   sandbox_dir="$(mktemp -d)"
 
@@ -36,6 +40,7 @@ local_root="${FAKE_INCUS_LOCAL_ROOT:-0}"
 local_eth0="${FAKE_INCUS_LOCAL_ETH0:-0}"
 proxy_exists="${FAKE_INCUS_PROXY_EXISTS:-0}"
 guest_ip_available="${FAKE_INCUS_GUEST_IP_AVAILABLE:-1}"
+dns_nameservers="${FAKE_INCUS_DNS_NAMESERVERS:-}"
 printf '%s\n' "$*" >>"${log_file}"
 command="$1"
 shift
@@ -70,6 +75,10 @@ JSON
   network)
     if [[ "$1" == "get" && "$3" == "ipv4.address" ]]; then
       printf '10.10.10.1/24\n'
+      exit 0
+    fi
+    if [[ "$1" == "get" && "$3" == "dns.nameservers" ]]; then
+      printf '%s\n' "${dns_nameservers}"
       exit 0
     fi
     ;;
@@ -219,6 +228,7 @@ SH
   FAKE_INCUS_LOCAL_ETH0="${local_eth0}" \
   FAKE_INCUS_PROXY_EXISTS="${proxy_exists}" \
   FAKE_INCUS_GUEST_IP_AVAILABLE="${guest_ip_available}" \
+  FAKE_INCUS_DNS_NAMESERVERS="${dns_nameservers}" \
   FAKE_SSH_LOG="${ssh_log_file}" \
   FAKE_SSH_STATE_DIR="${state_dir}" \
   FAKE_SSH_SUCCESS_AFTER="${ssh_success_after}" \
@@ -285,6 +295,19 @@ SH
 
   grep -F 'HOST_LISTEN_ADDRESS=10.10.10.1' "${sandbox_dir}/statefiles/test-vm.env" >/dev/null
   grep -F 'VM_STATIC_IPV4=10.10.10.45' "${sandbox_dir}/statefiles/test-vm.env" >/dev/null
+  grep -F 'config set test-vm user.network-config=version: 2' "${log_file}" >/dev/null
+  grep -F '      - 10.10.10.45/24' "${log_file}" >/dev/null
+  grep -F '        via: 10.10.10.1' "${log_file}" >/dev/null
+
+  case "${dns_nameservers}" in
+    "")
+      grep -F '        - 10.10.10.1' "${log_file}" >/dev/null
+      ;;
+    *)
+      grep -F '        - 10.10.10.53' "${log_file}" >/dev/null
+      grep -F '        - 1.1.1.1' "${log_file}" >/dev/null
+      ;;
+  esac
 
   case "${guest_ip_available}" in
     0)
@@ -371,6 +394,10 @@ TXT
   network)
     if [[ "$1" == "get" && "$3" == "ipv4.address" ]]; then
       printf '10.10.10.1/24\n'
+      exit 0
+    fi
+    if [[ "$1" == "get" && "$3" == "dns.nameservers" ]]; then
+      printf '\n'
       exit 0
     fi
     ;;
@@ -554,6 +581,7 @@ SH
 
 run_case inherited-root 0 0 0 1 3
 run_case local-root 1 1 1 0 1 42
+run_case dns-fallback 0 0 0 1 1 "" ""
 run_timeout_failure_case guest-agent-unreachable 0 0
 run_timeout_failure_case cloud-init-incomplete 1 0
 run_timeout_failure_case ssh-proxy-unreachable 1 1
