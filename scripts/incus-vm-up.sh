@@ -17,6 +17,7 @@ HOST_ALIAS="${HOST_ALIAS:-host.k3d.internal}"
 VM_STATIC_IPV4="${VM_STATIC_IPV4:-}"
 HOST_LISTEN_ADDRESS="${HOST_LISTEN_ADDRESS:-}"
 INCUS_NETWORK_IPV4_CIDR="${INCUS_NETWORK_IPV4_CIDR:-}"
+INCUS_NETWORK_BRIDGE_IPV4="${INCUS_NETWORK_BRIDGE_IPV4:-}"
 INCUS_NETWORK_DNS_NAMESERVERS="${INCUS_NETWORK_DNS_NAMESERVERS:-}"
 CONNECTION_INFO_PATH="${CONNECTION_INFO_PATH:-}"
 SSH_READY_TIMEOUT_SECONDS="${SSH_READY_TIMEOUT_SECONDS:-600}"
@@ -147,7 +148,7 @@ get_network_dns_nameservers() {
   incus network get "$INCUS_NETWORK" dns.nameservers 2>/dev/null || true
 }
 
-derive_host_address_from_cidr() {
+derive_ipv4_from_cidr() {
   local cidr="$1"
   python3 - "$cidr" <<'PY'
 import ipaddress
@@ -192,7 +193,11 @@ autodetect_network_addresses() {
   fi
 
   if [[ -z "$HOST_LISTEN_ADDRESS" ]]; then
-    HOST_LISTEN_ADDRESS="$(derive_host_address_from_cidr "$INCUS_NETWORK_IPV4_CIDR")"
+    HOST_LISTEN_ADDRESS="$(derive_ipv4_from_cidr "$INCUS_NETWORK_IPV4_CIDR")"
+  fi
+
+  if [[ -z "$INCUS_NETWORK_BRIDGE_IPV4" ]]; then
+    INCUS_NETWORK_BRIDGE_IPV4="$(derive_ipv4_from_cidr "$INCUS_NETWORK_IPV4_CIDR")"
   fi
 
   if [[ -z "$VM_STATIC_IPV4" ]]; then
@@ -327,6 +332,7 @@ collect_timeout_diagnostics() {
     echo "SSH proxy endpoint: ${HOST_LISTEN_ADDRESS}:${SSH_HOST_PORT}"
     echo "Observed VM IPv4: ${VM_IPV4:-unavailable}"
     echo "Configured VM static IPv4: ${VM_STATIC_IPV4:-unavailable}"
+    echo "Bridge gateway IPv4: ${INCUS_NETWORK_BRIDGE_IPV4:-unavailable}"
   } >>"$BOOTSTRAP_LOG_FILE"
 
   append_timeout_diagnostic_command "HOST: incus info" incus info "$VM_NAME"
@@ -341,6 +347,9 @@ collect_timeout_diagnostics() {
     else
       append_timeout_guest_exec_diagnostic "GUEST: cloud-init status" cloud-init status
     fi
+    append_timeout_guest_exec_diagnostic "GUEST: ip -4 addr" ip -4 addr
+    append_timeout_guest_exec_diagnostic "GUEST: ip route" ip route
+    append_timeout_guest_exec_diagnostic "GUEST: cat /etc/resolv.conf" cat /etc/resolv.conf
     append_timeout_guest_exec_diagnostic "GUEST: systemctl status ssh --no-pager" systemctl status ssh --no-pager
     append_timeout_guest_exec_diagnostic "GUEST: systemctl status docker --no-pager" systemctl status docker --no-pager
   else
@@ -408,7 +417,7 @@ render_network_config() {
   local rendered_path
   rendered_path="$(mktemp /tmp/${VM_NAME}-network-config.XXXXXX.yaml)"
 
-  python3 - "$rendered_path" "$VM_STATIC_IPV4" "$INCUS_NETWORK_IPV4_CIDR" "$HOST_LISTEN_ADDRESS" "$INCUS_NETWORK_DNS_NAMESERVERS" <<'PY'
+  python3 - "$rendered_path" "$VM_STATIC_IPV4" "$INCUS_NETWORK_IPV4_CIDR" "$INCUS_NETWORK_BRIDGE_IPV4" "$INCUS_NETWORK_DNS_NAMESERVERS" <<'PY'
 import ipaddress
 import pathlib
 import re
