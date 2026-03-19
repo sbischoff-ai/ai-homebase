@@ -488,8 +488,7 @@ spec:
         app.kubernetes.io/name: openshell
     spec:
       containers:
-      - command: openshell
-        image: ghcr.io/openclaw/openshell:latest
+      - image: ghcr.io/openclaw/openshell:latest
         imagePullPolicy: IfNotPresent
         name: openshell
         ports:

@@ -52,7 +52,7 @@ Canonical default posture in this document refers to umbrella defaults from `cha
 - The chart renders `openclaw.json` from structured `openclaw.*` values.
 - OpenClaw now defaults to OpenShell sandboxing by rendering `openclaw.agents.defaults.sandbox.mode=all`, `backend=openshell`, `scope=session`, and `workspaceAccess=rw`.
 - The chart enables `openclaw.plugins.entries.openshell` by default and points `plugins.entries.openshell.config.gatewayEndpoint` at the cluster-local OpenShell service URL.
-- The OpenClaw chart also exposes `plugins.entries.openshell.config.command`, so operators can keep the default `openshell` binary name or point at a custom CLI path in images that bundle the tool elsewhere.
+- The umbrella chart surfaces that CLI path as `openshell.cliCommand` and feeds it into `openclaw.openclaw.plugins.entries.openshell.config.command`, so operators can keep the default `openshell` binary name or point at a custom CLI path in images that bundle the tool elsewhere without colliding with the OpenShell subchart container `command` array.
 
 ### OpenHands
 

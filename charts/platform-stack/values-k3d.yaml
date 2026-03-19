@@ -14,6 +14,7 @@ global:
 
 openshell:
   enabled: true
+  cliCommand: &openshellCliCommand openshell
 
 openclaw:
   enabled: true
@@ -56,7 +57,7 @@ openclaw:
           enabled: true
           config:
             mode: remote
-            command: openshell
+            command: *openshellCliCommand
             gatewayEndpoint: http://openshell:80
 
 openhands:

@@ -38,6 +38,18 @@
           ]
         }
       }
+    },
+    "command": {
+      "type": "array",
+      "default": [],
+      "items": { "type": "string" },
+      "description": "Optional container entrypoint override for the OpenShell gateway pod."
+    },
+    "args": {
+      "type": "array",
+      "default": [],
+      "items": { "type": "string" },
+      "description": "Optional container arguments for the OpenShell gateway pod."
     }
   }
 }

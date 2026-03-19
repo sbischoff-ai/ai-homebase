@@ -30,7 +30,7 @@ openshell:
     targetPort: 80
     annotations: {}
   gatewayEndpoint: &openshellGatewayEndpoint http://openshell:80
-  command: &openshellCommand openshell
+  cliCommand: &openshellCliCommand openshell
 
 openclaw:
   enabled: true
@@ -78,7 +78,7 @@ openclaw:
           enabled: true
           config:
             mode: remote
-            command: *openshellCommand
+            command: *openshellCliCommand
             from: openclaw
             gateway: ""
             gatewayEndpoint: *openshellGatewayEndpoint
