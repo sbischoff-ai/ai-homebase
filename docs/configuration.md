@@ -51,7 +51,7 @@ Cloud-provider-specific deployment profiles and conditionals have been removed.
 The supported targets now split runtime posture by service:
 
 - `openhands.runtime.mode` is fixed to `kubernetes`, and `openhands.kubernetes.*` renders the upstream `[kubernetes]` config block used for in-cluster runtime sandboxes.
-- `openshell.*` configures the cluster-local OpenShell gateway service plus the endpoint/command values reused by OpenClaw overlays.
+- `openshell.*` configures the cluster-local OpenShell gateway service plus umbrella-level `gatewayEndpoint`/`cliCommand` defaults reused by OpenClaw overlays without colliding with the OpenShell subchart container `command` array.
 - `openclaw.openclaw.agents.defaults.sandbox.*` and `openclaw.openclaw.plugins.*` render the OpenClaw OpenShell sandbox/plugin configuration directly into `openclaw.json`.
 
 OpenHands Kubernetes runtime defaults assume OpenHands itself is running inside the cluster and create per-session runtime resources in the configured namespace. The shipped OpenClaw defaults and overlays now target the OpenShell backend with session-scoped sandboxes rather than any host-Docker execution path.

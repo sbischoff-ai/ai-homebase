@@ -46,7 +46,7 @@
     },
     "openshell": {
       "type": "object",
-      "required": ["enabled", "service", "gatewayEndpoint", "command"],
+      "required": ["enabled", "service", "gatewayEndpoint", "cliCommand"],
       "additionalProperties": true,
       "properties": {
         "enabled": { "type": "boolean", "default": true },
@@ -56,11 +56,11 @@
           "default": "http://openshell:80",
           "description": "Cluster-local URL consumed by OpenClaw and other workloads when talking to the OpenShell gateway service."
         },
-        "command": {
+        "cliCommand": {
           "type": "string",
           "minLength": 1,
           "default": "openshell",
-          "description": "CLI name or absolute path used by OpenClaw for OpenShell operations."
+          "description": "CLI name or absolute path reused by umbrella defaults for OpenClaw OpenShell plugin operations."
         },
         "service": {
           "allOf": [
