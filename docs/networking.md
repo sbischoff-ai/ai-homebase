@@ -11,8 +11,7 @@ This platform is designed with explicit private/public decisions per service.
 
 ## Runtime trust boundary
 
-OpenHands uses in-cluster Kubernetes runtime sandboxes and OpenClaw uses the cluster-local OpenShell gateway in the supported deployment path.
-OpenClaw no longer depends on host Docker socket access in the supported architecture.
+OpenHands uses in-cluster Kubernetes runtime sandboxes. OpenClaw currently only carries a configured `docker` sandbox backend value in the supported deployment path, without the runtime integration needed to execute Docker-backed sandboxes.
 
 ## wg-easy networking guidance
 

@@ -5,16 +5,11 @@ data:
     \    \"token\": \"${OPENCLAW_GATEWAY_TOKEN}\"\n    },\n    \"controlUi\": {\n\
     \      \"enabled\": true,\n      \"allowedOrigins\": [\"http://openclaw.vpn.homebase.internal\"\
     ]\n    }\n  },\n  \"agents\": {\n    \"defaults\": {\n      \"workspace\": \"\
-    ~/.openclaw/workspace\",\n      \"sandbox\": {\"backend\":\"openshell\",\"mode\"\
+    ~/.openclaw/workspace\",\n      \"sandbox\": {\"backend\":\"docker\",\"mode\"\
     :\"all\",\"prune\":{\"idleHours\":24,\"maxAgeDays\":7},\"scope\":\"session\",\"\
     workspaceAccess\":\"rw\",\"workspaceRoot\":\"~/.openclaw/sandboxes\"}\n    },\n\
     \    \"list\": [{\"id\":\"default\",\"name\":\"OpenClaw Assistant\",\"workspace\"\
-    :\"~/.openclaw/workspace\"}]\n  },\n  \"plugins\": {\"entries\":{\"openshell\"\
-    :{\"config\":{\"autoProviders\":true,\"command\":\"openshell\",\"from\":\"openclaw\"\
-    ,\"gateway\":\"\",\"gatewayEndpoint\":\"http://openshell:80\",\"gpu\":false,\"\
-    mode\":\"remote\",\"policy\":\"\",\"providers\":[],\"remoteAgentWorkspaceDir\"\
-    :\"/agent\",\"remoteWorkspaceDir\":\"/sandbox\",\"timeoutSeconds\":120},\"enabled\"\
-    :true}}}\n}\n"
+    :\"~/.openclaw/workspace\"}]\n  },\n  \"plugins\": {\"entries\":{}}\n}\n"
 kind: ConfigMap
 metadata:
   labels:
@@ -478,36 +473,6 @@ metadata:
   labels:
     app.kubernetes.io/instance: platform-stack
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: openshell
-    environment: k3s
-  name: platform-stack-openshell
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app.kubernetes.io/instance: platform-stack
-      app.kubernetes.io/name: openshell
-  template:
-    metadata:
-      labels:
-        app.kubernetes.io/instance: platform-stack
-        app.kubernetes.io/name: openshell
-    spec:
-      containers:
-      - image: ghcr.io/openclaw/openshell:latest
-        imagePullPolicy: IfNotPresent
-        name: openshell
-        ports:
-        - containerPort: 80
-          name: http
-          protocol: TCP
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  labels:
-    app.kubernetes.io/instance: platform-stack
-    app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: wg-easy
     environment: k3s
   name: platform-stack-wg-easy
@@ -813,26 +778,6 @@ spec:
     requests:
       storage: 5Gi
   storageClassName: local-path
----
-apiVersion: v1
-kind: Service
-metadata:
-  labels:
-    app.kubernetes.io/instance: platform-stack
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: openshell
-    environment: k3s
-  name: openshell
-spec:
-  ports:
-  - name: http
-    port: 80
-    protocol: TCP
-    targetPort: 80
-  selector:
-    app.kubernetes.io/instance: platform-stack
-    app.kubernetes.io/name: openshell
-  type: ClusterIP
 ---
 apiVersion: v1
 kind: Service

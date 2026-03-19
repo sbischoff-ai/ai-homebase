@@ -53,10 +53,10 @@ Cloud-provider-specific deployment profiles and conditionals have been removed.
 The supported targets now split runtime posture by service:
 
 - `openhands.runtime.mode` is fixed to `kubernetes`, and `openhands.kubernetes.*` renders the upstream `[kubernetes]` config block used for in-cluster runtime sandboxes.
-- `openshell.*` configures the cluster-local OpenShell gateway service plus umbrella-level `gatewayEndpoint`/`cliCommand` defaults reused by OpenClaw overlays without colliding with the OpenShell subchart container `command` array.
-- `openclaw.openclaw.agents.defaults.sandbox.*` and `openclaw.openclaw.plugins.*` render the OpenClaw OpenShell sandbox/plugin configuration directly into `openclaw.json`.
+- `openclaw.openclaw.agents.defaults.sandbox.*` renders the OpenClaw sandbox configuration directly into `openclaw.json`, and the shipped defaults now set `backend: docker`.
+- No Docker socket mounts, sidecars, or host-runtime passthrough are added for OpenClaw in this repository yet; only the configured backend value changes in this task.
 
-OpenHands Kubernetes runtime defaults assume OpenHands itself is running inside the cluster and create per-session runtime resources in the configured namespace. The shipped OpenClaw defaults and overlays now target the OpenShell backend with session-scoped sandboxes rather than any host-Docker execution path.
+OpenHands Kubernetes runtime defaults assume OpenHands itself is running inside the cluster and create per-session runtime resources in the configured namespace. The shipped OpenClaw defaults and overlays now point at the `docker` backend value only, without adding the runtime enablement needed to execute Docker-backed sandboxes.
 
 ## Values schema validation
 
@@ -66,7 +66,6 @@ Current schema coverage includes:
 
 - `charts/platform-stack/values.schema.json`
 - `charts/openclaw/values.schema.json`
-- `charts/openshell/values.schema.json`
 - `charts/openhands/values.schema.json`
 - `charts/nextcloud/values.schema.json`
 - `charts/paperless-ngx/values.schema.json`
@@ -85,7 +84,7 @@ Use service-specific blocks when behavior must diverge, especially for:
 - `openclaw.*` and `openhands.*`
 - Secret references and env contracts
 - Persistence and ingress controls
-- OpenHands Kubernetes runtime settings and OpenClaw sandbox/plugin settings
+- OpenHands Kubernetes runtime settings and OpenClaw sandbox settings
 
 ## Toggle strategy for service composition
 

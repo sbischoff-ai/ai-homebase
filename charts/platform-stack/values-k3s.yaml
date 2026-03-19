@@ -15,10 +15,6 @@ global:
   commonLabels:
     environment: k3s
 
-openshell:
-  enabled: true
-  cliCommand: &openshellCliCommand openshell
-
 openclaw:
   enabled: true
   ingress:
@@ -43,17 +39,9 @@ openclaw:
       defaults:
         sandbox:
           mode: all
-          backend: openshell
+          backend: docker
           scope: session
           workspaceAccess: rw
-    plugins:
-      entries:
-        openshell:
-          enabled: true
-          config:
-            mode: remote
-            command: *openshellCliCommand
-            gatewayEndpoint: http://openshell:80
 
 openhands:
   enabled: true

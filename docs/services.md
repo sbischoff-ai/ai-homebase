@@ -11,7 +11,6 @@ Canonical default posture in this document refers to umbrella defaults from `cha
 | Service | Role | Default expectation |
 | --- | --- | --- |
 | `openclaw` | General AI assistant UI/API | Enabled with private service access by default |
-| `openshell` | Cluster-local sandbox gateway for OpenClaw and other workloads | Enabled by default as a reusable internal service |
 | `openhands` | Agentic coding UI/API | Enabled by default; launches per-session Kubernetes runtime sandboxes inside the cluster |
 
 ### Default-on platform services
@@ -34,7 +33,6 @@ Canonical default posture in this document refers to umbrella defaults from `cha
 | Service | Operator-facing toggle | Default in `charts/platform-stack/values.yaml` |
 | --- | --- | --- |
 | `openclaw` | `openclaw.enabled` | `true` |
-| `openshell` | `openshell.enabled` | `true` |
 | `openhands` | `openhands.enabled` | `true` |
 | `nextcloud` | `nextcloud.enabled` | `true` |
 | `gitea` | `gitea.enabled` | `false` |
@@ -103,10 +101,3 @@ Supported patterns include:
 - `secretEnv[]`
 
 Use service-specific structured secret references where the chart provides them.
-
-### OpenShell
-
-- Reusable in-cluster execution gateway exposed via a stable `ClusterIP` Service named `openshell`.
-- Reachable from any pod at `http://openshell.<namespace>.svc.cluster.local` and, within the same namespace, `http://openshell:80`.
-- Not coupled to OpenClaw-specific templates; other workloads can reuse the same service endpoint and CLI-compatible gateway.
-- The chart intentionally avoids Docker socket mounts and other host-Docker assumptions.

@@ -40,7 +40,7 @@ The companion Incus VM is intentionally minimal: `images:debian/12/cloud`, about
 ./scripts/incus-vm-up.sh --vm-name openclaw-sandbox
 ```
 
-`k3d-up.sh` disables the bundled k3s Traefik deployment so `ingress-nginx` remains the only intended HTTP/HTTPS ingress controller in the local cluster. k3d itself still runs on Docker to host the local cluster, but the bootstrap no longer passes the host Docker socket through to k3d nodes for OpenClaw sandboxing.
+`k3d-up.sh` disables the bundled k3s Traefik deployment so `ingress-nginx` remains the only intended HTTP/HTTPS ingress controller in the local cluster. k3d itself still runs on Docker to host the local cluster.
 
 ### 2.2 Generate bootstrap secrets
 
