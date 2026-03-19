@@ -16,6 +16,8 @@ SSH_KEY_PATH="${SSH_KEY_PATH:-${STATE_DIR}/${VM_NAME}-id_ed25519}"
 HOST_ALIAS="${HOST_ALIAS:-host.k3d.internal}"
 VM_STATIC_IPV4="${VM_STATIC_IPV4:-}"
 HOST_LISTEN_ADDRESS="${HOST_LISTEN_ADDRESS:-}"
+INCUS_NETWORK_IPV4_CIDR="${INCUS_NETWORK_IPV4_CIDR:-}"
+INCUS_NETWORK_DNS_NAMESERVERS="${INCUS_NETWORK_DNS_NAMESERVERS:-}"
 CONNECTION_INFO_PATH="${CONNECTION_INFO_PATH:-}"
 SSH_READY_TIMEOUT_SECONDS="${SSH_READY_TIMEOUT_SECONDS:-600}"
 READINESS_FAILURE_REASON=""
@@ -141,6 +143,10 @@ get_network_ipv4_cidr() {
   incus network get "$INCUS_NETWORK" ipv4.address 2>/dev/null
 }
 
+get_network_dns_nameservers() {
+  incus network get "$INCUS_NETWORK" dns.nameservers 2>/dev/null || true
+}
+
 derive_host_address_from_cidr() {
   local cidr="$1"
   python3 - "$cidr" <<'PY'
@@ -177,20 +183,24 @@ PY
 }
 
 autodetect_network_addresses() {
-  local network_cidr
-
-  network_cidr="$(get_network_ipv4_cidr)"
-  if [[ -z "$network_cidr" || "$network_cidr" == "none" ]]; then
+  if [[ -z "$INCUS_NETWORK_IPV4_CIDR" ]]; then
+    INCUS_NETWORK_IPV4_CIDR="$(get_network_ipv4_cidr)"
+  fi
+  if [[ -z "$INCUS_NETWORK_IPV4_CIDR" || "$INCUS_NETWORK_IPV4_CIDR" == "none" ]]; then
     fail "Unable to determine IPv4 configuration for Incus network ${INCUS_NETWORK}"
     exit 1
   fi
 
   if [[ -z "$HOST_LISTEN_ADDRESS" ]]; then
-    HOST_LISTEN_ADDRESS="$(derive_host_address_from_cidr "$network_cidr")"
+    HOST_LISTEN_ADDRESS="$(derive_host_address_from_cidr "$INCUS_NETWORK_IPV4_CIDR")"
   fi
 
   if [[ -z "$VM_STATIC_IPV4" ]]; then
-    VM_STATIC_IPV4="$(derive_vm_static_ipv4_from_cidr "$network_cidr" "$VM_NAME")"
+    VM_STATIC_IPV4="$(derive_vm_static_ipv4_from_cidr "$INCUS_NETWORK_IPV4_CIDR" "$VM_NAME")"
+  fi
+
+  if [[ -z "$INCUS_NETWORK_DNS_NAMESERVERS" ]]; then
+    INCUS_NETWORK_DNS_NAMESERVERS="$(get_network_dns_nameservers)"
   fi
 }
 
@@ -394,6 +404,52 @@ PY
   echo "$rendered_path"
 }
 
+render_network_config() {
+  local rendered_path
+  rendered_path="$(mktemp /tmp/${VM_NAME}-network-config.XXXXXX.yaml)"
+
+  python3 - "$rendered_path" "$VM_STATIC_IPV4" "$INCUS_NETWORK_IPV4_CIDR" "$HOST_LISTEN_ADDRESS" "$INCUS_NETWORK_DNS_NAMESERVERS" <<'PY'
+import ipaddress
+import pathlib
+import re
+import sys
+
+rendered_path = pathlib.Path(sys.argv[1])
+vm_static_ipv4 = sys.argv[2]
+network_cidr = sys.argv[3]
+default_gateway = sys.argv[4]
+raw_nameservers = sys.argv[5]
+
+interface = ipaddress.ip_interface(network_cidr)
+prefixlen = interface.network.prefixlen
+nameservers = [
+    entry.strip()
+    for entry in re.split(r"[\s,]+", raw_nameservers)
+    if entry.strip() and entry.strip().lower() != "none"
+]
+if not nameservers:
+    nameservers = [default_gateway]
+
+lines = [
+    "version: 2",
+    "ethernets:",
+    "  eth0:",
+    "    dhcp4: false",
+    "    addresses:",
+    f"      - {vm_static_ipv4}/{prefixlen}",
+    "    routes:",
+    "      - to: default",
+    f"        via: {default_gateway}",
+    "    nameservers:",
+    "      addresses:",
+]
+lines.extend(f"        - {address}" for address in nameservers)
+rendered_path.write_text("\n".join(lines) + "\n")
+PY
+
+  echo "$rendered_path"
+}
+
 ensure_proxy_device() {
   if incus config device show "$VM_NAME" | grep -q '^ssh-proxy:'; then
     run_checked incus config device set "$VM_NAME" ssh-proxy listen "tcp:${HOST_LISTEN_ADDRESS}:${SSH_HOST_PORT}"
@@ -438,8 +494,10 @@ EOF
 }
 
 ensure_ssh_key
+autodetect_network_addresses
 CLOUD_INIT_FILE="$(render_cloud_init)"
-trap 'rm -f "${CLOUD_INIT_FILE:-}"' EXIT
+NETWORK_CONFIG_FILE="$(render_network_config)"
+trap 'rm -f "${CLOUD_INIT_FILE:-}" "${NETWORK_CONFIG_FILE:-}"' EXIT
 
 if instance_exists; then
   step "Reusing existing Incus VM ${VM_NAME}"
@@ -453,10 +511,11 @@ run_checked incus config set "$VM_NAME" limits.cpu "$CPU_LIMIT"
 run_checked incus config set "$VM_NAME" limits.memory "$MEMORY_LIMIT"
 if [[ "${BOOTSTRAP_VERBOSE:-0}" == "1" ]]; then
   incus config set "$VM_NAME" user.user-data="$(cat "$CLOUD_INIT_FILE")"
+  incus config set "$VM_NAME" user.network-config="$(cat "$NETWORK_CONFIG_FILE")"
 else
   incus config set "$VM_NAME" user.user-data="$(cat "$CLOUD_INIT_FILE")" >>"$BOOTSTRAP_LOG_FILE" 2>&1
+  incus config set "$VM_NAME" user.network-config="$(cat "$NETWORK_CONFIG_FILE")" >>"$BOOTSTRAP_LOG_FILE" 2>&1
 fi
-autodetect_network_addresses
 ensure_root_disk_size
 ensure_vm_static_ip
 ensure_proxy_device
