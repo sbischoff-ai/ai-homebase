@@ -8,7 +8,7 @@ Install and verify:
 
 - [k3d](https://k3d.io/)
 - [Docker](https://docs.docker.com/get-docker/)
-- [Incus](https://linuxcontainers.org/incus/) with an initialized local daemon/bridge (the bootstrap assumes the default `incusbr0` network)
+- [Incus](https://linuxcontainers.org/incus/) installed on the host, with an initialized local daemon/bridge (the bootstrap assumes the default `incusbr0` network)
 - [kubectl](https://kubernetes.io/docs/tasks/tools/)
 - [Helm 3](https://helm.sh/docs/intro/install/)
 
@@ -96,6 +96,18 @@ If not, add entries such as:
 ```text
 127.0.0.1 openhands.localtest.me wg.localtest.me infisical.localtest.me openclaw.localtest.me
 ```
+
+### NixOS host setup notes
+
+If you use NixOS and want the Incus-backed sandbox VM flow, make sure Incus is enabled on the host rather than relying on the repository's `shell.nix`. Add the equivalent host configuration for your system, including:
+
+```nix
+virtualisation.incus.enable = true;
+networking.nftables.enable = true;
+users.users.<your-user>.extraGroups = [ "incus-admin" ];
+```
+
+After rebuilding your NixOS configuration, initialize Incus if needed and then continue with the k3d bootstrap flow above.
 
 ## 5) Sandbox note
 
