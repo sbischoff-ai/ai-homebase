@@ -28,7 +28,7 @@ This flow:
 - deploys `platform-stack` with `values.yaml + values-k3d.yaml`, and
 - runs local smoke checks.
 
-The bootstrap exports `KUBECONFIG` to the dedicated kubeconfig path for the lifetime of the script so nested `kubectl` and `helm` calls all target the same local cluster.
+The bootstrap exports `KUBECONFIG` to the dedicated kubeconfig path for the lifetime of the script so nested `kubectl` and `helm` calls all target the same local cluster. When it finishes, it also prints a copy-pasteable `export KUBECONFIG=...` command you can run in your current shell session.
 The companion Incus VM is intentionally minimal: `images:debian/12/cloud`, **2 vCPU**, **6 GiB RAM**, a 12 GiB root disk, Docker Engine, and SSH. Instead of exposing the Docker daemon over unauthenticated TCP, the bootstrap configures SSH access so OpenClaw can target `ssh://docker-remote@host.k3d.internal:2222` through Docker's SSH transport.
 
 ## 2) Manual flow
@@ -40,7 +40,7 @@ The companion Incus VM is intentionally minimal: `images:debian/12/cloud`, **2 v
 ./scripts/incus-vm-up.sh --vm-name openclaw-sandbox
 ```
 
-`k3d-up.sh` disables the bundled k3s Traefik deployment so `ingress-nginx` remains the only intended HTTP/HTTPS ingress controller in the local cluster. k3d itself still runs on Docker to host the local cluster.
+`k3d-up.sh` disables the bundled k3s Traefik deployment so `ingress-nginx` remains the only intended HTTP/HTTPS ingress controller in the local cluster. k3d itself still runs on Docker to host the local cluster, and the script now ends by printing a copy-pasteable `export KUBECONFIG=...` line for your shell.
 
 ### 2.2 Generate bootstrap secrets
 

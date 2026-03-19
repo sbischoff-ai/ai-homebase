@@ -43,3 +43,7 @@ run_quiet() {
     "$@" >>"$BOOTSTRAP_LOG_FILE" 2>&1
   fi
 }
+
+print_kubeconfig_export_line() {
+  printf 'export KUBECONFIG=%q\n' "$1"
+}

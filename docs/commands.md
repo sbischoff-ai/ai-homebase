@@ -96,3 +96,5 @@ scripts/ci/check_golden.sh
   --image openclaw-sandbox:bookworm-slim \
   --image openclaw-sandbox-browser:bookworm-slim
 ```
+
+`k3d-local-bootstrap.sh` and `k3d-up.sh` both finish by printing a copy-pasteable `export KUBECONFIG=...` line so you can retarget your current shell at the dedicated local kubeconfig file.
