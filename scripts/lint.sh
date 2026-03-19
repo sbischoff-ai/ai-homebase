@@ -61,6 +61,9 @@ done < <(find charts -mindepth 1 -maxdepth 1 -type d | sort)
 echo "Checking canonical host keys"
 ./scripts/ci/assert_canonical_host_keys.sh
 
+echo "Checking rendered manifest assertions"
+python3 scripts/ci/assert_service_matrix.py
+
 echo "Linting umbrella chart for release=$RELEASE_NAME namespace=$NAMESPACE values=${VALUES_FILES[*]}"
 helm lint charts/platform-stack "${KUBE_CONTEXT_ARGS[@]}" \
   --namespace "$NAMESPACE" \

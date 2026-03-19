@@ -14,14 +14,14 @@ usage() {
   cat <<USAGE
 Usage: $0 [options]
 
-End-to-end local bootstrap for k3d: cluster + ingress + secrets + deploy + smoke checks.
+End-to-end local bootstrap for k3d: cluster + ingress-nginx + secrets + deploy + smoke checks.
 
 Options:
   --cluster-name <name>    k3d cluster name (default: ${CLUSTER_NAME})
   --namespace <name>       Kubernetes namespace (default: ${NAMESPACE})
   --release-name <name>    Helm release name (default: ${RELEASE_NAME})
   --kubeconfig <path>      Dedicated kubeconfig path (default: ${KUBECONFIG_PATH})
-  --wg-host <host>         WireGuard host clients should use (default: ${WG_HOST})
+  --wg-host <host>         WireGuard host clients and the local wg-easy Ingress should use (default: ${WG_HOST})
   OPENAI_API_KEY env var   Required OpenAI API key for bootstrap secret generation
   --verbose                Stream full command output
   -h, --help               Show this help message
@@ -97,7 +97,7 @@ echo
 echo "Local bootstrap complete."
 echo "Summary:"
 echo "  Kubeconfig: ${KUBECONFIG_PATH}"
-echo "  wg-easy URL: http://${WG_HOST}"
+echo "  wg-easy URL (via ingress-nginx): http://${WG_HOST}"
 echo "  OpenHands URL: http://openhands.localtest.me"
 echo "  Infisical URL: http://infisical.localtest.me"
 echo "  wg-easy UI password: ${WG_PASSWORD}"
