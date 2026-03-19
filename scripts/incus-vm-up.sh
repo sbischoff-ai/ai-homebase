@@ -181,17 +181,24 @@ autodetect_network_addresses() {
   fi
 }
 
-wait_for_vm_network() {
+wait_for_vm_readiness() {
   local deadline=$((SECONDS + 180))
   while [[ $SECONDS -lt $deadline ]]; do
     if VM_IPV4="$(get_vm_ipv4 2>/dev/null)"; then
       export VM_IPV4
+    else
+      VM_IPV4=""
+      export VM_IPV4
+    fi
+
+    if incus exec "$VM_NAME" -- systemctl is-active --quiet ssh >/dev/null 2>&1; then
       return 0
     fi
+
     sleep 3
   done
 
-  fail "Timed out waiting for ${VM_NAME} to receive an IPv4 address"
+  fail "Timed out waiting for ${VM_NAME} SSH readiness"
   exit 1
 }
 
@@ -261,11 +268,14 @@ ensure_root_disk_size() {
 }
 
 write_connection_info() {
+  local guest_ipv4="${VM_IPV4:-${VM_STATIC_IPV4}}"
+
   cat >"$CONNECTION_INFO_PATH" <<EOF
 HOST_ALIAS=${HOST_ALIAS}
 HOST_LISTEN_ADDRESS=${HOST_LISTEN_ADDRESS}
 SSH_HOST_PORT=${SSH_HOST_PORT}
 REMOTE_USER=${REMOTE_USER}
+VM_IPV4=${guest_ipv4}
 VM_STATIC_IPV4=${VM_STATIC_IPV4}
 DOCKER_HOST=ssh://${REMOTE_USER}@${HOST_LISTEN_ADDRESS}:${SSH_HOST_PORT}
 EOF
@@ -302,15 +312,21 @@ else
   step "Incus VM ${VM_NAME} is already running"
 fi
 
-step "Waiting for Incus VM networking"
-wait_for_vm_network
-ok "Incus VM ${VM_NAME} has IPv4 ${VM_IPV4}"
+step "Waiting for Incus VM SSH readiness"
+wait_for_vm_readiness
+if [[ -n "${VM_IPV4:-}" ]]; then
+  ok "Incus VM ${VM_NAME} is ready with runtime IPv4 ${VM_IPV4}"
+else
+  ok "Incus VM ${VM_NAME} is ready; using configured static IPv4 ${VM_STATIC_IPV4}"
+fi
 
 write_connection_info
 
+guest_ipv4_display="${VM_IPV4:-${VM_STATIC_IPV4}}"
+
 echo "Incus VM ready"
 echo "  Name: ${VM_NAME}"
-echo "  Guest IP: ${VM_IPV4}"
+echo "  Guest IP: ${guest_ipv4_display}"
 echo "  VM static IPv4: ${VM_STATIC_IPV4}"
 echo "  SSH proxy endpoint (host alias): ssh://${REMOTE_USER}@${HOST_ALIAS}:${SSH_HOST_PORT}"
 echo "  SSH proxy listen address: ${HOST_LISTEN_ADDRESS}:${SSH_HOST_PORT}"

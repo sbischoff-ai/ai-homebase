@@ -9,6 +9,7 @@ run_case() {
   local local_root="$2"
   local local_eth0="$3"
   local proxy_exists="$4"
+  local guest_ip_available="$5"
   local sandbox_dir
   sandbox_dir="$(mktemp -d)"
 
@@ -17,6 +18,8 @@ run_case() {
   local log_file="${sandbox_dir}/incus.log"
   local bootstrap_log="${sandbox_dir}/bootstrap.log"
   local key_path="${sandbox_dir}/keys/test-id_ed25519"
+  local real_python3
+  real_python3="$(command -v python3)"
   mkdir -p "${fake_bin}" "${state_dir}"
 
   cat >"${fake_bin}/incus" <<'SH'
@@ -27,6 +30,7 @@ state_dir="${FAKE_INCUS_STATE_DIR:?}"
 local_root="${FAKE_INCUS_LOCAL_ROOT:-0}"
 local_eth0="${FAKE_INCUS_LOCAL_ETH0:-0}"
 proxy_exists="${FAKE_INCUS_PROXY_EXISTS:-0}"
+guest_ip_available="${FAKE_INCUS_GUEST_IP_AVAILABLE:-1}"
 printf '%s\n' "$*" >>"${log_file}"
 command="$1"
 shift
@@ -48,7 +52,13 @@ case "${command}" in
       exit 0
     fi
     if [[ "$2" == "-f" && "$3" == "json" ]]; then
-      printf '[]\n'
+      if [[ "${guest_ip_available}" == "1" ]]; then
+        cat <<'JSON'
+[{"state":{"network":{"eth0":{"addresses":[{"family":"inet","scope":"global","address":"192.0.2.10"}]}}}}]
+JSON
+      else
+        printf '[]\n'
+      fi
       exit 0
     fi
     ;;
@@ -61,6 +71,11 @@ case "${command}" in
   start)
     echo RUNNING >"${state_dir}/status"
     exit 0
+    ;;
+  exec)
+    if [[ "$1" == "test-vm" && "$2" == "--" && "$3" == "systemctl" && "$4" == "is-active" && "$5" == "--quiet" && "$6" == "ssh" ]]; then
+      exit 0
+    fi
     ;;
   config)
     subcommand="$1"
@@ -131,33 +146,7 @@ SH
   cat >"${fake_bin}/python3" <<'SH'
 #!/usr/bin/env bash
 set -euo pipefail
-if [[ "$1" == "-c" ]]; then
-  printf '192.0.2.10\n'
-  exit 0
-fi
-if [[ "$1" == "-" ]]; then
-  if [[ "$2" == *".tpl" ]]; then
-    template_path="$2"
-    rendered_path="$3"
-    cp "${template_path}" "${rendered_path}"
-    exit 0
-  fi
-
-  cidr="$2"
-  vm_name="${3:-}"
-  case "${cidr}" in
-    10.10.10.1/24)
-      if [[ -z "${vm_name}" ]]; then
-        printf '10.10.10.1\n'
-      else
-        printf '10.10.10.45\n'
-      fi
-      exit 0
-      ;;
-  esac
-fi
-printf 'unexpected python3 invocation\n' >&2
-exit 1
+exec "${REAL_PYTHON3:?}" "$@"
 SH
   chmod +x "${fake_bin}/python3"
 
@@ -188,9 +177,12 @@ SH
   FAKE_INCUS_LOCAL_ROOT="${local_root}" \
   FAKE_INCUS_LOCAL_ETH0="${local_eth0}" \
   FAKE_INCUS_PROXY_EXISTS="${proxy_exists}" \
+  FAKE_INCUS_GUEST_IP_AVAILABLE="${guest_ip_available}" \
+  REAL_PYTHON3="${real_python3}" \
   BOOTSTRAP_LOG_FILE="${bootstrap_log}" \
   "${SCRIPT_PATH}" \
     --vm-name test-vm \
+    --vm-static-ipv4 10.10.10.45 \
     --ssh-key-path "${key_path}" \
     --state-dir "${sandbox_dir}/statefiles" \
     >/dev/null
@@ -244,10 +236,19 @@ SH
   grep -F 'HOST_LISTEN_ADDRESS=10.10.10.1' "${sandbox_dir}/statefiles/test-vm.env" >/dev/null
   grep -F 'VM_STATIC_IPV4=10.10.10.45' "${sandbox_dir}/statefiles/test-vm.env" >/dev/null
 
+  case "${guest_ip_available}" in
+    0)
+      grep -F 'VM_IPV4=10.10.10.45' "${sandbox_dir}/statefiles/test-vm.env" >/dev/null
+      ;;
+    1)
+      grep -F 'VM_IPV4=192.0.2.10' "${sandbox_dir}/statefiles/test-vm.env" >/dev/null
+      ;;
+  esac
+
   rm -rf "${sandbox_dir}"
 }
 
-run_case inherited-root 0 0 0
-run_case local-root 1 1 1
+run_case inherited-root 0 0 0 1
+run_case local-root 1 1 1 0
 
 echo "incus-vm-up tests passed"
