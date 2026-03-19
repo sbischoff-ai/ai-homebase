@@ -19,6 +19,9 @@ openclaw:
     enabled: false
   persistence:
     enabled: false
+  remoteDocker:
+    enabled: true
+    dockerHost: ssh://docker-remote@host.k3d.internal:2222
   resources:
     requests:
       cpu: 1000m

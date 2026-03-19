@@ -50,8 +50,8 @@ Canonical default posture in this document refers to umbrella defaults from `cha
 - The chart renders `openclaw.json` from structured `openclaw.*` values.
 - OpenClaw now defaults to Docker sandboxing with `mode=non-main`, `backend=docker`, and `scope=agent`, plus explicit `docker.*` and `browser.*` sandbox image/runtime settings rendered into `openclaw.json`.
 - The browser sandbox config now exposes `openclaw.agents.defaults.sandbox.browser.cdpSourceRange` so operators can match the CIDR that reaches the remote browser container's CDP port.
-- `openclaw.remoteDocker.*` optionally exports `DOCKER_HOST` and `HOME`, then mounts SSH credentials for Docker's `ssh://` transport so OpenClaw can launch Docker/browser sandboxes on a remote daemon without changing the OpenClaw backend away from `docker`.
-- Local bootstrap still provisions an external Incus VM (`openclaw-sandbox`) as a single-purpose remote Docker appliance, but the VM remains outside Helm; chart values control only how the OpenClaw pod reaches it.
+- `openclaw.remoteDocker.*` exports `DOCKER_HOST` and `HOME`, then mounts SSH credentials for Docker's `ssh://` transport so OpenClaw launches Docker/browser sandboxes on the standard remote daemon without changing the OpenClaw backend away from `docker`.
+- The supported posture is an external Incus VM (`openclaw-sandbox`) as a single-purpose remote Docker appliance, while the VM remains outside Helm; chart values control only how the OpenClaw pod reaches it.
 
 ### OpenHands
 

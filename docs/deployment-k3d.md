@@ -29,7 +29,7 @@ This flow:
 - runs local smoke checks.
 
 The bootstrap exports `KUBECONFIG` to the dedicated kubeconfig path for the lifetime of the script so nested `kubectl` and `helm` calls all target the same local cluster.
-The companion Incus VM is intentionally minimal: `images:debian/12/cloud`, **2 vCPU**, **6 GiB RAM**, a 12 GiB root disk, Docker Engine, and SSH. Instead of exposing the Docker daemon over unauthenticated TCP, the bootstrap configures SSH access so OpenClaw can target `ssh://docker-remote@host.k3d.internal:2222` through Docker's SSH transport.
+The companion Incus VM is intentionally minimal: `images:debian/12/cloud`, **2 vCPU**, **6 GiB RAM**, a 12 GiB root disk, Docker Engine, and SSH. Instead of exposing the Docker daemon over unauthenticated TCP, the bootstrap configures SSH access, creates the `openclaw-remote-docker-ssh` Secret, and points OpenClaw at `ssh://docker-remote@host.k3d.internal:2222` through Docker's SSH transport by default.
 
 ## 2) Manual flow
 
@@ -49,7 +49,9 @@ export OPENAI_API_KEY="<your-openai-api-key>"
 ./scripts/k3d-bootstrap-secrets.sh \
   --namespace ai-homebase \
   --release-name platform-stack \
-  --kubeconfig ~/.kube/k3d-ai-homebase-dev.yaml
+  --kubeconfig ~/.kube/k3d-ai-homebase-dev.yaml \
+  --remote-docker-host host.k3d.internal \
+  --remote-docker-key ~/.local/state/ai-homebase/incus/openclaw-sandbox-id_ed25519
 ```
 
 ### 2.3 Deploy and run smoke checks
@@ -111,11 +113,11 @@ After rebuilding your NixOS configuration, initialize Incus if needed and then c
 
 ## 5) Sandbox note
 
-The shared OpenClaw defaults now render the Docker sandbox backend with explicit `docker.*` and `browser.*` settings, but remote-Docker wiring stays opt-in through values overlays because operators must provide an SSH Secret, a derived OpenClaw image that includes Docker CLI + OpenSSH client, and an environment-specific `browser.cdpSourceRange`. OpenHands continues to use the upstream in-cluster Kubernetes runtime.
+The shared OpenClaw defaults now render the Docker sandbox backend with explicit `docker.*` and `browser.*` settings, and the supported path keeps remote-Docker wiring enabled by default. Operators still need an OpenClaw image that includes Docker CLI + OpenSSH client and an environment-appropriate `browser.cdpSourceRange`. OpenHands continues to use the upstream in-cluster Kubernetes runtime.
 
 ## 6) Incus sandbox VM note
 
-The new Incus VM assets live outside the Helm charts:
+The Incus VM assets live outside the Helm charts:
 
 - `incus/openclaw-sandbox-user-data.tpl` contains the cloud-init definition for the guest.
 - `scripts/incus-vm-up.sh` creates or reuses the VM and configures SSH-based remote Docker access.

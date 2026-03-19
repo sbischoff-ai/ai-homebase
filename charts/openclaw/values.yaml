@@ -66,8 +66,8 @@ config:
   enabled: true
 
 remoteDocker:
-  enabled: false
-  dockerHost: ""
+  enabled: true
+  dockerHost: "ssh://docker-remote@openclaw-sandbox:2222"
   home: /home/node
   ssh:
     secretName: openclaw-remote-docker-ssh

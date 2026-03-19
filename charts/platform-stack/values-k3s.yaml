@@ -23,6 +23,9 @@ openclaw:
     enabled: true
     size: 50Gi
     storageClass: local-path
+  remoteDocker:
+    enabled: true
+    dockerHost: ssh://docker-remote@openclaw-sandbox.homebase.internal:2222
   resources:
     requests:
       cpu: 500m

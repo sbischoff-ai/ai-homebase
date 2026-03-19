@@ -51,6 +51,8 @@ Relevant sandbox-related value paths:
 - `openclaw.remoteDocker.*`
 - `openclaw.plugins.*`
 
+The supported OpenClaw posture keeps `openclaw.remoteDocker.enabled=true` and points `openclaw.remoteDocker.dockerHost` at the target's Incus-backed remote Docker endpoint, with overlays only adjusting hostnames, Secret names, or image details.
+
 ## OpenHands Kubernetes runtime wiring
 
 The `openhands` chart now renders a managed `config.toml` with `[core] runtime = "kubernetes"` plus the upstream `[kubernetes]` block sourced from `openhands.runtime.mode` and `openhands.kubernetes.*`. It also creates namespace-scoped RBAC so the OpenHands pod can create and clean up runtime pods, services, ingresses, and PVCs without requiring cluster-admin.

@@ -12,6 +12,10 @@ WG_PASSWORD_OUTPUT_PATH="${WG_PASSWORD_OUTPUT_PATH:-}"
 WG_PASSWORD_HASH="${WG_PASSWORD_HASH:-}"
 OPENCLAW_GATEWAY_TOKEN="${OPENCLAW_GATEWAY_TOKEN:-local-dev-token}"
 OPENAI_API_KEY="${OPENAI_API_KEY:-}"
+REMOTE_DOCKER_SECRET_NAME="${REMOTE_DOCKER_SECRET_NAME:-openclaw-remote-docker-ssh}"
+REMOTE_DOCKER_HOST="${REMOTE_DOCKER_HOST:-host.k3d.internal}"
+REMOTE_DOCKER_PORT="${REMOTE_DOCKER_PORT:-2222}"
+REMOTE_DOCKER_KEY_PATH="${REMOTE_DOCKER_KEY_PATH:-${HOME}/.local/state/ai-homebase/incus/openclaw-sandbox-id_ed25519}"
 POSTGRES_ADMIN_PASSWORD="${POSTGRES_ADMIN_PASSWORD:-postgres-local-dev}"
 REDIS_PASSWORD="${REDIS_PASSWORD:-redis-local-dev}"
 INFISICAL_AUTH_SECRET="${INFISICAL_AUTH_SECRET:-}"
@@ -31,6 +35,10 @@ Options:
   --wg-password <password>       wg-easy UI password (auto-generated if omitted; hashed before storing)
   --wg-password-out <path>       Write resolved wg-easy password to file
   --openclaw-gateway-token <v>   OpenClaw gateway token (default: ${OPENCLAW_GATEWAY_TOKEN})
+  --remote-docker-secret <name>  Secret for OpenClaw remote Docker SSH data (default: ${REMOTE_DOCKER_SECRET_NAME})
+  --remote-docker-host <host>    Hostname OpenClaw should use for the SSH-backed Docker endpoint (default: ${REMOTE_DOCKER_HOST})
+  --remote-docker-port <port>    SSH port for the remote Docker endpoint (default: ${REMOTE_DOCKER_PORT})
+  --remote-docker-key <path>     Private key path generated for the Incus sandbox VM (default: ${REMOTE_DOCKER_KEY_PATH})
   OPENAI_API_KEY env var         Required OpenAI API key for OpenClaw local bootstrap secret
   --postgres-admin-password <v>  shared PostgreSQL admin password (default: generated local value)
   --redis-password <v>           shared Redis password (default: generated local value)
@@ -48,6 +56,10 @@ while [[ $# -gt 0 ]]; do
     --wg-password) WG_PASSWORD="$2"; shift 2 ;;
     --wg-password-out) WG_PASSWORD_OUTPUT_PATH="$2"; shift 2 ;;
     --openclaw-gateway-token) OPENCLAW_GATEWAY_TOKEN="$2"; shift 2 ;;
+    --remote-docker-secret) REMOTE_DOCKER_SECRET_NAME="$2"; shift 2 ;;
+    --remote-docker-host) REMOTE_DOCKER_HOST="$2"; shift 2 ;;
+    --remote-docker-port) REMOTE_DOCKER_PORT="$2"; shift 2 ;;
+    --remote-docker-key) REMOTE_DOCKER_KEY_PATH="$2"; shift 2 ;;
     --postgres-admin-password) POSTGRES_ADMIN_PASSWORD="$2"; shift 2 ;;
     --redis-password) REDIS_PASSWORD="$2"; shift 2 ;;
     --verbose) BOOTSTRAP_VERBOSE=1; shift ;;
@@ -59,7 +71,7 @@ done
 bootstrap_init_logging
 trap 'fail "Bootstrap secrets generation failed. Log: ${BOOTSTRAP_LOG_FILE}"' ERR
 
-for cmd in kubectl openssl; do
+for cmd in kubectl openssl ssh-keyscan; do
   if ! command -v "$cmd" >/dev/null 2>&1; then
     fail "Missing required dependency: $cmd"
     exit 1
@@ -138,6 +150,28 @@ create_and_apply_secret() {
   rm -f "$tmp_file"
 }
 
+create_remote_docker_secret() {
+  local secret_name="$1"
+  local remote_host="$2"
+  local remote_port="$3"
+  local key_path="$4"
+  local known_hosts_file
+
+  if [[ ! -f "$key_path" ]]; then
+    fail "Remote Docker private key not found at ${key_path}. Run ./scripts/incus-vm-up.sh first or pass --remote-docker-key."
+    return 1
+  fi
+
+  known_hosts_file="$(mktemp)"
+  ssh-keyscan -p "$remote_port" "$remote_host" >"$known_hosts_file" 2>>"$BOOTSTRAP_LOG_FILE"
+
+  create_and_apply_secret "$secret_name" \
+    --from-file=id_ed25519="$key_path" \
+    --from-file=known_hosts="$known_hosts_file"
+
+  rm -f "$known_hosts_file"
+}
+
 if [[ -z "$WG_PASSWORD" ]]; then
   WG_PASSWORD="$(openssl rand -hex 12)"
 fi
@@ -180,6 +214,12 @@ create_and_apply_secret shared-postgresql-initdb \
 create_and_apply_secret openclaw-app-secrets \
   --from-literal=OPENCLAW_GATEWAY_TOKEN="$OPENCLAW_GATEWAY_TOKEN" \
   --from-literal=OPENAI_API_KEY="$OPENAI_API_KEY"
+
+create_remote_docker_secret \
+  "$REMOTE_DOCKER_SECRET_NAME" \
+  "$REMOTE_DOCKER_HOST" \
+  "$REMOTE_DOCKER_PORT" \
+  "$REMOTE_DOCKER_KEY_PATH"
 
 create_and_apply_secret "$WG_SECRET_NAME" \
   --from-literal=WG_HOST="$WG_HOST" \
