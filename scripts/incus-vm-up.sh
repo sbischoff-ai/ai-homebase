@@ -209,6 +209,36 @@ autodetect_network_addresses() {
   fi
 }
 
+cloud_init_status_is_done() {
+  local cloud_init_output="$1"
+  grep -Eq 'status:[[:space:]]*done([[:space:]]|$)' <<<"$cloud_init_output"
+}
+
+cloud_init_status_is_failure() {
+  local cloud_init_output="$1"
+  grep -Eiq 'status:[[:space:]]*(error|disabled)([[:space:]]|$)' <<<"$cloud_init_output" \
+    || grep -Eiq 'status:[[:space:]]*degraded([[:space:]]+done)?([[:space:]]|$)' <<<"$cloud_init_output"
+}
+
+fail_vm_readiness() {
+  collect_timeout_diagnostics
+  case "${READINESS_FAILURE_REASON:-guest-agent-unreachable}" in
+    cloud-init-failed)
+      fail "Failed waiting for ${VM_NAME}: cloud-init failed inside the guest before the SSH proxy at ${HOST_LISTEN_ADDRESS}:${SSH_HOST_PORT} became reachable. See timeout diagnostics in ${BOOTSTRAP_LOG_FILE}"
+      ;;
+    ssh-proxy-unreachable)
+      fail "Timed out waiting for ${VM_NAME}: cloud-init completed but failed to connect to the SSH proxy at ${HOST_LISTEN_ADDRESS}:${SSH_HOST_PORT}. See timeout diagnostics in ${BOOTSTRAP_LOG_FILE}"
+      ;;
+    cloud-init-incomplete)
+      fail "Timed out waiting for ${VM_NAME}: guest agent became reachable, but failed to observe cloud-init completion before the SSH proxy at ${HOST_LISTEN_ADDRESS}:${SSH_HOST_PORT} became reachable. See timeout diagnostics in ${BOOTSTRAP_LOG_FILE}"
+      ;;
+    *)
+      fail "Timed out waiting for ${VM_NAME}: failed to reach the guest agent and failed to connect to the SSH proxy at ${HOST_LISTEN_ADDRESS}:${SSH_HOST_PORT}. See timeout diagnostics in ${BOOTSTRAP_LOG_FILE}"
+      ;;
+  esac
+  exit 1
+}
+
 wait_for_vm_readiness() {
   local deadline=$((SECONDS + SSH_READY_TIMEOUT_SECONDS))
   local guest_agent_reachable_reported=0
@@ -244,7 +274,11 @@ wait_for_vm_readiness() {
         guest_agent_reachable_reported=1
       fi
 
-      if grep -Eq 'status:[[:space:]]*done' <<<"$cloud_init_output"; then
+      if cloud_init_status_is_failure "$cloud_init_output"; then
+        READINESS_FAILURE_REASON="cloud-init-failed"
+        fail "Cloud-init reported a terminal failure inside ${VM_NAME}; aborting readiness wait before SSH proxy timeout"
+        fail_vm_readiness
+      elif cloud_init_status_is_done "$cloud_init_output"; then
         READINESS_FAILURE_REASON="ssh-proxy-unreachable"
         if [[ "$ssh_proxy_wait_reported" -eq 0 ]]; then
           step "Guest booted and cloud-init completed, but SSH proxy unreachable at ${HOST_LISTEN_ADDRESS}:${SSH_HOST_PORT}; waiting for endpoint reachability"
@@ -273,19 +307,7 @@ wait_for_vm_readiness() {
     sleep 3
   done
 
-  collect_timeout_diagnostics
-  case "${READINESS_FAILURE_REASON:-guest-agent-unreachable}" in
-    ssh-proxy-unreachable)
-      fail "Timed out waiting for ${VM_NAME}: cloud-init completed but failed to connect to the SSH proxy at ${HOST_LISTEN_ADDRESS}:${SSH_HOST_PORT}. See timeout diagnostics in ${BOOTSTRAP_LOG_FILE}"
-      ;;
-    cloud-init-incomplete)
-      fail "Timed out waiting for ${VM_NAME}: guest agent became reachable, but failed to observe cloud-init completion before the SSH proxy at ${HOST_LISTEN_ADDRESS}:${SSH_HOST_PORT} became reachable. See timeout diagnostics in ${BOOTSTRAP_LOG_FILE}"
-      ;;
-    *)
-      fail "Timed out waiting for ${VM_NAME}: failed to reach the guest agent and failed to connect to the SSH proxy at ${HOST_LISTEN_ADDRESS}:${SSH_HOST_PORT}. See timeout diagnostics in ${BOOTSTRAP_LOG_FILE}"
-      ;;
-  esac
-  exit 1
+  fail_vm_readiness
 }
 
 append_timeout_diagnostic_command() {
@@ -347,9 +369,11 @@ collect_timeout_diagnostics() {
     else
       append_timeout_guest_exec_diagnostic "GUEST: cloud-init status" cloud-init status
     fi
+    append_timeout_guest_exec_diagnostic "GUEST: cloud-init status --long" cloud-init status --long
     append_timeout_guest_exec_diagnostic "GUEST: ip -4 addr" ip -4 addr
     append_timeout_guest_exec_diagnostic "GUEST: ip route" ip route
     append_timeout_guest_exec_diagnostic "GUEST: cat /etc/resolv.conf" cat /etc/resolv.conf
+    append_timeout_guest_exec_diagnostic "GUEST: journalctl -u cloud-init --no-pager" journalctl -u cloud-init --no-pager
     append_timeout_guest_exec_diagnostic "GUEST: systemctl status ssh --no-pager" systemctl status ssh --no-pager
     append_timeout_guest_exec_diagnostic "GUEST: systemctl status docker --no-pager" systemctl status docker --no-pager
   else
