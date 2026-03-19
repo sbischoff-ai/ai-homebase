@@ -10,13 +10,17 @@ run_case() {
   local local_eth0="$3"
   local proxy_exists="$4"
   local guest_ip_available="$5"
+  local ssh_success_after="${6:-1}"
   local sandbox_dir
   sandbox_dir="$(mktemp -d)"
 
   local fake_bin="${sandbox_dir}/bin"
   local state_dir="${sandbox_dir}/state"
   local log_file="${sandbox_dir}/incus.log"
+  local ssh_log_file="${sandbox_dir}/ssh.log"
+  local sleep_log_file="${sandbox_dir}/sleep.log"
   local bootstrap_log="${sandbox_dir}/bootstrap.log"
+  local output_log="${sandbox_dir}/output.log"
   local key_path="${sandbox_dir}/keys/test-id_ed25519"
   local real_python3
   real_python3="$(command -v python3)"
@@ -171,6 +175,34 @@ printf 'PUBLIC\n' >"${key_path}.pub"
 SH
   chmod +x "${fake_bin}/ssh-keygen"
 
+  cat >"${fake_bin}/ssh" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+log_file="${FAKE_SSH_LOG:?}"
+state_dir="${FAKE_SSH_STATE_DIR:?}"
+success_after="${FAKE_SSH_SUCCESS_AFTER:-1}"
+counter_file="${state_dir}/ssh-attempts"
+attempt=1
+if [[ -f "${counter_file}" ]]; then
+  attempt="$(( $(cat "${counter_file}") + 1 ))"
+fi
+printf '%s' "${attempt}" >"${counter_file}"
+printf 'attempt=%s args=%s\n' "${attempt}" "$*" >>"${log_file}"
+if (( attempt >= success_after )); then
+  exit 0
+fi
+exit 255
+SH
+  chmod +x "${fake_bin}/ssh"
+
+  cat >"${fake_bin}/sleep" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "$*" >>"${FAKE_SLEEP_LOG:?}"
+exit 0
+SH
+  chmod +x "${fake_bin}/sleep"
+
   PATH="${fake_bin}:$PATH" \
   FAKE_INCUS_LOG="${log_file}" \
   FAKE_INCUS_STATE_DIR="${state_dir}" \
@@ -178,6 +210,10 @@ SH
   FAKE_INCUS_LOCAL_ETH0="${local_eth0}" \
   FAKE_INCUS_PROXY_EXISTS="${proxy_exists}" \
   FAKE_INCUS_GUEST_IP_AVAILABLE="${guest_ip_available}" \
+  FAKE_SSH_LOG="${ssh_log_file}" \
+  FAKE_SSH_STATE_DIR="${state_dir}" \
+  FAKE_SSH_SUCCESS_AFTER="${ssh_success_after}" \
+  FAKE_SLEEP_LOG="${sleep_log_file}" \
   REAL_PYTHON3="${real_python3}" \
   BOOTSTRAP_LOG_FILE="${bootstrap_log}" \
   "${SCRIPT_PATH}" \
@@ -185,7 +221,7 @@ SH
     --vm-static-ipv4 10.10.10.45 \
     --ssh-key-path "${key_path}" \
     --state-dir "${sandbox_dir}/statefiles" \
-    >/dev/null
+    >"${output_log}" 2>&1
 
   case "${case_name}" in
     inherited-root)
@@ -204,6 +240,14 @@ SH
       fi
       ;;
   esac
+
+  grep -F -- '-i '"${key_path}" "${ssh_log_file}" >/dev/null
+  grep -F -- '-o BatchMode=yes' "${ssh_log_file}" >/dev/null
+  grep -F -- '-o ConnectTimeout=3' "${ssh_log_file}" >/dev/null
+  grep -F -- '-o StrictHostKeyChecking=no' "${ssh_log_file}" >/dev/null
+  grep -F -- '-o UserKnownHostsFile=/dev/null' "${ssh_log_file}" >/dev/null
+  grep -F -- '-p 2222' "${ssh_log_file}" >/dev/null
+  grep -F -- 'docker-remote@10.10.10.1 true' "${ssh_log_file}" >/dev/null
 
   case "${proxy_exists}" in
     0)
@@ -245,10 +289,33 @@ SH
       ;;
   esac
 
+  case "${ssh_success_after}" in
+    1)
+      if [[ -s "${sleep_log_file}" ]]; then
+        echo "expected immediate SSH readiness to avoid sleeping" >&2
+        return 1
+      fi
+      if grep -F 'Guest booted but SSH proxy unreachable' "${output_log}" >/dev/null; then
+        echo "expected immediate SSH readiness to avoid fallback boot message" >&2
+        return 1
+      fi
+      ;;
+    *)
+      grep -F 'Guest booted but SSH proxy unreachable at 10.10.10.1:2222; waiting for endpoint reachability' "${output_log}" >/dev/null
+      grep -F 'SSH endpoint confirmed reachable at 10.10.10.1:2222' "${output_log}" >/dev/null
+      grep -F 'attempt=1 ' "${ssh_log_file}" >/dev/null
+      grep -F "attempt=${ssh_success_after} " "${ssh_log_file}" >/dev/null
+      if [[ "$(wc -l < "${sleep_log_file}")" -ne $((ssh_success_after - 1)) ]]; then
+        echo "expected one sleep per failed SSH attempt" >&2
+        return 1
+      fi
+      ;;
+  esac
+
   rm -rf "${sandbox_dir}"
 }
 
-run_case inherited-root 0 0 0 1
-run_case local-root 1 1 1 0
+run_case inherited-root 0 0 0 1 3
+run_case local-root 1 1 1 0 1
 
 echo "incus-vm-up tests passed"
