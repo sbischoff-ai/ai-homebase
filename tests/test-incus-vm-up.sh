@@ -14,11 +14,23 @@ run_case() {
   local ssh_ready_timeout_seconds="${7:-}"
   local dns_nameservers="10.10.10.53,1.1.1.1"
   local host_listen_address=""
+  local dns_mode="managed"
+  local network_managed="true"
+  local ipv4_nat="true"
   if [[ $# -ge 8 ]]; then
     dns_nameservers="$8"
   fi
   if [[ $# -ge 9 ]]; then
     host_listen_address="$9"
+  fi
+  if [[ $# -ge 10 ]]; then
+    dns_mode="$10"
+  fi
+  if [[ $# -ge 11 ]]; then
+    network_managed="$11"
+  fi
+  if [[ $# -ge 12 ]]; then
+    ipv4_nat="$12"
   fi
   local sandbox_dir
   sandbox_dir="$(mktemp -d)"
@@ -45,6 +57,9 @@ local_eth0="${FAKE_INCUS_LOCAL_ETH0:-0}"
 proxy_exists="${FAKE_INCUS_PROXY_EXISTS:-0}"
 guest_ip_available="${FAKE_INCUS_GUEST_IP_AVAILABLE:-1}"
 dns_nameservers="${FAKE_INCUS_DNS_NAMESERVERS:-}"
+dns_mode="${FAKE_INCUS_DNS_MODE:-managed}"
+network_managed="${FAKE_INCUS_NETWORK_MANAGED:-true}"
+ipv4_nat="${FAKE_INCUS_IPV4_NAT:-true}"
 printf '%s\n' "$*" >>"${log_file}"
 command="$1"
 shift
@@ -81,8 +96,28 @@ JSON
       printf '10.10.10.1/24\n'
       exit 0
     fi
+    if [[ "$1" == "get" && "$3" == "ipv4.nat" ]]; then
+      printf '%s\n' "${ipv4_nat}"
+      exit 0
+    fi
     if [[ "$1" == "get" && "$3" == "dns.nameservers" ]]; then
       printf '%s\n' "${dns_nameservers}"
+      exit 0
+    fi
+    if [[ "$1" == "get" && "$3" == "dns.mode" ]]; then
+      printf '%s\n' "${dns_mode}"
+      exit 0
+    fi
+    if [[ "$1" == "show" ]]; then
+      cat <<YAML
+managed: ${network_managed}
+type: bridge
+config:
+  dns.mode: ${dns_mode}
+  dns.nameservers: ${dns_nameservers}
+  ipv4.address: 10.10.10.1/24
+  ipv4.nat: "${ipv4_nat}"
+YAML
       exit 0
     fi
     ;;
@@ -237,6 +272,9 @@ SH
   FAKE_INCUS_PROXY_EXISTS="${proxy_exists}" \
   FAKE_INCUS_GUEST_IP_AVAILABLE="${guest_ip_available}" \
   FAKE_INCUS_DNS_NAMESERVERS="${dns_nameservers}" \
+  FAKE_INCUS_DNS_MODE="${dns_mode}" \
+  FAKE_INCUS_NETWORK_MANAGED="${network_managed}" \
+  FAKE_INCUS_IPV4_NAT="${ipv4_nat}" \
   FAKE_SSH_LOG="${ssh_log_file}" \
   FAKE_SSH_STATE_DIR="${state_dir}" \
   FAKE_SSH_SUCCESS_AFTER="${ssh_success_after}" \
@@ -360,6 +398,139 @@ SH
     grep -F "Waiting for Incus VM SSH readiness (timeout: ${ssh_ready_timeout_seconds}s)" "${output_log}" >/dev/null
   else
     grep -F 'Waiting for Incus VM SSH readiness (timeout: 600s)' "${output_log}" >/dev/null
+  fi
+
+  case "${dns_nameservers}" in
+    "")
+      grep -F 'Resolved guest DNS strategy: bridge gateway fallback via 10.10.10.1' "${output_log}" >/dev/null
+      grep -F 'has an empty dns.nameservers setting; falling back to bridge gateway 10.10.10.1 for guest DNS. Ensure this bridge provides DNS service to guests or cloud-init package installation may fail.' "${output_log}" >/dev/null
+      ;;
+    *)
+      grep -F 'Resolved guest DNS strategy: explicit resolvers from incusbr0.dns.nameservers (10.10.10.53,1.1.1.1)' "${output_log}" >/dev/null
+      ;;
+  esac
+
+  grep -F "Incus network incusbr0 details: ipv4.address=10.10.10.1/24, ipv4.nat=${ipv4_nat}, dns.nameservers=${dns_nameservers:-<empty>}, dns.mode=${dns_mode}, managed=${network_managed}, type=bridge" "${output_log}" >/dev/null
+
+  rm -rf "${sandbox_dir}"
+}
+
+run_invalid_dns_fallback_case() {
+  local sandbox_dir
+  sandbox_dir="$(mktemp -d)"
+
+  local fake_bin="${sandbox_dir}/bin"
+  local log_file="${sandbox_dir}/output.log"
+  local bootstrap_log="${sandbox_dir}/bootstrap.log"
+  local incus_log="${sandbox_dir}/incus.log"
+  local real_python3
+  real_python3="$(python3 -c 'import sys; print(sys.executable)')"
+  mkdir -p "${fake_bin}"
+
+  cat >"${fake_bin}/incus" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "$*" >>"${FAKE_INVALID_DNS_INCUS_LOG:?}"
+command="$1"
+shift
+case "${command}" in
+  info)
+    exit 1
+    ;;
+  network)
+    if [[ "$1" == "get" && "$3" == "ipv4.address" ]]; then
+      printf '10.10.10.1/24\n'
+      exit 0
+    fi
+    if [[ "$1" == "get" && "$3" == "ipv4.nat" ]]; then
+      printf 'true\n'
+      exit 0
+    fi
+    if [[ "$1" == "get" && "$3" == "dns.nameservers" ]]; then
+      printf '\n'
+      exit 0
+    fi
+    if [[ "$1" == "get" && "$3" == "dns.mode" ]]; then
+      printf 'none\n'
+      exit 0
+    fi
+    if [[ "$1" == "show" ]]; then
+      cat <<'YAML'
+managed: true
+type: bridge
+config:
+  dns.mode: none
+  ipv4.address: 10.10.10.1/24
+  ipv4.nat: "true"
+YAML
+      exit 0
+    fi
+    ;;
+esac
+printf 'unexpected incus invocation: %s\n' "$command $*" >&2
+exit 1
+SH
+  chmod +x "${fake_bin}/incus"
+
+  cat >"${fake_bin}/python3" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+exec "${REAL_PYTHON3:?}" "$@"
+SH
+  chmod +x "${fake_bin}/python3"
+
+  cat >"${fake_bin}/ssh-keygen" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+key_path=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -f)
+      key_path="$2"
+      shift 2
+      ;;
+    *)
+      shift
+      ;;
+  esac
+done
+mkdir -p "$(dirname "${key_path}")"
+printf 'PRIVATE\n' >"${key_path}"
+printf 'PUBLIC\n' >"${key_path}.pub"
+SH
+  chmod +x "${fake_bin}/ssh-keygen"
+
+  cat >"${fake_bin}/ssh" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+exit 255
+SH
+  chmod +x "${fake_bin}/ssh"
+
+  set +e
+  PATH="${fake_bin}:$PATH" \
+  REAL_PYTHON3="${real_python3}" \
+  FAKE_INVALID_DNS_INCUS_LOG="${incus_log}" \
+  BOOTSTRAP_LOG_FILE="${bootstrap_log}" \
+  "${SCRIPT_PATH}" \
+    --vm-name test-vm \
+    --vm-static-ipv4 10.10.10.45 \
+    --ssh-key-path "${sandbox_dir}/keys/test-id_ed25519" \
+    --state-dir "${sandbox_dir}/statefiles" \
+    >"${log_file}" 2>&1
+  local status=$?
+  set -e
+
+  if [[ ${status} -eq 0 ]]; then
+    echo "expected invalid dns fallback case to fail" >&2
+    return 1
+  fi
+
+  grep -F 'has an empty dns.nameservers setting; falling back to bridge gateway 10.10.10.1 for guest DNS. Ensure this bridge provides DNS service to guests or cloud-init package installation may fail.' "${log_file}" >/dev/null
+  grep -F 'is incompatible with guest DNS fallback: dns.nameservers is empty and dns.mode=none, so guests cannot rely on bridge gateway 10.10.10.1 for DNS.' "${log_file}" >/dev/null
+  if grep -F 'start test-vm' "${incus_log}" >/dev/null; then
+    echo "expected invalid dns fallback case to fail before incus start" >&2
+    return 1
   fi
 
   rm -rf "${sandbox_dir}"
@@ -652,6 +823,7 @@ run_case inherited-root 0 0 0 1 3
 run_case local-root 1 1 1 0 1 42
 run_case dns-fallback 0 0 0 1 1 "" ""
 run_case host-listen-override 0 0 0 1 1 "" "10.10.10.53,1.1.1.1" "127.0.0.1"
+run_invalid_dns_fallback_case
 run_timeout_failure_case guest-agent-unreachable 0 running
 run_timeout_failure_case cloud-init-incomplete 1 running
 run_timeout_failure_case ssh-proxy-unreachable 1 done
