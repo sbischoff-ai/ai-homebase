@@ -29,7 +29,7 @@ This flow:
 - runs local smoke checks.
 
 The bootstrap exports `KUBECONFIG` to the dedicated kubeconfig path for the lifetime of the script so nested `kubectl` and `helm` calls all target the same local cluster.
-The companion Incus VM is intentionally minimal: `images:debian/12/cloud`, **2 vCPU**, **6 GiB RAM**, a 12 GiB root disk, Docker Engine, and SSH. The bootstrap now applies the root disk size as an instance-level device override so it works even when the `default` Incus profile provides the root disk device. Instead of exposing the Docker daemon over unauthenticated TCP, the bootstrap configures SSH access, creates the `openclaw-remote-docker-ssh` Secret, and now programs the Incus VM proxy in **NAT mode** with a stable VM IPv4 on `incusbr0`. The resolved host-side listen address and Docker endpoint are written to `~/.local/state/ai-homebase/incus/<vm-name>.env`, and the local bootstrap layers a temporary Helm values override so OpenClaw uses that exact endpoint. If Incus does not populate runtime `state.network.addresses`, the helper now still succeeds once the guest boots and the configured host-side SSH endpoint becomes reachable, using the configured static IPv4 as the guest address of record.
+The companion Incus VM is intentionally minimal: `images:debian/12/cloud`, **2 vCPU**, **6 GiB RAM**, a 12 GiB root disk, Docker Engine, and SSH. On the first boot, cloud-init still needs time to install Docker Engine and SSH packages, so VM readiness may take several minutes before the SSH endpoint comes up. `scripts/incus-vm-up.sh` now uses a 600-second readiness deadline by default, and you can raise or lower it with `SSH_READY_TIMEOUT_SECONDS` or `--ssh-ready-timeout-seconds` when needed. The bootstrap now applies the root disk size as an instance-level device override so it works even when the `default` Incus profile provides the root disk device. Instead of exposing the Docker daemon over unauthenticated TCP, the bootstrap configures SSH access, creates the `openclaw-remote-docker-ssh` Secret, and now programs the Incus VM proxy in **NAT mode** with a stable VM IPv4 on `incusbr0`. The resolved host-side listen address and Docker endpoint are written to `~/.local/state/ai-homebase/incus/<vm-name>.env`, and the local bootstrap layers a temporary Helm values override so OpenClaw uses that exact endpoint. If Incus does not populate runtime `state.network.addresses`, the helper now still succeeds once the guest boots and the configured host-side SSH endpoint becomes reachable, using the configured static IPv4 as the guest address of record.
 
 ## 2) Manual flow
 
@@ -42,6 +42,7 @@ source ~/.local/state/ai-homebase/incus/openclaw-sandbox.env
 ```
 
 `k3d-up.sh` disables the bundled k3s Traefik deployment so `ingress-nginx` remains the only intended HTTP/HTTPS ingress controller in the local cluster. k3d itself still runs on Docker to host the local cluster.
+Expect the Incus helper to spend a few minutes on the very first run while cloud-init installs Docker Engine and SSH; if your machine is slower than the default 600-second wait, pass `--ssh-ready-timeout-seconds <seconds>` or export `SSH_READY_TIMEOUT_SECONDS`.
 
 ### 2.2 Generate bootstrap secrets
 
@@ -199,7 +200,7 @@ The shared OpenClaw defaults now render the Docker sandbox backend with explicit
 The Incus VM assets live outside the Helm charts:
 
 - `incus/openclaw-sandbox-user-data.tpl` contains the cloud-init definition for the guest.
-- `scripts/incus-vm-up.sh` creates or reuses the VM, assigns a stable guest IPv4 on the Incus bridge, configures an Incus NAT-mode SSH proxy, and writes the resolved connection details to `~/.local/state/ai-homebase/incus/<vm-name>.env`.
+- `scripts/incus-vm-up.sh` creates or reuses the VM, assigns a stable guest IPv4 on the Incus bridge, configures an Incus NAT-mode SSH proxy, waits up to 600 seconds by default for SSH readiness on first boot, and writes the resolved connection details to `~/.local/state/ai-homebase/incus/<vm-name>.env`.
 - `scripts/incus-vm-down.sh` deletes just the VM.
 - `scripts/k3d-local-teardown.sh` removes both the k3d cluster and the Incus VM.
 

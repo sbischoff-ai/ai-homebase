@@ -11,6 +11,7 @@ run_case() {
   local proxy_exists="$4"
   local guest_ip_available="$5"
   local ssh_success_after="${6:-1}"
+  local ssh_ready_timeout_seconds="${7:-}"
   local sandbox_dir
   sandbox_dir="$(mktemp -d)"
 
@@ -203,6 +204,14 @@ exit 0
 SH
   chmod +x "${fake_bin}/sleep"
 
+  local -a command=(
+    "${SCRIPT_PATH}"
+    --vm-name test-vm
+    --vm-static-ipv4 10.10.10.45
+    --ssh-key-path "${key_path}"
+    --state-dir "${sandbox_dir}/statefiles"
+  )
+
   PATH="${fake_bin}:$PATH" \
   FAKE_INCUS_LOG="${log_file}" \
   FAKE_INCUS_STATE_DIR="${state_dir}" \
@@ -216,11 +225,8 @@ SH
   FAKE_SLEEP_LOG="${sleep_log_file}" \
   REAL_PYTHON3="${real_python3}" \
   BOOTSTRAP_LOG_FILE="${bootstrap_log}" \
-  "${SCRIPT_PATH}" \
-    --vm-name test-vm \
-    --vm-static-ipv4 10.10.10.45 \
-    --ssh-key-path "${key_path}" \
-    --state-dir "${sandbox_dir}/statefiles" \
+  SSH_READY_TIMEOUT_SECONDS="${ssh_ready_timeout_seconds}" \
+  "${command[@]}" \
     >"${output_log}" 2>&1
 
   case "${case_name}" in
@@ -312,10 +318,136 @@ SH
       ;;
   esac
 
+  if [[ -n "${ssh_ready_timeout_seconds}" ]]; then
+    grep -F "Waiting for Incus VM SSH readiness (timeout: ${ssh_ready_timeout_seconds}s)" "${output_log}" >/dev/null
+  else
+    grep -F 'Waiting for Incus VM SSH readiness (timeout: 600s)' "${output_log}" >/dev/null
+  fi
+
+  rm -rf "${sandbox_dir}"
+}
+
+run_timeout_failure_case() {
+  local sandbox_dir
+  sandbox_dir="$(mktemp -d)"
+
+  local fake_bin="${sandbox_dir}/bin"
+  local log_file="${sandbox_dir}/timeout.log"
+  local bootstrap_log="${sandbox_dir}/bootstrap.log"
+  mkdir -p "${fake_bin}"
+
+  cat >"${fake_bin}/incus" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+command="$1"
+shift
+case "${command}" in
+  info) exit 1 ;;
+  init|start) exit 0 ;;
+  list)
+    if [[ "$2" == "-f" && "$3" == "csv" ]]; then
+      printf 'RUNNING\n'
+      exit 0
+    fi
+    if [[ "$2" == "-f" && "$3" == "json" ]]; then
+      printf '[]\n'
+      exit 0
+    fi
+    ;;
+  network)
+    if [[ "$1" == "get" && "$3" == "ipv4.address" ]]; then
+      printf '10.10.10.1/24\n'
+      exit 0
+    fi
+    ;;
+  config)
+    subcommand="$1"
+    shift
+    case "${subcommand}" in
+      set|device) exit 0 ;;
+      show)
+        cat <<'YAML'
+architecture: x86_64
+config: {}
+profiles:
+- default
+YAML
+        exit 0
+        ;;
+    esac
+    ;;
+  exec) exit 1 ;;
+esac
+printf 'unexpected incus invocation: %s\n' "$command $*" >&2
+exit 1
+SH
+  chmod +x "${fake_bin}/incus"
+
+  cat >"${fake_bin}/python3" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+exec "${REAL_PYTHON3:?}" "$@"
+SH
+  chmod +x "${fake_bin}/python3"
+
+  cat >"${fake_bin}/ssh-keygen" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+key_path=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -f)
+      key_path="$2"
+      shift 2
+      ;;
+    *)
+      shift
+      ;;
+  esac
+done
+mkdir -p "$(dirname "${key_path}")"
+printf 'PRIVATE\n' >"${key_path}"
+printf 'PUBLIC\n' >"${key_path}.pub"
+SH
+  chmod +x "${fake_bin}/ssh-keygen"
+
+  cat >"${fake_bin}/ssh" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+exit 255
+SH
+  chmod +x "${fake_bin}/ssh"
+
+  local real_python3
+  real_python3="$(command -v python3)"
+
+  set +e
+  PATH="${fake_bin}:$PATH" \
+  REAL_PYTHON3="${real_python3}" \
+  BOOTSTRAP_LOG_FILE="${bootstrap_log}" \
+  "${SCRIPT_PATH}" \
+    --vm-name test-vm \
+    --vm-static-ipv4 10.10.10.45 \
+    --ssh-key-path "${sandbox_dir}/keys/test-id_ed25519" \
+    --state-dir "${sandbox_dir}/statefiles" \
+    --ssh-ready-timeout-seconds 0 \
+    >"${log_file}" 2>&1
+  local status=$?
+  set -e
+
+  if [[ ${status} -eq 0 ]]; then
+    echo "expected zero-second timeout case to fail" >&2
+    return 1
+  fi
+
+  grep -F 'Waiting for Incus VM SSH readiness (timeout: 0s)' "${log_file}" >/dev/null
+  grep -F 'Timed out waiting for test-vm' "${log_file}" >/dev/null
+
   rm -rf "${sandbox_dir}"
 }
 
 run_case inherited-root 0 0 0 1 3
-run_case local-root 1 1 1 0 1
+run_case local-root 1 1 1 0 1 42
+run_timeout_failure_case
 
 echo "incus-vm-up tests passed"
