@@ -54,9 +54,9 @@ The supported targets now split runtime posture by service:
 
 - `openhands.runtime.mode` is fixed to `kubernetes`, and `openhands.kubernetes.*` renders the upstream `[kubernetes]` config block used for in-cluster runtime sandboxes.
 - `openclaw.openclaw.agents.defaults.sandbox.*` renders the OpenClaw sandbox configuration directly into `openclaw.json`, and the shipped defaults now set `backend: docker`.
-- No Docker socket mounts, sidecars, or host-runtime passthrough are added for OpenClaw in this repository yet; only the configured backend value changes in this task.
+- `openclaw.remoteDocker.*` is optional and intentionally environment-specific: enable it only in higher-precedence overlays where you also provide the SSH Secret, the remote Docker endpoint, and any required custom OpenClaw image override.
 
-OpenHands Kubernetes runtime defaults assume OpenHands itself is running inside the cluster and create per-session runtime resources in the configured namespace. The shipped OpenClaw defaults and overlays now point at the `docker` backend value only, without adding the runtime enablement needed to execute Docker-backed sandboxes.
+OpenHands Kubernetes runtime defaults assume OpenHands itself is running inside the cluster and create per-session runtime resources in the configured namespace. OpenClaw now renders its Docker/browser sandbox JSON directly from chart values, and the optional `openclaw.remoteDocker.*` block wires `DOCKER_HOST`, `HOME`, and SSH material into the pod when you want Docker commands to execute against a remote daemon over SSH.
 
 ## Values schema validation
 

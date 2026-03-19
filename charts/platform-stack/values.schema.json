@@ -54,6 +54,23 @@
           "default": "openclaw-app-secrets",
           "description": "Kubernetes Secret name containing OpenClaw credentials."
         },
+        "remoteDocker": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "enabled": { "type": "boolean", "default": false },
+            "dockerHost": { "type": "string", "default": "" },
+            "home": { "type": "string", "default": "/home/node" },
+            "ssh": {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "secretName": { "type": "string", "default": "openclaw-remote-docker-ssh" },
+                "mountPath": { "type": "string", "default": "/home/node/.ssh" }
+              }
+            }
+          }
+        },
         "service": { "$ref": "#/definitions/service" },
         "ingress": { "$ref": "#/definitions/ingressWithHosts" },
         "persistence": { "$ref": "#/definitions/persistence" },

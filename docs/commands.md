@@ -91,4 +91,8 @@ scripts/ci/check_golden.sh
 ./scripts/incus-vm-up.sh --vm-name openclaw-sandbox
 ./scripts/incus-vm-down.sh --vm-name openclaw-sandbox
 ./scripts/k3d-local-teardown.sh --cluster-name ai-homebase-dev --vm-name openclaw-sandbox
+./scripts/openclaw-remote-docker-load-images.sh \
+  --docker-host ssh://docker-remote@host.k3d.internal:2222 \
+  --image openclaw-sandbox:bookworm-slim \
+  --image openclaw-sandbox-browser:bookworm-slim
 ```

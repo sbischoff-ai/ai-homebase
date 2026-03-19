@@ -32,4 +32,4 @@ kubectl -n ai-homebase describe ingress
 
 ## 4) Sandbox posture
 
-The shipped k3s overlay now sets `openclaw.agents.defaults.sandbox.backend=docker` while leaving real Docker runtime enablement for a later change. OpenHands continues to use Kubernetes runtime sandboxes.
+The shared OpenClaw defaults now render Docker/browser sandbox settings directly in `openclaw.json`. Enable `openclaw.remoteDocker.*`, provide an SSH Secret plus a derived OpenClaw image with Docker CLI/OpenSSH, and set `openclaw.agents.defaults.sandbox.browser.cdpSourceRange` for the network range seen by the remote Docker host. OpenHands continues to use Kubernetes runtime sandboxes.
