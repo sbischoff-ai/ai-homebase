@@ -90,6 +90,7 @@ scripts/ci/check_golden.sh
 ./scripts/k3d-local-bootstrap.sh --cluster-name ai-homebase-dev
 ./scripts/incus-vm-up.sh --vm-name openclaw-sandbox
 # First boot may take several minutes while cloud-init installs Docker Engine and SSH.
+# The helper seeds explicit NoCloud user-data + network-config before the VM starts.
 # Override the default 600-second readiness deadline if your host is slower:
 SSH_READY_TIMEOUT_SECONDS=900 ./scripts/incus-vm-up.sh --vm-name openclaw-sandbox
 source ~/.local/state/ai-homebase/incus/openclaw-sandbox.env
