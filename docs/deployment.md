@@ -15,7 +15,7 @@ Before choosing a target, confirm:
 
 - Kubernetes + Helm tooling is installed and working.
 - Local k3d path has `k3d` and Docker available.
-- OpenClaw's standard Incus-assisted sandbox path has Incus installed on the host and initialized for the remote Docker VM.
+- OpenClaw's standard Incus-assisted sandbox path has Incus installed on the host and initialized for the remote Docker VM; on NixOS, follow the complete host example in [`docs/deployment-k3d.md`](./deployment-k3d.md#nixos-host-setup-notes) so Docker, Incus preseed state, nftables, and local host mappings are all present.
 - k3s path has a reachable cluster and a working default storage class.
 - k3s path also has a reachable SSH-backed remote Docker/Incus VM for OpenClaw, plus the matching Kubernetes Secret.
 - You have planned your values overlays and secret references.

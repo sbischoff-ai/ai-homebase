@@ -46,7 +46,7 @@ Use `--verbose` (or `BOOTSTRAP_VERBOSE=1`) when you want full live command outpu
 
 For complete command coverage, see [`docs/commands.md`](./docs/commands.md).
 
-> Local k3d note: the shipped `values-k3d.yaml` profile points the `wg-easy`, `OpenHands`, and `Infisical` Ingresses at the Helm-managed `ingress-nginx` controller by using the `nginx` ingress class. `*.localtest.me` usually resolves to `127.0.0.1` automatically, but some NixOS setups do not provide that resolution out of the box. If browser access to local ingress hosts such as `openhands.localtest.me`, `wg.localtest.me`, or `infisical.localtest.me` fails, add explicit host mappings as described in [`docs/deployment-k3d.md`](./docs/deployment-k3d.md#4-local-ingress-host-access-dnshosts). That same section now also documents the NixOS host configuration needed to enable Incus for the bootstrap-managed sandbox VM.
+> Local k3d note: the shipped `values-k3d.yaml` profile points the `wg-easy`, `OpenHands`, and `Infisical` Ingresses at the Helm-managed `ingress-nginx` controller by using the `nginx` ingress class. `*.localtest.me` usually resolves to `127.0.0.1` automatically, but some NixOS setups do not provide that resolution out of the box. If browser access to local ingress hosts such as `openhands.localtest.me`, `wg.localtest.me`, or `infisical.localtest.me` fails, add explicit host mappings as described in [`docs/deployment-k3d.md`](./docs/deployment-k3d.md#4-local-ingress-host-access-dnshosts). That same section now also includes a complete NixOS host example covering `virtualisation.docker.enable`, an Incus `preseed` for `incusbr0`, `networking.nftables.enable`, and `networking.extraHosts` entries for the shipped local hostnames.
 
 ## Documentation map
 

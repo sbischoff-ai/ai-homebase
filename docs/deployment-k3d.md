@@ -101,15 +101,81 @@ If not, add entries such as:
 
 ### NixOS host setup notes
 
-If you use NixOS and want the Incus-backed sandbox VM flow, make sure Incus is enabled on the host rather than relying on the repository's `shell.nix`. Add the equivalent host configuration for your system, including:
+If you use NixOS and want the Incus-backed sandbox VM flow, make the host requirements explicit in your system configuration rather than relying on the repository's `shell.nix`. The local bootstrap needs Docker for `k3d`, Incus for the dedicated `openclaw-sandbox` VM, nftables for the Incus bridge/NAT rules, and local host mappings when your machine does not resolve `*.localtest.me` automatically.
+
+A complete example looks like this:
 
 ```nix
-virtualisation.incus.enable = true;
-networking.nftables.enable = true;
-users.users.<your-user>.extraGroups = [ "incus-admin" ];
+{
+  virtualisation.docker.enable = true;
+
+  virtualisation.incus = {
+    enable = true;
+
+    preseed = {
+      config = {
+        "core.https_address" = "[::]:8443"; # optional
+      };
+
+      networks = [
+        {
+          name = "incusbr0";
+          type = "bridge";
+          config = {
+            "ipv4.address" = "10.10.10.1/24";
+            "ipv4.nat" = "true";
+            "ipv6.address" = "none";
+          };
+        }
+      ];
+
+      storage_pools = [
+        {
+          name = "default";
+          driver = "dir";
+        }
+      ];
+
+      profiles = [
+        {
+          name = "default";
+          description = "Default Incus profile";
+          config = {};
+          devices = {
+            eth0 = {
+              type = "nic";
+              name = "eth0";
+              network = "incusbr0";
+            };
+            root = {
+              type = "disk";
+              path = "/";
+              pool = "default";
+            };
+          };
+        }
+      ];
+    };
+  };
+
+  networking.nftables.enable = true;
+
+  networking.extraHosts = ''
+    127.0.0.1 openclaw.localtest.me
+    127.0.0.1 openhands.localtest.me
+    127.0.0.1 infisical.localtest.me
+    127.0.0.1 nextcloud.localtest.me
+    127.0.0.1 paperless.localtest.me
+    127.0.0.1 wg.localtest.me
+  '';
+
+  users.users.yourUser.extraGroups = [ "incus-admin" ];
+}
 ```
 
-After rebuilding your NixOS configuration, initialize Incus if needed and then continue with the k3d bootstrap flow above.
+Replace `yourUser` with the local account that runs `k3d`, `incus`, and the repository helper scripts. The extra host entries cover every shipped `values-k3d.yaml` hostname; `nextcloud.localtest.me` and `paperless.localtest.me` are only needed if you enable those optional services locally, but keeping them in `extraHosts` avoids surprise DNS mismatches later.
+
+After rebuilding your NixOS configuration, log out/in so the new group membership applies, initialize Incus if needed, and then continue with the k3d bootstrap flow above.
 
 ## 5) Sandbox note
 
