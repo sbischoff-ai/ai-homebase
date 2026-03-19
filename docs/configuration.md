@@ -51,11 +51,10 @@ Cloud-provider-specific deployment profiles and conditionals have been removed.
 The supported targets now split runtime posture by service:
 
 - `openhands.runtime.mode` is fixed to `kubernetes`, and `openhands.kubernetes.*` renders the upstream `[kubernetes]` config block used for in-cluster runtime sandboxes.
-- `openshell.*` configures the cluster-local OpenShell gateway service and the endpoint/command values reused by overlays.
-- `openclaw.hostDockerSocket.*` remains available for explicitly opting back into the Docker backend.
-- `openclaw.openclaw.agents.defaults.sandbox.*` and `openclaw.openclaw.plugins.*` render the OpenClaw sandbox/plugin configuration directly into `openclaw.json`.
+- `openshell.*` configures the cluster-local OpenShell gateway service plus the endpoint/command values reused by OpenClaw overlays.
+- `openclaw.openclaw.agents.defaults.sandbox.*` and `openclaw.openclaw.plugins.*` render the OpenClaw OpenShell sandbox/plugin configuration directly into `openclaw.json`.
 
-OpenHands Kubernetes runtime defaults assume OpenHands itself is running inside the cluster and create per-session runtime resources in the configured namespace. The shipped OpenClaw overlays now target the OpenShell backend, while the older Docker socket model remains an explicit opt-in homelab override rather than the default path.
+OpenHands Kubernetes runtime defaults assume OpenHands itself is running inside the cluster and create per-session runtime resources in the configured namespace. The shipped OpenClaw defaults and overlays now target the OpenShell backend with session-scoped sandboxes rather than any host-Docker execution path.
 
 ## Values schema validation
 
@@ -84,7 +83,7 @@ Use service-specific blocks when behavior must diverge, especially for:
 - `openclaw.*` and `openhands.*`
 - Secret references and env contracts
 - Persistence and ingress controls
-- OpenHands Kubernetes runtime settings and OpenClaw Docker-socket settings
+- OpenHands Kubernetes runtime settings and OpenClaw sandbox/plugin settings
 
 ## Toggle strategy for service composition
 

@@ -38,7 +38,7 @@ helm dependency update charts/platform-stack
 ```
 
 `k3d-local-bootstrap.sh` creates a dedicated kubeconfig for the local cluster so your setup is isolated from other projects and does not depend on your existing `KUBECONFIG` merge state.
-The local k3d bootstrap also disables the default k3s Traefik add-on during cluster creation so Helm-managed `ingress-nginx` is the single intended HTTP/HTTPS ingress controller. It still uses Docker to run the local k3d node containers themselves, but the shipped OpenClaw overlay no longer depends on mounting a host Docker socket into the OpenClaw pod for sandbox execution.
+The local k3d bootstrap also disables the default k3s Traefik add-on during cluster creation so Helm-managed `ingress-nginx` is the single intended HTTP/HTTPS ingress controller. It still uses Docker to run the local k3d node containers themselves, but OpenClaw sandbox execution now stays entirely in-cluster through the OpenShell service and no longer relies on any host Docker passthrough.
 By default, helper scripts print concise progress updates and write full command logs to `/tmp/ai-homebase-bootstrap-<timestamp>.log`.
 Use `--verbose` (or `BOOTSTRAP_VERBOSE=1`) when you want full live command output in the terminal.
 

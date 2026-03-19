@@ -80,25 +80,11 @@ openclaw:
     defaults:
       workspace: ~/.openclaw/workspace
       sandbox:
-        mode: off
-        backend: docker
-        scope: agent
-        workspaceAccess: none
+        mode: all
+        backend: openshell
+        scope: session
+        workspaceAccess: rw
         workspaceRoot: ~/.openclaw/sandboxes
-        docker:
-          image: openclaw-sandbox:bookworm-slim
-          workdir: /workspace
-          readOnlyRoot: true
-          tmpfs:
-            - /tmp
-            - /var/tmp
-            - /run
-          network: none
-          user: "1000:1000"
-          capDrop:
-            - ALL
-          env:
-            LANG: C.UTF-8
         prune:
           idleHours: 24
           maxAgeDays: 7
@@ -109,7 +95,7 @@ openclaw:
   plugins:
     entries:
       openshell:
-        enabled: false
+        enabled: true
         config:
           mode: remote
           command: openshell
@@ -223,11 +209,6 @@ affinity: {}
 topologySpreadConstraints: []
 priorityClassName: ""
 runtimeClassName: ""
-
-hostDockerSocket:
-  enabled: false
-  hostPath: /var/run/docker.sock
-  mountPath: /var/run/docker.sock
 
 extraVolumes: []
 extraVolumeMounts: []

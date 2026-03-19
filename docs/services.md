@@ -50,9 +50,9 @@ Canonical default posture in this document refers to umbrella defaults from `cha
 - Requires secret references for API/auth integrations.
 - Mounts an in-memory writable `/tmp` and a persistent state directory.
 - The chart renders `openclaw.json` from structured `openclaw.*` values.
-- For supported targets, the shipped overlays now point OpenClaw at the OpenShell backend by rendering `openclaw.agents.defaults.sandbox.backend=openshell`, enabling `openclaw.plugins.entries.openshell`, and setting `plugins.entries.openshell.config.gatewayEndpoint` to the cluster-local OpenShell service URL.
+- OpenClaw now defaults to OpenShell sandboxing by rendering `openclaw.agents.defaults.sandbox.mode=all`, `backend=openshell`, `scope=session`, and `workspaceAccess=rw`.
+- The chart enables `openclaw.plugins.entries.openshell` by default and points `plugins.entries.openshell.config.gatewayEndpoint` at the cluster-local OpenShell service URL.
 - The OpenClaw chart also exposes `plugins.entries.openshell.config.command`, so operators can keep the default `openshell` binary name or point at a custom CLI path in images that bundle the tool elsewhere.
-- `openclaw.hostDockerSocket.*` remains available only for explicit Docker-backend opt-in scenarios; it is no longer required in the supported overlays.
 
 ### OpenHands
 

@@ -91,8 +91,9 @@ openclaw:
   agents:
     defaults:
       sandbox:
-        mode: non-main
+        mode: all
         backend: openshell
+        scope: session
         workspaceAccess: rw
   plugins:
     entries:
@@ -104,7 +105,7 @@ openclaw:
           mode: remote
 ```
 
-The pod still exports `OPENCLAW_SANDBOX=1` whenever sandboxing is enabled, but Docker socket env/mounts are now only added when you explicitly opt back into the Docker backend with `hostDockerSocket.enabled=true`. If the selected OpenClaw image does not already include the `openshell` CLI, override the image and/or set `plugins.entries.openshell.config.command` to the correct binary path.
+The pod exports `OPENCLAW_SANDBOX=1` whenever sandboxing is enabled and renders the OpenShell plugin configuration directly into `openclaw.json`. If the selected OpenClaw image does not already include the `openshell` CLI, override the image and/or set `plugins.entries.openshell.config.command` to the correct binary path.
 
 ## Example: secrets + values (`existingSecret` / `secretRefs` style)
 

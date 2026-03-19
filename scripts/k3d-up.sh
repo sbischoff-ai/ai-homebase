@@ -124,7 +124,6 @@ else
       -p "51820:51820/udp@server:0"
       -p "51821:51821@server:0"
       --volume "/lib/modules:/lib/modules@all"
-      --volume "/var/run/docker.sock:/var/run/docker.sock@all"
       --k3s-arg "--disable=traefik@server:*"
     )
 

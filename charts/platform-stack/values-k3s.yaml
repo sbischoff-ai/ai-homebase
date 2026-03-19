@@ -33,8 +33,6 @@ openclaw:
     limits:
       cpu: "2"
       memory: 2Gi
-  hostDockerSocket:
-    enabled: false
   openclaw:
     gateway:
       controlUi:
@@ -43,8 +41,9 @@ openclaw:
     agents:
       defaults:
         sandbox:
-          mode: non-main
+          mode: all
           backend: openshell
+          scope: session
           workspaceAccess: rw
     plugins:
       entries:
