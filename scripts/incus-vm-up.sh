@@ -71,7 +71,7 @@ fi
 bootstrap_init_logging
 trap 'fail "Incus VM setup failed. Log: ${BOOTSTRAP_LOG_FILE}"' ERR
 
-for cmd in incus python3 ssh-keygen; do
+for cmd in incus python3 ssh ssh-keygen; do
   if ! command -v "$cmd" >/dev/null 2>&1; then
     fail "Missing required dependency: $cmd"
     exit 1
@@ -183,6 +183,8 @@ autodetect_network_addresses() {
 
 wait_for_vm_readiness() {
   local deadline=$((SECONDS + 180))
+  local guest_booted_reported=0
+  local guest_agent_unavailable_reported=0
   while [[ $SECONDS -lt $deadline ]]; do
     if VM_IPV4="$(get_vm_ipv4 2>/dev/null)"; then
       export VM_IPV4
@@ -191,14 +193,37 @@ wait_for_vm_readiness() {
       export VM_IPV4
     fi
 
-    if incus exec "$VM_NAME" -- systemctl is-active --quiet ssh >/dev/null 2>&1; then
+    if ssh \
+      -i "$SSH_KEY_PATH" \
+      -o BatchMode=yes \
+      -o ConnectTimeout=3 \
+      -o StrictHostKeyChecking=no \
+      -o UserKnownHostsFile=/dev/null \
+      -p "$SSH_HOST_PORT" \
+      "${REMOTE_USER}@${HOST_LISTEN_ADDRESS}" \
+      true >/dev/null 2>&1; then
+      ok "SSH endpoint confirmed reachable at ${HOST_LISTEN_ADDRESS}:${SSH_HOST_PORT}"
       return 0
+    fi
+
+    if incus exec "$VM_NAME" -- systemctl is-active --quiet ssh >/dev/null 2>&1; then
+      if [[ "$guest_booted_reported" -eq 0 ]]; then
+        step "Guest booted but SSH proxy unreachable at ${HOST_LISTEN_ADDRESS}:${SSH_HOST_PORT}; waiting for endpoint reachability"
+        guest_booted_reported=1
+      fi
+    elif [[ "$guest_agent_unavailable_reported" -eq 0 ]]; then
+      warn "Guest agent unavailable; still waiting for SSH endpoint ${HOST_LISTEN_ADDRESS}:${SSH_HOST_PORT}"
+      guest_agent_unavailable_reported=1
     fi
 
     sleep 3
   done
 
-  fail "Timed out waiting for ${VM_NAME} SSH readiness"
+  if [[ "$guest_booted_reported" -eq 1 ]]; then
+    fail "Timed out waiting for ${VM_NAME}: guest booted but SSH proxy unreachable at ${HOST_LISTEN_ADDRESS}:${SSH_HOST_PORT}"
+  else
+    fail "Timed out waiting for ${VM_NAME}: guest agent unavailable and SSH endpoint ${HOST_LISTEN_ADDRESS}:${SSH_HOST_PORT} did not become reachable"
+  fi
   exit 1
 }
 
