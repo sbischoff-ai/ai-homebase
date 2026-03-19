@@ -9,7 +9,6 @@ Use `global.*` for shared defaults such as hostnames, storage class, image pull 
 `platform-stack` is an umbrella chart with dependency toggles for:
 
 - `openclaw.enabled`
-- `openshell.enabled`
 - `openhands.enabled`
 - `nextcloud.enabled`
 - `gitea.enabled`
@@ -49,7 +48,7 @@ Relevant sandbox-related value paths:
 - `openclaw.agents.defaults.sandbox.scope`
 - `openclaw.agents.defaults.sandbox.workspaceAccess`
 - `openclaw.agents.defaults.sandbox.prune.*`
-- `openclaw.plugins.entries.openshell.config.*`
+- `openclaw.plugins.*`
 
 ## OpenHands Kubernetes runtime wiring
 

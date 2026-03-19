@@ -10,7 +10,7 @@
 ### OpenClaw
 
 OpenClaw is the main assistant experience.
-It also owns the rendered sandbox and plugin configuration used for OpenShell-backed agent execution in the supported target overlays.
+It owns the rendered sandbox configuration used by the supported target overlays.
 
 ### OpenHands
 
@@ -26,4 +26,4 @@ The repository intentionally supports only:
 
 ## Trust boundary
 
-OpenClaw now uses the cluster-local OpenShell gateway as the default sandbox backend in the supported overlays, while OpenHands uses namespace-scoped in-cluster Kubernetes runtime sandboxes. That keeps both services on in-cluster execution paths without requiring host Docker socket access by default.
+OpenClaw now ships with the `docker` sandbox backend value in the supported overlays, while OpenHands uses namespace-scoped in-cluster Kubernetes runtime sandboxes. OpenClaw Docker runtime integration is intentionally not part of this change, so no host Docker socket access or comparable runtime passthrough is configured here.

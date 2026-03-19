@@ -108,7 +108,7 @@
         "plugins": {
           "type": "object",
           "additionalProperties": true,
-          "description": "Structured OpenClaw plugin configuration rendered into openclaw.json, including OpenShell backend settings."
+          "description": "Structured OpenClaw plugin configuration rendered into openclaw.json."
         }
       }
     }

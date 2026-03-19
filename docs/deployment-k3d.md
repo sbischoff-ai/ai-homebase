@@ -36,7 +36,7 @@ The bootstrap exports `KUBECONFIG` to the dedicated kubeconfig path for the life
 ./scripts/k3d-up.sh --cluster-name ai-homebase-dev
 ```
 
-`k3d-up.sh` disables the bundled k3s Traefik deployment so `ingress-nginx` remains the only intended HTTP/HTTPS ingress controller in the local cluster. k3d itself still runs on Docker to host the local cluster, but the bootstrap no longer passes the host Docker socket through to k3d nodes for OpenClaw sandboxing.
+`k3d-up.sh` disables the bundled k3s Traefik deployment so `ingress-nginx` remains the only intended HTTP/HTTPS ingress controller in the local cluster. k3d itself still runs on Docker to host the local cluster.
 
 ### 2.2 Generate bootstrap secrets
 
@@ -89,4 +89,4 @@ If not, add entries such as:
 
 ## 5) Sandbox note
 
-The k3d overlay now enables the OpenShell backend for OpenClaw with `mode=all`, `scope=session`, `workspaceAccess=rw`, and the in-cluster `openshell` Service endpoint (`http://openshell:80`). OpenHands continues to use the upstream in-cluster Kubernetes runtime and therefore does not need any host Docker passthrough either.
+The k3d overlay now sets `openclaw.agents.defaults.sandbox.backend=docker` while leaving actual Docker runtime wiring for a later task. OpenHands continues to use the upstream in-cluster Kubernetes runtime and therefore does not need host Docker passthrough from this repository.

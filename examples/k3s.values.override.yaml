@@ -21,17 +21,3 @@ openhands:
   image:
     repository: ghcr.io/openhands/openhands
     tag: "1.5.0"
-
-openshell:
-  image:
-    repository: <registry>/openshell
-    tag: <image-tag>
-
-# If your OpenClaw image stores the OpenShell binary at a non-default path, keep the plugin command aligned.
-# openclaw:
-#   openclaw:
-#     plugins:
-#       entries:
-#         openshell:
-#           config:
-#             command: /usr/local/bin/openshell

@@ -32,4 +32,4 @@ kubectl -n ai-homebase describe ingress
 
 ## 4) Sandbox posture
 
-The shipped k3s overlay now enables OpenShell-backed sandboxing for OpenClaw with `mode=all`, `scope=session`, and `workspaceAccess=rw`, while OpenHands continues to use Kubernetes runtime sandboxes.
+The shipped k3s overlay now sets `openclaw.agents.defaults.sandbox.backend=docker` while leaving real Docker runtime enablement for a later change. OpenHands continues to use Kubernetes runtime sandboxes.
