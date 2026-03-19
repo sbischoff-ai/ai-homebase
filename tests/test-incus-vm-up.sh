@@ -7,6 +7,8 @@ SCRIPT_PATH="${REPO_ROOT}/scripts/incus-vm-up.sh"
 run_case() {
   local case_name="$1"
   local local_root="$2"
+  local local_eth0="$3"
+  local proxy_exists="$4"
   local sandbox_dir
   sandbox_dir="$(mktemp -d)"
 
@@ -23,6 +25,8 @@ set -euo pipefail
 log_file="${FAKE_INCUS_LOG:?}"
 state_dir="${FAKE_INCUS_STATE_DIR:?}"
 local_root="${FAKE_INCUS_LOCAL_ROOT:-0}"
+local_eth0="${FAKE_INCUS_LOCAL_ETH0:-0}"
+proxy_exists="${FAKE_INCUS_PROXY_EXISTS:-0}"
 printf '%s\n' "$*" >>"${log_file}"
 command="$1"
 shift
@@ -48,6 +52,12 @@ case "${command}" in
       exit 0
     fi
     ;;
+  network)
+    if [[ "$1" == "get" && "$3" == "ipv4.address" ]]; then
+      printf '10.10.10.1/24\n'
+      exit 0
+    fi
+    ;;
   start)
     echo RUNNING >"${state_dir}/status"
     exit 0
@@ -57,15 +67,25 @@ case "${command}" in
     shift
     case "${subcommand}" in
       show)
-        if [[ "${local_root}" == "1" ]]; then
-          cat <<'YAML'
+        if [[ "${local_root}" == "1" || "${local_eth0}" == "1" ]]; then
+          cat <<YAML
 architecture: x86_64
 config: {}
 devices:
+$(if [[ "${local_root}" == "1" ]]; then cat <<'INNER'
   root:
     path: /
     pool: default
     type: disk
+INNER
+fi)
+$(if [[ "${local_eth0}" == "1" ]]; then cat <<'INNER'
+  eth0:
+    name: eth0
+    network: incusbr0
+    type: nic
+INNER
+fi)
 profiles:
 - default
 YAML
@@ -86,7 +106,16 @@ YAML
         device_cmd="$1"
         shift
         case "${device_cmd}" in
-          show|set|add|override)
+          show)
+            if [[ "${proxy_exists}" == "1" ]]; then
+              cat <<'YAML'
+ssh-proxy:
+  type: proxy
+YAML
+            fi
+            exit 0
+            ;;
+          set|add|override)
             exit 0
             ;;
         esac
@@ -107,10 +136,25 @@ if [[ "$1" == "-c" ]]; then
   exit 0
 fi
 if [[ "$1" == "-" ]]; then
-  template_path="$2"
-  rendered_path="$3"
-  cp "${template_path}" "${rendered_path}"
-  exit 0
+  if [[ "$2" == *".tpl" ]]; then
+    template_path="$2"
+    rendered_path="$3"
+    cp "${template_path}" "${rendered_path}"
+    exit 0
+  fi
+
+  cidr="$2"
+  vm_name="${3:-}"
+  case "${cidr}" in
+    10.10.10.1/24)
+      if [[ -z "${vm_name}" ]]; then
+        printf '10.10.10.1\n'
+      else
+        printf '10.10.10.45\n'
+      fi
+      exit 0
+      ;;
+  esac
 fi
 printf 'unexpected python3 invocation\n' >&2
 exit 1
@@ -142,6 +186,8 @@ SH
   FAKE_INCUS_LOG="${log_file}" \
   FAKE_INCUS_STATE_DIR="${state_dir}" \
   FAKE_INCUS_LOCAL_ROOT="${local_root}" \
+  FAKE_INCUS_LOCAL_ETH0="${local_eth0}" \
+  FAKE_INCUS_PROXY_EXISTS="${proxy_exists}" \
   BOOTSTRAP_LOG_FILE="${bootstrap_log}" \
   "${SCRIPT_PATH}" \
     --vm-name test-vm \
@@ -167,10 +213,41 @@ SH
       ;;
   esac
 
+  case "${proxy_exists}" in
+    0)
+      grep -F 'config device add test-vm ssh-proxy proxy listen=tcp:10.10.10.1:2222 connect=tcp:0.0.0.0:22 nat=true' "${log_file}" >/dev/null
+      ;;
+    1)
+      grep -F 'config device set test-vm ssh-proxy listen tcp:10.10.10.1:2222' "${log_file}" >/dev/null
+      grep -F 'config device set test-vm ssh-proxy connect tcp:0.0.0.0:22' "${log_file}" >/dev/null
+      grep -F 'config device set test-vm ssh-proxy nat true' "${log_file}" >/dev/null
+      ;;
+  esac
+
+  case "${local_eth0}" in
+    0)
+      grep -F 'config device override test-vm eth0 ipv4.address=10.10.10.45' "${log_file}" >/dev/null
+      if grep -F 'config device set test-vm eth0 ipv4.address 10.10.10.45' "${log_file}" >/dev/null; then
+        echo "expected inherited eth0 case to avoid config device set" >&2
+        return 1
+      fi
+      ;;
+    1)
+      grep -F 'config device set test-vm eth0 ipv4.address 10.10.10.45' "${log_file}" >/dev/null
+      if grep -F 'config device override test-vm eth0 ipv4.address=10.10.10.45' "${log_file}" >/dev/null; then
+        echo "expected local eth0 case to avoid config device override" >&2
+        return 1
+      fi
+      ;;
+  esac
+
+  grep -F 'HOST_LISTEN_ADDRESS=10.10.10.1' "${sandbox_dir}/statefiles/test-vm.env" >/dev/null
+  grep -F 'VM_STATIC_IPV4=10.10.10.45' "${sandbox_dir}/statefiles/test-vm.env" >/dev/null
+
   rm -rf "${sandbox_dir}"
 }
 
-run_case inherited-root 0
-run_case local-root 1
+run_case inherited-root 0 0 0
+run_case local-root 1 1 1
 
 echo "incus-vm-up tests passed"

@@ -12,7 +12,11 @@ INCUS_VM_NAME="${INCUS_VM_NAME:-openclaw-sandbox}"
 REMOTE_DOCKER_HOST="${REMOTE_DOCKER_HOST:-host.k3d.internal}"
 REMOTE_DOCKER_PORT="${REMOTE_DOCKER_PORT:-2222}"
 REMOTE_DOCKER_KEY_PATH="${REMOTE_DOCKER_KEY_PATH:-${HOME}/.local/state/ai-homebase/incus/${INCUS_VM_NAME}-id_ed25519}"
+INCUS_CONNECTION_INFO_PATH="${INCUS_CONNECTION_INFO_PATH:-}"
 WG_PASSWORD_OUTPUT=""
+OVERRIDE_VALUES_FILE=""
+REMOTE_DOCKER_HOST_EXPLICIT=0
+REMOTE_DOCKER_PORT_EXPLICIT=0
 
 usage() {
   cat <<USAGE
@@ -30,6 +34,7 @@ Options:
   --remote-docker-host <h> Hostname OpenClaw should use for the remote Docker SSH endpoint (default: ${REMOTE_DOCKER_HOST})
   --remote-docker-port <p> SSH port for the remote Docker endpoint (default: ${REMOTE_DOCKER_PORT})
   --remote-docker-key <p>  Private key path for the OpenClaw remote Docker Secret (default: ${REMOTE_DOCKER_KEY_PATH})
+  --incus-connection-info <p> Path to the Incus VM connection info env file (default: ${INCUS_CONNECTION_INFO_PATH})
   OPENAI_API_KEY env var   Required OpenAI API key for bootstrap secret generation
   --verbose                Stream full command output
   -h, --help               Show this help message
@@ -44,14 +49,19 @@ while [[ $# -gt 0 ]]; do
     --kubeconfig) KUBECONFIG_PATH="$2"; shift 2 ;;
     --wg-host) WG_HOST="$2"; shift 2 ;;
     --incus-vm-name) INCUS_VM_NAME="$2"; shift 2 ;;
-    --remote-docker-host) REMOTE_DOCKER_HOST="$2"; shift 2 ;;
-    --remote-docker-port) REMOTE_DOCKER_PORT="$2"; shift 2 ;;
+    --remote-docker-host) REMOTE_DOCKER_HOST="$2"; REMOTE_DOCKER_HOST_EXPLICIT=1; shift 2 ;;
+    --remote-docker-port) REMOTE_DOCKER_PORT="$2"; REMOTE_DOCKER_PORT_EXPLICIT=1; shift 2 ;;
     --remote-docker-key) REMOTE_DOCKER_KEY_PATH="$2"; shift 2 ;;
+    --incus-connection-info) INCUS_CONNECTION_INFO_PATH="$2"; shift 2 ;;
     --verbose) BOOTSTRAP_VERBOSE=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
   esac
 done
+
+if [[ -z "$INCUS_CONNECTION_INFO_PATH" ]]; then
+  INCUS_CONNECTION_INFO_PATH="${HOME}/.local/state/ai-homebase/incus/${INCUS_VM_NAME}.env"
+fi
 
 bootstrap_init_logging
 export KUBECONFIG="$KUBECONFIG_PATH"
@@ -86,6 +96,17 @@ step "Bootstrapping Incus sandbox VM"
 run_quiet ./scripts/incus-vm-up.sh --vm-name "$INCUS_VM_NAME"
 ok "Incus sandbox VM is ready"
 
+if [[ -f "$INCUS_CONNECTION_INFO_PATH" ]]; then
+  # shellcheck disable=SC1090
+  source "$INCUS_CONNECTION_INFO_PATH"
+  if [[ "$REMOTE_DOCKER_HOST_EXPLICIT" -eq 0 && -n "${HOST_LISTEN_ADDRESS:-}" ]]; then
+    REMOTE_DOCKER_HOST="$HOST_LISTEN_ADDRESS"
+  fi
+  if [[ "$REMOTE_DOCKER_PORT_EXPLICIT" -eq 0 && -n "${SSH_HOST_PORT:-}" ]]; then
+    REMOTE_DOCKER_PORT="$SSH_HOST_PORT"
+  fi
+fi
+
 step "Bootstrapping local secrets"
 run_quiet ./scripts/k3d-bootstrap-secrets.sh \
   --namespace "$NAMESPACE" \
@@ -98,20 +119,29 @@ run_quiet ./scripts/k3d-bootstrap-secrets.sh \
   --wg-password-out "$WG_PASSWORD_OUTPUT"
 ok "Secrets are ready"
 
+OVERRIDE_VALUES_FILE="$(mktemp /tmp/ai-homebase-k3d-remote-docker.XXXXXX.yaml)"
+cat >"$OVERRIDE_VALUES_FILE" <<EOF
+openclaw:
+  remoteDocker:
+    dockerHost: ssh://docker-remote@${REMOTE_DOCKER_HOST}:${REMOTE_DOCKER_PORT}
+EOF
+trap 'rm -f "$WG_PASSWORD_OUTPUT" "$OVERRIDE_VALUES_FILE"' EXIT
+
 step "Deploying platform stack and running smoke checks"
 run_quiet ./scripts/test-local-k3d.sh \
   --release-name "$RELEASE_NAME" \
   --namespace "$NAMESPACE" \
   --kubeconfig "$KUBECONFIG_PATH" \
   --values-file charts/platform-stack/values.yaml \
-  --values-file charts/platform-stack/values-k3d.yaml
+  --values-file charts/platform-stack/values-k3d.yaml \
+  --values-file "$OVERRIDE_VALUES_FILE"
 ok "Smoke checks passed"
 
 WG_PASSWORD="(not available)"
 if [[ -s "$WG_PASSWORD_OUTPUT" ]]; then
   WG_PASSWORD="$(cat "$WG_PASSWORD_OUTPUT")"
 fi
-rm -f "$WG_PASSWORD_OUTPUT"
+rm -f "$WG_PASSWORD_OUTPUT" "$OVERRIDE_VALUES_FILE"
 
 echo
 echo "Local bootstrap complete."

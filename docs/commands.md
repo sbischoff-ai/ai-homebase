@@ -89,15 +89,17 @@ scripts/ci/check_golden.sh
 ```bash
 ./scripts/k3d-local-bootstrap.sh --cluster-name ai-homebase-dev
 ./scripts/incus-vm-up.sh --vm-name openclaw-sandbox
+source ~/.local/state/ai-homebase/incus/openclaw-sandbox.env
 ./scripts/k3d-bootstrap-secrets.sh \
   --namespace ai-homebase \
   --release-name platform-stack \
-  --remote-docker-host host.k3d.internal \
+  --remote-docker-host "$HOST_LISTEN_ADDRESS" \
+  --remote-docker-port "$SSH_HOST_PORT" \
   --remote-docker-key ~/.local/state/ai-homebase/incus/openclaw-sandbox-id_ed25519
 ./scripts/incus-vm-down.sh --vm-name openclaw-sandbox
 ./scripts/k3d-local-teardown.sh --cluster-name ai-homebase-dev --vm-name openclaw-sandbox
 ./scripts/openclaw-remote-docker-load-images.sh \
-  --docker-host ssh://docker-remote@host.k3d.internal:2222 \
+  --docker-host "ssh://docker-remote@${HOST_LISTEN_ADDRESS}:${SSH_HOST_PORT}" \
   --image openclaw-sandbox:bookworm-slim \
   --image openclaw-sandbox-browser:bookworm-slim
 ```

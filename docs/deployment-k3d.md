@@ -29,7 +29,7 @@ This flow:
 - runs local smoke checks.
 
 The bootstrap exports `KUBECONFIG` to the dedicated kubeconfig path for the lifetime of the script so nested `kubectl` and `helm` calls all target the same local cluster.
-The companion Incus VM is intentionally minimal: `images:debian/12/cloud`, **2 vCPU**, **6 GiB RAM**, a 12 GiB root disk, Docker Engine, and SSH. The bootstrap now applies the root disk size as an instance-level device override so it works even when the `default` Incus profile provides the root disk device. Instead of exposing the Docker daemon over unauthenticated TCP, the bootstrap configures SSH access, creates the `openclaw-remote-docker-ssh` Secret, and points OpenClaw at `ssh://docker-remote@host.k3d.internal:2222` through Docker's SSH transport by default.
+The companion Incus VM is intentionally minimal: `images:debian/12/cloud`, **2 vCPU**, **6 GiB RAM**, a 12 GiB root disk, Docker Engine, and SSH. The bootstrap now applies the root disk size as an instance-level device override so it works even when the `default` Incus profile provides the root disk device. Instead of exposing the Docker daemon over unauthenticated TCP, the bootstrap configures SSH access, creates the `openclaw-remote-docker-ssh` Secret, and now programs the Incus VM proxy in **NAT mode** with a stable VM IPv4 on `incusbr0`. The resolved host-side listen address and Docker endpoint are written to `~/.local/state/ai-homebase/incus/<vm-name>.env`, and the local bootstrap layers a temporary Helm values override so OpenClaw uses that exact endpoint.
 
 ## 2) Manual flow
 
@@ -38,6 +38,7 @@ The companion Incus VM is intentionally minimal: `images:debian/12/cloud`, **2 v
 ```bash
 ./scripts/k3d-up.sh --cluster-name ai-homebase-dev
 ./scripts/incus-vm-up.sh --vm-name openclaw-sandbox
+source ~/.local/state/ai-homebase/incus/openclaw-sandbox.env
 ```
 
 `k3d-up.sh` disables the bundled k3s Traefik deployment so `ingress-nginx` remains the only intended HTTP/HTTPS ingress controller in the local cluster. k3d itself still runs on Docker to host the local cluster.
@@ -50,8 +51,19 @@ export OPENAI_API_KEY="<your-openai-api-key>"
   --namespace ai-homebase \
   --release-name platform-stack \
   --kubeconfig ~/.kube/k3d-ai-homebase-dev.yaml \
-  --remote-docker-host host.k3d.internal \
+  --remote-docker-host "$HOST_LISTEN_ADDRESS" \
+  --remote-docker-port "$SSH_HOST_PORT" \
   --remote-docker-key ~/.local/state/ai-homebase/incus/openclaw-sandbox-id_ed25519
+```
+
+For the OpenClaw deployment itself, layer a one-off override that matches the same endpoint:
+
+```bash
+cat >/tmp/platform-stack-k3d-remote-docker.yaml <<EOF
+openclaw:
+  remoteDocker:
+    dockerHost: ssh://docker-remote@${HOST_LISTEN_ADDRESS}:${SSH_HOST_PORT}
+EOF
 ```
 
 ### 2.3 Deploy and run smoke checks
@@ -60,7 +72,8 @@ export OPENAI_API_KEY="<your-openai-api-key>"
 ./scripts/test-local-k3d.sh \
   --release-name platform-stack \
   --namespace ai-homebase \
-  --kubeconfig ~/.kube/k3d-ai-homebase-dev.yaml
+  --kubeconfig ~/.kube/k3d-ai-homebase-dev.yaml \
+  --values-file /tmp/platform-stack-k3d-remote-docker.yaml
 ```
 
 If you only want the install step:
@@ -186,7 +199,7 @@ The shared OpenClaw defaults now render the Docker sandbox backend with explicit
 The Incus VM assets live outside the Helm charts:
 
 - `incus/openclaw-sandbox-user-data.tpl` contains the cloud-init definition for the guest.
-- `scripts/incus-vm-up.sh` creates or reuses the VM and configures SSH-based remote Docker access.
+- `scripts/incus-vm-up.sh` creates or reuses the VM, assigns a stable guest IPv4 on the Incus bridge, configures an Incus NAT-mode SSH proxy, and writes the resolved connection details to `~/.local/state/ai-homebase/incus/<vm-name>.env`.
 - `scripts/incus-vm-down.sh` deletes just the VM.
 - `scripts/k3d-local-teardown.sh` removes both the k3d cluster and the Incus VM.
 
