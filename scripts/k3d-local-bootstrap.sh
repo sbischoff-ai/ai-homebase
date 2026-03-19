@@ -8,6 +8,7 @@ NAMESPACE="${NAMESPACE:-ai-homebase}"
 RELEASE_NAME="${RELEASE_NAME:-platform-stack}"
 KUBECONFIG_PATH="${KUBECONFIG_PATH:-${HOME}/.kube/k3d-${CLUSTER_NAME}.yaml}"
 WG_HOST="${WG_HOST:-wg.localtest.me}"
+INCUS_VM_NAME="${INCUS_VM_NAME:-openclaw-sandbox}"
 WG_PASSWORD_OUTPUT=""
 
 usage() {
@@ -22,6 +23,7 @@ Options:
   --release-name <name>    Helm release name (default: ${RELEASE_NAME})
   --kubeconfig <path>      Dedicated kubeconfig path (default: ${KUBECONFIG_PATH})
   --wg-host <host>         WireGuard host clients and the local wg-easy Ingress should use (default: ${WG_HOST})
+  --incus-vm-name <name>   Incus VM name for the remote Docker sandbox (default: ${INCUS_VM_NAME})
   OPENAI_API_KEY env var   Required OpenAI API key for bootstrap secret generation
   --verbose                Stream full command output
   -h, --help               Show this help message
@@ -35,6 +37,7 @@ while [[ $# -gt 0 ]]; do
     --release-name) RELEASE_NAME="$2"; shift 2 ;;
     --kubeconfig) KUBECONFIG_PATH="$2"; shift 2 ;;
     --wg-host) WG_HOST="$2"; shift 2 ;;
+    --incus-vm-name) INCUS_VM_NAME="$2"; shift 2 ;;
     --verbose) BOOTSTRAP_VERBOSE=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
@@ -70,6 +73,10 @@ K3D_UP_CMD=(
 run_quiet "${K3D_UP_CMD[@]}"
 ok "Cluster is ready"
 
+step "Bootstrapping Incus sandbox VM"
+run_quiet ./scripts/incus-vm-up.sh --vm-name "$INCUS_VM_NAME"
+ok "Incus sandbox VM is ready"
+
 step "Bootstrapping local secrets"
 run_quiet ./scripts/k3d-bootstrap-secrets.sh \
   --namespace "$NAMESPACE" \
@@ -98,6 +105,8 @@ echo
 echo "Local bootstrap complete."
 echo "Summary:"
 echo "  Kubeconfig: ${KUBECONFIG}"
+echo "  Incus VM: ${INCUS_VM_NAME}"
+echo "  Remote Docker endpoint: ssh://docker-remote@host.k3d.internal:2222"
 echo "  wg-easy URL (via ingress-nginx): http://${WG_HOST}"
 echo "  OpenHands URL: http://openhands.localtest.me"
 echo "  Infisical URL: http://infisical.localtest.me"

@@ -11,6 +11,8 @@ This project uses Helm values layering to keep environment configuration explici
 
 Prefer files over `--set` for anything long-lived or shared.
 
+Incus sandbox VM assets intentionally live outside the Helm values hierarchy in `incus/` and `scripts/incus-vm-*.sh`. They are companion host/bootstrap resources rather than chart-managed Kubernetes objects, so keep their sizing, image, and access settings in those dedicated files/scripts instead of trying to encode them in chart values.
+
 Canonical global host keys for service ingress defaults are `global.hosts.paperlessNgx` and `global.hosts.wgEasy`.
 
 ## Layering model

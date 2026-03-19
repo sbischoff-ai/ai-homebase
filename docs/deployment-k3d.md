@@ -8,6 +8,7 @@ Install and verify:
 
 - [k3d](https://k3d.io/)
 - [Docker](https://docs.docker.com/get-docker/)
+- [Incus](https://linuxcontainers.org/incus/) with an initialized local daemon/bridge (the bootstrap assumes the default `incusbr0` network)
 - [kubectl](https://kubernetes.io/docs/tasks/tools/)
 - [Helm 3](https://helm.sh/docs/intro/install/)
 
@@ -21,12 +22,14 @@ export OPENAI_API_KEY="<your-openai-api-key>"
 This flow:
 
 - creates or reuses the k3d cluster,
+- creates or reuses a small dedicated Incus VM for future remote Docker sandboxing,
 - installs ingress-nginx,
 - generates bootstrap secrets,
 - deploys `platform-stack` with `values.yaml + values-k3d.yaml`, and
 - runs local smoke checks.
 
 The bootstrap exports `KUBECONFIG` to the dedicated kubeconfig path for the lifetime of the script so nested `kubectl` and `helm` calls all target the same local cluster.
+The companion Incus VM is intentionally minimal: `images:debian/12/cloud`, about 1 CPU, 2 GiB RAM, a 12 GiB root disk, Docker Engine, and SSH. Instead of exposing the Docker daemon over unauthenticated TCP, the bootstrap configures SSH access so future OpenClaw sandbox settings can target `ssh://docker-remote@host.k3d.internal:2222`.
 
 ## 2) Manual flow
 
@@ -34,6 +37,7 @@ The bootstrap exports `KUBECONFIG` to the dedicated kubeconfig path for the life
 
 ```bash
 ./scripts/k3d-up.sh --cluster-name ai-homebase-dev
+./scripts/incus-vm-up.sh --vm-name openclaw-sandbox
 ```
 
 `k3d-up.sh` disables the bundled k3s Traefik deployment so `ingress-nginx` remains the only intended HTTP/HTTPS ingress controller in the local cluster. k3d itself still runs on Docker to host the local cluster, but the bootstrap no longer passes the host Docker socket through to k3d nodes for OpenClaw sandboxing.
@@ -63,6 +67,12 @@ If you only want the install step:
 ./scripts/install.sh --profile k3d
 ```
 
+To tear down both the cluster and the Incus VM together:
+
+```bash
+./scripts/k3d-local-teardown.sh --cluster-name ai-homebase-dev --vm-name openclaw-sandbox
+```
+
 Default values layers used by the k3d scripts:
 
 1. `charts/platform-stack/values.yaml`
@@ -90,3 +100,14 @@ If not, add entries such as:
 ## 5) Sandbox note
 
 The k3d overlay now enables the OpenShell backend for OpenClaw with `mode=all`, `scope=session`, `workspaceAccess=rw`, and the in-cluster `openshell` Service endpoint (`http://openshell:80`). OpenHands continues to use the upstream in-cluster Kubernetes runtime and therefore does not need any host Docker passthrough either.
+
+## 6) Incus sandbox VM note
+
+The new Incus VM assets live outside the Helm charts:
+
+- `incus/openclaw-sandbox-user-data.tpl` contains the cloud-init definition for the guest.
+- `scripts/incus-vm-up.sh` creates or reuses the VM and configures SSH-based remote Docker access.
+- `scripts/incus-vm-down.sh` deletes just the VM.
+- `scripts/k3d-local-teardown.sh` removes both the k3d cluster and the Incus VM.
+
+This keeps the VM independently managed from Helm while still making it part of the local bootstrap lifecycle.

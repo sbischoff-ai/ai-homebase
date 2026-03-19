@@ -21,6 +21,7 @@ Essential local commands:
 ```bash
 export OPENAI_API_KEY="<your-openai-api-key>"
 ./scripts/k3d-local-bootstrap.sh --cluster-name ai-homebase-dev
+./scripts/k3d-local-teardown.sh --cluster-name ai-homebase-dev
 helm dependency update charts/platform-stack
 make lint
 make render > /tmp/platform-stack.yaml
@@ -39,6 +40,7 @@ helm dependency update charts/platform-stack
 
 `k3d-local-bootstrap.sh` creates a dedicated kubeconfig for the local cluster, exports `KUBECONFIG` to that file for the script run, and keeps local setup isolated from your existing kubeconfig merge state.
 The local k3d bootstrap also disables the default k3s Traefik add-on during cluster creation so Helm-managed `ingress-nginx` is the single intended HTTP/HTTPS ingress controller. It still uses Docker to run the local k3d node containers themselves, but OpenClaw sandbox execution now stays entirely in-cluster through the OpenShell service and no longer relies on any host Docker passthrough.
+The same local bootstrap now also creates a separate lightweight Incus VM (`openclaw-sandbox` by default) from `images:debian/12/cloud`, sized for roughly one CPU core, 2 GiB of RAM, and a small dedicated root disk. The guest installs only Docker Engine, SSH, and minimal supporting packages so it can act as a narrow remote Docker sandbox appliance for future OpenClaw sandbox integrations without modifying the shipped Helm charts.
 By default, helper scripts print concise progress updates and write full command logs to `/tmp/ai-homebase-bootstrap-<timestamp>.log`.
 Use `--verbose` (or `BOOTSTRAP_VERBOSE=1`) when you want full live command output in the terminal.
 
