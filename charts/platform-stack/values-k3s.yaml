@@ -57,17 +57,13 @@ openhands:
     enabled: true
     size: 100Gi
     storageClass: local-path
-  resources:
-    requests:
-      cpu: 1000m
-      memory: 4Gi
-    limits:
-      cpu: "2"
-      memory: 8Gi
-  hostDockerSocket:
-    enabled: true
-    hostPath: /var/run/docker.sock
-    mountPath: /var/run/docker.sock
+  kubernetes:
+    ingress_domain: openhands.vpn.homebase.internal
+    pvc_storage_size: 5Gi
+    pvc_storage_class: local-path
+    resource_cpu_request: "1"
+    resource_memory_request: 1Gi
+    resource_memory_limit: 2Gi
 
 nextcloud:
   enabled: true

@@ -194,24 +194,105 @@
         "additionalProperties": true
       }
     },
-    "hostDockerSocket": {
+    "serviceAccount": {
       "type": "object",
       "additionalProperties": true,
       "properties": {
-        "enabled": {
+        "create": {
           "type": "boolean",
-          "default": false,
-          "description": "Mount the host Docker socket into OpenHands for Docker-backed sandboxing."
+          "default": true
         },
-        "hostPath": {
-          "type": "string",
-          "default": "/var/run/docker.sock",
-          "description": "Host path for the Docker socket mounted into the pod."
+        "automountServiceAccountToken": {
+          "type": "boolean",
+          "default": true
         },
-        "mountPath": {
+        "name": {
           "type": "string",
-          "default": "/var/run/docker.sock",
-          "description": "Container path where the Docker socket is mounted."
+          "default": ""
+        }
+      }
+    },
+    "rbac": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "create": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "mode": {
+          "type": "string",
+          "default": "kubernetes",
+          "enum": [
+            "kubernetes"
+          ],
+          "description": "OpenHands runtime mode rendered into config.toml."
+        }
+      }
+    },
+    "kubernetes": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "namespace": {
+          "type": "string",
+          "default": "",
+          "description": "Namespace for OpenHands-created runtime resources."
+        },
+        "ingress_domain": {
+          "type": "string",
+          "default": "",
+          "description": "Base domain used for per-session runtime ingress hosts."
+        },
+        "pvc_storage_size": {
+          "type": "string",
+          "default": "2Gi"
+        },
+        "pvc_storage_class": {
+          "type": "string",
+          "default": ""
+        },
+        "resource_cpu_request": {
+          "type": "string",
+          "default": "1"
+        },
+        "resource_memory_request": {
+          "type": "string",
+          "default": "1Gi"
+        },
+        "resource_memory_limit": {
+          "type": "string",
+          "default": "2Gi"
+        },
+        "image_pull_secret": {
+          "type": "string",
+          "default": ""
+        },
+        "ingress_tls_secret": {
+          "type": "string",
+          "default": ""
+        },
+        "node_selector_key": {
+          "type": "string",
+          "default": ""
+        },
+        "node_selector_val": {
+          "type": "string",
+          "default": ""
+        },
+        "tolerations_yaml": {
+          "type": "string",
+          "default": ""
+        },
+        "privileged": {
+          "type": "boolean",
+          "default": false
         }
       }
     }

@@ -9,11 +9,11 @@ This platform is designed with explicit private/public decisions per service.
 - Gitea and Paperless should generally remain internal-only unless you deliberately expose them.
 - Nextcloud should use a dedicated hostname if published through ingress.
 
-## Docker-sandbox trust boundary
+## Runtime trust boundary
 
-OpenHands and OpenClaw both mount the host Docker socket in the supported target overlays.
-That is a **security-sensitive trusted-boundary design** for self-hosted k3d/k3s deployments.
-It should not be reused unchanged for multi-tenant or hostile environments.
+OpenHands now uses in-cluster Kubernetes runtime sandboxes and no longer mounts the host Docker socket in the supported deployment path.
+OpenClaw still mounts the host Docker socket in the supported target overlays, which remains a **security-sensitive trusted-boundary design** for self-hosted k3d/k3s deployments.
+Do not reuse the OpenClaw Docker-socket posture unchanged for multi-tenant or hostile environments.
 
 ## wg-easy networking guidance
 

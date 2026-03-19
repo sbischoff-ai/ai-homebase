@@ -122,20 +122,32 @@ openhands:
     minAvailable: 1
   # Scheduling controls consumed by the OpenHands subchart.
   runtimeClassName: ""
+  runtime:
+    mode: kubernetes
+  kubernetes:
+    namespace: ai-homebase
+    ingress_domain: ""
+    pvc_storage_size: 2Gi
+    pvc_storage_class: ""
+    resource_cpu_request: "1"
+    resource_memory_request: 1Gi
+    resource_memory_limit: 2Gi
+    image_pull_secret: ""
+    ingress_tls_secret: ""
+    node_selector_key: ""
+    node_selector_val: ""
+    tolerations_yaml: ""
+    privileged: false
   nodeSelector: {}
   tolerations: []
   affinity: {}
   resources:
     requests:
-      cpu: 1000m
-      memory: 4Gi
+      cpu: 100m
+      memory: 256Mi
     limits:
-      cpu: "2"
-      memory: 8Gi
-  hostDockerSocket:
-    enabled: false
-    hostPath: /var/run/docker.sock
-    mountPath: /var/run/docker.sock
+      cpu: 500m
+      memory: 512Mi
 
 nextcloud:
   enabled: true

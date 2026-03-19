@@ -83,6 +83,36 @@
         },
         "ingress": { "$ref": "#/definitions/ingressWithHostName" },
         "workspace": { "$ref": "#/definitions/persistence" },
+        "runtime": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "mode": {
+              "type": "string",
+              "default": "kubernetes",
+              "enum": ["kubernetes"]
+            }
+          }
+        },
+        "kubernetes": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "namespace": { "type": "string", "default": "ai-homebase" },
+            "ingress_domain": { "type": "string", "default": "" },
+            "pvc_storage_size": { "type": "string", "default": "2Gi" },
+            "pvc_storage_class": { "type": "string", "default": "" },
+            "resource_cpu_request": { "type": "string", "default": "1" },
+            "resource_memory_request": { "type": "string", "default": "1Gi" },
+            "resource_memory_limit": { "type": "string", "default": "2Gi" },
+            "image_pull_secret": { "type": "string", "default": "" },
+            "ingress_tls_secret": { "type": "string", "default": "" },
+            "node_selector_key": { "type": "string", "default": "" },
+            "node_selector_val": { "type": "string", "default": "" },
+            "tolerations_yaml": { "type": "string", "default": "" },
+            "privileged": { "type": "boolean", "default": false }
+          }
+        },
         "secretRefs": { "$ref": "#/definitions/secretRefs" },
         "secretEnv": { "$ref": "#/definitions/secretEnv" }
       }

@@ -49,6 +49,6 @@ Relevant sandbox-related value paths:
 - `openclaw.agents.defaults.sandbox.prune.*`
 - `hostDockerSocket.*`
 
-## OpenHands Docker socket wiring
+## OpenHands Kubernetes runtime wiring
 
-The `openhands` chart exposes `hostDockerSocket.enabled`, `hostDockerSocket.hostPath`, and `hostDockerSocket.mountPath` so the pod can mount the host Docker socket at `/var/run/docker.sock` for Docker-backed sandbox execution.
+The `openhands` chart now renders a managed `config.toml` with `[core] runtime = "kubernetes"` plus the upstream `[kubernetes]` block sourced from `openhands.runtime.mode` and `openhands.kubernetes.*`. It also creates namespace-scoped RBAC so the OpenHands pod can create and clean up runtime pods, services, ingresses, and PVCs without requiring cluster-admin.

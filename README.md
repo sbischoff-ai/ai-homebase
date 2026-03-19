@@ -8,7 +8,7 @@ The repository now supports exactly two deployment targets:
 - **k3d** for local testing.
 - **k3s** for the productive homelab server.
 
-OpenHands and OpenClaw are both configured around **Docker-backed sandboxing** in these supported environments by mounting the host Docker socket into the pod. This is an intentional trusted-boundary homelab design, not a portable multi-tenant pattern.
+OpenClaw remains configured around **Docker-backed sandboxing** by mounting the host Docker socket into the pod. OpenHands now runs as a lightweight in-cluster control plane that launches per-session **Kubernetes runtime** sandboxes inside the cluster instead of using host Docker socket access.
 
 ## Quick start
 
@@ -38,7 +38,7 @@ helm dependency update charts/platform-stack
 ```
 
 `k3d-local-bootstrap.sh` creates a dedicated kubeconfig for the local cluster so your setup is isolated from other projects and does not depend on your existing `KUBECONFIG` merge state.
-The local k3d bootstrap also disables the default k3s Traefik add-on during cluster creation so Helm-managed `ingress-nginx` is the single intended HTTP/HTTPS ingress controller. It mounts the host Docker socket into every k3d node container at `/var/run/docker.sock` so the existing OpenHands and OpenClaw pod `hostPath` mounts resolve to a real Unix socket during local sandbox execution.
+The local k3d bootstrap also disables the default k3s Traefik add-on during cluster creation so Helm-managed `ingress-nginx` is the single intended HTTP/HTTPS ingress controller. It mounts the host Docker socket into every k3d node container at `/var/run/docker.sock` so the existing OpenClaw pod `hostPath` mount resolves to a real Unix socket during local sandbox execution.
 By default, helper scripts print concise progress updates and write full command logs to `/tmp/ai-homebase-bootstrap-<timestamp>.log`.
 Use `--verbose` (or `BOOTSTRAP_VERBOSE=1`) when you want full live command output in the terminal.
 
