@@ -368,20 +368,21 @@ SH
 run_timeout_failure_case() {
   local case_name="$1"
   local guest_agent_available="$2"
-  local cloud_init_done="$3"
+  local cloud_init_state="$3"
   local sandbox_dir
   sandbox_dir="$(mktemp -d)"
 
   local fake_bin="${sandbox_dir}/bin"
   local log_file="${sandbox_dir}/timeout.log"
   local bootstrap_log="${sandbox_dir}/bootstrap.log"
+  local sleep_log="${sandbox_dir}/sleep.log"
   mkdir -p "${fake_bin}"
 
 cat >"${fake_bin}/incus" <<'SH'
 #!/usr/bin/env bash
 set -euo pipefail
 guest_agent_available="${FAKE_TIMEOUT_GUEST_AGENT_AVAILABLE:-0}"
-cloud_init_done="${FAKE_TIMEOUT_CLOUD_INIT_DONE:-0}"
+cloud_init_state="${FAKE_TIMEOUT_CLOUD_INIT_STATE:-running}"
 command="$1"
 shift
 case "${command}" in
@@ -464,20 +465,31 @@ YAML
         exit 0
         ;;
       "cloud-init status")
-        if [[ "${cloud_init_done}" == "1" ]]; then
-          printf 'status: done\n'
-        else
-          printf 'status: running\n'
-        fi
+        case "${cloud_init_state}" in
+          done) printf 'status: done\n' ;;
+          error) printf 'status: error\n' ;;
+          degraded) printf 'status: degraded done\n' ;;
+          *) printf 'status: running\n' ;;
+        esac
         exit 0
         ;;
       "sh -lc cloud-init status --wait || cloud-init status")
-        if [[ "${cloud_init_done}" == "1" ]]; then
+        if [[ "${cloud_init_state}" == "done" ]]; then
           printf 'status: done\n'
           exit 0
         fi
-        printf 'status: running\n' >&2
+        if [[ "${cloud_init_state}" == "error" ]]; then
+          printf 'status: error\n' >&2
+        elif [[ "${cloud_init_state}" == "degraded" ]]; then
+          printf 'status: degraded done\n' >&2
+        else
+          printf 'status: running\n' >&2
+        fi
         exit 1
+        ;;
+      "cloud-init status --long")
+        printf 'status: %s\n' "${cloud_init_state}"
+        exit 0
         ;;
       "systemctl is-active --quiet ssh")
         exit 0
@@ -500,6 +512,10 @@ YAML
         ;;
       "systemctl status docker --no-pager")
         printf 'docker.service active\n'
+        exit 0
+        ;;
+      "journalctl -u cloud-init --no-pager")
+        printf 'cloud-init journal line\n'
         exit 0
         ;;
     esac
@@ -551,6 +567,14 @@ exit 255
 SH
   chmod +x "${fake_bin}/ssh"
 
+  cat >"${fake_bin}/sleep" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "$*" >>"${FAKE_SLEEP_LOG:?}"
+exit 0
+SH
+  chmod +x "${fake_bin}/sleep"
+
   local real_python3
   real_python3="$(python3 -c 'import sys; print(sys.executable)')"
 
@@ -558,7 +582,8 @@ SH
   PATH="${fake_bin}:$PATH" \
   REAL_PYTHON3="${real_python3}" \
   FAKE_TIMEOUT_GUEST_AGENT_AVAILABLE="${guest_agent_available}" \
-  FAKE_TIMEOUT_CLOUD_INIT_DONE="${cloud_init_done}" \
+  FAKE_TIMEOUT_CLOUD_INIT_STATE="${cloud_init_state}" \
+  FAKE_SLEEP_LOG="${sleep_log}" \
   BOOTSTRAP_LOG_FILE="${bootstrap_log}" \
   "${SCRIPT_PATH}" \
     --vm-name test-vm \
@@ -592,9 +617,11 @@ SH
     cloud-init-incomplete)
       grep -F 'Failure reason: cloud-init-incomplete' "${bootstrap_log}" >/dev/null
       grep -F '### GUEST: cloud-init status --wait || cloud-init status' "${bootstrap_log}" >/dev/null
+      grep -F '### GUEST: cloud-init status --long' "${bootstrap_log}" >/dev/null
       grep -F '### GUEST: ip -4 addr' "${bootstrap_log}" >/dev/null
       grep -F '### GUEST: ip route' "${bootstrap_log}" >/dev/null
       grep -F '### GUEST: cat /etc/resolv.conf' "${bootstrap_log}" >/dev/null
+      grep -F '### GUEST: journalctl -u cloud-init --no-pager' "${bootstrap_log}" >/dev/null
       grep -F '### GUEST: systemctl status ssh --no-pager' "${bootstrap_log}" >/dev/null
       grep -F '### GUEST: systemctl status docker --no-pager' "${bootstrap_log}" >/dev/null
       grep -F 'Timed out waiting for test-vm: guest agent became reachable, but failed to observe cloud-init completion before the SSH proxy at 10.10.10.1:2222 became reachable.' "${log_file}" >/dev/null
@@ -603,6 +630,18 @@ SH
       grep -F 'Failure reason: ssh-proxy-unreachable' "${bootstrap_log}" >/dev/null
       grep -F '### GUEST: cloud-init status --wait || cloud-init status' "${bootstrap_log}" >/dev/null
       grep -F 'Timed out waiting for test-vm: cloud-init completed but failed to connect to the SSH proxy at 10.10.10.1:2222.' "${log_file}" >/dev/null
+      ;;
+    cloud-init-failed)
+      grep -F 'Failure reason: cloud-init-failed' "${bootstrap_log}" >/dev/null
+      grep -F '### GUEST: cloud-init status --wait || cloud-init status' "${bootstrap_log}" >/dev/null
+      grep -F '### GUEST: cloud-init status --long' "${bootstrap_log}" >/dev/null
+      grep -F '### GUEST: journalctl -u cloud-init --no-pager' "${bootstrap_log}" >/dev/null
+      grep -F 'Cloud-init reported a terminal failure inside test-vm; aborting readiness wait before SSH proxy timeout' "${log_file}" >/dev/null
+      grep -F 'Failed waiting for test-vm: cloud-init failed inside the guest before the SSH proxy at 10.10.10.1:2222 became reachable.' "${log_file}" >/dev/null
+      if [[ -s "${sleep_log}" ]]; then
+        echo "expected cloud-init failure case to exit before sleeping" >&2
+        return 1
+      fi
       ;;
   esac
 
@@ -613,8 +652,9 @@ run_case inherited-root 0 0 0 1 3
 run_case local-root 1 1 1 0 1 42
 run_case dns-fallback 0 0 0 1 1 "" ""
 run_case host-listen-override 0 0 0 1 1 "" "10.10.10.53,1.1.1.1" "127.0.0.1"
-run_timeout_failure_case guest-agent-unreachable 0 0
-run_timeout_failure_case cloud-init-incomplete 1 0
-run_timeout_failure_case ssh-proxy-unreachable 1 1
+run_timeout_failure_case guest-agent-unreachable 0 running
+run_timeout_failure_case cloud-init-incomplete 1 running
+run_timeout_failure_case ssh-proxy-unreachable 1 done
+run_timeout_failure_case cloud-init-failed 1 error
 
 echo "incus-vm-up tests passed"
