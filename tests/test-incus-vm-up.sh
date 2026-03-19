@@ -32,7 +32,7 @@ run_case() {
   local output_log="${sandbox_dir}/output.log"
   local key_path="${sandbox_dir}/keys/test-id_ed25519"
   local real_python3
-  real_python3="$(command -v python3)"
+  real_python3="$(python3 -c 'import sys; print(sys.executable)')"
   mkdir -p "${fake_bin}" "${state_dir}"
 
   cat >"${fake_bin}/incus" <<'SH'
@@ -307,7 +307,12 @@ SH
   grep -F 'VM_STATIC_IPV4=10.10.10.45' "${sandbox_dir}/statefiles/test-vm.env" >/dev/null
   grep -F 'config set test-vm user.network-config=version: 2' "${log_file}" >/dev/null
   grep -F '      - 10.10.10.45/24' "${log_file}" >/dev/null
+  grep -F '      - to: 0.0.0.0/0' "${log_file}" >/dev/null
   grep -F '        via: 10.10.10.1' "${log_file}" >/dev/null
+  if grep -F '      - to: default' "${log_file}" >/dev/null; then
+    echo "expected cloud-init-compatible default route instead of to: default" >&2
+    return 1
+  fi
 
   case "${dns_nameservers}" in
     "")
@@ -547,7 +552,7 @@ SH
   chmod +x "${fake_bin}/ssh"
 
   local real_python3
-  real_python3="$(command -v python3)"
+  real_python3="$(python3 -c 'import sys; print(sys.executable)')"
 
   set +e
   PATH="${fake_bin}:$PATH" \

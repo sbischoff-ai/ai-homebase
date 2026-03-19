@@ -447,7 +447,7 @@ lines = [
     "    addresses:",
     f"      - {vm_static_ipv4}/{prefixlen}",
     "    routes:",
-    "      - to: default",
+    "      - to: 0.0.0.0/0",
     f"        via: {default_gateway}",
     "    nameservers:",
     "      addresses:",
