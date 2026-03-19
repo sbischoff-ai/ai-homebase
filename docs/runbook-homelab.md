@@ -32,4 +32,4 @@ kubectl -n ai-homebase describe ingress
 
 ## 4) Sandbox posture
 
-The shared OpenClaw defaults now render Docker/browser sandbox settings directly in `openclaw.json`. Enable `openclaw.remoteDocker.*`, provide an SSH Secret plus a derived OpenClaw image with Docker CLI/OpenSSH, and set `openclaw.agents.defaults.sandbox.browser.cdpSourceRange` for the network range seen by the remote Docker host. OpenHands continues to use Kubernetes runtime sandboxes.
+The shared OpenClaw defaults now render Docker/browser sandbox settings directly in `openclaw.json`. Keep `openclaw.remoteDocker.*` enabled, provide an SSH Secret plus an OpenClaw image with Docker CLI/OpenSSH, and set `openclaw.agents.defaults.sandbox.browser.cdpSourceRange` for the network range seen by the remote Docker host. The shipped k3s overlay assumes the remote Incus VM is reachable at `ssh://docker-remote@openclaw-sandbox.homebase.internal:2222`; override that host if your homelab uses a different DNS name or routed IP. OpenHands continues to use Kubernetes runtime sandboxes.

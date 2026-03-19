@@ -16,6 +16,8 @@ kubectl --context <your-kube-context> -n <your-namespace> create secret generic 
   --from-file=known_hosts=<path-to-known-hosts>
 ```
 
+`openclaw-remote-docker-ssh` is part of the standard OpenClaw deployment posture in this repo; every supported target needs an equivalent Secret even if you override the name in values.
+
 ## k3d local override layering
 
 Order:
@@ -54,11 +56,11 @@ Order:
 
 ## Remote Docker overlay
 
-`examples/openclaw.remote-docker.values.yaml` shows the extra values needed to:
+`examples/openclaw.remote-docker.values.yaml` shows the environment-specific values you may still need to adjust on top of the standard remote-Docker posture to:
 
-- switch OpenClaw to a derived image that contains Docker CLI + OpenSSH client,
-- point `DOCKER_HOST` at a remote Docker daemon over SSH,
-- mount the SSH Secret into `/home/node/.ssh`, and
+- switch OpenClaw to an image that contains Docker CLI + OpenSSH client,
+- change `DOCKER_HOST` when your Incus VM is not reachable at the shipped target default,
+- change the SSH Secret name or mount path, and
 - set the remote browser sandbox image names plus `browser.cdpSourceRange`.
 
 Example layering:

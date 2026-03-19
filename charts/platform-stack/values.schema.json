@@ -58,8 +58,8 @@
           "type": "object",
           "additionalProperties": true,
           "properties": {
-            "enabled": { "type": "boolean", "default": false },
-            "dockerHost": { "type": "string", "default": "" },
+            "enabled": { "type": "boolean", "default": true },
+            "dockerHost": { "type": "string", "default": "ssh://docker-remote@openclaw-sandbox:2222" },
             "home": { "type": "string", "default": "/home/node" },
             "ssh": {
               "type": "object",

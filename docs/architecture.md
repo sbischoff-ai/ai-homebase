@@ -26,4 +26,4 @@ The repository intentionally supports only:
 
 ## Trust boundary
 
-OpenClaw now ships with Docker/browser sandbox defaults plus optional remote-Docker SSH wiring in its chart values, while OpenHands uses namespace-scoped in-cluster Kubernetes runtime sandboxes. The OpenClaw pod remains the control plane entrypoint; Docker's own SSH transport handles whether sandbox containers run locally or on a remote daemon.
+OpenClaw now ships with Docker/browser sandbox defaults plus standard remote-Docker SSH wiring in its chart values, while OpenHands uses namespace-scoped in-cluster Kubernetes runtime sandboxes. The OpenClaw pod remains the control plane entrypoint, and Docker's own SSH transport carries sandbox execution to the supported Incus-backed remote daemon.

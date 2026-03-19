@@ -1,12 +1,11 @@
-# Overlay this after charts/platform-stack/values.yaml plus your target overlay.
-# Replace placeholders before applying.
+# Overlay this after charts/platform-stack/values.yaml plus your target overlay when you need to
+# change the standard remote-Docker/Incus settings for a concrete environment. Replace placeholders before applying.
 
 openclaw:
   image:
     repository: "<registry>/openclaw-remote-docker"
     tag: "<image-tag>"
   remoteDocker:
-    enabled: true
     dockerHost: "ssh://docker-remote@<remote-docker-host>:2222"
     home: /home/node
     ssh:

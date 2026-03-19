@@ -88,13 +88,13 @@
       "properties": {
         "enabled": {
           "type": "boolean",
-          "default": false,
-          "description": "Enable SSH-backed remote Docker access for OpenClaw sandboxing."
+          "default": true,
+          "description": "Enable the standard SSH-backed remote Docker access path for OpenClaw sandboxing."
         },
         "dockerHost": {
           "type": "string",
-          "default": "",
-          "description": "Value exported as DOCKER_HOST when remote Docker is enabled."
+          "default": "ssh://docker-remote@openclaw-sandbox:2222",
+          "description": "Value exported as DOCKER_HOST for the standard remote Docker sandbox host."
         },
         "home": {
           "type": "string",
