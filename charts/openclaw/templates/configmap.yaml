@@ -27,6 +27,7 @@ data:
           "sandbox": {{ toJson .Values.openclaw.agents.defaults.sandbox }}
         },
         "list": {{ toJson .Values.openclaw.agents.list }}
-      }
+      },
+      "plugins": {{ toJson .Values.openclaw.plugins }}
     }
 {{- end }}

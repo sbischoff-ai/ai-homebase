@@ -101,6 +101,17 @@
         "additionalProperties": true
       }
     },
+    "openclaw": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "plugins": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Structured OpenClaw plugin configuration rendered into openclaw.json, including OpenShell backend settings."
+        }
+      }
+    },
     "hostDockerSocket": {
       "type": "object",
       "additionalProperties": true,

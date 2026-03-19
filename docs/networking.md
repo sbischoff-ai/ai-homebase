@@ -11,9 +11,8 @@ This platform is designed with explicit private/public decisions per service.
 
 ## Runtime trust boundary
 
-OpenHands now uses in-cluster Kubernetes runtime sandboxes and no longer mounts the host Docker socket in the supported deployment path.
-OpenClaw still mounts the host Docker socket in the supported target overlays, which remains a **security-sensitive trusted-boundary design** for self-hosted k3d/k3s deployments.
-Do not reuse the OpenClaw Docker-socket posture unchanged for multi-tenant or hostile environments.
+OpenHands uses in-cluster Kubernetes runtime sandboxes and OpenClaw uses the cluster-local OpenShell gateway in the supported deployment path.
+If you opt back into `openclaw.hostDockerSocket.*`, treat that as a **security-sensitive trusted-boundary override** rather than the default design.
 
 ## wg-easy networking guidance
 

@@ -81,6 +81,7 @@ openclaw:
       workspace: ~/.openclaw/workspace
       sandbox:
         mode: off
+        backend: docker
         scope: agent
         workspaceAccess: none
         workspaceRoot: ~/.openclaw/sandboxes
@@ -105,6 +106,23 @@ openclaw:
       - id: default
         name: OpenClaw Assistant
         workspace: ~/.openclaw/workspace
+  plugins:
+    entries:
+      openshell:
+        enabled: false
+        config:
+          mode: remote
+          command: openshell
+          from: openclaw
+          gateway: ""
+          gatewayEndpoint: ""
+          policy: ""
+          providers: []
+          gpu: false
+          autoProviders: true
+          remoteWorkspaceDir: /sandbox
+          remoteAgentWorkspaceDir: /agent
+          timeoutSeconds: 120
 
 env: []
 envFromSecrets: []

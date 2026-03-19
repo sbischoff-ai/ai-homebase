@@ -9,6 +9,7 @@ Use `global.*` for shared defaults such as hostnames, storage class, image pull 
 `platform-stack` is an umbrella chart with dependency toggles for:
 
 - `openclaw.enabled`
+- `openshell.enabled`
 - `openhands.enabled`
 - `nextcloud.enabled`
 - `gitea.enabled`
@@ -44,6 +45,8 @@ The `openclaw` chart renders an `openclaw.json` ConfigMap entry from structured 
 Relevant sandbox-related value paths:
 
 - `openclaw.agents.defaults.sandbox.mode`
+- `openclaw.agents.defaults.sandbox.backend`
+- `openclaw.plugins.entries.openshell.config.*`
 - `openclaw.agents.defaults.sandbox.docker.image`
 - `openclaw.agents.defaults.sandbox.docker.network`
 - `openclaw.agents.defaults.sandbox.prune.*`

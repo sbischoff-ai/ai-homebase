@@ -82,26 +82,29 @@ If you do not have direct CLI access in the running pod, make sure you have anot
 This deployment is intended for a **single trusted operator / household / team boundary**.
 It is **not intended to be a hostile multi-tenant shared service**.
 
-## Docker-backed sandboxing
+## OpenShell sandboxing
 
-The chart now supports the documented Docker-backed sandbox path by rendering `agents.defaults.sandbox.*` into `openclaw.json` and, when enabled, mounting the host Docker socket into the gateway pod:
+The chart now supports the documented OpenShell plugin path by rendering `agents.defaults.sandbox.*` plus `plugins.entries.openshell.*` into `openclaw.json`. A typical in-cluster setup points the plugin at the cluster-local OpenShell Service and leaves the CLI name configurable:
 
 ```yaml
-hostDockerSocket:
-  enabled: true
-  hostPath: /var/run/docker.sock
-  mountPath: /var/run/docker.sock
-
 openclaw:
   agents:
     defaults:
       sandbox:
         mode: non-main
-        docker:
-          image: openclaw-sandbox:bookworm-slim
+        backend: openshell
+        workspaceAccess: rw
+  plugins:
+    entries:
+      openshell:
+        enabled: true
+        config:
+          command: openshell
+          gatewayEndpoint: http://openshell:80
+          mode: remote
 ```
 
-The pod also exports `OPENCLAW_SANDBOX=1` and `OPENCLAW_DOCKER_SOCKET=/var/run/docker.sock` when this mode is enabled. Treat this as a deliberate, security-sensitive homelab design rather than a portable multi-tenant pattern.
+The pod still exports `OPENCLAW_SANDBOX=1` whenever sandboxing is enabled, but Docker socket env/mounts are now only added when you explicitly opt back into the Docker backend with `hostDockerSocket.enabled=true`. If the selected OpenClaw image does not already include the `openshell` CLI, override the image and/or set `plugins.entries.openshell.config.command` to the correct binary path.
 
 ## Example: secrets + values (`existingSecret` / `secretRefs` style)
 

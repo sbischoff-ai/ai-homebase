@@ -34,7 +34,7 @@ This flow:
 ./scripts/k3d-up.sh --cluster-name ai-homebase-dev
 ```
 
-`k3d-up.sh` disables the bundled k3s Traefik deployment so `ingress-nginx` remains the only intended HTTP/HTTPS ingress controller in the local cluster. It also mounts the host machine Docker socket into every k3d node container at `/var/run/docker.sock`, which keeps the existing OpenClaw pod `hostPath` mount working inside k3d.
+`k3d-up.sh` disables the bundled k3s Traefik deployment so `ingress-nginx` remains the only intended HTTP/HTTPS ingress controller in the local cluster. k3d itself still runs on Docker, but the shipped OpenClaw overlay no longer depends on a Docker socket mount inside the OpenClaw pod.
 
 ### 2.2 Generate bootstrap secrets
 
@@ -87,4 +87,4 @@ If not, add entries such as:
 
 ## 5) Sandbox note
 
-The k3d overlay keeps OpenClaw on Docker-socket-backed sandboxing for trusted local testing, but OpenHands now uses the upstream in-cluster Kubernetes runtime. OpenHands therefore no longer mounts `/var/run/docker.sock`; instead it creates per-session runtime pods, services, ingresses, and PVCs in the cluster using its namespace-scoped RBAC.
+The k3d overlay now enables the OpenShell backend for OpenClaw by pointing it at the in-cluster `openshell` Service (`http://openshell:80`). OpenHands continues to use the upstream in-cluster Kubernetes runtime and therefore does not need `/var/run/docker.sock` either.

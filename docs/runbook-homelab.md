@@ -32,5 +32,4 @@ kubectl -n ai-homebase describe ingress
 
 ## 4) Sandbox posture
 
-The shipped k3s overlay enables Docker-socket-based sandboxing for both OpenHands and OpenClaw.
-Treat this as an intentional privileged homelab design: convenient and documented for these tools, but not safe for hostile multi-tenant clusters.
+The shipped k3s overlay now enables OpenShell-backed sandboxing for OpenClaw and Kubernetes runtime sandboxes for OpenHands. If you explicitly re-enable `openclaw.hostDockerSocket.*`, treat that as a privileged homelab-only override rather than the default posture.
