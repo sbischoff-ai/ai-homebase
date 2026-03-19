@@ -13,8 +13,12 @@ run_case() {
   local ssh_success_after="${6:-1}"
   local ssh_ready_timeout_seconds="${7:-}"
   local dns_nameservers="10.10.10.53,1.1.1.1"
+  local host_listen_address=""
   if [[ $# -ge 8 ]]; then
     dns_nameservers="$8"
+  fi
+  if [[ $# -ge 9 ]]; then
+    host_listen_address="$9"
   fi
   local sandbox_dir
   sandbox_dir="$(mktemp -d)"
@@ -221,6 +225,10 @@ SH
     --state-dir "${sandbox_dir}/statefiles"
   )
 
+  if [[ -n "${host_listen_address}" ]]; then
+    command+=(--host-listen-address "${host_listen_address}")
+  fi
+
   PATH="${fake_bin}:$PATH" \
   FAKE_INCUS_LOG="${log_file}" \
   FAKE_INCUS_STATE_DIR="${state_dir}" \
@@ -238,6 +246,8 @@ SH
   SSH_READY_TIMEOUT_SECONDS="${ssh_ready_timeout_seconds}" \
   "${command[@]}" \
     >"${output_log}" 2>&1
+
+  local expected_host_listen_address="${host_listen_address:-10.10.10.1}"
 
   case "${case_name}" in
     inherited-root)
@@ -263,14 +273,14 @@ SH
   grep -F -- '-o StrictHostKeyChecking=no' "${ssh_log_file}" >/dev/null
   grep -F -- '-o UserKnownHostsFile=/dev/null' "${ssh_log_file}" >/dev/null
   grep -F -- '-p 2222' "${ssh_log_file}" >/dev/null
-  grep -F -- 'docker-remote@10.10.10.1 true' "${ssh_log_file}" >/dev/null
+  grep -F -- "docker-remote@${expected_host_listen_address} true" "${ssh_log_file}" >/dev/null
 
   case "${proxy_exists}" in
     0)
-      grep -F 'config device add test-vm ssh-proxy proxy listen=tcp:10.10.10.1:2222 connect=tcp:0.0.0.0:22 nat=true' "${log_file}" >/dev/null
+      grep -F "config device add test-vm ssh-proxy proxy listen=tcp:${expected_host_listen_address}:2222 connect=tcp:0.0.0.0:22 nat=true" "${log_file}" >/dev/null
       ;;
     1)
-      grep -F 'config device set test-vm ssh-proxy listen tcp:10.10.10.1:2222' "${log_file}" >/dev/null
+      grep -F "config device set test-vm ssh-proxy listen tcp:${expected_host_listen_address}:2222" "${log_file}" >/dev/null
       grep -F 'config device set test-vm ssh-proxy connect tcp:0.0.0.0:22' "${log_file}" >/dev/null
       grep -F 'config device set test-vm ssh-proxy nat true' "${log_file}" >/dev/null
       ;;
@@ -293,7 +303,7 @@ SH
       ;;
   esac
 
-  grep -F 'HOST_LISTEN_ADDRESS=10.10.10.1' "${sandbox_dir}/statefiles/test-vm.env" >/dev/null
+  grep -F "HOST_LISTEN_ADDRESS=${expected_host_listen_address}" "${sandbox_dir}/statefiles/test-vm.env" >/dev/null
   grep -F 'VM_STATIC_IPV4=10.10.10.45' "${sandbox_dir}/statefiles/test-vm.env" >/dev/null
   grep -F 'config set test-vm user.network-config=version: 2' "${log_file}" >/dev/null
   grep -F '      - 10.10.10.45/24' "${log_file}" >/dev/null
@@ -467,6 +477,18 @@ YAML
       "systemctl is-active --quiet ssh")
         exit 0
         ;;
+      "ip -4 addr")
+        printf '2: eth0    inet 10.10.10.45/24\n'
+        exit 0
+        ;;
+      "ip route")
+        printf 'default via 10.10.10.1 dev eth0\n10.10.10.0/24 dev eth0 proto kernel scope link src 10.10.10.45\n'
+        exit 0
+        ;;
+      "cat /etc/resolv.conf")
+        printf 'nameserver 10.10.10.53\nnameserver 1.1.1.1\n'
+        exit 0
+        ;;
       "systemctl status ssh --no-pager")
         printf 'ssh.service active\n'
         exit 0
@@ -565,6 +587,9 @@ SH
     cloud-init-incomplete)
       grep -F 'Failure reason: cloud-init-incomplete' "${bootstrap_log}" >/dev/null
       grep -F '### GUEST: cloud-init status --wait || cloud-init status' "${bootstrap_log}" >/dev/null
+      grep -F '### GUEST: ip -4 addr' "${bootstrap_log}" >/dev/null
+      grep -F '### GUEST: ip route' "${bootstrap_log}" >/dev/null
+      grep -F '### GUEST: cat /etc/resolv.conf' "${bootstrap_log}" >/dev/null
       grep -F '### GUEST: systemctl status ssh --no-pager' "${bootstrap_log}" >/dev/null
       grep -F '### GUEST: systemctl status docker --no-pager' "${bootstrap_log}" >/dev/null
       grep -F 'Timed out waiting for test-vm: guest agent became reachable, but failed to observe cloud-init completion before the SSH proxy at 10.10.10.1:2222 became reachable.' "${log_file}" >/dev/null
@@ -582,6 +607,7 @@ SH
 run_case inherited-root 0 0 0 1 3
 run_case local-root 1 1 1 0 1 42
 run_case dns-fallback 0 0 0 1 1 "" ""
+run_case host-listen-override 0 0 0 1 1 "" "10.10.10.53,1.1.1.1" "127.0.0.1"
 run_timeout_failure_case guest-agent-unreachable 0 0
 run_timeout_failure_case cloud-init-incomplete 1 0
 run_timeout_failure_case ssh-proxy-unreachable 1 1
