@@ -18,15 +18,14 @@ spec:
         {{- with .Values.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
-      {{- if or .Values.global.podAnnotations .Values.podAnnotations }}
       annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
         {{- with .Values.global.podAnnotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
         {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
-      {{- end }}
     spec:
       {{- $persistence := include "openhands.persistenceConfig" . | fromYaml }}
       serviceAccountName: {{ include "openhands.serviceAccountName" . }}
@@ -43,15 +42,6 @@ spec:
         - name: {{ include "openhands.name" . }}
           image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          {{- $runtime := .Values.runtime }}
-          {{- $runtimeClassName := "" }}
-          {{- $runtimeMode := "" }}
-          {{- if kindIs "string" $runtime }}
-          {{- $runtimeClassName = $runtime }}
-          {{- else if kindIs "map" $runtime }}
-          {{- $runtimeClassName = (coalesce $runtime.className $runtime.runtimeClassName $runtime.name) | default "" }}
-          {{- $runtimeMode = (coalesce $runtime.mode $runtime.runtimeMode) | default "" }}
-          {{- end }}
           ports:
             - name: http
               containerPort: {{ .Values.service.targetPort }}
@@ -64,9 +54,6 @@ spec:
             - name: AGENT_SERVER_IMAGE_TAG
               value: {{ .Values.agentServer.image.tag | quote }}
             {{- $_ := set $envNames "AGENT_SERVER_IMAGE_TAG" true }}
-            - name: RUNTIME_MODE
-              value: {{ $runtimeMode | quote }}
-            {{- $_ := set $envNames "RUNTIME_MODE" true }}
             - name: QUEUE_ENABLED
               value: {{ .Values.queue.enabled | quote }}
             {{- $_ := set $envNames "QUEUE_ENABLED" true }}
@@ -179,15 +166,13 @@ spec:
             {{- toYaml .Values.resources | nindent 12 }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
-          {{- if or $persistence.enabled .Values.hostDockerSocket.enabled .Values.extraVolumeMounts }}
           volumeMounts:
+            - name: openhands-config
+              mountPath: /app/config.toml
+              subPath: config.toml
             {{- if $persistence.enabled }}
             - name: workspace
               mountPath: {{ $persistence.mountPath }}
-            {{- end }}
-            {{- if .Values.hostDockerSocket.enabled }}
-            - name: docker-socket
-              mountPath: {{ .Values.hostDockerSocket.mountPath }}
             {{- end }}
             {{- range .Values.extraVolumeMounts }}
             {{- $mountPath := default "" .mountPath }}
@@ -196,28 +181,22 @@ spec:
             {{- end }}
             {{- toYaml (list .) | nindent 12 }}
             {{- end }}
-          {{- end }}
-      {{- if or $persistence.enabled .Values.hostDockerSocket.enabled .Values.extraVolumes }}
       volumes:
+        - name: openhands-config
+          configMap:
+            name: {{ include "openhands.fullname" . }}-config
         {{- if $persistence.enabled }}
         - name: workspace
           persistentVolumeClaim:
             claimName: {{ default (printf "%s-workspace" (include "openhands.fullname" .)) $persistence.existingClaim }}
         {{- end }}
-        {{- if .Values.hostDockerSocket.enabled }}
-        - name: docker-socket
-          hostPath:
-            path: {{ .Values.hostDockerSocket.hostPath | quote }}
-            type: Socket
-        {{- end }}
         {{- with .Values.extraVolumes }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
-      {{- end }}
       {{- with .Values.priorityClassName }}
       priorityClassName: {{ . }}
       {{- end }}
-      {{- with (default .Values.runtimeClassName $runtimeClassName) }}
+      {{- with .Values.runtimeClassName }}
       runtimeClassName: {{ . | quote }}
       {{- end }}
       {{- with (coalesce .Values.nodeSelector .Values.global.nodeSelector) }}

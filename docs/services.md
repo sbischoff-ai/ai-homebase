@@ -11,7 +11,7 @@ Canonical default posture in this document refers to umbrella defaults from `cha
 | Service | Role | Default expectation |
 | --- | --- | --- |
 | `openclaw` | General AI assistant UI/API | Enabled with private service access by default |
-| `openhands` | Agentic coding UI/API | Enabled by default; k3d and k3s overlays both enable Docker-socket access for sandboxing |
+| `openhands` | Agentic coding UI/API | Enabled by default; launches per-session Kubernetes runtime sandboxes inside the cluster |
 
 ### Default-on platform services
 
@@ -59,8 +59,10 @@ Canonical default posture in this document refers to umbrella defaults from `cha
 
 - Agentic coding service that provides a user-facing UI/API.
 - Enabled by default in umbrella values.
-- The supported k3d and k3s overlays enable host Docker socket mounting at `/var/run/docker.sock` so the in-cluster deployment matches the documented Docker-backed runtime model.
-- Keep extra volume mounts away from `/app` because that shadows the image entrypoint.
+- The chart explicitly renders `runtime = "kubernetes"` plus an upstream `[kubernetes]` config block so the web/API pod stays lightweight while runtime pods handle session execution.
+- The service account is granted namespace-scoped RBAC to create and clean up runtime pods, services, ingresses, and PVCs in the configured runtime namespace.
+- The Kubernetes runtime currently assumes OpenHands itself is running inside the cluster.
+- Keep extra operator-defined volume mounts away from `/app` because that shadows the image entrypoint; the chart's own single-file `config.toml` subPath mount is the managed exception.
 
 ## Additional service details
 

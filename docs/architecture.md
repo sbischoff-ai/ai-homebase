@@ -15,7 +15,7 @@ It also owns the rendered sandbox configuration used for Docker-backed agent exe
 ### OpenHands
 
 OpenHands provides the agentic coding UI/API.
-In supported k3d and k3s deployments it mounts the host Docker socket so in-cluster execution follows the documented Docker-backed runtime model.
+In supported k3d and k3s deployments it acts as an in-cluster control plane and launches per-session Kubernetes runtime sandboxes inside the cluster.
 
 ## Supported targets
 
@@ -26,5 +26,4 @@ The repository intentionally supports only:
 
 ## Trust boundary
 
-Docker-socket-based sandboxing is treated as part of the homelab design for these targets.
-That improves compatibility with the upstream OpenHands and OpenClaw sandbox workflows, but it also makes the cluster trust boundary intentionally privileged.
+OpenClaw's Docker-socket-based sandboxing remains part of the homelab design for these targets, while OpenHands now uses namespace-scoped in-cluster Kubernetes runtime sandboxes. That keeps the OpenHands web/API pod lightweight and removes its dependency on host Docker socket access.

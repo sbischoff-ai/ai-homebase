@@ -59,17 +59,12 @@ openhands:
     tls: []
   persistence:
     enabled: false
-  resources:
-    requests:
-      cpu: 1000m
-      memory: 4Gi
-    limits:
-      cpu: 2000m
-      memory: 8Gi
-  hostDockerSocket:
-    enabled: true
-    hostPath: /var/run/docker.sock
-    mountPath: /var/run/docker.sock
+  kubernetes:
+    ingress_domain: openhands.localtest.me
+    pvc_storage_size: 2Gi
+    resource_cpu_request: "500m"
+    resource_memory_request: 1Gi
+    resource_memory_limit: 2Gi
 
 nextcloud:
   enabled: false

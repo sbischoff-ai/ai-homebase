@@ -46,17 +46,15 @@ The repository intentionally supports only:
 
 Cloud-provider-specific deployment profiles and conditionals have been removed.
 
-## Docker-backed sandboxing defaults
+## Runtime defaults
 
-The supported targets assume Docker-backed sandboxing for both OpenHands and OpenClaw:
+The supported targets now split runtime posture by service:
 
-- `openhands.hostDockerSocket.*` controls mounting the host Docker socket into OpenHands.
-- `openclaw.hostDockerSocket.*` controls mounting the host Docker socket into OpenClaw.
+- `openhands.runtime.mode` is fixed to `kubernetes`, and `openhands.kubernetes.*` renders the upstream `[kubernetes]` config block used for in-cluster runtime sandboxes.
+- `openclaw.hostDockerSocket.*` still controls mounting the host Docker socket into OpenClaw.
 - `openclaw.openclaw.agents.defaults.sandbox.*` renders the OpenClaw sandbox configuration directly into `openclaw.json`.
 
-Both shipped target overlays enable these settings with the default host socket path `/var/run/docker.sock`.
-
-This is an intentional homelab-only trust model, not a multi-tenant-safe default.
+OpenHands Kubernetes runtime defaults assume OpenHands itself is running inside the cluster and create per-session runtime resources in the configured namespace. OpenClaw's Docker socket model remains an intentional homelab-only trust choice, not a multi-tenant-safe default.
 
 ## Values schema validation
 
@@ -84,7 +82,7 @@ Use service-specific blocks when behavior must diverge, especially for:
 - `openclaw.*` and `openhands.*`
 - Secret references and env contracts
 - Persistence and ingress controls
-- OpenClaw sandbox and Docker-socket settings
+- OpenHands Kubernetes runtime settings and OpenClaw Docker-socket settings
 
 ## Toggle strategy for service composition
 

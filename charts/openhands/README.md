@@ -10,20 +10,32 @@ This chart deploys OpenHands with a private-by-default posture aligned to this r
 
 Expected access path is through existing private connectivity (WireGuard/VPN) and internal DNS, for example `http://openhands.default.svc.cluster.local:3000` or your internal ingress hostname.
 
-Security/runtime defaults run as root (`runAsUser: 0`, `runAsGroup: 0`, `podSecurityContext.fsGroup: 0`, `runAsNonRoot: false`) because the upstream image currently requires `/app/entrypoint.sh` to start as root. Avoid mounting any extra volume at `/app` (or `/app/*`) because it shadows the baked-in `/app/entrypoint.sh` and prevents container startup.
+Security/runtime defaults run as root (`runAsUser: 0`, `runAsGroup: 0`, `podSecurityContext.fsGroup: 0`, `runAsNonRoot: false`) because the upstream image currently requires `/app/entrypoint.sh` to start as root. Avoid mounting any extra operator-defined volume at `/app` (or `/app/*`) because it shadows the baked-in `/app/entrypoint.sh` and prevents container startup; the chart-managed single-file `/app/config.toml` subPath mount is the intentional exception used to render the OpenHands runtime configuration.
 
-## Docker-backed sandboxing
+## Kubernetes runtime sandboxing
 
-OpenHands' documented local runtime expects Docker access and mounts the default Docker socket at `/var/run/docker.sock`. For this homelab-focused chart, that same model is exposed through:
+This chart now renders the upstream OpenHands Kubernetes runtime configuration directly into `config.toml`:
 
 ```yaml
-hostDockerSocket:
-  enabled: true
-  hostPath: /var/run/docker.sock
-  mountPath: /var/run/docker.sock
+runtime:
+  mode: kubernetes
+kubernetes:
+  namespace: ai-homebase
+  ingress_domain: openhands.homebase.local
+  pvc_storage_size: 2Gi
+  pvc_storage_class: local-path
+  resource_cpu_request: "1"
+  resource_memory_request: 1Gi
+  resource_memory_limit: 2Gi
+  image_pull_secret: ""
+  ingress_tls_secret: ""
+  node_selector_key: ""
+  node_selector_val: ""
+  tolerations_yaml: ""
+  privileged: false
 ```
 
-This is intentionally a trusted-boundary deployment pattern for self-hosted k3d/k3s environments, not a safe multi-tenant default.
+The OpenHands pod stays lightweight and uses namespace-scoped RBAC to create per-session runtime pods, services, ingresses, and PVCs inside the cluster. This runtime currently assumes OpenHands itself is running in-cluster.
 
 ## Secret inputs
 
@@ -58,7 +70,7 @@ secretRefs:
     envVar: OH_WEB_URL
 ```
 
-### 2) Persistence size / storage class
+### 2) OpenHands control-plane persistence size / storage class
 
 ```yaml
 persistence:

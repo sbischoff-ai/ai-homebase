@@ -21,6 +21,50 @@ metadata:
     app.kubernetes.io/name: openclaw
   name: platform-stack-openclaw
 ---
+apiVersion: v1
+data:
+  config.toml: '[core]
+
+    runtime = "kubernetes"
+
+
+    [kubernetes]
+
+    namespace = "ai-homebase"
+
+    ingress_domain = ""
+
+    pvc_storage_size = "2Gi"
+
+    pvc_storage_class = ""
+
+    resource_cpu_request = "1"
+
+    resource_memory_request = "1Gi"
+
+    resource_memory_limit = "2Gi"
+
+    image_pull_secret = ""
+
+    ingress_tls_secret = ""
+
+    node_selector_key = ""
+
+    node_selector_val = ""
+
+    tolerations_yaml = ""
+
+    privileged = false
+
+    '
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: openhands
+  name: platform-stack-openhands-config
+---
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -340,6 +384,8 @@ spec:
       app.kubernetes.io/name: openhands
   template:
     metadata:
+      annotations:
+        checksum/config: dfd137068317f968edd8fde5242f6d94192defceeef76390eeb5ef535c5e121e
       labels:
         app.kubernetes.io/instance: platform-stack
         app.kubernetes.io/name: openhands
@@ -350,8 +396,6 @@ spec:
           value: ghcr.io/openhands/agent-server
         - name: AGENT_SERVER_IMAGE_TAG
           value: 1.12.0-python
-        - name: RUNTIME_MODE
-          value: ''
         - name: QUEUE_ENABLED
           value: 'false'
         - name: QUEUE_PROVIDER
@@ -387,11 +431,11 @@ spec:
           timeoutSeconds: 5
         resources:
           limits:
-            cpu: '2'
-            memory: 8Gi
+            cpu: 500m
+            memory: 512Mi
           requests:
-            cpu: 1000m
-            memory: 4Gi
+            cpu: 100m
+            memory: 256Mi
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -399,17 +443,27 @@ spec:
             - ALL
           readOnlyRootFilesystem: false
           runAsGroup: 42420
-          runAsNonRoot: true
-          runAsUser: 42420
+          runAsNonRoot: false
+          runAsUser: 0
         startupProbe:
           failureThreshold: 30
           periodSeconds: 10
           tcpSocket:
             port: 3000
           timeoutSeconds: 5
+        volumeMounts:
+        - mountPath: /app/config.toml
+          name: openhands-config
+          subPath: config.toml
       securityContext:
         fsGroup: 42420
+        supplementalGroups:
+        - 42420
       serviceAccountName: platform-stack-openhands
+      volumes:
+      - configMap:
+          name: platform-stack-openhands-config
+        name: openhands-config
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -767,7 +821,7 @@ metadata:
   name: platform-stack-openclaw
 ---
 apiVersion: v1
-automountServiceAccountToken: false
+automountServiceAccountToken: true
 kind: ServiceAccount
 metadata:
   labels:
