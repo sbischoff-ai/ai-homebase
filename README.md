@@ -1,14 +1,14 @@
 # ai-homebase
 
 ## What is this repo?
-`ai-homebase` is a Helm-based AI homelab stack centered on OpenClaw, OpenHands, and an in-cluster OpenShell gateway, with optional services such as Nextcloud, Paperless-ngx, Gitea, Infisical, and wg-easy.
+`ai-homebase` is a Helm-based AI homelab stack centered on OpenClaw and OpenHands, with optional services such as Nextcloud, Paperless-ngx, Gitea, Infisical, and wg-easy.
 
 The repository now supports exactly two deployment targets:
 
 - **k3d** for local testing.
 - **k3s** for the productive homelab server.
 
-OpenClaw now defaults to the **OpenShell** sandbox backend in the shipped `k3d` and `k3s` overlays, using an in-cluster OpenShell gateway service plus the `openshell` CLI/plugin configuration. OpenHands runs as a lightweight in-cluster control plane that launches per-session **Kubernetes runtime** sandboxes inside the cluster.
+OpenClaw now ships with its sandbox backend value set to **docker** in the shared defaults and shipped `k3d`/`k3s` overlays. This repository does **not** yet add Docker runtime wiring for OpenClaw sandbox execution; that work is intentionally deferred. OpenHands runs as a lightweight in-cluster control plane that launches per-session **Kubernetes runtime** sandboxes inside the cluster.
 
 ## Quick start
 
@@ -38,13 +38,13 @@ helm dependency update charts/platform-stack
 ```
 
 `k3d-local-bootstrap.sh` creates a dedicated kubeconfig for the local cluster, exports `KUBECONFIG` to that file for the script run, and keeps local setup isolated from your existing kubeconfig merge state.
-The local k3d bootstrap also disables the default k3s Traefik add-on during cluster creation so Helm-managed `ingress-nginx` is the single intended HTTP/HTTPS ingress controller. It still uses Docker to run the local k3d node containers themselves, but OpenClaw sandbox execution now stays entirely in-cluster through the OpenShell service and no longer relies on any host Docker passthrough.
+The local k3d bootstrap also disables the default k3s Traefik add-on during cluster creation so Helm-managed `ingress-nginx` is the single intended HTTP/HTTPS ingress controller. k3d still uses Docker to run the local node containers themselves, but this repository does not yet wire Docker into OpenClaw sandbox execution.
 By default, helper scripts print concise progress updates and write full command logs to `/tmp/ai-homebase-bootstrap-<timestamp>.log`.
 Use `--verbose` (or `BOOTSTRAP_VERBOSE=1`) when you want full live command output in the terminal.
 
 For complete command coverage, see [`docs/commands.md`](./docs/commands.md).
 
-> Local k3d note: the shipped `values-k3d.yaml` profile points the `wg-easy`, `OpenHands`, and `Infisical` Ingresses at the Helm-managed `ingress-nginx` controller by using the `nginx` ingress class. `*.localtest.me` usually resolves to `127.0.0.1` automatically, but some NixOS setups do not provide that resolution out of the box. If browser access to local ingress hosts such as `openhands.localtest.me`, `wg.localtest.me`, or `infisical.localtest.me` fails, add explicit host mappings as described in [`docs/deployment-k3d.md`](./docs/deployment-k3d.md#5-local-ingress-host-access-dnshosts).
+> Local k3d note: the shipped `values-k3d.yaml` profile points the `wg-easy`, `OpenHands`, and `Infisical` Ingresses at the Helm-managed `ingress-nginx` controller by using the `nginx` ingress class. `*.localtest.me` usually resolves to `127.0.0.1` automatically, but some NixOS setups do not provide that resolution out of the box. If browser access to local ingress hosts such as `openhands.localtest.me`, `wg.localtest.me`, or `infisical.localtest.me` fails, add explicit host mappings as described in [`docs/deployment-k3d.md`](./docs/deployment-k3d.md#4-local-ingress-host-access-dnshosts).
 
 ## Documentation map
 

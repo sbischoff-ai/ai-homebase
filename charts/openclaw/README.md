@@ -82,30 +82,9 @@ If you do not have direct CLI access in the running pod, make sure you have anot
 This deployment is intended for a **single trusted operator / household / team boundary**.
 It is **not intended to be a hostile multi-tenant shared service**.
 
-## OpenShell sandboxing
+## Sandbox configuration
 
-The chart now supports the documented OpenShell plugin path by rendering `agents.defaults.sandbox.*` plus `plugins.entries.openshell.*` into `openclaw.json`. In the umbrella chart, the shared OpenShell CLI path is carried by `openshell.cliCommand` and then copied into `plugins.entries.openshell.config.command`. A typical in-cluster setup points the plugin at the cluster-local OpenShell Service and leaves the CLI name configurable:
-
-```yaml
-openclaw:
-  agents:
-    defaults:
-      sandbox:
-        mode: all
-        backend: openshell
-        scope: session
-        workspaceAccess: rw
-  plugins:
-    entries:
-      openshell:
-        enabled: true
-        config:
-          command: openshell
-          gatewayEndpoint: http://openshell:80
-          mode: remote
-```
-
-The pod exports `OPENCLAW_SANDBOX=1` whenever sandboxing is enabled and renders the OpenShell plugin configuration directly into `openclaw.json`. If the selected OpenClaw image does not already include the `openshell` CLI, override the image and/or set `plugins.entries.openshell.config.command` directly in the OpenClaw chart, or set `openshell.cliCommand` when working through the umbrella chart defaults.
+The chart renders `agents.defaults.sandbox.*` plus `plugins.*` into `openclaw.json`. The shipped defaults now set `openclaw.agents.defaults.sandbox.backend: docker`, but this chart does not add Docker socket mounts, sidecars, or other runtime wiring. That follow-up enablement is intentionally left to a later change.
 
 ## Example: secrets + values (`existingSecret` / `secretRefs` style)
 

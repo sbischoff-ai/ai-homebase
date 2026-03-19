@@ -3,7 +3,7 @@
   "type": "object",
   "title": "platform-stack values",
   "additionalProperties": true,
-  "required": ["global", "openshell", "openclaw", "openhands"],
+  "required": ["global", "openclaw", "openhands"],
   "properties": {
     "global": {
       "type": "object",
@@ -32,7 +32,6 @@
           "description": "Default hostnames by service.",
           "additionalProperties": { "$ref": "#/definitions/hostname" },
           "properties": {
-            "openshell": { "$ref": "#/definitions/hostname" },
             "openclaw": { "$ref": "#/definitions/hostname" },
             "openhands": { "$ref": "#/definitions/hostname" },
             "nextcloud": { "$ref": "#/definitions/hostname" },
@@ -41,38 +40,6 @@
             "infisical": { "$ref": "#/definitions/hostname" },
             "wgEasy": { "$ref": "#/definitions/hostname" }
           }
-        }
-      }
-    },
-    "openshell": {
-      "type": "object",
-      "required": ["enabled", "service", "gatewayEndpoint", "cliCommand"],
-      "additionalProperties": true,
-      "properties": {
-        "enabled": { "type": "boolean", "default": true },
-        "gatewayEndpoint": {
-          "type": "string",
-          "minLength": 1,
-          "default": "http://openshell:80",
-          "description": "Cluster-local URL consumed by OpenClaw and other workloads when talking to the OpenShell gateway service."
-        },
-        "cliCommand": {
-          "type": "string",
-          "minLength": 1,
-          "default": "openshell",
-          "description": "CLI name or absolute path reused by umbrella defaults for OpenClaw OpenShell plugin operations."
-        },
-        "service": {
-          "allOf": [
-            { "$ref": "#/definitions/service" },
-            {
-              "required": ["name", "port"],
-              "properties": {
-                "name": { "type": "string", "minLength": 1, "default": "openshell" },
-                "port": { "type": "integer", "minimum": 1, "maximum": 65535, "default": 80 }
-              }
-            }
-          ]
         }
       }
     },
@@ -165,7 +132,6 @@
       { "required": ["workerIsolation"] }
     ]
   },
-
   "definitions": {
     "nameOrLocalRef": {
       "oneOf": [
@@ -262,7 +228,6 @@
     "secretRefs": {
       "type": "array",
       "default": [],
-      "description": "List of explicit secret key-to-env mappings.",
       "items": {
         "type": "object",
         "required": ["name", "key", "envVar"],
@@ -277,29 +242,22 @@
     "secretEnv": {
       "type": "array",
       "default": [],
-      "description": "Structured secretKeyRef-based env mappings.",
       "items": {
         "type": "object",
-        "required": ["name", "secretName", "key"],
+        "required": ["name", "secretName", "secretKey"],
         "properties": {
           "name": { "type": "string", "minLength": 1 },
           "secretName": { "type": "string", "minLength": 1 },
-          "key": { "type": "string", "minLength": 1 },
-          "optional": { "type": "boolean", "default": false }
+          "secretKey": { "type": "string", "minLength": 1 }
         },
         "additionalProperties": true
       }
     },
     "optionalServiceToggle": {
       "type": "object",
-      "required": ["enabled"],
       "additionalProperties": true,
       "properties": {
-        "enabled": {
-          "type": "boolean",
-          "default": false,
-          "description": "Service toggle. Explicitly set per environment overlay."
-        }
+        "enabled": { "type": "boolean", "default": false }
       }
     }
   }

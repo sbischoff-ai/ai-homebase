@@ -11,7 +11,6 @@ Canonical default posture in this document refers to umbrella defaults from `cha
 | Service | Role | Default expectation |
 | --- | --- | --- |
 | `openclaw` | General AI assistant UI/API | Enabled with private service access by default |
-| `openshell` | Cluster-local sandbox gateway for OpenClaw and other workloads | Enabled by default as a reusable internal service |
 | `openhands` | Agentic coding UI/API | Enabled by default; launches per-session Kubernetes runtime sandboxes inside the cluster |
 
 ### Default-on platform services
@@ -34,7 +33,6 @@ Canonical default posture in this document refers to umbrella defaults from `cha
 | Service | Operator-facing toggle | Default in `charts/platform-stack/values.yaml` |
 | --- | --- | --- |
 | `openclaw` | `openclaw.enabled` | `true` |
-| `openshell` | `openshell.enabled` | `true` |
 | `openhands` | `openhands.enabled` | `true` |
 | `nextcloud` | `nextcloud.enabled` | `true` |
 | `gitea` | `gitea.enabled` | `false` |
@@ -50,9 +48,8 @@ Canonical default posture in this document refers to umbrella defaults from `cha
 - Requires secret references for API/auth integrations.
 - Mounts an in-memory writable `/tmp` and a persistent state directory.
 - The chart renders `openclaw.json` from structured `openclaw.*` values.
-- OpenClaw now defaults to OpenShell sandboxing by rendering `openclaw.agents.defaults.sandbox.mode=all`, `backend=openshell`, `scope=session`, and `workspaceAccess=rw`.
-- The chart enables `openclaw.plugins.entries.openshell` by default and points `plugins.entries.openshell.config.gatewayEndpoint` at the cluster-local OpenShell service URL.
-- The umbrella chart surfaces that CLI path as `openshell.cliCommand` and feeds it into `openclaw.openclaw.plugins.entries.openshell.config.command`, so operators can keep the default `openshell` binary name or point at a custom CLI path in images that bundle the tool elsewhere without colliding with the OpenShell subchart container `command` array.
+- OpenClaw now ships with `openclaw.agents.defaults.sandbox.backend=docker` in the shared defaults and shipped overlays.
+- This repository does not yet add Docker runtime wiring for OpenClaw sandbox execution, so the backend change is configuration-only for now.
 
 ### OpenHands
 
@@ -102,10 +99,3 @@ Supported patterns include:
 - `secretEnv[]`
 
 Use service-specific structured secret references where the chart provides them.
-
-### OpenShell
-
-- Reusable in-cluster execution gateway exposed via a stable `ClusterIP` Service named `openshell`.
-- Reachable from any pod at `http://openshell.<namespace>.svc.cluster.local` and, within the same namespace, `http://openshell:80`.
-- Not coupled to OpenClaw-specific templates; other workloads can reuse the same service endpoint and CLI-compatible gateway.
-- The chart intentionally avoids Docker socket mounts and other host-Docker assumptions.

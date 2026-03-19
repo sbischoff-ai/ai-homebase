@@ -81,7 +81,7 @@ openclaw:
       workspace: ~/.openclaw/workspace
       sandbox:
         mode: all
-        backend: openshell
+        backend: docker
         scope: session
         workspaceAccess: rw
         workspaceRoot: ~/.openclaw/sandboxes
@@ -93,22 +93,7 @@ openclaw:
         name: OpenClaw Assistant
         workspace: ~/.openclaw/workspace
   plugins:
-    entries:
-      openshell:
-        enabled: true
-        config:
-          mode: remote
-          command: openshell
-          from: openclaw
-          gateway: ""
-          gatewayEndpoint: ""
-          policy: ""
-          providers: []
-          gpu: false
-          autoProviders: true
-          remoteWorkspaceDir: /sandbox
-          remoteAgentWorkspaceDir: /agent
-          timeoutSeconds: 120
+    entries: {}
 
 env: []
 envFromSecrets: []
