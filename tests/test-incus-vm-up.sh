@@ -307,7 +307,7 @@ SH
       fi
       ;;
     *)
-      grep -F 'Guest booted but SSH proxy unreachable at 10.10.10.1:2222; waiting for endpoint reachability' "${output_log}" >/dev/null
+      grep -F 'Guest booted but cloud-init completion has not been observed yet; waiting for SSH endpoint 10.10.10.1:2222' "${output_log}" >/dev/null
       grep -F 'SSH endpoint confirmed reachable at 10.10.10.1:2222' "${output_log}" >/dev/null
       grep -F 'attempt=1 ' "${ssh_log_file}" >/dev/null
       grep -F "attempt=${ssh_success_after} " "${ssh_log_file}" >/dev/null
@@ -328,6 +328,9 @@ SH
 }
 
 run_timeout_failure_case() {
+  local case_name="$1"
+  local guest_agent_available="$2"
+  local cloud_init_done="$3"
   local sandbox_dir
   sandbox_dir="$(mktemp -d)"
 
@@ -336,13 +339,24 @@ run_timeout_failure_case() {
   local bootstrap_log="${sandbox_dir}/bootstrap.log"
   mkdir -p "${fake_bin}"
 
-  cat >"${fake_bin}/incus" <<'SH'
+cat >"${fake_bin}/incus" <<'SH'
 #!/usr/bin/env bash
 set -euo pipefail
+guest_agent_available="${FAKE_TIMEOUT_GUEST_AGENT_AVAILABLE:-0}"
+cloud_init_done="${FAKE_TIMEOUT_CLOUD_INIT_DONE:-0}"
 command="$1"
 shift
 case "${command}" in
-  info) exit 1 ;;
+  info)
+    if [[ $# -eq 1 ]]; then
+      cat <<'TXT'
+Name: test-vm
+Status: RUNNING
+TXT
+      exit 0
+    fi
+    exit 1
+    ;;
   init|start) exit 0 ;;
   list)
     if [[ "$2" == "-f" && "$3" == "csv" ]]; then
@@ -364,19 +378,84 @@ case "${command}" in
     subcommand="$1"
     shift
     case "${subcommand}" in
-      set|device) exit 0 ;;
+      set) exit 0 ;;
       show)
         cat <<'YAML'
 architecture: x86_64
 config: {}
+devices:
+  ssh-proxy:
+    connect: tcp:0.0.0.0:22
+    listen: tcp:10.10.10.1:2222
+    nat: "true"
+    type: proxy
 profiles:
 - default
 YAML
         exit 0
         ;;
+      device)
+        if [[ "$1" == "show" ]]; then
+          cat <<'YAML'
+ssh-proxy:
+  connect: tcp:0.0.0.0:22
+  listen: tcp:10.10.10.1:2222
+  nat: "true"
+  type: proxy
+YAML
+          exit 0
+        fi
+        exit 0
+        ;;
     esac
     ;;
-  exec) exit 1 ;;
+  exec)
+    if [[ "${guest_agent_available}" != "1" ]]; then
+      exit 1
+    fi
+    if [[ "$1" != "test-vm" || "$2" != "--" ]]; then
+      exit 1
+    fi
+    shift 2
+    case "$*" in
+      "true")
+        exit 0
+        ;;
+      "cloud-init status")
+        if [[ "${cloud_init_done}" == "1" ]]; then
+          printf 'status: done\n'
+        else
+          printf 'status: running\n'
+        fi
+        exit 0
+        ;;
+      "sh -lc cloud-init status --wait || cloud-init status")
+        if [[ "${cloud_init_done}" == "1" ]]; then
+          printf 'status: done\n'
+          exit 0
+        fi
+        printf 'status: running\n' >&2
+        exit 1
+        ;;
+      "systemctl is-active --quiet ssh")
+        exit 0
+        ;;
+      "systemctl status ssh --no-pager")
+        printf 'ssh.service active\n'
+        exit 0
+        ;;
+      "systemctl status docker --no-pager")
+        printf 'docker.service active\n'
+        exit 0
+        ;;
+    esac
+    ;;
+  console)
+    if [[ "$1" == "--show-log" && "$2" == "test-vm" ]]; then
+      printf 'console log line\n'
+      exit 0
+    fi
+    ;;
 esac
 printf 'unexpected incus invocation: %s\n' "$command $*" >&2
 exit 1
@@ -424,13 +503,15 @@ SH
   set +e
   PATH="${fake_bin}:$PATH" \
   REAL_PYTHON3="${real_python3}" \
+  FAKE_TIMEOUT_GUEST_AGENT_AVAILABLE="${guest_agent_available}" \
+  FAKE_TIMEOUT_CLOUD_INIT_DONE="${cloud_init_done}" \
   BOOTSTRAP_LOG_FILE="${bootstrap_log}" \
   "${SCRIPT_PATH}" \
     --vm-name test-vm \
     --vm-static-ipv4 10.10.10.45 \
     --ssh-key-path "${sandbox_dir}/keys/test-id_ed25519" \
     --state-dir "${sandbox_dir}/statefiles" \
-    --ssh-ready-timeout-seconds 0 \
+    --ssh-ready-timeout-seconds 1 \
     >"${log_file}" 2>&1
   local status=$?
   set -e
@@ -440,14 +521,41 @@ SH
     return 1
   fi
 
-  grep -F 'Waiting for Incus VM SSH readiness (timeout: 0s)' "${log_file}" >/dev/null
-  grep -F 'Timed out waiting for test-vm' "${log_file}" >/dev/null
+  grep -F 'Waiting for Incus VM SSH readiness (timeout: 1s)' "${log_file}" >/dev/null
+  grep -F '===== TIMEOUT DIAGNOSTICS BEGIN =====' "${bootstrap_log}" >/dev/null
+  grep -F '### HOST: incus info' "${bootstrap_log}" >/dev/null
+  grep -F '### HOST: incus config show' "${bootstrap_log}" >/dev/null
+  grep -F '### HOST: incus config device show' "${bootstrap_log}" >/dev/null
+  grep -F '### HOST: incus list -f json' "${bootstrap_log}" >/dev/null
+  grep -F '### HOST: incus console --show-log' "${bootstrap_log}" >/dev/null
+
+  case "${case_name}" in
+    guest-agent-unreachable)
+      grep -F 'Failure reason: guest-agent-unreachable' "${bootstrap_log}" >/dev/null
+      grep -F '### GUEST: diagnostics unavailable' "${bootstrap_log}" >/dev/null
+      grep -F 'Timed out waiting for test-vm: failed to reach the guest agent and failed to connect to the SSH proxy at 10.10.10.1:2222.' "${log_file}" >/dev/null
+      ;;
+    cloud-init-incomplete)
+      grep -F 'Failure reason: cloud-init-incomplete' "${bootstrap_log}" >/dev/null
+      grep -F '### GUEST: cloud-init status --wait || cloud-init status' "${bootstrap_log}" >/dev/null
+      grep -F '### GUEST: systemctl status ssh --no-pager' "${bootstrap_log}" >/dev/null
+      grep -F '### GUEST: systemctl status docker --no-pager' "${bootstrap_log}" >/dev/null
+      grep -F 'Timed out waiting for test-vm: guest agent became reachable, but failed to observe cloud-init completion before the SSH proxy at 10.10.10.1:2222 became reachable.' "${log_file}" >/dev/null
+      ;;
+    ssh-proxy-unreachable)
+      grep -F 'Failure reason: ssh-proxy-unreachable' "${bootstrap_log}" >/dev/null
+      grep -F '### GUEST: cloud-init status --wait || cloud-init status' "${bootstrap_log}" >/dev/null
+      grep -F 'Timed out waiting for test-vm: cloud-init completed but failed to connect to the SSH proxy at 10.10.10.1:2222.' "${log_file}" >/dev/null
+      ;;
+  esac
 
   rm -rf "${sandbox_dir}"
 }
 
 run_case inherited-root 0 0 0 1 3
 run_case local-root 1 1 1 0 1 42
-run_timeout_failure_case
+run_timeout_failure_case guest-agent-unreachable 0 0
+run_timeout_failure_case cloud-init-incomplete 1 0
+run_timeout_failure_case ssh-proxy-unreachable 1 1
 
 echo "incus-vm-up tests passed"

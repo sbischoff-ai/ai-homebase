@@ -18,6 +18,7 @@ VM_STATIC_IPV4="${VM_STATIC_IPV4:-}"
 HOST_LISTEN_ADDRESS="${HOST_LISTEN_ADDRESS:-}"
 CONNECTION_INFO_PATH="${CONNECTION_INFO_PATH:-}"
 SSH_READY_TIMEOUT_SECONDS="${SSH_READY_TIMEOUT_SECONDS:-600}"
+READINESS_FAILURE_REASON=""
 
 usage() {
   cat <<USAGE
@@ -195,8 +196,11 @@ autodetect_network_addresses() {
 
 wait_for_vm_readiness() {
   local deadline=$((SECONDS + SSH_READY_TIMEOUT_SECONDS))
-  local guest_booted_reported=0
+  local guest_agent_reachable_reported=0
   local guest_agent_unavailable_reported=0
+  local cloud_init_wait_reported=0
+  local ssh_proxy_wait_reported=0
+  local cloud_init_output=""
   while [[ $SECONDS -lt $deadline ]]; do
     if VM_IPV4="$(get_vm_ipv4 2>/dev/null)"; then
       export VM_IPV4
@@ -218,12 +222,35 @@ wait_for_vm_readiness() {
       return 0
     fi
 
-    if incus exec "$VM_NAME" -- systemctl is-active --quiet ssh >/dev/null 2>&1; then
-      if [[ "$guest_booted_reported" -eq 0 ]]; then
-        step "Guest booted but SSH proxy unreachable at ${HOST_LISTEN_ADDRESS}:${SSH_HOST_PORT}; waiting for endpoint reachability"
-        guest_booted_reported=1
+    if cloud_init_output="$(incus exec "$VM_NAME" -- cloud-init status 2>/dev/null)"; then
+      READINESS_FAILURE_REASON="cloud-init-incomplete"
+      if [[ "$guest_agent_reachable_reported" -eq 0 ]]; then
+        step "Guest agent became reachable for ${VM_NAME}; collecting cloud-init readiness"
+        guest_agent_reachable_reported=1
+      fi
+
+      if grep -Eq 'status:[[:space:]]*done' <<<"$cloud_init_output"; then
+        READINESS_FAILURE_REASON="ssh-proxy-unreachable"
+        if [[ "$ssh_proxy_wait_reported" -eq 0 ]]; then
+          step "Guest booted and cloud-init completed, but SSH proxy unreachable at ${HOST_LISTEN_ADDRESS}:${SSH_HOST_PORT}; waiting for endpoint reachability"
+          ssh_proxy_wait_reported=1
+        fi
+      elif [[ "$cloud_init_wait_reported" -eq 0 ]]; then
+        step "Guest agent reachable but cloud-init has not completed yet; waiting for SSH endpoint ${HOST_LISTEN_ADDRESS}:${SSH_HOST_PORT}"
+        cloud_init_wait_reported=1
+      fi
+    elif incus exec "$VM_NAME" -- systemctl is-active --quiet ssh >/dev/null 2>&1; then
+      READINESS_FAILURE_REASON="cloud-init-incomplete"
+      if [[ "$guest_agent_reachable_reported" -eq 0 ]]; then
+        step "Guest agent became reachable for ${VM_NAME}; collecting cloud-init readiness"
+        guest_agent_reachable_reported=1
+      fi
+      if [[ "$cloud_init_wait_reported" -eq 0 ]]; then
+        step "Guest booted but cloud-init completion has not been observed yet; waiting for SSH endpoint ${HOST_LISTEN_ADDRESS}:${SSH_HOST_PORT}"
+        cloud_init_wait_reported=1
       fi
     elif [[ "$guest_agent_unavailable_reported" -eq 0 ]]; then
+      READINESS_FAILURE_REASON="guest-agent-unreachable"
       warn "Guest agent unavailable; still waiting for SSH endpoint ${HOST_LISTEN_ADDRESS}:${SSH_HOST_PORT}"
       guest_agent_unavailable_reported=1
     fi
@@ -231,12 +258,104 @@ wait_for_vm_readiness() {
     sleep 3
   done
 
-  if [[ "$guest_booted_reported" -eq 1 ]]; then
-    fail "Timed out waiting for ${VM_NAME}: guest booted but SSH proxy unreachable at ${HOST_LISTEN_ADDRESS}:${SSH_HOST_PORT}"
-  else
-    fail "Timed out waiting for ${VM_NAME}: guest agent unavailable and SSH endpoint ${HOST_LISTEN_ADDRESS}:${SSH_HOST_PORT} did not become reachable"
-  fi
+  collect_timeout_diagnostics
+  case "${READINESS_FAILURE_REASON:-guest-agent-unreachable}" in
+    ssh-proxy-unreachable)
+      fail "Timed out waiting for ${VM_NAME}: cloud-init completed but failed to connect to the SSH proxy at ${HOST_LISTEN_ADDRESS}:${SSH_HOST_PORT}. See timeout diagnostics in ${BOOTSTRAP_LOG_FILE}"
+      ;;
+    cloud-init-incomplete)
+      fail "Timed out waiting for ${VM_NAME}: guest agent became reachable, but failed to observe cloud-init completion before the SSH proxy at ${HOST_LISTEN_ADDRESS}:${SSH_HOST_PORT} became reachable. See timeout diagnostics in ${BOOTSTRAP_LOG_FILE}"
+      ;;
+    *)
+      fail "Timed out waiting for ${VM_NAME}: failed to reach the guest agent and failed to connect to the SSH proxy at ${HOST_LISTEN_ADDRESS}:${SSH_HOST_PORT}. See timeout diagnostics in ${BOOTSTRAP_LOG_FILE}"
+      ;;
+  esac
   exit 1
+}
+
+append_timeout_diagnostic_command() {
+  local label="$1"
+  shift
+  {
+    echo
+    echo "### ${label}"
+    echo "\$ $*"
+    if "$@"; then
+      :
+    else
+      local status=$?
+      echo "[command exited with status ${status}]"
+    fi
+  } >>"$BOOTSTRAP_LOG_FILE" 2>&1
+}
+
+append_timeout_guest_exec_diagnostic() {
+  local label="$1"
+  shift
+
+  {
+    echo
+    echo "### ${label}"
+    echo "\$ incus exec ${VM_NAME} -- $*"
+  } >>"$BOOTSTRAP_LOG_FILE"
+
+  if incus exec "$VM_NAME" -- "$@" >>"$BOOTSTRAP_LOG_FILE" 2>&1; then
+    return 0
+  fi
+
+  local status=$?
+  echo "[command exited with status ${status}]" >>"$BOOTSTRAP_LOG_FILE"
+  return "$status"
+}
+
+collect_timeout_diagnostics() {
+  {
+    echo
+    echo "===== TIMEOUT DIAGNOSTICS BEGIN ====="
+    echo "VM: ${VM_NAME}"
+    echo "Failure reason: ${READINESS_FAILURE_REASON:-unknown}"
+    echo "SSH proxy endpoint: ${HOST_LISTEN_ADDRESS}:${SSH_HOST_PORT}"
+    echo "Observed VM IPv4: ${VM_IPV4:-unavailable}"
+    echo "Configured VM static IPv4: ${VM_STATIC_IPV4:-unavailable}"
+  } >>"$BOOTSTRAP_LOG_FILE"
+
+  append_timeout_diagnostic_command "HOST: incus info" incus info "$VM_NAME"
+  append_timeout_diagnostic_command "HOST: incus config show" incus config show "$VM_NAME"
+  append_timeout_diagnostic_command "HOST: incus config device show" incus config device show "$VM_NAME"
+  append_timeout_diagnostic_command "HOST: incus list -f json" incus list "$VM_NAME" -f json
+
+  if incus exec "$VM_NAME" -- true >/dev/null 2>&1; then
+    if command -v timeout >/dev/null 2>&1; then
+      append_timeout_diagnostic_command "GUEST: cloud-init status --wait || cloud-init status" \
+        timeout 15s incus exec "$VM_NAME" -- sh -lc 'cloud-init status --wait || cloud-init status'
+    else
+      append_timeout_guest_exec_diagnostic "GUEST: cloud-init status" cloud-init status
+    fi
+    append_timeout_guest_exec_diagnostic "GUEST: systemctl status ssh --no-pager" systemctl status ssh --no-pager
+    append_timeout_guest_exec_diagnostic "GUEST: systemctl status docker --no-pager" systemctl status docker --no-pager
+  else
+    {
+      echo
+      echo "### GUEST: diagnostics unavailable"
+      echo "incus exec ${VM_NAME} -- true failed; guest agent may still be unavailable."
+    } >>"$BOOTSTRAP_LOG_FILE"
+  fi
+
+  {
+    echo
+    echo "### HOST: incus console --show-log"
+    echo "\$ incus console --show-log ${VM_NAME}"
+  } >>"$BOOTSTRAP_LOG_FILE"
+  if incus console --show-log "$VM_NAME" >>"$BOOTSTRAP_LOG_FILE" 2>&1; then
+    :
+  else
+    local status=$?
+    {
+      echo "[command exited with status ${status}; console log output may not be supported by this Incus version]"
+    } >>"$BOOTSTRAP_LOG_FILE"
+  fi
+
+  echo "===== TIMEOUT DIAGNOSTICS END =====" >>"$BOOTSTRAP_LOG_FILE"
 }
 
 ensure_ssh_key() {
