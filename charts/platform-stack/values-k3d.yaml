@@ -38,8 +38,6 @@ openclaw:
     tavilyApiKey: ""
     braveSearchApiKey: ""
   secretRefs: []
-  hostDockerSocket:
-    enabled: false
   openclaw:
     gateway:
       controlUi:
@@ -48,8 +46,9 @@ openclaw:
     agents:
       defaults:
         sandbox:
-          mode: non-main
+          mode: all
           backend: openshell
+          scope: session
           workspaceAccess: rw
     plugins:
       entries:

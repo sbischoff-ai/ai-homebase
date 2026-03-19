@@ -68,11 +68,14 @@ openclaw:
     agents:
       defaults:
         sandbox:
-          mode: off
+          mode: all
+          backend: openshell
+          scope: session
+          workspaceAccess: rw
     plugins:
       entries:
         openshell:
-          enabled: false
+          enabled: true
           config:
             mode: remote
             command: *openshellCommand
@@ -107,11 +110,6 @@ openclaw:
     tavilyApiKey: ""
     braveSearchApiKey: ""
   secretRefs: []
-  hostDockerSocket:
-    enabled: false
-    hostPath: /var/run/docker.sock
-    mountPath: /var/run/docker.sock
-
 openhands:
   enabled: true
   replicaCount: 1

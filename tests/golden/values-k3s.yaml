@@ -5,18 +5,16 @@ data:
     \    \"token\": \"${OPENCLAW_GATEWAY_TOKEN}\"\n    },\n    \"controlUi\": {\n\
     \      \"enabled\": true,\n      \"allowedOrigins\": [\"http://openclaw.vpn.homebase.internal\"\
     ]\n    }\n  },\n  \"agents\": {\n    \"defaults\": {\n      \"workspace\": \"\
-    ~/.openclaw/workspace\",\n      \"sandbox\": {\"backend\":\"openshell\",\"docker\"\
-    :{\"capDrop\":[\"ALL\"],\"env\":{\"LANG\":\"C.UTF-8\"},\"image\":\"openclaw-sandbox:bookworm-slim\"\
-    ,\"network\":\"none\",\"readOnlyRoot\":true,\"tmpfs\":[\"/tmp\",\"/var/tmp\",\"\
-    /run\"],\"user\":\"1000:1000\",\"workdir\":\"/workspace\"},\"mode\":\"non-main\"\
-    ,\"prune\":{\"idleHours\":24,\"maxAgeDays\":7},\"scope\":\"agent\",\"workspaceAccess\"\
-    :\"rw\",\"workspaceRoot\":\"~/.openclaw/sandboxes\"}\n    },\n    \"list\": [{\"\
-    id\":\"default\",\"name\":\"OpenClaw Assistant\",\"workspace\":\"~/.openclaw/workspace\"\
-    }]\n  },\n  \"plugins\": {\"entries\":{\"openshell\":{\"config\":{\"autoProviders\"\
-    :true,\"command\":\"openshell\",\"from\":\"openclaw\",\"gateway\":\"\",\"gatewayEndpoint\"\
-    :\"http://openshell:80\",\"gpu\":false,\"mode\":\"remote\",\"policy\":\"\",\"\
-    providers\":[],\"remoteAgentWorkspaceDir\":\"/agent\",\"remoteWorkspaceDir\":\"\
-    /sandbox\",\"timeoutSeconds\":120},\"enabled\":true}}}\n}\n"
+    ~/.openclaw/workspace\",\n      \"sandbox\": {\"backend\":\"openshell\",\"mode\"\
+    :\"all\",\"prune\":{\"idleHours\":24,\"maxAgeDays\":7},\"scope\":\"session\",\"\
+    workspaceAccess\":\"rw\",\"workspaceRoot\":\"~/.openclaw/sandboxes\"}\n    },\n\
+    \    \"list\": [{\"id\":\"default\",\"name\":\"OpenClaw Assistant\",\"workspace\"\
+    :\"~/.openclaw/workspace\"}]\n  },\n  \"plugins\": {\"entries\":{\"openshell\"\
+    :{\"config\":{\"autoProviders\":true,\"command\":\"openshell\",\"from\":\"openclaw\"\
+    ,\"gateway\":\"\",\"gatewayEndpoint\":\"http://openshell:80\",\"gpu\":false,\"\
+    mode\":\"remote\",\"policy\":\"\",\"providers\":[],\"remoteAgentWorkspaceDir\"\
+    :\"/agent\",\"remoteWorkspaceDir\":\"/sandbox\",\"timeoutSeconds\":120},\"enabled\"\
+    :true}}}\n}\n"
 kind: ConfigMap
 metadata:
   labels:

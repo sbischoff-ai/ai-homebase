@@ -46,11 +46,10 @@ Relevant sandbox-related value paths:
 
 - `openclaw.agents.defaults.sandbox.mode`
 - `openclaw.agents.defaults.sandbox.backend`
-- `openclaw.plugins.entries.openshell.config.*`
-- `openclaw.agents.defaults.sandbox.docker.image`
-- `openclaw.agents.defaults.sandbox.docker.network`
+- `openclaw.agents.defaults.sandbox.scope`
+- `openclaw.agents.defaults.sandbox.workspaceAccess`
 - `openclaw.agents.defaults.sandbox.prune.*`
-- `hostDockerSocket.*`
+- `openclaw.plugins.entries.openshell.config.*`
 
 ## OpenHands Kubernetes runtime wiring
 

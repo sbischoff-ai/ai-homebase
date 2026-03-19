@@ -111,27 +111,6 @@
           "description": "Structured OpenClaw plugin configuration rendered into openclaw.json, including OpenShell backend settings."
         }
       }
-    },
-    "hostDockerSocket": {
-      "type": "object",
-      "additionalProperties": true,
-      "properties": {
-        "enabled": {
-          "type": "boolean",
-          "default": false,
-          "description": "Mount the host Docker socket into OpenClaw for Docker-backed agent sandboxing."
-        },
-        "hostPath": {
-          "type": "string",
-          "default": "/var/run/docker.sock",
-          "description": "Host path for the Docker socket mounted into the gateway pod."
-        },
-        "mountPath": {
-          "type": "string",
-          "default": "/var/run/docker.sock",
-          "description": "Container path where the Docker socket is mounted."
-        }
-      }
     }
   }
 }
