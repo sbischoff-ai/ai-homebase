@@ -98,13 +98,13 @@ The SSH Secret referenced by `remoteDocker.ssh.secretName` must include these ex
 - `id_ed25519` — the private key file used for the remote Docker SSH endpoint, and it must be present and non-empty.
 - `known_hosts` — the SSH host key file for that endpoint, and it must be present and non-empty.
 
-The `remote-docker-ssh-permissions` init container validates those two keys explicitly, copies only `id_ed25519` and `known_hosts` into an `emptyDir`, then fixes ownership to UID/GID `1000` and locks file permissions down before the main container starts so OpenSSH accepts the private key.
+The `remote-docker-ssh-permissions` init container validates those two keys explicitly, copies only `id_ed25519` and `known_hosts` into an `emptyDir`, locks the directory and files down to OpenSSH-safe modes, and only then hands ownership to UID/GID `1000` before the main container starts so OpenSSH accepts the private key.
 
 Security-context expectation for that init container:
 
-- it runs as UID/GID `0` only for the ownership-preparation step;
+- it runs as UID/GID `0` only for the permission-and-ownership preparation step;
 - it keeps `allowPrivilegeEscalation: false` and a read-only root filesystem;
-- it drops all Linux capabilities except `CHOWN`, which is required so `chown -R 1000:1000 /ssh-target` can succeed before the main container starts;
+- it drops all Linux capabilities except `CHOWN`, which is still sufficient because the init container sets `0700`/`0600`/`0644` modes before `chown -R 1000:1000 /ssh-target` hands the prepared files to the main container;
 - the main OpenClaw container still runs as non-root UID/GID `1000`.
 
 Final file permissions stay intentionally strict for OpenSSH compatibility:
@@ -113,9 +113,9 @@ Final file permissions stay intentionally strict for OpenSSH compatibility:
 - `id_ed25519` is written with mode `0600`;
 - `known_hosts` is left readable with mode `0644`.
 
-If the Secret is missing either key or either file is empty, or if the init container cannot complete the ownership-preparation step, OpenClaw will stay in `Init:CrashLoopBackOff`; inspect the `remote-docker-ssh-permissions` init-container logs first because they print the exact `remoteDocker.ssh.secretName` requirement and missing key names.
+If the Secret is missing either key or either file is empty, or if the init container cannot finish the permission-lockdown and ownership handoff steps, OpenClaw will stay in `Init:CrashLoopBackOff`; inspect the `remote-docker-ssh-permissions` init-container logs first because they print the exact `remoteDocker.ssh.secretName` requirement and missing key names.
 
-Troubleshooting note: when OpenClaw is stuck in init, inspect the previous init-container attempt with `kubectl logs <pod> -c remote-docker-ssh-permissions --previous` to see which SSH copy or permission step failed.
+Troubleshooting note: when OpenClaw is stuck in init, inspect the previous init-container attempt with `kubectl logs <pod> -c remote-docker-ssh-permissions --previous` to see whether the SSH copy, permission-lockdown, or ownership-handoff step failed.
 
 ## Example: secrets + values (`existingSecret` / `secretRefs` style)
 
