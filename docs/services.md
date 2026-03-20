@@ -61,6 +61,9 @@ Canonical default posture in this document refers to umbrella defaults from `cha
 - The chart explicitly renders `runtime = "kubernetes"` plus an upstream `[kubernetes]` config block so the web/API pod stays lightweight while runtime pods handle session execution.
 - The service account is granted namespace-scoped RBAC to create and clean up runtime pods, services, ingresses, and PVCs in the configured runtime namespace.
 - The Kubernetes runtime currently assumes OpenHands itself is running inside the cluster.
+- Preferred operator-facing storage keys live under `openhands.persistence.*` (`enabled`, `existingClaim`, `size`, `storageClass`, `mountPath`, and `annotations`).
+- The umbrella chart still carries `openhands.workspace.*` defaults as a temporary compatibility layer for older overlays, but `workspace.*` is deprecated and should not be used in new overlays.
+- The shipped `values-k3d.yaml` overlay keeps `openhands.persistence.enabled=false`, while `values-k3s.yaml` enables `openhands.persistence` with a persistent PVC and explicit size/storage class defaults.
 - Keep extra operator-defined volume mounts away from `/app` because that shadows the image entrypoint; the chart's own single-file `config.toml` subPath mount is the managed exception.
 
 ## Additional service details

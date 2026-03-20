@@ -20,6 +20,8 @@ kubectl --context <your-kube-context> -n <your-namespace> create secret generic 
 
 If an OpenClaw pod stalls in `Init:CrashLoopBackOff`, inspect the `remote-docker-ssh-permissions` init-container logs first to confirm those exact keys exist in the Secret and contain data.
 
+When you override OpenHands control-plane storage in example overlays, use `openhands.persistence.*`. The legacy `openhands.workspace.*` keys remain only as a temporary compatibility fallback for older overlays and should not be used in new files.
+
 ## k3d local override layering
 
 Order:

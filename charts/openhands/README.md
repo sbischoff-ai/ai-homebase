@@ -72,6 +72,8 @@ secretRefs:
 
 ### 2) OpenHands control-plane persistence size / storage class
 
+Use `persistence.*` as the operator-facing key path for OpenHands storage overrides. The legacy `workspace.*` path is still accepted as a temporary compatibility fallback when `persistence.*` is left unset, but new overlays should not use it.
+
 ```yaml
 persistence:
   enabled: true

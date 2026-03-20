@@ -34,7 +34,7 @@ Add extra overlays only for concrete environment decisions such as:
 
 - Real domains and DNS names.
 - Actual secret references.
-- Storage sizing or class overrides.
+- Storage sizing or class overrides, including `openhands.persistence.*` for the OpenHands control-plane volume.
 - Environment-specific domains, TLS, or ingress-class details.
 
 Do not encode persistent environment decisions only as CLI `--set` flags.
@@ -57,6 +57,8 @@ The supported targets now split runtime posture by service:
 - `openclaw.remoteDocker.*` is part of the standard OpenClaw posture for every supported target: keep it enabled and use overlays only to change the SSH endpoint, Secret name, or image details for a concrete environment.
 
 OpenHands Kubernetes runtime defaults assume OpenHands itself is running inside the cluster and create per-session runtime resources in the configured namespace. OpenClaw now renders its Docker/browser sandbox JSON directly from chart values, and the standard `openclaw.remoteDocker.*` block wires `DOCKER_HOST`, `HOME`, and SSH material into the pod so Docker commands execute against the supported remote daemon over SSH.
+
+OpenHands operator-facing storage overrides should use `openhands.persistence.*`. The umbrella chart still carries `openhands.workspace.*` defaults as a temporary compatibility layer for older overlays, but that path is deprecated and should not be used in new values files.
 
 ## Values schema validation
 
