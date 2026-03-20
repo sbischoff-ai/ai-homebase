@@ -23,9 +23,10 @@ export OPENAI_API_KEY="<your-openai-api-key>"
 ./scripts/k3d-local-bootstrap.sh --cluster-name ai-homebase-dev
 ```
 
-Homelab `k3s` install:
+Homelab `k3s` bootstrap:
 
 ```bash
-helm dependency update charts/platform-stack
 ./scripts/install.sh --profile k3s
 ```
+
+For the full command catalog, including dependency refresh, lint, render, CI, and helper scripts, see [`docs/commands.md`](./docs/commands.md).

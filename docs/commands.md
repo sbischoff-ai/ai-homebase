@@ -1,5 +1,7 @@
 # Command reference
 
+> **Canonical source of commands:** Update this file first whenever lint, template, install, CI, or helper-script commands change. Other docs should link here and only keep workflow-specific entry commands.
+
 ## Makefile targets
 
 ```bash

@@ -4,22 +4,17 @@ Use this runbook after initial install to operate `ai-homebase` on the supported
 
 ## 1) Validate before apply
 
-```bash
-./scripts/lint.sh --values-file charts/platform-stack/values.yaml
-./scripts/lint.sh --values-file charts/platform-stack/values.yaml --values-file charts/platform-stack/values-k3s.yaml
-```
-
-```bash
-./scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values.yaml > /tmp/platform-stack.yaml
-./scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values.yaml --values-file charts/platform-stack/values-k3s.yaml > /tmp/platform-stack-k3s.yaml
-```
+Run the canonical lint and render commands from [`docs/commands.md`](./commands.md), especially the `k3s` profile entries, before each apply.
 
 ## 2) Deploy or upgrade
 
+Use the homelab entry command:
+
 ```bash
-helm dependency update charts/platform-stack
 ./scripts/install.sh --profile k3s
 ```
+
+For dependency refresh and alternate install wrappers, use [`docs/commands.md`](./commands.md).
 
 ## 3) Health checks
 

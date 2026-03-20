@@ -19,25 +19,17 @@ export OPENAI_API_KEY="<your-openai-api-key>"
 Choose this path when you are deploying to the supported long-running homelab server and need the validation, install, and post-install operating workflow.
 
 - Read [`docs/runbook-homelab.md`](./runbook-homelab.md) for pre-apply checks, install or upgrade commands, and health checks.
-- Use the supported install path after your overlays and secrets are ready:
+- Use the supported install entry command after your overlays and secrets are ready:
 
 ```bash
-helm dependency update charts/platform-stack
 ./scripts/install.sh --profile k3s
 ```
+
+For dependency refresh, lint, render, and alternate install wrappers, read [`docs/commands.md`](./commands.md).
 
 ## I need install commands
 
-Choose this section when you already know your target and only need the supported install entrypoints.
-
-```bash
-./scripts/install.sh --profile k3d
-./scripts/install.sh --profile k3s
-./scripts/install-k3d.sh
-./scripts/install-k3s.sh
-```
-
-For the full command catalog, read [`docs/commands.md`](./commands.md).
+Choose this section when you already know your target and only need the canonical command catalog. Read [`docs/commands.md`](./commands.md).
 
 ## I need prerequisites
 
