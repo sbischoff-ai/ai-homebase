@@ -82,7 +82,16 @@ spec:
             - |
               set -eu
               mkdir -p /ssh-target
-              cp -f /ssh-source/* /ssh-target/
+              if [ ! -s /ssh-source/id_ed25519 ]; then
+                echo >&2 "remoteDocker.ssh.secretName must reference a Secret containing non-empty id_ed25519 and known_hosts keys; id_ed25519 is missing or empty."
+                exit 1
+              fi
+              if [ ! -s /ssh-source/known_hosts ]; then
+                echo >&2 "remoteDocker.ssh.secretName must reference a Secret containing non-empty id_ed25519 and known_hosts keys; known_hosts is missing or empty."
+                exit 1
+              fi
+              cp -f /ssh-source/id_ed25519 /ssh-target/id_ed25519
+              cp -f /ssh-source/known_hosts /ssh-target/known_hosts
               chown -R 1000:1000 /ssh-target
               chmod 0700 /ssh-target
               find /ssh-target -type f -exec chmod 0600 {} \;

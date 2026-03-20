@@ -93,12 +93,14 @@ Remote Docker mode assumes the OpenClaw container image already includes both:
 
 This repo includes an example Dockerfile at `images/openclaw-remote-docker/Dockerfile` that extends `ghcr.io/openclaw/openclaw:2026.3.12` with those packages.
 
-The SSH Secret mounted through `remoteDocker.ssh.secretName` should include at least:
+The SSH Secret referenced by `remoteDocker.ssh.secretName` must include these exact keys:
 
-- `id_ed25519` (or another private key filename referenced by your SSH config)
-- `known_hosts`
+- `id_ed25519` — the private key file used for the remote Docker SSH endpoint, and it must be present and non-empty.
+- `known_hosts` — the SSH host key file for that endpoint, and it must be present and non-empty.
 
-The chart copies those files into an `emptyDir`, fixes ownership to UID/GID `1000`, and locks file permissions down before the main container starts so OpenSSH accepts the private key.
+The `remote-docker-ssh-permissions` init container validates those two keys explicitly, copies only `id_ed25519` and `known_hosts` into an `emptyDir`, then fixes ownership to UID/GID `1000` and locks file permissions down before the main container starts so OpenSSH accepts the private key.
+
+If the Secret is missing either key or either file is empty, OpenClaw will stay in `Init:CrashLoopBackOff`; inspect the `remote-docker-ssh-permissions` init-container logs first because they print the exact `remoteDocker.ssh.secretName` requirement and missing key names.
 
 ## Example: secrets + values (`existingSecret` / `secretRefs` style)
 
