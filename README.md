@@ -1,62 +1,30 @@
 # ai-homebase
 
-## What is this repo?
-`ai-homebase` is a Helm-based AI homelab stack centered on OpenClaw and OpenHands, with optional services such as Nextcloud, Paperless-ngx, Gitea, and Infisical.
+`ai-homebase` is a Helm-based homelab stack for running an AI control plane around OpenClaw and OpenHands, with optional services such as Nextcloud, Paperless-ngx, Gitea, and Infisical.
 
-The repository now supports exactly two deployment targets:
+The repository intentionally supports two targets: `k3d` for local testing and `k3s` for the productive homelab server. Shared Helm values provide the baseline platform posture, while target overlays keep local and homelab deployment behavior explicit.
 
-- **k3d** for local testing.
-- **k3s** for the productive homelab server.
+Use the root README as the orientation page, then move into the focused docs for deployment, configuration, services, and operator commands.
 
-OpenClaw now ships with a Docker sandbox configuration that is standardized on a remote Docker daemon reached through Docker's SSH transport. The chart exposes structured values for the sandbox images, browser/CDP network policy, and the required remote-Docker SSH wiring inside the OpenClaw pod. OpenHands runs as a lightweight in-cluster control plane that launches per-session **Kubernetes runtime** sandboxes inside the cluster.
+## Choose your path
 
-## Quick start
+- [Deploy the stack](./docs/deployment.md)
+- [Understand configuration and values layering](./docs/configuration.md)
+- [Review service toggles and contracts](./docs/services.md)
+- [See operator commands](./docs/commands.md)
 
-Start with the deployment landing page:
+## Minimum bootstrap commands
 
-- [How do I deploy and use it? (`docs/deployment.md`)](./docs/deployment.md)
-
-Essential local commands:
+Local `k3d` bootstrap:
 
 ```bash
 export OPENAI_API_KEY="<your-openai-api-key>"
 ./scripts/k3d-local-bootstrap.sh --cluster-name ai-homebase-dev
-./scripts/k3d-local-teardown.sh --cluster-name ai-homebase-dev
-helm dependency update charts/platform-stack
-make lint
-make render > /tmp/platform-stack.yaml
-make render-k3d > /tmp/platform-stack-k3d.yaml
-./scripts/install.sh --profile k3d
 ```
 
-Essential k3s commands:
+Homelab `k3s` install:
 
 ```bash
 helm dependency update charts/platform-stack
-./scripts/lint.sh --values-file charts/platform-stack/values.yaml --values-file charts/platform-stack/values-k3s.yaml
-./scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values.yaml --values-file charts/platform-stack/values-k3s.yaml > /tmp/platform-stack-k3s.yaml
 ./scripts/install.sh --profile k3s
 ```
-
-`k3d-local-bootstrap.sh` creates a dedicated kubeconfig for the local cluster, exports `KUBECONFIG` to that file for the script run, and keeps local setup isolated from your existing kubeconfig merge state.
-The local k3d bootstrap also disables the default k3s Traefik add-on during cluster creation so Helm-managed `ingress-nginx` is the single intended HTTP/HTTPS ingress controller. It still uses Docker to run the local k3d node containers themselves, while OpenClaw is configured by default to target the Incus-backed remote Docker daemon over SSH and therefore expects an OpenClaw image that includes Docker CLI + OpenSSH client support.
-The same local bootstrap now also creates a separate lightweight Incus VM (`openclaw-sandbox` by default) from `images:debian/12/cloud`, sized for **2 vCPU**, **6 GiB RAM**, and a small dedicated root disk. The guest installs only Docker Engine, SSH, and minimal supporting packages so it can act as a narrow remote Docker sandbox appliance for OpenClaw Docker/browser sandboxes. On the host side, the requirements stay minimal: initialized Incus, a bridge network such as `incusbr0`, and a storage/profile setup that can boot a VM. The bootstrap script handles the instance-specific guest networking itself by deriving the bridge gateway from `incus network get <bridge> ipv4.address`, assigning a stable guest IPv4, and rendering an explicit NoCloud `network-config` before first boot. Because VM guest NIC names are not guaranteed to match Incus device aliases such as `eth0`, the helper now reads `volatile.eth0.hwaddr` from `incus config show <vm>` and matches the guest NIC by MAC in cloud-init before applying the static IPv4, a cloud-init/netplan-compatible default IPv4 route (`to: 0.0.0.0/0`), and DNS resolvers. It still keeps the Incus-side `eth0` device override for the static address reservation and records the resolved host listen address in `~/.local/state/ai-homebase/incus/<vm-name>.env` so the k3d bootstrap can point OpenClaw at the same reachable endpoint. Before `incus start`, `scripts/incus-vm-up.sh` now also validates the active bridge DNS posture, logs whether guests will use explicit `dns.nameservers` resolvers or the bridge gateway fallback, and fails early when the bridge cannot safely satisfy that DNS assumption.
-On the first boot, cloud-init inside that VM installs Docker Engine and SSH packages, so readiness can take several minutes. `scripts/incus-vm-up.sh` now waits up to 600 seconds by default, and operators can override that with `SSH_READY_TIMEOUT_SECONDS` or `--ssh-ready-timeout-seconds`. If cloud-init reaches a terminal failure state inside the guest, the helper now stops waiting immediately and records host-side Incus state plus guest-side diagnostics such as `cloud-init status --long`, `journalctl -u cloud-init --no-pager`, and the Incus console log so first-boot failures are easier to debug.
-By default, helper scripts print concise progress updates and write full command logs to `/tmp/ai-homebase-bootstrap-<timestamp>.log`.
-Use `--verbose` (or `BOOTSTRAP_VERBOSE=1`) when you want full live command output in the terminal.
-
-For complete command coverage, see [`docs/commands.md`](./docs/commands.md).
-
-> Local k3d note: the shipped `values-k3d.yaml` profile points the `OpenClaw`, `OpenHands`, and `Infisical` Ingresses at the Helm-managed `ingress-nginx` controller by using the `nginx` ingress class. `*.localtest.me` usually resolves to `127.0.0.1` automatically, but some NixOS setups do not provide that resolution out of the box. If browser access to local ingress hosts such as `openclaw.localtest.me`, `openhands.localtest.me`, or `infisical.localtest.me` fails, add explicit host mappings as described in [`docs/deployment-k3d.md`](./docs/deployment-k3d.md#4-local-ingress-host-access-dnshosts). That same section now also includes a complete NixOS host example covering `virtualisation.docker.enable`, an Incus `preseed` for `incusbr0`, the required `networking.nftables.enable = true`, and `networking.extraHosts` entries for the shipped local hostnames.
-
-## Documentation map
-
-- [Full docs taxonomy (`docs/README.md`)](./docs/README.md)
-
-## Where to go next
-
-- Configuration layering and target overlays: [`docs/configuration.md`](./docs/configuration.md)
-- Service contracts, toggles, and secret wiring: [`docs/services.md`](./docs/services.md)
-- Ingress and exposure patterns: [`docs/networking.md`](./docs/networking.md)
-- Persistence and storage planning: [`docs/storage.md`](./docs/storage.md)
-- Architecture and component boundaries: [`docs/architecture.md`](./docs/architecture.md)
