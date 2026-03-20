@@ -16,7 +16,9 @@ kubectl --context <your-kube-context> -n <your-namespace> create secret generic 
   --from-file=known_hosts=<path-to-known-hosts>
 ```
 
-`openclaw-remote-docker-ssh` is part of the standard OpenClaw deployment posture in this repo; every supported target needs an equivalent Secret even if you override the name in values.
+`openclaw-remote-docker-ssh` is part of the standard OpenClaw deployment posture in this repo; every supported target needs an equivalent Secret even if you override the name in values. The chart requires the Secret referenced by `remoteDocker.ssh.secretName` to provide exactly two SSH data keys: non-empty `id_ed25519` and non-empty `known_hosts`.
+
+If an OpenClaw pod stalls in `Init:CrashLoopBackOff`, inspect the `remote-docker-ssh-permissions` init-container logs first to confirm those exact keys exist in the Secret and contain data.
 
 ## k3d local override layering
 
