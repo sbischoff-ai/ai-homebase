@@ -368,16 +368,44 @@ spec:
       - command:
         - /bin/sh
         - -c
-        - "set -eu\nmkdir -p /ssh-target\ncp -f /ssh-source/* /ssh-target/\nchown\
-          \ -R 1000:1000 /ssh-target\nchmod 0700 /ssh-target\nfind /ssh-target -type\
-          \ f -exec chmod 0600 {} \\;\nif [ -f /ssh-target/known_hosts ]; then\n \
-          \ chmod 0644 /ssh-target/known_hosts\nfi\n"
+        - "set -eu\nmkdir -p /ssh-target\nif [ ! -s /ssh-source/id_ed25519 ]; then\n\
+          \  echo >&2 \"remoteDocker.ssh.secretName must reference a Secret containing\
+          \ non-empty id_ed25519 and known_hosts keys; id_ed25519 is missing or empty.\"\
+          \n  exit 1\nfi\nif [ ! -s /ssh-source/known_hosts ]; then\n  echo >&2 \"\
+          remoteDocker.ssh.secretName must reference a Secret containing non-empty\
+          \ id_ed25519 and known_hosts keys; known_hosts is missing or empty.\"\n\
+          \  exit 1\nfi\necho \"Copying SSH files from /ssh-source into /ssh-target.\"\
+          \ncp -f /ssh-source/id_ed25519 /ssh-target/id_ed25519 || {\n  echo >&2 \"\
+          Failed to copy /ssh-source/id_ed25519 to /ssh-target/id_ed25519; verify\
+          \ the mounted Secret files are readable and that the init container security\
+          \ context allows writes to /ssh-target.\"\n  exit 1\n}\ncp -f /ssh-source/known_hosts\
+          \ /ssh-target/known_hosts || {\n  echo >&2 \"Failed to copy /ssh-source/known_hosts\
+          \ to /ssh-target/known_hosts; verify the mounted Secret files are readable\
+          \ and that the init container security context allows writes to /ssh-target.\"\
+          \n  exit 1\n}\necho \"Locking permissions before handing /ssh-target to\
+          \ UID/GID 1000.\"\nchmod 0700 /ssh-target || {\n  echo >&2 \"Failed to set\
+          \ mode 0700 on /ssh-target before ownership changes; verify the init container\
+          \ security context still permits writes to the mounted emptyDir volume.\"\
+          \n  exit 1\n}\nchmod 0600 /ssh-target/id_ed25519 || {\n  echo >&2 \"Failed\
+          \ to set mode 0600 on /ssh-target/id_ed25519 before ownership changes; verify\
+          \ the copied SSH key is writable inside /ssh-target and that the init container\
+          \ security context still permits writes to the mounted emptyDir volume.\"\
+          \n  exit 1\n}\nchmod 0644 /ssh-target/known_hosts || {\n  echo >&2 \"Failed\
+          \ to set mode 0644 on /ssh-target/known_hosts before ownership changes;\
+          \ verify the copied known_hosts file is writable inside /ssh-target and\
+          \ that the init container security context still permits writes to the mounted\
+          \ emptyDir volume.\"\n  exit 1\n}\nchown -R 1000:1000 /ssh-target || {\n\
+          \  echo >&2 \"Failed to hand /ssh-target to UID/GID 1000 after permissions\
+          \ were locked down; verify the init container still runs as UID/GID 0 with\
+          \ the CHOWN capability required by the security context.\"\n  exit 1\n}\n"
         image: ghcr.io/openclaw/openclaw:2026.3.12
         imagePullPolicy: IfNotPresent
         name: remote-docker-ssh-permissions
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
+            add:
+            - CHOWN
             drop:
             - ALL
           readOnlyRootFilesystem: true
