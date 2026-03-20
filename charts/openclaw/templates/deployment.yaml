@@ -90,14 +90,32 @@ spec:
                 echo >&2 "remoteDocker.ssh.secretName must reference a Secret containing non-empty id_ed25519 and known_hosts keys; known_hosts is missing or empty."
                 exit 1
               fi
-              cp -f /ssh-source/id_ed25519 /ssh-target/id_ed25519
-              cp -f /ssh-source/known_hosts /ssh-target/known_hosts
-              chown -R 1000:1000 /ssh-target
-              chmod 0700 /ssh-target
-              find /ssh-target -type f -exec chmod 0600 {} \;
-              if [ -f /ssh-target/known_hosts ]; then
-                chmod 0644 /ssh-target/known_hosts
-              fi
+              echo "Copying SSH files from /ssh-source into /ssh-target."
+              cp -f /ssh-source/id_ed25519 /ssh-target/id_ed25519 || {
+                echo >&2 "Failed to copy /ssh-source/id_ed25519 to /ssh-target/id_ed25519; verify the mounted Secret files are readable and that the init container security context allows writes to /ssh-target."
+                exit 1
+              }
+              cp -f /ssh-source/known_hosts /ssh-target/known_hosts || {
+                echo >&2 "Failed to copy /ssh-source/known_hosts to /ssh-target/known_hosts; verify the mounted Secret files are readable and that the init container security context allows writes to /ssh-target."
+                exit 1
+              }
+              echo "Setting ownership and permissions in /ssh-target."
+              chown -R 1000:1000 /ssh-target || {
+                echo >&2 "Failed to change ownership for /ssh-target; verify the init container still runs as UID/GID 0 with the CHOWN capability required by the security context."
+                exit 1
+              }
+              chmod 0700 /ssh-target || {
+                echo >&2 "Failed to set permissions on /ssh-target; verify the init container security context still permits writes to the mounted emptyDir volume."
+                exit 1
+              }
+              chmod 0600 /ssh-target/id_ed25519 || {
+                echo >&2 "Failed to set permissions on /ssh-target/id_ed25519; verify the init container security context still permits writes to the mounted emptyDir volume."
+                exit 1
+              }
+              chmod 0644 /ssh-target/known_hosts || {
+                echo >&2 "Failed to set permissions on /ssh-target/known_hosts; verify the init container security context still permits writes to the mounted emptyDir volume."
+                exit 1
+              }
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true

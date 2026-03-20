@@ -115,6 +115,8 @@ Final file permissions stay intentionally strict for OpenSSH compatibility:
 
 If the Secret is missing either key or either file is empty, or if the init container cannot complete the ownership-preparation step, OpenClaw will stay in `Init:CrashLoopBackOff`; inspect the `remote-docker-ssh-permissions` init-container logs first because they print the exact `remoteDocker.ssh.secretName` requirement and missing key names.
 
+Troubleshooting note: when OpenClaw is stuck in init, inspect the previous init-container attempt with `kubectl logs <pod> -c remote-docker-ssh-permissions --previous` to see which SSH copy or permission step failed.
+
 ## Example: secrets + values (`existingSecret` / `secretRefs` style)
 
 Example Secret (operator-managed):
