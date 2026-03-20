@@ -107,6 +107,8 @@ spec:
             capabilities:
               drop:
                 - ALL
+              add:
+                - CHOWN
           volumeMounts:
             - name: remote-docker-ssh-secret
               mountPath: /ssh-source
