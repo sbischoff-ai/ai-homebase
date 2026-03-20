@@ -11,7 +11,8 @@ Use this page as the full documentation map for `ai-homebase`, organized by oper
 ## Deploy
 
 - [`docs/deployment.md`](./deployment.md): Read this when you need the deployment entrypoint for choosing between local `k3d`, homelab `k3s`, install commands, and prerequisites.
-- [`docs/deployment-k3d.md`](./deployment-k3d.md): Read this when you want the detailed local `k3d` bootstrap, manual install flow, ingress access notes, and troubleshooting.
+- [`docs/deployment-k3d.md`](./deployment-k3d.md): Read this when you want the concise local `k3d` bootstrap, manual install flow, service access, and teardown path.
+- [`docs/k3d-troubleshooting.md`](./k3d-troubleshooting.md): Read this when you need Incus, cloud-init, networking internals, NixOS host setup notes, or deeper troubleshooting for the local `k3d` path.
 - [`docs/runbook-homelab.md`](./runbook-homelab.md): Read this when you are deploying to homelab `k3s` and need the validation, install, upgrade, and post-install workflow.
 
 ## Configure
