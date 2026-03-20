@@ -19,8 +19,10 @@ PVC templates resolve storage class in this order:
 
 ### OpenHands
 
-- Workspace-heavy and high churn.
+- Persistence-heavy and high churn.
+- Use `openhands.persistence.*` for operator-facing storage overrides such as `enabled`, `size`, and `storageClass`.
 - The k3s overlay enables persistent storage; the k3d overlay keeps it ephemeral.
+- `openhands.workspace.*` remains only as a deprecated compatibility fallback for older overlays and should not be used in new values files.
 
 ## Optional service storage characteristics
 

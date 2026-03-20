@@ -16,6 +16,12 @@ openclaw:
 #     repository: k3d-ai-homebase-registry.localhost:5000/openhands
 #     tag: dev
 
+# Example: temporarily enable OpenHands persistence for a focused local test.
+# openhands:
+#   persistence:
+#     enabled: true
+#     size: 10Gi
+
 # Example: temporarily enable an optional service for a focused local test.
 # gitea:
 #   enabled: true
