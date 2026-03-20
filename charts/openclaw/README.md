@@ -100,7 +100,20 @@ The SSH Secret referenced by `remoteDocker.ssh.secretName` must include these ex
 
 The `remote-docker-ssh-permissions` init container validates those two keys explicitly, copies only `id_ed25519` and `known_hosts` into an `emptyDir`, then fixes ownership to UID/GID `1000` and locks file permissions down before the main container starts so OpenSSH accepts the private key.
 
-If the Secret is missing either key or either file is empty, OpenClaw will stay in `Init:CrashLoopBackOff`; inspect the `remote-docker-ssh-permissions` init-container logs first because they print the exact `remoteDocker.ssh.secretName` requirement and missing key names.
+Security-context expectation for that init container:
+
+- it runs as UID/GID `0` only for the ownership-preparation step;
+- it keeps `allowPrivilegeEscalation: false` and a read-only root filesystem;
+- it drops all Linux capabilities except `CHOWN`, which is required so `chown -R 1000:1000 /ssh-target` can succeed before the main container starts;
+- the main OpenClaw container still runs as non-root UID/GID `1000`.
+
+Final file permissions stay intentionally strict for OpenSSH compatibility:
+
+- `/home/node/.ssh` is created with mode `0700`;
+- `id_ed25519` is written with mode `0600`;
+- `known_hosts` is left readable with mode `0644`.
+
+If the Secret is missing either key or either file is empty, or if the init container cannot complete the ownership-preparation step, OpenClaw will stay in `Init:CrashLoopBackOff`; inspect the `remote-docker-ssh-permissions` init-container logs first because they print the exact `remoteDocker.ssh.secretName` requirement and missing key names.
 
 ## Example: secrets + values (`existingSecret` / `secretRefs` style)
 
