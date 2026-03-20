@@ -303,12 +303,12 @@ cloud_init_status_is_done() {
 
 cloud_init_status_is_failure() {
   local cloud_init_output="$1"
-  grep -Eiq 'status:[[:space:]]*(error|disabled)([[:space:]]|$)' <<<"$cloud_init_output" \
+  grep -Eiq 'status:[[:space:]]*(error|failed|disabled|disabled-by-generator)([[:space:]]|$)' <<<"$cloud_init_output" \
     || grep -Eiq 'status:[[:space:]]*degraded([[:space:]]+done)?([[:space:]]|$)' <<<"$cloud_init_output"
 }
 
 fail_vm_readiness() {
-  collect_timeout_diagnostics
+  collect_readiness_diagnostics
   case "${READINESS_FAILURE_REASON:-guest-agent-unreachable}" in
     cloud-init-failed)
       fail "Failed waiting for ${VM_NAME}: cloud-init failed inside the guest before the SSH proxy at ${HOST_LISTEN_ADDRESS}:${SSH_HOST_PORT} became reachable. See timeout diagnostics in ${BOOTSTRAP_LOG_FILE}"
@@ -432,7 +432,7 @@ append_timeout_guest_exec_diagnostic() {
   return "$status"
 }
 
-collect_timeout_diagnostics() {
+collect_readiness_diagnostics() {
   {
     echo
     echo "===== TIMEOUT DIAGNOSTICS BEGIN ====="
