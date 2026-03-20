@@ -18,12 +18,6 @@ spec:
             {{- toYaml .Values.networkPolicy.ingress.ingressController.namespaceSelector | nindent 12 }}
           podSelector:
             {{- toYaml .Values.networkPolicy.ingress.ingressController.podSelector | nindent 12 }}
-        {{- if .Values.networkPolicy.ingress.wgEasy.enabled }}
-        {{- range .Values.networkPolicy.ingress.wgEasy.namespaceSelectors }}
-        - namespaceSelector:
-            {{- toYaml . | nindent 12 }}
-        {{- end }}
-        {{- end }}
       ports:
         - protocol: TCP
           port: {{ .Values.service.targetPort }}

@@ -24,11 +24,12 @@ MATRIX = [
             "gitea.enabled": "false",
             "paperlessNgx.enabled": "false",
             "infisical.enabled": "false",
-            "wgEasy.enabled": "false",
         },
         "expect_present": {
             ("Deployment", "platform-stack-openclaw"),
             ("Deployment", "platform-stack-openhands"),
+            ("Ingress", "platform-stack-openclaw"),
+            ("Ingress", "platform-stack-openhands"),
         },
     },
     {
@@ -38,11 +39,14 @@ MATRIX = [
             "gitea.enabled": "true",
             "paperlessNgx.enabled": "true",
             "infisical.enabled": "false",
-            "wgEasy.enabled": "false",
         },
         "expect_present": {
+            ("Ingress", "platform-stack-openclaw"),
+            ("Ingress", "platform-stack-openhands"),
             ("StatefulSet", "platform-stack-nextcloud"),
+            ("Ingress", "platform-stack-nextcloud"),
             ("StatefulSet", "platform-stack-paperless-ngx"),
+            ("Ingress", "platform-stack-paperless-ngx"),
         },
     },
     {
@@ -52,13 +56,16 @@ MATRIX = [
             "gitea.enabled": "true",
             "paperlessNgx.enabled": "true",
             "infisical.enabled": "true",
-            "wgEasy.enabled": "true",
         },
         "expect_present": {
+            ("Ingress", "platform-stack-openclaw"),
+            ("Ingress", "platform-stack-openhands"),
             ("Deployment", "platform-stack-infisical"),
-            ("Deployment", "platform-stack-wg-easy"),
+            ("Ingress", "infisical-ingress"),
             ("StatefulSet", "platform-stack-nextcloud"),
+            ("Ingress", "platform-stack-nextcloud"),
             ("StatefulSet", "platform-stack-paperless-ngx"),
+            ("Ingress", "platform-stack-paperless-ngx"),
         },
     },
 ]
@@ -121,7 +128,7 @@ def find_document(rendered: str, *, kind: str, name: str) -> str | None:
 
 
 def ingress_hosts(doc: str) -> list[str]:
-    return [host.strip('"') for host in re.findall(r"^\s*- host:\s*([^\s]+)\s*$", doc, flags=re.MULTILINE)]
+    return [host.strip('"') for host in re.findall(r"^\s*(?:-\s+)?host:\s*([^\s]+)\s*$", doc, flags=re.MULTILINE)]
 
 
 def ingress_class_name(doc: str) -> str | None:
@@ -160,23 +167,27 @@ def assert_gitea_single_path(case: dict[str, object], rendered: str, resources: 
         )
 
 
-def assert_k3d_wg_easy_ingress_class() -> None:
+def assert_k3d_default_ingress_classes() -> None:
     rendered = render_template(BASE_VALUES, K3D_VALUES)
-    ingress = find_document(rendered, kind="Ingress", name="platform-stack-wg-easy")
-    if ingress is None:
-        raise SystemExit("k3d overlay did not render the wg-easy Ingress")
-
-    rendered_class_name = ingress_class_name(ingress)
-    if rendered_class_name != "nginx":
-        raise SystemExit(
-            f"k3d overlay rendered wg-easy ingressClassName={rendered_class_name!r}, expected 'nginx'"
-        )
-
-    hosts = ingress_hosts(ingress)
-    if "wg.localtest.me" not in hosts:
-        raise SystemExit(
-            f"k3d overlay rendered wg-easy hosts={hosts!r}, expected to include 'wg.localtest.me'"
-        )
+    expected = {
+        "platform-stack-openclaw": "openclaw.localtest.me",
+        "platform-stack-openhands": "openhands.localtest.me",
+        "infisical-ingress": "infisical.localtest.me",
+    }
+    for name, host in expected.items():
+        ingress = find_document(rendered, kind="Ingress", name=name)
+        if ingress is None:
+            raise SystemExit(f"k3d overlay did not render ingress {name}")
+        rendered_class_name = ingress_class_name(ingress)
+        if rendered_class_name != "nginx":
+            raise SystemExit(
+                f"k3d overlay rendered {name} ingressClassName={rendered_class_name!r}, expected 'nginx'"
+            )
+        hosts = ingress_hosts(ingress)
+        if host not in hosts:
+            raise SystemExit(
+                f"k3d overlay rendered {name} hosts={hosts!r}, expected to include {host!r}"
+            )
 
 
 def main() -> None:
@@ -190,8 +201,8 @@ def main() -> None:
         assert_gitea_single_path(case, rendered, resources)
         print(f"{case['name']}: asserted {len(case['expect_present'])} resource(s)")
 
-    assert_k3d_wg_easy_ingress_class()
-    print("k3d overlay: asserted wg-easy ingressClassName=nginx and host=wg.localtest.me")
+    assert_k3d_default_ingress_classes()
+    print("k3d overlay: asserted nginx ingressClassName + expected hosts for OpenClaw/OpenHands/Infisical")
 
 
 if __name__ == "__main__":

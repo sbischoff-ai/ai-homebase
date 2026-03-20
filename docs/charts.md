@@ -14,7 +14,6 @@ Use `global.*` for shared defaults such as hostnames, storage class, image pull 
 - `gitea.enabled`
 - `paperlessNgx.enabled`
 - `infisical.enabled`
-- `wgEasy.enabled`
 
 It also includes shared backend dependencies:
 

@@ -10,13 +10,18 @@ global:
     gitea: gitea.vpn.homebase.internal
     paperlessNgx: paperless.localtest.me
     infisical: infisical.localtest.me
-    wgEasy: wg.localtest.me
 
 openclaw:
   enabled: true
   replicaCount: 1
   ingress:
-    enabled: false
+    enabled: true
+    className: nginx
+    hosts:
+      - host: openclaw.localtest.me
+        paths:
+          - path: /
+            pathType: Prefix
   persistence:
     enabled: false
   remoteDocker:
@@ -95,21 +100,4 @@ infisical:
       persistence:
         enabled: false
   redis:
-    enabled: false
-
-wgEasy:
-  enabled: true
-  ingress:
-    enabled: true
-    className: nginx
-    annotations: {}
-    hosts:
-      - host: wg.localtest.me
-        paths:
-          - path: /
-            pathType: Prefix
-    tls: []
-  securityContext:
-    privileged: true
-  persistence:
     enabled: false

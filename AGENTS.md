@@ -46,7 +46,7 @@ If toggle behavior changed, include at least one rendered manifest check using `
 - YAML/template parse failures:
   - Re-run with exact layered inputs using `./scripts/template.sh ...` and inspect the generated `/tmp/*.yaml` around the reported object.
 - Value key seems ignored:
-  - Confirm key path/casing matches chart schema (for example `paperlessNgx` vs `paperless-ngx`, `wgEasy` vs `wg-easy`).
+  - Confirm key path/casing matches chart schema (for example `paperlessNgx` vs `paperless-ngx`).
 - Service did not disable:
   - Verify effective layered values order and final toggle value with the same `--values-file` ordering used in deployment.
 - Secret/env wiring failures:

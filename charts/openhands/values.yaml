@@ -45,7 +45,7 @@ service:
   annotations: {}
 
 ingress:
-  enabled: false
+  enabled: true
   hostName: ""
   ingressClassName: ""
   annotations: {}

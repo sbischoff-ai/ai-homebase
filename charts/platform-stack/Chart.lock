@@ -17,14 +17,11 @@ dependencies:
 - name: infisical
   repository: file://../infisical
   version: 0.2.0
-- name: wg-easy
-  repository: file://../wg-easy
-  version: 0.1.0
 - name: shared-postgresql
   repository: file://../shared-postgresql
   version: 0.1.0
 - name: shared-redis
   repository: file://../shared-redis
   version: 0.1.0
-digest: sha256:bc52900402b5cbd3e3343331d4e6eed0147c73ecc7c526210b712f2939d0032d
-generated: "2026-03-19T11:14:17.168627928Z"
+digest: sha256:a8b289a8eff65d212b42335296439538e33442035503c8a63bd47c73d4f15416
+generated: "2026-03-20T14:31:58.418655778Z"

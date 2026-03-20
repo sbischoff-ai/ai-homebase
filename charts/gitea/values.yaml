@@ -12,7 +12,7 @@ gitea:
       type: ClusterIP
       port: 22
   ingress:
-    enabled: false
+    enabled: true
     className: ""
     annotations: {}
     hosts:

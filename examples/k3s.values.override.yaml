@@ -8,7 +8,6 @@ global:
     gitea: <gitea-k3s-hostname>
     paperlessNgx: <paperless-k3s-hostname>
     infisical: <infisical-k3s-hostname>
-    wgEasy: <wgeasy-k3s-hostname>
   imagePullSecrets:
     - <optional-image-pull-secret>
 

@@ -22,7 +22,7 @@ service:
   targetPort: 8000
 
 ingress:
-  enabled: false
+  enabled: true
   className: ""
   annotations: {}
   hosts:
@@ -42,9 +42,6 @@ networkPolicy:
       podSelector:
         matchLabels:
           app.kubernetes.io/component: controller
-    wgEasy:
-      enabled: false
-      namespaceSelectors: []
   egress:
     dns:
       namespaceSelector:
