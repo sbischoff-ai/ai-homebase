@@ -108,7 +108,7 @@ JSON
       printf '%s\n' "${dns_mode}"
       exit 0
     fi
-    if [[ "$1" == "show" ]]; then
+    if [[ "$1" == "show" || "$2" == "show" ]]; then
       cat <<YAML
 managed: ${network_managed}
 type: bridge
@@ -547,6 +547,7 @@ run_timeout_failure_case() {
   local log_file="${sandbox_dir}/timeout.log"
   local bootstrap_log="${sandbox_dir}/bootstrap.log"
   local sleep_log="${sandbox_dir}/sleep.log"
+  local ssh_log="${sandbox_dir}/ssh.log"
   mkdir -p "${fake_bin}"
 
 cat >"${fake_bin}/incus" <<'SH'
@@ -734,6 +735,7 @@ SH
   cat >"${fake_bin}/ssh" <<'SH'
 #!/usr/bin/env bash
 set -euo pipefail
+printf 'args=%s\n' "$*" >>"${FAKE_TIMEOUT_SSH_LOG:?}"
 exit 255
 SH
   chmod +x "${fake_bin}/ssh"
@@ -754,6 +756,7 @@ SH
   REAL_PYTHON3="${real_python3}" \
   FAKE_TIMEOUT_GUEST_AGENT_AVAILABLE="${guest_agent_available}" \
   FAKE_TIMEOUT_CLOUD_INIT_STATE="${cloud_init_state}" \
+  FAKE_TIMEOUT_SSH_LOG="${ssh_log}" \
   FAKE_SLEEP_LOG="${sleep_log}" \
   BOOTSTRAP_LOG_FILE="${bootstrap_log}" \
   "${SCRIPT_PATH}" \
@@ -807,10 +810,15 @@ SH
       grep -F '### GUEST: cloud-init status --wait || cloud-init status' "${bootstrap_log}" >/dev/null
       grep -F '### GUEST: cloud-init status --long' "${bootstrap_log}" >/dev/null
       grep -F '### GUEST: journalctl -u cloud-init --no-pager' "${bootstrap_log}" >/dev/null
+      grep -F '### HOST: incus console --show-log' "${bootstrap_log}" >/dev/null
       grep -F 'Cloud-init reported a terminal failure inside test-vm; aborting readiness wait before SSH proxy timeout' "${log_file}" >/dev/null
       grep -F 'Failed waiting for test-vm: cloud-init failed inside the guest before the SSH proxy at 10.10.10.1:2222 became reachable.' "${log_file}" >/dev/null
       if [[ -s "${sleep_log}" ]]; then
         echo "expected cloud-init failure case to exit before sleeping" >&2
+        return 1
+      fi
+      if [[ "$(wc -l < "${ssh_log}")" -ne 1 ]]; then
+        echo "expected cloud-init failure case to stop after the first SSH probe" >&2
         return 1
       fi
       ;;
