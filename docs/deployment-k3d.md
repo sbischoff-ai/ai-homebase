@@ -81,11 +81,7 @@ EOF
   --values-file /tmp/platform-stack-k3d-remote-docker.yaml
 ```
 
-If you only want the install step:
-
-```bash
-./scripts/install.sh --profile k3d
-```
+If you only need the generic install, lint, template, or helper-script commands outside this k3d-specific workflow, use [`docs/commands.md`](./commands.md).
 
 To tear down both the cluster and the Incus VM together:
 
