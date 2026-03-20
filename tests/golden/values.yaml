@@ -301,7 +301,7 @@ spec:
             secretKeyRef:
               key: OPENCLAW_GATEWAY_TOKEN
               name: openclaw-app-secrets
-        image: ghcr.io/openclaw/openclaw:2026.3.12
+        image: ghcr.io/openclaw/openclaw:2026.3.13-1
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 3
@@ -394,7 +394,7 @@ spec:
           \  echo >&2 \"Failed to hand /ssh-target to UID/GID 1000 after permissions\
           \ were locked down; verify the init container still runs as UID/GID 0 with\
           \ the CHOWN capability required by the security context.\"\n  exit 1\n}\n"
-        image: ghcr.io/openclaw/openclaw:2026.3.12
+        image: ghcr.io/openclaw/openclaw:2026.3.13-1
         imagePullPolicy: IfNotPresent
         name: remote-docker-ssh-permissions
         securityContext:
