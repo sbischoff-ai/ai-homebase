@@ -6,7 +6,7 @@ Use this page as the deployment entrypoint for `ai-homebase`.
 
 Choose this path when you want a local workstation cluster for smoke tests, iteration, or trying the stack before touching the homelab server.
 
-- Read [`docs/deployment-k3d.md`](./deployment-k3d.md) for the full local bootstrap, manual install flow, ingress access notes, and troubleshooting.
+- Read [`docs/deployment-k3d.md`](./deployment-k3d.md) for the concise local bootstrap and manual install flow, then use [`docs/k3d-troubleshooting.md`](./k3d-troubleshooting.md) when you need deeper Incus, cloud-init, networking, or troubleshooting detail.
 - Use the recommended bootstrap when you want the fastest supported path:
 
 ```bash
@@ -37,7 +37,7 @@ Choose this section when you need a quick checklist before starting either deplo
 
 - Kubernetes and Helm tooling are installed and working.
 - The local `k3d` path has `k3d` and Docker available.
-- The standard OpenClaw sandbox path has Incus installed on the host and initialized for the remote Docker VM; on NixOS, use the complete host example in [`docs/deployment-k3d.md`](./deployment-k3d.md#4-local-ingress-host-access-dnshosts).
+- The standard OpenClaw sandbox path has Incus installed on the host and initialized for the remote Docker VM; on NixOS, use the complete host example in [`docs/k3d-troubleshooting.md`](./k3d-troubleshooting.md#nixos-host-setup-notes).
 - The `k3s` path has a reachable cluster and a working default storage class.
 - The `k3s` path also has a reachable SSH-backed remote Docker or Incus VM for OpenClaw, plus the matching Kubernetes Secret.
 - You have planned your values overlays and secret references.
