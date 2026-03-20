@@ -4,11 +4,12 @@
 
 The repository intentionally supports two targets: `k3d` for local testing and `k3s` for the productive homelab server. Shared Helm values provide the baseline platform posture, while target overlays keep local and homelab deployment behavior explicit.
 
-Use the root README as the orientation page, then move into the focused docs for deployment, configuration, services, and operator commands.
+Use the root README as the orientation page, then move into the focused docs for the deployment entrypoint, full documentation map, configuration, services, and operator commands.
 
 ## Choose your path
 
-- [Deploy the stack](./docs/deployment.md)
+- [Deployment entrypoint](./docs/deployment.md)
+- [Full documentation map](./docs/README.md)
 - [Understand configuration and values layering](./docs/configuration.md)
 - [Review service toggles and contracts](./docs/services.md)
 - [See operator commands](./docs/commands.md)

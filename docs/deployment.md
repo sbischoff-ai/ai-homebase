@@ -1,31 +1,51 @@
-# Deployment guide landing page
+# Deployment entrypoint
 
-Use this page as the canonical starting point for deploying `ai-homebase`.
+Use this page as the deployment entrypoint for `ai-homebase`.
 
-## Supported targets
+## I want local k3d
 
-| Target | Best for | Start here |
-| --- | --- | --- |
-| k3d | Local development, smoke tests, and quick iteration on a workstation. | [k3d deployment flow](./deployment-k3d.md) |
-| k3s | Productive homelab deployment on your main server. | [Homelab operations runbook](./runbook-homelab.md) |
+Choose this path when you want a local workstation cluster for smoke tests, iteration, or trying the stack before touching the homelab server.
 
-## Prerequisites summary
+- Start with [`docs/deployment-k3d.md`](./deployment-k3d.md) for the full local bootstrap, manual install flow, ingress access notes, and troubleshooting.
+- Use the recommended bootstrap when you want the fastest supported path:
 
-Before choosing a target, confirm:
+```bash
+export OPENAI_API_KEY="<your-openai-api-key>"
+./scripts/k3d-local-bootstrap.sh --cluster-name ai-homebase-dev
+```
 
-- Kubernetes + Helm tooling is installed and working.
-- Local k3d path has `k3d` and Docker available.
-- OpenClaw's standard Incus-assisted sandbox path has Incus installed on the host and initialized for the remote Docker VM; on NixOS, follow the complete host example in [`docs/deployment-k3d.md`](./deployment-k3d.md#nixos-host-setup-notes) so Docker, Incus preseed state, nftables, and local host mappings are all present.
-- k3s path has a reachable cluster and a working default storage class.
-- k3s path also has a reachable SSH-backed remote Docker/Incus VM for OpenClaw, plus the matching Kubernetes Secret.
+## I want homelab k3s
+
+Choose this path when you are deploying to the supported long-running homelab server and need the validation, install, and post-install operating workflow.
+
+- Start with [`docs/runbook-homelab.md`](./runbook-homelab.md) for pre-apply checks, install or upgrade commands, and health checks.
+- Use the supported install path after your overlays and secrets are ready:
+
+```bash
+helm dependency update charts/platform-stack
+./scripts/install.sh --profile k3s
+```
+
+## I need install commands
+
+Use these commands when you already know your target and just need the supported install entrypoints.
+
+```bash
+./scripts/install.sh --profile k3d
+./scripts/install.sh --profile k3s
+./scripts/install-k3d.sh
+./scripts/install-k3s.sh
+```
+
+For the full command catalog, see [`docs/commands.md`](./commands.md).
+
+## I need prerequisites
+
+Confirm these prerequisites before starting either deployment path:
+
+- Kubernetes and Helm tooling are installed and working.
+- The local k3d path has `k3d` and Docker available.
+- The standard OpenClaw sandbox path has Incus installed on the host and initialized for the remote Docker VM; on NixOS, use the complete host example in [`docs/deployment-k3d.md`](./deployment-k3d.md#4-local-ingress-host-access-dnshosts).
+- The k3s path has a reachable cluster and a working default storage class.
+- The k3s path also has a reachable SSH-backed remote Docker or Incus VM for OpenClaw, plus the matching Kubernetes Secret.
 - You have planned your values overlays and secret references.
-
-## Runbooks
-
-- Local cluster workflow: [docs/deployment-k3d.md](./deployment-k3d.md)
-- Productive homelab operations: [docs/runbook-homelab.md](./runbook-homelab.md)
-
-## Install helper
-
-Use `./scripts/install.sh --profile <k3d|k3s>` for supported profile-based installs.
-Wrappers `./scripts/install-k3d.sh` and `./scripts/install-k3s.sh` are available for convenience.
