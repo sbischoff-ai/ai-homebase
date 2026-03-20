@@ -91,7 +91,7 @@ Remote Docker mode assumes the OpenClaw container image already includes both:
 - Docker CLI
 - OpenSSH client
 
-This repo includes an example Dockerfile at `images/openclaw-remote-docker/Dockerfile` that extends `ghcr.io/openclaw/openclaw:2026.3.12` with those packages.
+This repo includes an example Dockerfile at `images/openclaw-remote-docker/Dockerfile` that extends `ghcr.io/openclaw/openclaw:2026.3.13-1` with those packages.
 
 The SSH Secret referenced by `remoteDocker.ssh.secretName` must include these exact keys:
 
