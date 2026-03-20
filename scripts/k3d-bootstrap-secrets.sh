@@ -123,6 +123,11 @@ create_and_apply_secret() {
   rm -f "$tmp_file"
 }
 
+remote_docker_secret_contract_hint() {
+  local secret_name="$1"
+  printf 'Secret %s must provide non-empty id_ed25519 and known_hosts keys. OpenClaw init will fail if those keys are absent.' "$secret_name"
+}
+
 create_remote_docker_secret() {
   local secret_name="$1"
   local remote_host="$2"
@@ -130,13 +135,19 @@ create_remote_docker_secret() {
   local key_path="$4"
   local known_hosts_file
 
-  if [[ ! -f "$key_path" ]]; then
-    fail "Remote Docker private key not found at ${key_path}. Run ./scripts/incus-vm-up.sh first or pass --remote-docker-key."
+  if [[ ! -s "$key_path" ]]; then
+    fail "Remote Docker private key missing or empty at ${key_path}. Run ./scripts/incus-vm-up.sh first or pass --remote-docker-key. $(remote_docker_secret_contract_hint "$secret_name")"
     return 1
   fi
 
   known_hosts_file="$(mktemp)"
   ssh-keyscan -p "$remote_port" "$remote_host" >"$known_hosts_file" 2>>"$BOOTSTRAP_LOG_FILE"
+
+  if [[ ! -s "$known_hosts_file" ]]; then
+    rm -f "$known_hosts_file"
+    fail "ssh-keyscan did not write known_hosts data for ${remote_host}:${remote_port}. $(remote_docker_secret_contract_hint "$secret_name")"
+    return 1
+  fi
 
   create_and_apply_secret "$secret_name" \
     --from-file=id_ed25519="$key_path" \
