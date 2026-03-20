@@ -1,16 +1,18 @@
 # Documentation map
 
-Use this page as the full documentation map for `ai-homebase`.
+Use this page as the full documentation map for `ai-homebase`, organized by operator goal.
 
 ## Start here
 
 - [`docs/deployment.md`](./deployment.md): Read this first when you need the deployment entrypoint and want help choosing the right install path.
-- [`docs/configuration.md`](./configuration.md): Read this after deployment planning when you need to understand values layering, overlays, and environment-specific settings.
+- [`docs/configuration.md`](./configuration.md): Read this early when you need to understand values layering, overlays, and where environment-specific settings should live.
+- [`docs/architecture.md`](./architecture.md): Read this when you want a quick picture of the platform layout, supported targets, and trust boundaries before making changes.
 
 ## Deploy
 
-- [`docs/deployment.md`](./deployment.md): Read this when you want the high-level deployment chooser for k3d, k3s, prerequisites, and install paths.
-- [`docs/deployment-k3d.md`](./deployment-k3d.md): Read this when you want the step-by-step local k3d bootstrap, manual flow, and local troubleshooting details.
+- [`docs/deployment.md`](./deployment.md): Read this when you need the deployment entrypoint for choosing between local `k3d`, homelab `k3s`, install commands, and prerequisites.
+- [`docs/deployment-k3d.md`](./deployment-k3d.md): Read this when you want the detailed local `k3d` bootstrap, manual install flow, ingress access notes, and troubleshooting.
+- [`docs/runbook-homelab.md`](./runbook-homelab.md): Read this when you are deploying to homelab `k3s` and need the validation, install, upgrade, and post-install workflow.
 
 ## Configure
 
@@ -22,10 +24,11 @@ Use this page as the full documentation map for `ai-homebase`.
 ## Operate
 
 - [`docs/runbook-homelab.md`](./runbook-homelab.md): Read this after install when you need the k3s homelab validation, upgrade, and health-check workflow.
-- [`docs/commands.md`](./commands.md): Read this when you want the canonical lint, render, install, CI, and helper commands in one place.
+- [`docs/commands.md`](./commands.md): Read this when you want the canonical lint, render, install, CI, and helper commands in one place during day-2 operations.
 
 ## Reference
 
-- [`docs/architecture.md`](./architecture.md): Read this when you want the platform layout, supported targets, and trust-boundary overview.
+- [`docs/architecture.md`](./architecture.md): Read this when you need the platform layout, supported targets, and trust-boundary overview as a reference.
+- [`docs/charts.md`](./charts.md): Read this when you need chart-level structure and packaging details for the repository's Helm components.
 - [`docs/services.md`](./services.md): Read this when you need a service-by-service reference for defaults, toggles, and operator-facing behavior.
 - [`docs/commands.md`](./commands.md): Read this when you need a quick command lookup without revisiting the longer workflow guides.
