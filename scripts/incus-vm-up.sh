@@ -126,6 +126,12 @@ instance_has_local_device() {
   '
 }
 
+get_vm_eth0_hwaddr() {
+  incus config show "$VM_NAME" 2>/dev/null \
+    | awk -F': ' '$1 == "  volatile.eth0.hwaddr" { print $2; exit }' \
+    | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//"
+}
+
 get_vm_ipv4() {
   incus list "$VM_NAME" -f json | python3 -c '
 import json
@@ -525,10 +531,11 @@ PY
 }
 
 render_network_config() {
+  local interface_mac="$1"
   local rendered_path
   rendered_path="$(mktemp /tmp/${VM_NAME}-network-config.XXXXXX.yaml)"
 
-  python3 - "$rendered_path" "$VM_STATIC_IPV4" "$INCUS_NETWORK_IPV4_CIDR" "$INCUS_NETWORK_BRIDGE_IPV4" "$INCUS_NETWORK_DNS_NAMESERVERS" <<'PY'
+  python3 - "$rendered_path" "$VM_STATIC_IPV4" "$INCUS_NETWORK_IPV4_CIDR" "$INCUS_NETWORK_BRIDGE_IPV4" "$INCUS_NETWORK_DNS_NAMESERVERS" "$interface_mac" <<'PY'
 import ipaddress
 import pathlib
 import re
@@ -539,6 +546,7 @@ vm_static_ipv4 = sys.argv[2]
 network_cidr = sys.argv[3]
 default_gateway = sys.argv[4]
 raw_nameservers = sys.argv[5]
+interface_mac = sys.argv[6].lower()
 
 interface = ipaddress.ip_interface(network_cidr)
 prefixlen = interface.network.prefixlen
@@ -554,6 +562,9 @@ lines = [
     "version: 2",
     "ethernets:",
     "  eth0:",
+    "    match:",
+    f"      macaddress: {interface_mac}",
+    "    set-name: eth0",
     "    dhcp4: false",
     "    addresses:",
     f"      - {vm_static_ipv4}/{prefixlen}",
@@ -617,7 +628,7 @@ ensure_ssh_key
 autodetect_network_addresses
 validate_network_dns_strategy
 CLOUD_INIT_FILE="$(render_cloud_init)"
-NETWORK_CONFIG_FILE="$(render_network_config)"
+NETWORK_CONFIG_FILE=""
 trap 'rm -f "${CLOUD_INIT_FILE:-}" "${NETWORK_CONFIG_FILE:-}"' EXIT
 
 if instance_exists; then
@@ -630,6 +641,12 @@ fi
 
 run_checked incus config set "$VM_NAME" limits.cpu "$CPU_LIMIT"
 run_checked incus config set "$VM_NAME" limits.memory "$MEMORY_LIMIT"
+VM_ETH0_HWADDR="$(get_vm_eth0_hwaddr)"
+if [[ -z "$VM_ETH0_HWADDR" ]]; then
+  fail "Unable to determine ${VM_NAME} NIC MAC from 'incus config show ${VM_NAME}' (expected volatile.eth0.hwaddr)"
+  exit 1
+fi
+NETWORK_CONFIG_FILE="$(render_network_config "$VM_ETH0_HWADDR")"
 if [[ "${BOOTSTRAP_VERBOSE:-0}" == "1" ]]; then
   incus config set "$VM_NAME" user.user-data="$(cat "$CLOUD_INIT_FILE")"
   incus config set "$VM_NAME" user.network-config="$(cat "$NETWORK_CONFIG_FILE")"

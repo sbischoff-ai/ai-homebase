@@ -138,7 +138,8 @@ YAML
         if [[ "${local_root}" == "1" || "${local_eth0}" == "1" ]]; then
           cat <<YAML
 architecture: x86_64
-config: {}
+config:
+  volatile.eth0.hwaddr: "00:16:3e:aa:bb:cc"
 devices:
 $(if [[ "${local_root}" == "1" ]]; then cat <<'INNER'
   root:
@@ -160,7 +161,8 @@ YAML
         else
           cat <<'YAML'
 architecture: x86_64
-config: {}
+config:
+  volatile.eth0.hwaddr: "00:16:3e:aa:bb:cc"
 profiles:
 - default
 YAML
@@ -344,6 +346,9 @@ SH
   grep -F "HOST_LISTEN_ADDRESS=${expected_host_listen_address}" "${sandbox_dir}/statefiles/test-vm.env" >/dev/null
   grep -F 'VM_STATIC_IPV4=10.10.10.45' "${sandbox_dir}/statefiles/test-vm.env" >/dev/null
   grep -F 'config set test-vm user.network-config=version: 2' "${log_file}" >/dev/null
+  grep -F '    match:' "${log_file}" >/dev/null
+  grep -F '      macaddress: 00:16:3e:aa:bb:cc' "${log_file}" >/dev/null
+  grep -F '    set-name: eth0' "${log_file}" >/dev/null
   grep -F '      - 10.10.10.45/24' "${log_file}" >/dev/null
   grep -F '      - to: 0.0.0.0/0' "${log_file}" >/dev/null
   grep -F '        via: 10.10.10.1' "${log_file}" >/dev/null
@@ -597,7 +602,8 @@ TXT
       show)
         cat <<'YAML'
 architecture: x86_64
-config: {}
+config:
+  volatile.eth0.hwaddr: "00:16:3e:aa:bb:cc"
 devices:
   ssh-proxy:
     connect: tcp:0.0.0.0:22
