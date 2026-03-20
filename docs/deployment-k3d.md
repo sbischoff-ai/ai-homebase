@@ -24,7 +24,7 @@ This flow:
 - creates or reuses the k3d cluster,
 - creates or reuses a dedicated Incus VM for remote Docker sandboxing,
 - installs ingress-nginx,
-- generates bootstrap secrets,
+- generates bootstrap secrets and now validates the remote Docker SSH private key plus `known_hosts` material before deployment,
 - deploys `platform-stack` with `values.yaml + values-k3d.yaml`, and
 - runs local smoke checks.
 
@@ -58,6 +58,8 @@ export OPENAI_API_KEY="<your-openai-api-key>"
   --remote-docker-port "$SSH_HOST_PORT" \
   --remote-docker-key ~/.local/state/ai-homebase/incus/openclaw-sandbox-id_ed25519
 ```
+
+The bootstrap now fails early if the remote Docker private key is missing/empty or if `ssh-keyscan` does not produce a non-empty `known_hosts` file for the target host and port. That keeps the generated `openclaw-remote-docker-ssh` Secret aligned with the OpenClaw chart contract before Helm deploys resources.
 
 For the OpenClaw deployment itself, layer a one-off override that matches the same endpoint:
 
