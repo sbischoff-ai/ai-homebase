@@ -10,15 +10,14 @@ Canonical default posture in this document refers to umbrella defaults from `cha
 
 | Service | Role | Default expectation |
 | --- | --- | --- |
-| `openclaw` | General AI assistant UI/API | Enabled with private service access by default |
-| `openhands` | Agentic coding UI/API | Enabled by default; launches per-session Kubernetes runtime sandboxes inside the cluster |
+| `openclaw` | General AI assistant UI/API | Enabled with ingress by default |
+| `openhands` | Agentic coding UI/API | Enabled by default with ingress; launches per-session Kubernetes runtime sandboxes inside the cluster |
 
 ### Default-on platform services
 
 | Service | Toggle | Typical use |
 | --- | --- | --- |
 | `infisical` | `infisical.enabled` | Central secret-management service |
-| `wg-easy` | `wgEasy.enabled` | WireGuard VPN management and private access |
 
 ### Optional personal-cloud services
 
@@ -38,7 +37,6 @@ Canonical default posture in this document refers to umbrella defaults from `cha
 | `gitea` | `gitea.enabled` | `false` |
 | `paperless-ngx` | `paperlessNgx.enabled` | `false` |
 | `infisical` | `infisical.enabled` | `true` |
-| `wg-easy` | `wgEasy.enabled` | `true` |
 
 ## Core plane details
 
@@ -85,11 +83,10 @@ Canonical default posture in this document refers to umbrella defaults from `cha
 
 - In-cluster secret-management component using externalized DB/cache backends from shared services.
 
-### wg-easy
+## External VPN gateway note
 
-- Provides VPN lifecycle UI and the WireGuard endpoint.
-- For k3d, the overlay explicitly sets `wgEasy.securityContext.privileged: true` for local Docker-backed WireGuard compatibility.
-- Node-level prerequisites remain required for WireGuard and iptables/NAT support.
+- Deploy `wg-easy` separately on the server that hosts this stack, outside the Kubernetes cluster.
+- That external `wg-easy` instance is expected to provide the VPN gateway to the internet for the homelab environment.
 
 ## Secret contract model
 

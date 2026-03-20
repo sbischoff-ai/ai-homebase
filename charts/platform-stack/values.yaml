@@ -9,7 +9,6 @@ global:
     gitea: gitea.vpn.homebase.internal
     paperlessNgx: paperless.homebase.local
     infisical: infisical.homebase.local
-    wgEasy: wg.homebase.local
   commonLabels: {}
   podAnnotations: {}
   nodeSelector: {}
@@ -25,7 +24,7 @@ openclaw:
     tag: ""
     pullPolicy: IfNotPresent
   ingress:
-    enabled: false
+    enabled: true
     className: ""
     annotations: {}
     hosts:
@@ -125,9 +124,9 @@ openhands:
     port: 3000
     targetPort: 3000
     annotations: {}
-  # Keep OpenHands service-only by default; enable ingress explicitly per environment.
+  # OpenHands ships with ingress enabled by default so enabled services are reachable.
   ingress:
-    enabled: false
+    enabled: true
     hostName: openhands.homebase.local
     ingressClassName: ""
     # Keep hostName on an internal/VPN DNS name when exposing OpenHands privately.
@@ -317,7 +316,7 @@ paperlessNgx:
     port: 8000
     targetPort: 8000
   ingress:
-    enabled: false
+    enabled: true
     className: ""
     annotations: {}
     hosts:
@@ -409,54 +408,6 @@ infisical:
         storageClass: ""
   redis:
     enabled: false
-
-wgEasy:
-  enabled: true
-  # Keep generated resource names stable (platform-stack-wg-easy)
-  # even though the umbrella dependency uses alias: wgEasy.
-  nameOverride: wg-easy
-  image:
-    repository: ghcr.io/wg-easy/wg-easy
-    tag: "14"
-    pullPolicy: IfNotPresent
-  service:
-    type: ClusterIP
-    wireguardPort: 51820
-    uiPort: 51821
-    annotations: {}
-  ingress:
-    enabled: true
-    className: ""
-    annotations: {}
-    hosts:
-      - host: wg.homebase.local
-        paths:
-          - path: /
-            pathType: Prefix
-    tls: []
-  persistence:
-    enabled: true
-    existingClaim: ""
-    accessModes: ["ReadWriteOnce"]
-    size: 5Gi
-    storageClass: ""
-    annotations: {}
-  resources: {}
-  probes:
-    liveness:
-      enabled: true
-      path: /
-      initialDelaySeconds: 30
-      periodSeconds: 10
-    readiness:
-      enabled: true
-      path: /
-      initialDelaySeconds: 10
-      periodSeconds: 10
-  backup:
-    annotations: {}
-  existingSecret: ""
-  secretRefs: []
 
 sharedPostgresql:
   enabled: true

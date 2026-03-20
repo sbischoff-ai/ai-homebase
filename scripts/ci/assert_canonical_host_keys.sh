@@ -10,16 +10,11 @@ scan_targets=(
   "charts/platform-stack/values-k3s.yaml"
   "charts/platform-stack/values.schema.json"
   "charts/paperless-ngx/values.yaml"
-  "charts/wg-easy/values.yaml"
 )
 
 patterns=(
   'global\.hosts\.paperless(\b|[^A-Za-z0-9_])'
-  'global\.hosts\.wg(\b|[^A-Za-z0-9_])'
-  'global\.hosts\.vpn(\b|[^A-Za-z0-9_])'
   '^[[:space:]]+paperless:[[:space:]]'
-  '^[[:space:]]+wg:[[:space:]]'
-  '^[[:space:]]+vpn:[[:space:]]'
 )
 
 failed=0
@@ -30,7 +25,7 @@ for pattern in "${patterns[@]}"; do
 done
 
 if [[ "$failed" -ne 0 ]]; then
-  echo "Legacy Paperless/WG host keys found. Use only global.hosts.paperlessNgx and global.hosts.wgEasy." >&2
+  echo "Legacy Paperless host keys found. Use only global.hosts.paperlessNgx." >&2
   exit 1
 fi
 

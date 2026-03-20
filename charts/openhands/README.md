@@ -1,14 +1,14 @@
 # OpenHands chart notes
 
-This chart deploys OpenHands with a private-by-default posture aligned to this repo's internal-service conventions.
+This chart deploys OpenHands with the repo's standard ingress-on default for enabled services.
 
 ## Default access posture
 
 - `service.type: ClusterIP`
-- `ingress.enabled: false`
-- No public ingress is created unless you explicitly opt in.
+- `ingress.enabled: true`
+- The default access path is the configured ingress hostname, or the in-cluster service when you intentionally bypass ingress.
 
-Expected access path is through existing private connectivity (WireGuard/VPN) and internal DNS, for example `http://openhands.default.svc.cluster.local:3000` or your internal ingress hostname.
+Expected access path is your internal ingress hostname, for example `http://openhands.homebase.local`, or `http://openhands.default.svc.cluster.local:3000` for direct service access.
 
 Security/runtime defaults run as root (`runAsUser: 0`, `runAsGroup: 0`, `podSecurityContext.fsGroup: 0`, `runAsNonRoot: false`) because the upstream image currently requires `/app/entrypoint.sh` to start as root. Avoid mounting any extra operator-defined volume at `/app` (or `/app/*`) because it shadows the baked-in `/app/entrypoint.sh` and prevents container startup; the chart-managed single-file `/app/config.toml` subPath mount is the intentional exception used to render the OpenHands runtime configuration.
 
@@ -79,7 +79,7 @@ persistence:
   storageClass: local-path
 ```
 
-### 3) Optional internal ingress enablement
+### 3) Internal ingress tuning
 
 ```yaml
 ingress:
@@ -92,7 +92,7 @@ ingress:
         - openhands.internal.home.arpa
 ```
 
-Keep ingress internal unless you have a deliberate public-exposure design (auth, TLS, and network controls) in place.
+Ingress is on by default; use overrides to tune class, TLS, and hostname for your environment while keeping exposure inside your trusted network boundary.
 
 
 Ingress class precedence:

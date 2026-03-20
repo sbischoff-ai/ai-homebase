@@ -1,6 +1,6 @@
 # OpenClaw chart notes
 
-This chart deploys OpenClaw as a **single trusted-boundary, long-running gateway host** with durable state and private-by-default browser access.
+This chart deploys OpenClaw as a **single trusted-boundary, long-running gateway host** with durable state and the repo's standard ingress-on access model.
 
 ## What this chart configures by default
 
@@ -17,7 +17,7 @@ This chart deploys OpenClaw as a **single trusted-boundary, long-running gateway
   - `gateway.controlUi.enabled: true`
 - `Service` defaults to `ClusterIP` on port `18789`.
 - Startup probe defaults are intentionally tolerant (`initialDelaySeconds: 10`, `periodSeconds: 10`, `failureThreshold: 30`) so Kubernetes does not restart OpenClaw during slower cold starts.
-- `Ingress` is disabled by default (`ingress.enabled: false`) to keep exposure private/internal unless explicitly enabled.
+- `Ingress` is enabled by default (`ingress.enabled: true`) so the service is reachable through the stack's standard hostname model.
 
 ## Required operator-provided secrets
 
@@ -50,16 +50,16 @@ Use `secretKeys` for common direct mappings and/or `secretRefs` for arbitrary se
 By default, OpenClaw is exposed internally only:
 
 - `Service` type is `ClusterIP`.
-- `ingress.enabled` is `false` by default.
-- Access should come through private networking such as VPN, for example: `http://openclaw.default.svc.cluster.local:18789`.
+- `ingress.enabled` is `true` by default.
+- Access should normally come through the configured ingress hostname, for example `http://openclaw.homebase.local`, with direct service access reserved for debugging or tightly controlled internal use.
 
 ## Ingress and origin requirements
 
-If you intentionally enable browser ingress, set all of the following:
+With ingress enabled by default, make sure all of the following stay aligned:
 
 1. Ingress hostname (`ingress.hosts[*].host`, `ingress.defaultHost`, or `global.hosts.openclaw`).
-2. TLS for that hostname (`ingress.tls`).
-3. `openclaw.gateway.controlUi.allowedOrigins` to exact public origin(s), for example:
+2. TLS for that hostname (`ingress.tls`) when your environment requires HTTPS.
+3. `openclaw.gateway.controlUi.allowedOrigins` to exact browser origin(s), for example:
    - `https://openclaw.example.com`
 
 For non-loopback binds, wildcard origins are intentionally rejected.

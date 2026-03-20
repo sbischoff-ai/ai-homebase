@@ -6,10 +6,6 @@ source "$(dirname "$0")/lib/logging.sh"
 NAMESPACE="${NAMESPACE:-ai-homebase}"
 RELEASE_NAME="${RELEASE_NAME:-platform-stack}"
 KUBECONFIG_PATH="${KUBECONFIG_PATH:-${KUBECONFIG:-}}"
-WG_HOST="${WG_HOST:-wg.localtest.me}"
-WG_PASSWORD="${WG_PASSWORD:-}"
-WG_PASSWORD_OUTPUT_PATH="${WG_PASSWORD_OUTPUT_PATH:-}"
-WG_PASSWORD_HASH="${WG_PASSWORD_HASH:-}"
 OPENCLAW_GATEWAY_TOKEN="${OPENCLAW_GATEWAY_TOKEN:-local-dev-token}"
 OPENAI_API_KEY="${OPENAI_API_KEY:-}"
 REMOTE_DOCKER_SECRET_NAME="${REMOTE_DOCKER_SECRET_NAME:-openclaw-remote-docker-ssh}"
@@ -31,9 +27,6 @@ Options:
   --namespace <name>             Target namespace (default: ${NAMESPACE})
   --release-name <name>          Helm release name (default: ${RELEASE_NAME})
   --kubeconfig <path>            Optional kubeconfig path
-  --wg-host <host>               WireGuard endpoint host for clients (default: ${WG_HOST})
-  --wg-password <password>       wg-easy UI password (auto-generated if omitted; hashed before storing)
-  --wg-password-out <path>       Write resolved wg-easy password to file
   --openclaw-gateway-token <v>   OpenClaw gateway token (default: ${OPENCLAW_GATEWAY_TOKEN})
   --remote-docker-secret <name>  Secret for OpenClaw remote Docker SSH data (default: ${REMOTE_DOCKER_SECRET_NAME})
   --remote-docker-host <host>    Hostname OpenClaw should use for the SSH-backed Docker endpoint (default: ${REMOTE_DOCKER_HOST})
@@ -52,9 +45,6 @@ while [[ $# -gt 0 ]]; do
     --namespace) NAMESPACE="$2"; shift 2 ;;
     --release-name) RELEASE_NAME="$2"; shift 2 ;;
     --kubeconfig) KUBECONFIG_PATH="$2"; shift 2 ;;
-    --wg-host) WG_HOST="$2"; shift 2 ;;
-    --wg-password) WG_PASSWORD="$2"; shift 2 ;;
-    --wg-password-out) WG_PASSWORD_OUTPUT_PATH="$2"; shift 2 ;;
     --openclaw-gateway-token) OPENCLAW_GATEWAY_TOKEN="$2"; shift 2 ;;
     --remote-docker-secret) REMOTE_DOCKER_SECRET_NAME="$2"; shift 2 ;;
     --remote-docker-host) REMOTE_DOCKER_HOST="$2"; shift 2 ;;
@@ -82,23 +72,6 @@ if [[ -z "$OPENAI_API_KEY" ]]; then
   fail 'OPENAI_API_KEY is required. Export it before running this script (for example: export OPENAI_API_KEY="sk-...").'
   exit 1
 fi
-
-generate_wg_password_hash() {
-  local plain_password="$1"
-
-  if command -v htpasswd >/dev/null 2>&1; then
-    htpasswd -bnBC 10 "" "$plain_password" | tr -d ':\n'
-    return 0
-  fi
-
-  if command -v docker >/dev/null 2>&1; then
-    docker run --rm ghcr.io/wg-easy/wg-easy:14 wgpw "$plain_password"
-    return 0
-  fi
-
-  fail "Unable to generate wg-easy PASSWORD_HASH. Install 'htpasswd' (apache2-utils) or Docker."
-  return 1
-}
 
 generate_infisical_encryption_key() {
   while true; do
@@ -172,14 +145,6 @@ create_remote_docker_secret() {
   rm -f "$known_hosts_file"
 }
 
-if [[ -z "$WG_PASSWORD" ]]; then
-  WG_PASSWORD="$(openssl rand -hex 12)"
-fi
-
-if [[ -z "$WG_PASSWORD_HASH" ]]; then
-  WG_PASSWORD_HASH="$(generate_wg_password_hash "$WG_PASSWORD")"
-fi
-
 if [[ -z "$INFISICAL_AUTH_SECRET" ]]; then
   INFISICAL_AUTH_SECRET="$(openssl rand -hex 32)"
 fi
@@ -187,7 +152,6 @@ if [[ -z "$INFISICAL_ENCRYPTION_KEY" ]]; then
   INFISICAL_ENCRYPTION_KEY="$(generate_infisical_encryption_key)"
 fi
 
-WG_SECRET_NAME="${RELEASE_NAME}-wg-easy-secrets"
 INFISICAL_SITE_URL="http://infisical.localtest.me"
 INFISICAL_DB_URI="postgres://postgres:${POSTGRES_ADMIN_PASSWORD}@platform-stack-shared-postgresql:5432/postgres?sslmode=disable"
 INFISICAL_REDIS_URI="redis://:${REDIS_PASSWORD}@platform-stack-shared-redis:6379"
@@ -221,10 +185,6 @@ create_remote_docker_secret \
   "$REMOTE_DOCKER_PORT" \
   "$REMOTE_DOCKER_KEY_PATH"
 
-create_and_apply_secret "$WG_SECRET_NAME" \
-  --from-literal=WG_HOST="$WG_HOST" \
-  --from-literal=PASSWORD_HASH="$WG_PASSWORD_HASH"
-
 create_and_apply_secret infisical-secrets \
   --from-literal=AUTH_SECRET="$INFISICAL_AUTH_SECRET" \
   --from-literal=ENCRYPTION_KEY="$INFISICAL_ENCRYPTION_KEY" \
@@ -232,11 +192,5 @@ create_and_apply_secret infisical-secrets \
   --from-literal=DB_CONNECTION_URI="$INFISICAL_DB_URI" \
   --from-literal=REDIS_URL="$INFISICAL_REDIS_URI"
 
-if [[ -n "$WG_PASSWORD_OUTPUT_PATH" ]]; then
-  printf '%s\n' "$WG_PASSWORD" > "$WG_PASSWORD_OUTPUT_PATH"
-fi
-
 echo "Bootstrap secrets applied in namespace ${NAMESPACE}."
-echo "wg-easy secret: ${WG_SECRET_NAME}"
-echo "wg-easy UI password: ${WG_PASSWORD}"
 echo "Bootstrap log: ${BOOTSTRAP_LOG_FILE}"

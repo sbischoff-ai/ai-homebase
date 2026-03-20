@@ -13,7 +13,7 @@ Prefer files over `--set` for anything long-lived or shared.
 
 Incus sandbox VM assets intentionally live outside the Helm values hierarchy in `incus/` and `scripts/incus-vm-*.sh`. They are companion host/bootstrap resources rather than chart-managed Kubernetes objects, so keep their sizing, image, and access settings in those dedicated files/scripts instead of trying to encode them in chart values.
 
-Canonical global host keys for service ingress defaults are `global.hosts.paperlessNgx` and `global.hosts.wgEasy`.
+Canonical global host key for the Paperless ingress default is `global.hosts.paperlessNgx`.
 
 ## Layering model
 
@@ -35,7 +35,7 @@ Add extra overlays only for concrete environment decisions such as:
 - Real domains and DNS names.
 - Actual secret references.
 - Storage sizing or class overrides.
-- Intentional ingress exposure changes.
+- Environment-specific domains, TLS, or ingress-class details.
 
 Do not encode persistent environment decisions only as CLI `--set` flags.
 
@@ -69,7 +69,6 @@ Current schema coverage includes:
 - `charts/openhands/values.schema.json`
 - `charts/nextcloud/values.schema.json`
 - `charts/paperless-ngx/values.schema.json`
-- `charts/wg-easy/values.schema.json`
 - `charts/infisical/values.schema.json`
 - `charts/gitea/values.schema.json`
 

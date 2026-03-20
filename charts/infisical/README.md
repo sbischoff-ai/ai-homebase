@@ -92,7 +92,7 @@ helm upgrade --install infisical charts/infisical \
   --create-namespace
 ```
 
-## Using Infisical as the secret source for `openclaw` and `wg-easy`
+## Using Infisical as the secret source for `openclaw`
 
 Deploying Infisical alone does **not** sync secrets into Kubernetes Secrets for workloads.
 You must also deploy the **Infisical Kubernetes Operator** and create `InfisicalSecret` resources.
@@ -122,8 +122,5 @@ Use one `InfisicalSecret` per workload/env to materialize Kubernetes Secrets con
   - `OPENCLAW_GATEWAY_TOKEN`
   - `OPENAI_API_KEY`
   - `ANTHROPIC_API_KEY`
-- `wg-easy` synced Kubernetes Secret should include:
-  - `WG_HOST`
-  - `PASSWORD_HASH`
 
 Then set downstream charts to use those synced Kubernetes Secret names (`existingSecret`).

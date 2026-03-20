@@ -21,7 +21,6 @@ Options:
   --cluster-name <name>         k3d cluster name (default: ${CLUSTER_NAME})
   --http-port <port>            Host HTTP port mapped to LB 80 (default: ${HTTP_PORT})
   --https-port <port>           Host HTTPS port mapped to LB 443 (default: ${HTTPS_PORT})
-                                Also maps wg-easy ports 51820/udp and 51821/tcp from server node
   --without-https               Do not map host HTTPS port 443 to the k3s load balancer
   --kubeconfig <path>           Write/use dedicated kubeconfig path (default: ${KUBECONFIG_PATH})
   --verbose                     Stream full command output
@@ -122,8 +121,6 @@ else
     CREATE_ARGS=(
       --wait
       -p "${HTTP_PORT}:80@loadbalancer"
-      -p "51820:51820/udp@server:0"
-      -p "51821:51821@server:0"
       --volume "/lib/modules:/lib/modules@all"
       --k3s-arg "--disable=traefik@server:*"
     )

@@ -15,6 +15,3 @@ paperlessNgx:
 
 infisical:
   enabled: false
-
-wgEasy:
-  enabled: false

@@ -7,13 +7,11 @@ CLUSTER_NAME="${CLUSTER_NAME:-ai-homebase-dev}"
 NAMESPACE="${NAMESPACE:-ai-homebase}"
 RELEASE_NAME="${RELEASE_NAME:-platform-stack}"
 KUBECONFIG_PATH="${KUBECONFIG_PATH:-${HOME}/.kube/k3d-${CLUSTER_NAME}.yaml}"
-WG_HOST="${WG_HOST:-wg.localtest.me}"
 INCUS_VM_NAME="${INCUS_VM_NAME:-openclaw-sandbox}"
 REMOTE_DOCKER_HOST="${REMOTE_DOCKER_HOST:-host.k3d.internal}"
 REMOTE_DOCKER_PORT="${REMOTE_DOCKER_PORT:-2222}"
 REMOTE_DOCKER_KEY_PATH="${REMOTE_DOCKER_KEY_PATH:-${HOME}/.local/state/ai-homebase/incus/${INCUS_VM_NAME}-id_ed25519}"
 INCUS_CONNECTION_INFO_PATH="${INCUS_CONNECTION_INFO_PATH:-}"
-WG_PASSWORD_OUTPUT=""
 OVERRIDE_VALUES_FILE=""
 REMOTE_DOCKER_HOST_EXPLICIT=0
 REMOTE_DOCKER_PORT_EXPLICIT=0
@@ -29,7 +27,6 @@ Options:
   --namespace <name>       Kubernetes namespace (default: ${NAMESPACE})
   --release-name <name>    Helm release name (default: ${RELEASE_NAME})
   --kubeconfig <path>      Dedicated kubeconfig path (default: ${KUBECONFIG_PATH})
-  --wg-host <host>         WireGuard host clients and the local wg-easy Ingress should use (default: ${WG_HOST})
   --incus-vm-name <name>   Incus VM name for the remote Docker sandbox (default: ${INCUS_VM_NAME})
   --remote-docker-host <h> Hostname OpenClaw should use for the remote Docker SSH endpoint (default: ${REMOTE_DOCKER_HOST})
   --remote-docker-port <p> SSH port for the remote Docker endpoint (default: ${REMOTE_DOCKER_PORT})
@@ -47,7 +44,6 @@ while [[ $# -gt 0 ]]; do
     --namespace) NAMESPACE="$2"; shift 2 ;;
     --release-name) RELEASE_NAME="$2"; shift 2 ;;
     --kubeconfig) KUBECONFIG_PATH="$2"; shift 2 ;;
-    --wg-host) WG_HOST="$2"; shift 2 ;;
     --incus-vm-name) INCUS_VM_NAME="$2"; shift 2 ;;
     --remote-docker-host) REMOTE_DOCKER_HOST="$2"; REMOTE_DOCKER_HOST_EXPLICIT=1; shift 2 ;;
     --remote-docker-port) REMOTE_DOCKER_PORT="$2"; REMOTE_DOCKER_PORT_EXPLICIT=1; shift 2 ;;
@@ -65,8 +61,6 @@ fi
 
 bootstrap_init_logging
 export KUBECONFIG="$KUBECONFIG_PATH"
-WG_PASSWORD_OUTPUT="$(mktemp /tmp/ai-homebase-wg-password.XXXXXX)"
-
 on_error() {
   fail "Local bootstrap failed."
   echo
@@ -112,11 +106,9 @@ run_quiet ./scripts/k3d-bootstrap-secrets.sh \
   --namespace "$NAMESPACE" \
   --release-name "$RELEASE_NAME" \
   --kubeconfig "$KUBECONFIG_PATH" \
-  --wg-host "$WG_HOST" \
   --remote-docker-host "$REMOTE_DOCKER_HOST" \
   --remote-docker-port "$REMOTE_DOCKER_PORT" \
-  --remote-docker-key "$REMOTE_DOCKER_KEY_PATH" \
-  --wg-password-out "$WG_PASSWORD_OUTPUT"
+  --remote-docker-key "$REMOTE_DOCKER_KEY_PATH"
 ok "Secrets are ready"
 
 OVERRIDE_VALUES_FILE="$(mktemp /tmp/ai-homebase-k3d-remote-docker.XXXXXX.yaml)"
@@ -125,7 +117,7 @@ openclaw:
   remoteDocker:
     dockerHost: ssh://docker-remote@${REMOTE_DOCKER_HOST}:${REMOTE_DOCKER_PORT}
 EOF
-trap 'rm -f "$WG_PASSWORD_OUTPUT" "$OVERRIDE_VALUES_FILE"' EXIT
+trap 'rm -f "$OVERRIDE_VALUES_FILE"' EXIT
 
 step "Deploying platform stack and running smoke checks"
 run_quiet ./scripts/test-local-k3d.sh \
@@ -137,11 +129,7 @@ run_quiet ./scripts/test-local-k3d.sh \
   --values-file "$OVERRIDE_VALUES_FILE"
 ok "Smoke checks passed"
 
-WG_PASSWORD="(not available)"
-if [[ -s "$WG_PASSWORD_OUTPUT" ]]; then
-  WG_PASSWORD="$(cat "$WG_PASSWORD_OUTPUT")"
-fi
-rm -f "$WG_PASSWORD_OUTPUT" "$OVERRIDE_VALUES_FILE"
+rm -f "$OVERRIDE_VALUES_FILE"
 
 echo
 echo "Local bootstrap complete."
@@ -150,8 +138,7 @@ echo "  Kubeconfig: ${KUBECONFIG}"
 echo "  Incus VM: ${INCUS_VM_NAME}"
 echo "  Remote Docker endpoint: ssh://docker-remote@${REMOTE_DOCKER_HOST}:${REMOTE_DOCKER_PORT}"
 echo "  Remote Docker SSH secret: openclaw-remote-docker-ssh"
-echo "  wg-easy URL (via ingress-nginx): http://${WG_HOST}"
+echo "  OpenClaw URL: http://openclaw.localtest.me"
 echo "  OpenHands URL: http://openhands.localtest.me"
 echo "  Infisical URL: http://infisical.localtest.me"
-echo "  wg-easy UI password: ${WG_PASSWORD}"
 echo "  Bootstrap log: ${BOOTSTRAP_LOG_FILE}"

@@ -98,11 +98,10 @@ Default values layers used by the k3d scripts:
 
 Expected local browser endpoints served by the k3d `ingress-nginx` controller:
 
-- `http://wg.localtest.me`
 - `http://openhands.localtest.me`
 - `http://infisical.localtest.me`
 
-`openclaw` remains service-only by default in the shipped k3d layering.
+`openclaw` is exposed through the shipped k3d ingress layering by default.
 
 ## 4) Local ingress host access (DNS/hosts)
 
@@ -110,7 +109,7 @@ Expected local browser endpoints served by the k3d `ingress-nginx` controller:
 If not, add entries such as:
 
 ```text
-127.0.0.1 openhands.localtest.me wg.localtest.me infisical.localtest.me openclaw.localtest.me
+127.0.0.1 openhands.localtest.me infisical.localtest.me openclaw.localtest.me
 ```
 
 ### NixOS host setup notes
@@ -180,7 +179,6 @@ A complete example looks like this:
     127.0.0.1 infisical.localtest.me
     127.0.0.1 nextcloud.localtest.me
     127.0.0.1 paperless.localtest.me
-    127.0.0.1 wg.localtest.me
   '';
 
   users.users.yourUser.extraGroups = [ "incus-admin" ];

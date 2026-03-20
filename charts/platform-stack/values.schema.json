@@ -37,8 +37,7 @@
             "nextcloud": { "$ref": "#/definitions/hostname" },
             "gitea": { "$ref": "#/definitions/hostname" },
             "paperlessNgx": { "$ref": "#/definitions/hostname" },
-            "infisical": { "$ref": "#/definitions/hostname" },
-            "wgEasy": { "$ref": "#/definitions/hostname" }
+            "infisical": { "$ref": "#/definitions/hostname" }
           }
         }
       }
@@ -137,8 +136,7 @@
     "nextcloud": { "$ref": "#/definitions/optionalServiceToggle" },
     "gitea": { "$ref": "#/definitions/optionalServiceToggle" },
     "paperlessNgx": { "$ref": "#/definitions/optionalServiceToggle" },
-    "infisical": { "$ref": "#/definitions/optionalServiceToggle" },
-    "wgEasy": { "$ref": "#/definitions/optionalServiceToggle" }
+    "infisical": { "$ref": "#/definitions/optionalServiceToggle" }
   },
   "not": {
     "anyOf": [

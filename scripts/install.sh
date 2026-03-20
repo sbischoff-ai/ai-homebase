@@ -12,7 +12,6 @@ normalize_service_key() {
   case "$1" in
     openclaw|openhands|nextcloud|gitea|infisical) echo "$1" ;;
     paperless-ngx|paperlessNgx) echo "paperlessNgx" ;;
-    wg-easy|wgEasy) echo "wgEasy" ;;
     *) return 1 ;;
   esac
 }
@@ -45,7 +44,7 @@ Options:
   --kube-context <context>    Optional kube context
   -h, --help                  Show this help message
 
-Supported services: openclaw, openhands, nextcloud, gitea, paperless-ngx, infisical, wg-easy
+Supported services: openclaw, openhands, nextcloud, gitea, paperless-ngx, infisical
 USAGE
 }
 
