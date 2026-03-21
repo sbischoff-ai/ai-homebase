@@ -105,6 +105,7 @@ What you need to know:
 
 - The k3d scripts use `charts/platform-stack/values.yaml` plus `charts/platform-stack/values-k3d.yaml` by default.
 - Use this command after secrets are in place and any one-off override file is ready.
+- The local smoke check waits up to 600 seconds for each deployment rollout/readiness check so slower first boots do not fail just before OpenClaw becomes Ready.
 - If you only need generic install, lint, template, or helper-script commands outside this k3d-specific workflow, use [`docs/commands.md`](./commands.md).
 
 ## 3) Service access
