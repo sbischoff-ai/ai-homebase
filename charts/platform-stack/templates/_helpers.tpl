@@ -21,7 +21,8 @@ helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
 {{- end -}}
 
 {{- define "platform-stack.certManagerResourceNamespace" -}}
-{{- coalesce .Values.certManager.resourceNamespace .Values.certManagerChart.clusterResourceNamespace .Values.certManagerChart.namespace .Release.Namespace -}}
+{{- $certManagerValues := index .Values "cert-manager" | default (dict) -}}
+{{- coalesce .Values.certManager.resourceNamespace (get $certManagerValues "clusterResourceNamespace") (get $certManagerValues "namespace") .Release.Namespace -}}
 {{- end -}}
 
 {{- define "platform-stack.openclawIngressHost" -}}

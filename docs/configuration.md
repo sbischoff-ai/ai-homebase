@@ -78,13 +78,16 @@ Use `global.*` for shared conventions such as domain names, storage defaults, im
 
 Use service-specific blocks when behavior must diverge, especially for:
 
-- `certManager.*`
+- `certManager.*` umbrella toggles and PKI resources
+- `cert-manager.*` upstream subchart values passed through the umbrella chart
 - `openclaw.*`
 - Secret references and env contracts
 - Persistence and ingress controls
 - OpenClaw sandbox settings
 
 `certManager.resourcesEnabled` separately controls whether the umbrella chart renders `cert-manager.io/v1` resources at all. Keep it `false` for first-install/bootstrap renders where the CRDs may not exist yet, then enable it after the cert-manager controller stack is ready.
+
+Use the canonical lowercase `cert-manager:` top-level key in umbrella values files for upstream chart settings such as `crds.enabled` and `crds.keep`; reserve `certManager:` for umbrella-specific enablement, namespace fallback, and internal PKI resources.
 
 `certManager.internalCA.*` controls the internal PKI bootstrap resources (SelfSigned bootstrap issuer, root CA certificate Secret, and CA ClusterIssuer), while the OpenClaw ingress hostname and TLS Secret remain driven by `openclaw.ingress.hosts[*]` and `openclaw.ingress.tls[*]`. Keep those values aligned so the cert-manager `Certificate` and the rendered ingress reference the same hostname and Secret.
 

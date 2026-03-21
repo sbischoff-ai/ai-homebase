@@ -15,7 +15,7 @@ global:
   affinity: {}
   env: []
 
-certManagerChart:
+cert-manager:
   crds:
     enabled: true
     keep: true

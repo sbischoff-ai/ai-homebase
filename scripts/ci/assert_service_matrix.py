@@ -6,8 +6,17 @@ from __future__ import annotations
 import re
 import subprocess
 
+LEGACY_CERT_MANAGER_PATTERN = re.compile(r"certManager[A-Z]")
+
 BASE_VALUES = "charts/platform-stack/values.yaml"
 K3D_VALUES = "charts/platform-stack/values-k3d.yaml"
+K3S_VALUES = "charts/platform-stack/values-k3s.yaml"
+
+CERT_MANAGER_EXPECTED_RESOURCES = {
+    ("Deployment", "platform-stack-cert-manager"),
+    ("Deployment", "platform-stack-cert-manager-cainjector"),
+    ("Deployment", "platform-stack-cert-manager-webhook"),
+}
 
 LEGACY_GITEA_WRAPPER_SOURCES = {
     "# Source: platform-stack/charts/gitea/templates/statefulset.yaml",
@@ -163,6 +172,24 @@ def assert_gitea_single_path(case: dict[str, object], rendered: str, resources: 
         )
 
 
+def assert_cert_manager_canonical(profile_name: str, rendered: str, resources: set[tuple[str | None, str | None]]) -> None:
+    if LEGACY_CERT_MANAGER_PATTERN.search(rendered):
+        raise SystemExit(f"{profile_name} rendered legacy cert-manager alias naming")
+
+    missing = sorted(CERT_MANAGER_EXPECTED_RESOURCES - resources)
+    if missing:
+        raise SystemExit(f"{profile_name} missing canonical cert-manager resources: {missing}")
+
+    for _, resource_name in resources:
+        if resource_name is None:
+            continue
+        resource_name_lower = resource_name.lower()
+        if ("cert-manager" in resource_name_lower or "certmanager" in resource_name_lower) and resource_name != resource_name_lower:
+            raise SystemExit(
+                f"{profile_name} rendered cert-manager resource name with uppercase characters: {resource_name}"
+            )
+
+
 def assert_k3d_default_ingress_classes() -> None:
     rendered = render_template(BASE_VALUES, K3D_VALUES)
     expected = {
@@ -195,6 +222,16 @@ def main() -> None:
         assert_removed_platform_settings_configmap(resources)
         assert_gitea_single_path(case, rendered, resources)
         print(f"{case['name']}: asserted {len(case['expect_present'])} resource(s)")
+
+    for profile_name, values_files in {
+        "base": (BASE_VALUES,),
+        "k3d": (BASE_VALUES, K3D_VALUES),
+        "k3s": (BASE_VALUES, K3S_VALUES),
+    }.items():
+        rendered = render_template(*values_files)
+        resources = rendered_resources(rendered)
+        assert_cert_manager_canonical(profile_name, rendered, resources)
+        print(f"{profile_name}: asserted canonical cert-manager naming")
 
     assert_k3d_default_ingress_classes()
     print("k3d overlay: asserted nginx ingressClassName + expected hosts for OpenClaw/Infisical")
