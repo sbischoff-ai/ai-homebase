@@ -12,10 +12,18 @@ export OPENAI_API_KEY="<your-openai-api-key>"
 This workflow:
 
 - Creates or reuses a local `k3d` cluster.
+- Pins the local cluster to a Kubernetes 1.32-compatible k3s image by default instead of relying on the `k3d` binary's built-in default.
 - Boots the Incus-backed `openclaw-sandbox` VM used by the standard remote Docker posture.
 - Generates the required Kubernetes Secrets.
 - Deploys `platform-stack` with `charts/platform-stack/values.yaml` and `charts/platform-stack/values-k3d.yaml`.
 - Runs the local smoke checks.
+
+If you need to override the pinned k3s image for local testing, export `K3S_IMAGE` before running the bootstrap:
+
+```bash
+export K3S_IMAGE="rancher/k3s:v1.32.11-k3s1"
+./scripts/k3d-local-bootstrap.sh --cluster-name ai-homebase-dev
+```
 
 ## 2) Advanced: custom remote Docker endpoint override
 

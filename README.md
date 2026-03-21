@@ -20,6 +20,7 @@ export OPENAI_API_KEY="<your-openai-api-key>"
 ```
 
 For the full local workflow, troubleshooting, and teardown steps, start with [`docs/deployment-k3d.md`](./docs/deployment-k3d.md).
+The local k3d bootstrap pins a Kubernetes 1.32-compatible k3s image by default; override it with `K3S_IMAGE=<image>` if you need a different supported version.
 
 ### Install to the homelab `k3s` target
 
