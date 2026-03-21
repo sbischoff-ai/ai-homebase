@@ -27,9 +27,7 @@ MATRIX = [
         },
         "expect_present": {
             ("Deployment", "platform-stack-openclaw"),
-            ("Deployment", "platform-stack-openhands"),
             ("Ingress", "platform-stack-openclaw"),
-            ("Ingress", "platform-stack-openhands"),
         },
     },
     {
@@ -42,7 +40,6 @@ MATRIX = [
         },
         "expect_present": {
             ("Ingress", "platform-stack-openclaw"),
-            ("Ingress", "platform-stack-openhands"),
             ("StatefulSet", "platform-stack-nextcloud"),
             ("Ingress", "platform-stack-nextcloud"),
             ("StatefulSet", "platform-stack-paperless-ngx"),
@@ -59,7 +56,6 @@ MATRIX = [
         },
         "expect_present": {
             ("Ingress", "platform-stack-openclaw"),
-            ("Ingress", "platform-stack-openhands"),
             ("Deployment", "platform-stack-infisical"),
             ("Ingress", "infisical-ingress"),
             ("StatefulSet", "platform-stack-nextcloud"),
@@ -171,7 +167,6 @@ def assert_k3d_default_ingress_classes() -> None:
     rendered = render_template(BASE_VALUES, K3D_VALUES)
     expected = {
         "platform-stack-openclaw": "openclaw.localtest.me",
-        "platform-stack-openhands": "openhands.localtest.me",
         "infisical-ingress": "infisical.localtest.me",
     }
     for name, host in expected.items():
@@ -202,7 +197,7 @@ def main() -> None:
         print(f"{case['name']}: asserted {len(case['expect_present'])} resource(s)")
 
     assert_k3d_default_ingress_classes()
-    print("k3d overlay: asserted nginx ingressClassName + expected hosts for OpenClaw/OpenHands/Infisical")
+    print("k3d overlay: asserted nginx ingressClassName + expected hosts for OpenClaw/Infisical")
 
 
 if __name__ == "__main__":

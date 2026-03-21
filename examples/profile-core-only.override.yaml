@@ -1,9 +1,6 @@
 openclaw:
   enabled: true
 
-openhands:
-  enabled: true
-
 nextcloud:
   enabled: false
 

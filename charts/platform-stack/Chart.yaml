@@ -9,10 +9,6 @@ dependencies:
     version: 0.1.0
     repository: file://../openclaw
     condition: openclaw.enabled
-  - name: openhands
-    version: 0.1.0
-    repository: file://../openhands
-    condition: openhands.enabled
   - name: nextcloud
     version: 0.1.0
     repository: file://../nextcloud

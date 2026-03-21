@@ -4,12 +4,6 @@
 global:
   storageClass: <default-storage-class>
 
-openhands:
-  persistence:
-    enabled: true
-    storageClass: <fast-storage-class>
-    size: 200Gi
-
 nextcloud:
   persistence:
     storageClass: <capacity-storage-class>

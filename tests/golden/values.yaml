@@ -23,50 +23,6 @@ metadata:
     app.kubernetes.io/name: openclaw
   name: platform-stack-openclaw
 ---
-apiVersion: v1
-data:
-  config.toml: '[core]
-
-    runtime = "kubernetes"
-
-
-    [kubernetes]
-
-    namespace = "ai-homebase"
-
-    ingress_domain = ""
-
-    pvc_storage_size = "2Gi"
-
-    pvc_storage_class = ""
-
-    resource_cpu_request = "1"
-
-    resource_memory_request = "1Gi"
-
-    resource_memory_limit = "2Gi"
-
-    image_pull_secret = ""
-
-    ingress_tls_secret = ""
-
-    node_selector_key = ""
-
-    node_selector_val = ""
-
-    tolerations_yaml = ""
-
-    privileged = false
-
-    '
-kind: ConfigMap
-metadata:
-  labels:
-    app.kubernetes.io/instance: platform-stack
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: openhands
-  name: platform-stack-openhands-config
----
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -435,103 +391,6 @@ spec:
           secretName: openclaw-remote-docker-ssh
       - name: remote-docker-ssh
 ---
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  labels:
-    app.kubernetes.io/instance: platform-stack
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: openhands
-  name: platform-stack-openhands
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app.kubernetes.io/instance: platform-stack
-      app.kubernetes.io/name: openhands
-  template:
-    metadata:
-      annotations:
-        checksum/config: dfd137068317f968edd8fde5242f6d94192defceeef76390eeb5ef535c5e121e
-      labels:
-        app.kubernetes.io/instance: platform-stack
-        app.kubernetes.io/name: openhands
-    spec:
-      containers:
-      - env:
-        - name: AGENT_SERVER_IMAGE_REPOSITORY
-          value: ghcr.io/openhands/agent-server
-        - name: AGENT_SERVER_IMAGE_TAG
-          value: 1.12.0-python
-        - name: QUEUE_ENABLED
-          value: 'false'
-        - name: QUEUE_PROVIDER
-          value: ''
-        - name: QUEUE_ENDPOINT
-          value: ''
-        - name: QUEUE_NAME
-          value: ''
-        - name: QUEUE_DLQ_NAME
-          value: ''
-        - name: WORKER_CONCURRENCY
-          value: '4'
-        image: ghcr.io/openhands/openhands:1.5.0
-        imagePullPolicy: IfNotPresent
-        livenessProbe:
-          failureThreshold: 6
-          initialDelaySeconds: 20
-          periodSeconds: 15
-          tcpSocket:
-            port: 3000
-          timeoutSeconds: 5
-        name: openhands
-        ports:
-        - containerPort: 3000
-          name: http
-          protocol: TCP
-        readinessProbe:
-          failureThreshold: 6
-          initialDelaySeconds: 15
-          periodSeconds: 15
-          tcpSocket:
-            port: 3000
-          timeoutSeconds: 5
-        resources:
-          limits:
-            cpu: 500m
-            memory: 512Mi
-          requests:
-            cpu: 100m
-            memory: 256Mi
-        securityContext:
-          allowPrivilegeEscalation: false
-          capabilities:
-            drop:
-            - ALL
-          readOnlyRootFilesystem: false
-          runAsGroup: 42420
-          runAsNonRoot: false
-          runAsUser: 0
-        startupProbe:
-          failureThreshold: 30
-          periodSeconds: 10
-          tcpSocket:
-            port: 3000
-          timeoutSeconds: 5
-        volumeMounts:
-        - mountPath: /app/config.toml
-          name: openhands-config
-          subPath: config.toml
-      securityContext:
-        fsGroup: 42420
-        supplementalGroups:
-        - 42420
-      serviceAccountName: platform-stack-openhands
-      volumes:
-      - configMap:
-          name: platform-stack-openhands-config
-        name: openhands-config
----
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -599,27 +458,6 @@ spec:
             name: platform-stack-openclaw
             port:
               number: 18789
-        path: /
-        pathType: Prefix
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  labels:
-    app.kubernetes.io/instance: platform-stack
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: openhands
-  name: platform-stack-openhands
-spec:
-  rules:
-  - host: openhands.homebase.local
-    http:
-      paths:
-      - backend:
-          service:
-            name: platform-stack-openhands
-            port:
-              number: 3000
         path: /
         pathType: Prefix
 ---
@@ -743,25 +581,6 @@ kind: Service
 metadata:
   labels:
     app.kubernetes.io/instance: platform-stack
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: openhands
-  name: platform-stack-openhands
-spec:
-  ports:
-  - name: http
-    port: 3000
-    protocol: TCP
-    targetPort: 3000
-  selector:
-    app.kubernetes.io/instance: platform-stack
-    app.kubernetes.io/name: openhands
-  type: ClusterIP
----
-apiVersion: v1
-kind: Service
-metadata:
-  labels:
-    app.kubernetes.io/instance: platform-stack
     app.kubernetes.io/name: sharedPostgresql
   name: platform-stack-shared-postgresql
 spec:
@@ -800,16 +619,6 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: openclaw
   name: platform-stack-openclaw
----
-apiVersion: v1
-automountServiceAccountToken: true
-kind: ServiceAccount
-metadata:
-  labels:
-    app.kubernetes.io/instance: platform-stack
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: openhands
-  name: platform-stack-openhands
 ---
 apiVersion: v1
 kind: ServiceAccount

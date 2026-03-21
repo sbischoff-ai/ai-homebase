@@ -3,7 +3,7 @@
   "type": "object",
   "title": "platform-stack values",
   "additionalProperties": true,
-  "required": ["global", "openclaw", "openhands"],
+  "required": ["global", "openclaw"],
   "properties": {
     "global": {
       "type": "object",
@@ -33,7 +33,6 @@
           "additionalProperties": { "$ref": "#/definitions/hostname" },
           "properties": {
             "openclaw": { "$ref": "#/definitions/hostname" },
-            "openhands": { "$ref": "#/definitions/hostname" },
             "nextcloud": { "$ref": "#/definitions/hostname" },
             "gitea": { "$ref": "#/definitions/hostname" },
             "paperlessNgx": { "$ref": "#/definitions/hostname" },
@@ -74,63 +73,6 @@
         "ingress": { "$ref": "#/definitions/ingressWithHosts" },
         "persistence": { "$ref": "#/definitions/persistence" },
         "secretRefs": { "$ref": "#/definitions/secretRefs" }
-      }
-    },
-    "openhands": {
-      "type": "object",
-      "required": ["enabled", "service", "ingress"],
-      "additionalProperties": true,
-      "properties": {
-        "enabled": { "type": "boolean", "default": true },
-        "existingSecret": {
-          "type": "string",
-          "default": "",
-          "description": "Optional Kubernetes Secret name injected as envFrom for OpenHands."
-        },
-        "service": {
-          "allOf": [
-            { "$ref": "#/definitions/service" },
-            {
-              "properties": {
-                "enabled": { "type": "boolean", "default": true }
-              }
-            }
-          ]
-        },
-        "ingress": { "$ref": "#/definitions/ingressWithHostName" },
-        "workspace": { "$ref": "#/definitions/persistence" },
-        "runtime": {
-          "type": "object",
-          "additionalProperties": true,
-          "properties": {
-            "mode": {
-              "type": "string",
-              "default": "kubernetes",
-              "enum": ["kubernetes"]
-            }
-          }
-        },
-        "kubernetes": {
-          "type": "object",
-          "additionalProperties": true,
-          "properties": {
-            "namespace": { "type": "string", "default": "ai-homebase" },
-            "ingress_domain": { "type": "string", "default": "" },
-            "pvc_storage_size": { "type": "string", "default": "2Gi" },
-            "pvc_storage_class": { "type": "string", "default": "" },
-            "resource_cpu_request": { "type": "string", "default": "1" },
-            "resource_memory_request": { "type": "string", "default": "1Gi" },
-            "resource_memory_limit": { "type": "string", "default": "2Gi" },
-            "image_pull_secret": { "type": "string", "default": "" },
-            "ingress_tls_secret": { "type": "string", "default": "" },
-            "node_selector_key": { "type": "string", "default": "" },
-            "node_selector_val": { "type": "string", "default": "" },
-            "tolerations_yaml": { "type": "string", "default": "" },
-            "privileged": { "type": "boolean", "default": false }
-          }
-        },
-        "secretRefs": { "$ref": "#/definitions/secretRefs" },
-        "secretEnv": { "$ref": "#/definitions/secretEnv" }
       }
     },
     "nextcloud": { "$ref": "#/definitions/optionalServiceToggle" },
@@ -209,20 +151,6 @@
         }
       }
     },
-    "ingressWithHostName": {
-      "type": "object",
-      "required": ["enabled", "hostName"],
-      "additionalProperties": true,
-      "properties": {
-        "enabled": { "type": "boolean", "default": false },
-        "hostName": {
-          "type": "string",
-          "default": "openhands.homebase.local",
-          "description": "Primary hostname for OpenHands ingress."
-        },
-        "ingressClassName": { "type": "string", "default": "" }
-      }
-    },
     "persistence": {
       "type": "object",
       "additionalProperties": true,
@@ -250,20 +178,6 @@
           "name": { "type": "string", "minLength": 1 },
           "key": { "type": "string", "minLength": 1 },
           "envVar": { "type": "string", "minLength": 1 }
-        },
-        "additionalProperties": true
-      }
-    },
-    "secretEnv": {
-      "type": "array",
-      "default": [],
-      "items": {
-        "type": "object",
-        "required": ["name", "secretName", "secretKey"],
-        "properties": {
-          "name": { "type": "string", "minLength": 1 },
-          "secretName": { "type": "string", "minLength": 1 },
-          "secretKey": { "type": "string", "minLength": 1 }
         },
         "additionalProperties": true
       }

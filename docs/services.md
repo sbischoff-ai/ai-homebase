@@ -9,7 +9,6 @@ Canonical baseline posture in this document refers to `charts/platform-stack/val
 | Service | Toggle | Baseline default | k3d posture | k3s posture | Ingress default | Persistence default | Secret requirements |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `openclaw` | `openclaw.enabled` | Enabled | Enabled for local smoke tests | Enabled for the productive homelab | Enabled in baseline; both overlays keep ingress on and switch to the `nginx` ingress class | Baseline PVC enabled (`10Gi`); `k3d` now keeps persistence enabled for local testing, and `k3s` grows it to `50Gi` on `local-path` | Requires `openclaw.existingSecret`; baseline expects `OPENCLAW_GATEWAY_TOKEN`, and `k3d` also maps `OPENAI_API_KEY`; remote Docker SSH Secret `openclaw-remote-docker-ssh` must provide `id_ed25519` and `known_hosts` |
-| `openhands` | `openhands.enabled` | Enabled | Enabled for local smoke tests | Enabled for the productive homelab | Enabled in baseline; both overlays keep ingress on and switch to the `nginx` ingress class | Baseline keeps the deprecated `workspace.*` path off; `k3d` keeps `openhands.persistence.enabled=false`; `k3s` enables a PVC (`100Gi`, `local-path`) for operator-facing persistence | No baseline Secret is required by the umbrella values; add environment-specific Secret references through overlays when integrating external providers |
 | `nextcloud` | `nextcloud.enabled` | Enabled | Disabled to keep local smoke tests light | Enabled for the productive homelab | Enabled in baseline; `k3s` keeps ingress on and moves it to the `nginx` ingress class | Baseline PVC enabled (`250Gi`); `k3d` disables the service and persistence; `k3s` keeps persistence on with `250Gi` on `local-path` | `existingSecret` is optional in baseline and empty by default; provide one in overlays when operator-managed app secrets are needed |
 | `gitea` | `gitea.enabled` | Disabled | Disabled | Enabled for the productive homelab | Subchart ingress is enabled when the service is enabled; baseline uses `internal-nginx`, and `k3s` switches it to `nginx` | Subchart PVC is enabled by default (`120Gi`); it is inactive until `gitea.enabled=true`, which only happens in `k3s` among supported overlays | `gitea.gitea.admin.existingSecret` is empty by default and should be set in overlays; database, session, cache, queue, and lock credentials are expected through environment-backed Secret values |
 | `paperless-ngx` | `paperlessNgx.enabled` | Disabled | Disabled | Enabled for the productive homelab | Baseline ingress is enabled when the service is enabled; `k3s` keeps ingress on and switches it to the `nginx` ingress class | Baseline enables all four PVCs (`data`, `media`, `consume`, `export`); `k3d` disables the service and each PVC; `k3s` enables the service with all four PVCs on `local-path` | `existingSecret` is optional in baseline and empty by default; provide Secret references in overlays for mail, OCR, or other runtime integrations |
@@ -29,17 +28,6 @@ Canonical baseline posture in this document refers to `charts/platform-stack/val
 - The copied SSH material is intentionally normalized to OpenSSH-safe permissions before the main container starts: the SSH directory is `0700`, `id_ed25519` is `0600`, and `known_hosts` remains readable at `0644`.
 - If OpenClaw is stuck in `Init:CrashLoopBackOff`, inspect the `remote-docker-ssh-permissions` init-container logs first; missing or empty `id_ed25519` / `known_hosts` entries in `remoteDocker.ssh.secretName`, any failure while locking down `/ssh-target` modes, or any failure to hand the prepared directory to UID/GID `1000` are supported failure modes with explicit stderr output.
 - The supported posture is an external Incus VM (`openclaw-sandbox`) as a single-purpose remote Docker appliance, while the VM remains outside Helm; chart values control only how the OpenClaw pod reaches it.
-
-### OpenHands
-
-- Agentic coding service that provides a user-facing UI/API.
-- The chart explicitly renders `runtime = "kubernetes"` plus an upstream `[kubernetes]` config block so the web/API pod stays lightweight while runtime pods handle session execution.
-- The service account is granted namespace-scoped RBAC to create and clean up runtime pods, services, ingresses, and PVCs in the configured runtime namespace.
-- The Kubernetes runtime currently assumes OpenHands itself is running inside the cluster.
-- Preferred operator-facing storage keys live under `openhands.persistence.*` (`enabled`, `existingClaim`, `size`, `storageClass`, `mountPath`, and `annotations`).
-- The umbrella chart still carries `openhands.workspace.*` defaults as a temporary compatibility layer for older overlays, but `workspace.*` is deprecated and should not be used in new overlays.
-- The shipped `values-k3d.yaml` overlay keeps `openhands.persistence.enabled=false`, while `values-k3s.yaml` enables `openhands.persistence` with a persistent PVC and explicit size/storage class defaults.
-- Keep extra operator-defined volume mounts away from `/app` because that shadows the image entrypoint; the chart's own single-file `config.toml` subPath mount is the managed exception.
 
 ### Nextcloud
 

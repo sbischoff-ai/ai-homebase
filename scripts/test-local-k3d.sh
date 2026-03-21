@@ -272,7 +272,6 @@ run_checked helm upgrade --install "$RELEASE_NAME" charts/platform-stack \
   "${VALUES_ARGS[@]}"
 
 wait_for_workload openclaw
-wait_for_workload openhands
 
 if [[ "$(is_openclaw_ingress_enabled)" == "true" ]]; then
   step "Checking openclaw ingress endpoint"
@@ -283,10 +282,6 @@ else
   warn "Skipping OpenClaw ingress endpoint check because openclaw.ingress.enabled=false in effective values"
 fi
 
-step "Checking openhands ingress endpoint"
-run_checked curl --silent --show-error --fail \
-  -H 'Host: openhands.localtest.me' \
-  http://127.0.0.1/
 
 echo "Local k3d smoke checks passed for release=${RELEASE_NAME} namespace=${NAMESPACE}"
 echo "Bootstrap log: ${BOOTSTRAP_LOG_FILE}"

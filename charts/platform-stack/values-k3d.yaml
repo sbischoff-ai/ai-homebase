@@ -5,7 +5,6 @@ global:
   domain: localtest.me
   hosts:
     openclaw: openclaw.localtest.me
-    openhands: openhands.localtest.me
     nextcloud: nextcloud.localtest.me
     gitea: gitea.vpn.homebase.internal
     paperlessNgx: paperless.localtest.me
@@ -49,22 +48,6 @@ openclaw:
         allowedOrigins:
           - https://openclaw.localtest.me
 
-openhands:
-  enabled: true
-  ingress:
-    enabled: true
-    hostName: openhands.localtest.me
-    ingressClassName: nginx
-    annotations: {}
-    tls: []
-  persistence:
-    enabled: false
-  kubernetes:
-    ingress_domain: openhands.localtest.me
-    pvc_storage_size: 2Gi
-    resource_cpu_request: "500m"
-    resource_memory_request: 1Gi
-    resource_memory_limit: 2Gi
 
 nextcloud:
   enabled: false

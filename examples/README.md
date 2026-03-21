@@ -5,22 +5,14 @@ All examples in this directory use placeholders only. Replace values like `<your
 ## Dummy secrets for all components
 
 ```bash
-kubectl --context <your-kube-context> -n <your-namespace> create secret generic openclaw-app-secrets \
-  --from-literal=OPENCLAW_GATEWAY_TOKEN=<dummy-openclaw-gateway-token>
+kubectl --context <your-kube-context> -n <your-namespace> create secret generic openclaw-app-secrets   --from-literal=OPENCLAW_GATEWAY_TOKEN=<dummy-openclaw-gateway-token>
 
-kubectl --context <your-kube-context> -n <your-namespace> create secret generic openhands-app-secrets \
-  --from-literal=LLM_API_KEY=<dummy-llm-api-key>
-
-kubectl --context <your-kube-context> -n <your-namespace> create secret generic openclaw-remote-docker-ssh \
-  --from-file=id_ed25519=<path-to-private-key> \
-  --from-file=known_hosts=<path-to-known-hosts>
+kubectl --context <your-kube-context> -n <your-namespace> create secret generic openclaw-remote-docker-ssh   --from-file=id_ed25519=<path-to-private-key>   --from-file=known_hosts=<path-to-known-hosts>
 ```
 
 `openclaw-remote-docker-ssh` is part of the standard OpenClaw deployment posture in this repo; every supported target needs an equivalent Secret even if you override the name in values. The chart requires the Secret referenced by `remoteDocker.ssh.secretName` to provide exactly two SSH data keys: non-empty `id_ed25519` and non-empty `known_hosts`.
 
 If an OpenClaw pod stalls in `Init:CrashLoopBackOff`, inspect the `remote-docker-ssh-permissions` init-container logs first to confirm those exact keys exist in the Secret and contain data.
-
-When you override OpenHands control-plane storage in example overlays, use `openhands.persistence.*`. The legacy `openhands.workspace.*` keys remain only as a temporary compatibility fallback for older overlays and should not be used in new files.
 
 ## Example overlay guide
 
@@ -28,7 +20,7 @@ These example files are layer-on-top overlays, not standalone configs: apply the
 
 - `examples/k3d.values.override.yaml`: Use this as an optional layer-on-top overlay after `values-k3d.yaml` when you need local `k3d`-specific hostnames, image, ingress, or temporary service adjustments.
 - `examples/k3s.values.override.yaml`: Use this as an optional layer-on-top overlay after `values-k3s.yaml` when you need homelab `k3s` hostnames, registry settings, or other environment-specific production overrides.
-- `examples/profile-core-only.override.yaml`: Use this as a layer-on-top profile overlay when you want only the core OpenClaw and OpenHands services enabled on top of an existing target stack.
+- `examples/profile-core-only.override.yaml`: Use this as a layer-on-top profile overlay when you want only the core OpenClaw service enabled on top of an existing target stack.
 - `examples/profile-content-services.override.yaml`: Use this as a layer-on-top profile overlay when you want to enable the optional content and collaboration services on top of an existing target stack.
 - `examples/openclaw.remote-docker.values.yaml`: Use this as a layer-on-top overlay when a concrete environment needs to override the standard OpenClaw remote Docker endpoint, SSH Secret, or sandbox image settings.
 
@@ -41,13 +33,7 @@ Order:
 3. `examples/k3d.values.override.yaml` (optional)
 
 ```bash
-./scripts/template.sh \
-  --release-name <your-release> \
-  --namespace <your-namespace> \
-  --kube-context <your-kube-context> \
-  --values-file charts/platform-stack/values.yaml \
-  --values-file charts/platform-stack/values-k3d.yaml \
-  --values-file examples/k3d.values.override.yaml
+./scripts/template.sh   --release-name <your-release>   --namespace <your-namespace>   --kube-context <your-kube-context>   --values-file charts/platform-stack/values.yaml   --values-file charts/platform-stack/values-k3d.yaml   --values-file examples/k3d.values.override.yaml
 ```
 
 ## k3s homelab override layering
@@ -59,13 +45,7 @@ Order:
 3. `examples/k3s.values.override.yaml` (optional)
 
 ```bash
-./scripts/template.sh \
-  --release-name <your-release> \
-  --namespace <your-namespace> \
-  --kube-context <your-kube-context> \
-  --values-file charts/platform-stack/values.yaml \
-  --values-file charts/platform-stack/values-k3s.yaml \
-  --values-file examples/k3s.values.override.yaml
+./scripts/template.sh   --release-name <your-release>   --namespace <your-namespace>   --kube-context <your-kube-context>   --values-file charts/platform-stack/values.yaml   --values-file charts/platform-stack/values-k3s.yaml   --values-file examples/k3s.values.override.yaml
 ```
 
 ## Remote Docker overlay
@@ -80,11 +60,5 @@ Order:
 Example layering:
 
 ```bash
-./scripts/template.sh \
-  --release-name <your-release> \
-  --namespace <your-namespace> \
-  --kube-context <your-kube-context> \
-  --values-file charts/platform-stack/values.yaml \
-  --values-file charts/platform-stack/values-k3d.yaml \
-  --values-file examples/openclaw.remote-docker.values.yaml
+./scripts/template.sh   --release-name <your-release>   --namespace <your-namespace>   --kube-context <your-kube-context>   --values-file charts/platform-stack/values.yaml   --values-file charts/platform-stack/values-k3d.yaml   --values-file examples/openclaw.remote-docker.values.yaml
 ```
