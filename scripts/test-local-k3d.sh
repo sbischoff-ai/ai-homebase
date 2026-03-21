@@ -74,7 +74,6 @@ for values_file in "${VALUES_FILES[@]}"; do
   VALUES_ARGS+=(--values "$values_file")
 done
 
-
 CURRENT_COMMAND=""
 
 run_checked() {
@@ -243,7 +242,8 @@ wait_for_workload() {
     --timeout=600s
 }
 
-is_openclaw_ingress_enabled() {
+effective_bool_value() {
+  local path="$1"
   helm get values "$RELEASE_NAME" \
     "${HELM_KUBECONFIG_ARGS[@]}" \
     "${HELM_CONTEXT_ARGS[@]}" \
@@ -253,10 +253,122 @@ is_openclaw_ingress_enabled() {
 import json
 import sys
 
-values = json.load(sys.stdin)
-enabled = values.get("openclaw", {}).get("ingress", {}).get("enabled", False)
-print("true" if enabled else "false")
-'
+path = sys.argv[1].split(".")
+value = json.load(sys.stdin)
+for key in path:
+    if not isinstance(value, dict):
+        value = False
+        break
+    value = value.get(key, False)
+print("true" if bool(value) else "false")
+' "$path"
+}
+
+is_openclaw_ingress_enabled() {
+  effective_bool_value "openclaw.ingress.enabled"
+}
+
+is_gitea_enabled() {
+  effective_bool_value "gitea.enabled"
+}
+
+manifest_named_resources() {
+  local kind_filter="$1"
+  helm get manifest "$RELEASE_NAME" \
+    "${HELM_KUBECONFIG_ARGS[@]}" \
+    "${HELM_CONTEXT_ARGS[@]}" \
+    --namespace "$NAMESPACE" | python3 -c '
+import re
+import sys
+
+kind_filter = sys.argv[1]
+release_name = sys.argv[2]
+text = sys.stdin.read()
+for doc in [doc for doc in re.split(r"\n---\n", text) if doc.strip()]:
+    kind_match = re.search(r"^kind:\s*(.+)$", doc, re.MULTILINE)
+    name_match = re.search(r"^  name:\s*(.+)$", doc, re.MULTILINE)
+    if kind_match is None or name_match is None:
+        continue
+    if kind_match.group(1).strip() != kind_filter:
+        continue
+    labels_match = re.search(
+        r"^  labels:\n(?P<body>(?:^    .*\n?)*)",
+        doc,
+        re.MULTILINE,
+    )
+    labels = labels_match.group("body") if labels_match else ""
+    if f"app.kubernetes.io/instance: {release_name}" not in labels:
+        continue
+    if "app.kubernetes.io/name: gitea" not in labels:
+        continue
+    print(name_match.group(1).strip().strip("\""))
+' "$kind_filter" "$RELEASE_NAME"
+}
+
+wait_for_named_resource() {
+  local kind="$1"
+  local resource_name="$2"
+  local wait_seconds="${3:-600}"
+  local elapsed=0
+
+  step "Waiting for ${kind,,}/${resource_name} to exist"
+  while (( elapsed < wait_seconds )); do
+    if kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" get "${kind,,}/${resource_name}" >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 2
+    elapsed=$((elapsed + 2))
+  done
+
+  fail "Timed out waiting for ${kind,,}/${resource_name} to exist in namespace=${NAMESPACE}"
+  return 1
+}
+
+wait_for_gitea_workloads() {
+  local workload_entries=()
+  local kind
+  local workload_name
+
+  while IFS= read -r workload_name; do
+    [[ -n "$workload_name" ]] && workload_entries+=("StatefulSet:${workload_name}")
+  done < <(manifest_named_resources StatefulSet)
+
+  while IFS= read -r workload_name; do
+    [[ -n "$workload_name" ]] && workload_entries+=("Deployment:${workload_name}")
+  done < <(manifest_named_resources Deployment)
+
+  if [[ ${#workload_entries[@]} -eq 0 ]]; then
+    fail "Gitea is enabled, but no labeled Deployment/StatefulSet was rendered for release=${RELEASE_NAME}"
+    return 1
+  fi
+
+  for entry in "${workload_entries[@]}"; do
+    kind="${entry%%:*}"
+    workload_name="${entry#*:}"
+    wait_for_named_resource "$kind" "$workload_name"
+    step "Waiting for ${kind,,}/${workload_name} rollout"
+    run_checked kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" rollout status "${kind,,}/${workload_name}" --timeout=600s
+  done
+}
+
+verify_gitea_services() {
+  local service_names=()
+  local service_name
+
+  while IFS= read -r service_name; do
+    [[ -n "$service_name" ]] && service_names+=("$service_name")
+  done < <(manifest_named_resources Service)
+
+  if [[ ${#service_names[@]} -eq 0 ]]; then
+    fail "Gitea is enabled, but no labeled Service was rendered for release=${RELEASE_NAME}"
+    return 1
+  fi
+
+  for service_name in "${service_names[@]}"; do
+    wait_for_named_resource Service "$service_name"
+  done
+
+  ok "Validated ${#service_names[@]} Gitea Service resource(s)"
 }
 
 step "Updating Helm dependencies"
@@ -273,6 +385,13 @@ run_checked helm upgrade --install "$RELEASE_NAME" charts/platform-stack \
 
 wait_for_workload openclaw
 
+if [[ "$(is_gitea_enabled)" == "true" ]]; then
+  wait_for_gitea_workloads
+  verify_gitea_services
+else
+  warn "Skipping Gitea workload/service checks because gitea.enabled=false in effective values"
+fi
+
 if [[ "$(is_openclaw_ingress_enabled)" == "true" ]]; then
   step "Checking openclaw ingress endpoint"
   run_checked curl --silent --show-error --fail \
@@ -281,7 +400,6 @@ if [[ "$(is_openclaw_ingress_enabled)" == "true" ]]; then
 else
   warn "Skipping OpenClaw ingress endpoint check because openclaw.ingress.enabled=false in effective values"
 fi
-
 
 echo "Local k3d smoke checks passed for release=${RELEASE_NAME} namespace=${NAMESPACE}"
 echo "Bootstrap log: ${BOOTSTRAP_LOG_FILE}"
