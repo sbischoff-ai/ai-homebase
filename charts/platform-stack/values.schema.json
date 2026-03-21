@@ -10,6 +10,7 @@
       "additionalProperties": true,
       "properties": {
         "enabled": { "type": "boolean", "default": true },
+        "resourcesEnabled": { "type": "boolean", "default": false },
         "resourceNamespace": { "type": "string", "default": "" },
         "internalCA": {
           "type": "object",
