@@ -15,6 +15,7 @@ INCUS_CONNECTION_INFO_PATH="${INCUS_CONNECTION_INFO_PATH:-}"
 OVERRIDE_VALUES_FILE=""
 REMOTE_DOCKER_HOST_EXPLICIT=0
 REMOTE_DOCKER_PORT_EXPLICIT=0
+OPENCLAW_GATEWAY_TOKEN_VALUE="${OPENCLAW_GATEWAY_TOKEN:-local-dev-token}"
 
 usage() {
   cat <<USAGE
@@ -134,10 +135,11 @@ rm -f "$OVERRIDE_VALUES_FILE"
 echo
 echo "Local bootstrap complete."
 echo "Summary:"
-echo "  Kubeconfig: ${KUBECONFIG}"
+echo "  Kubeconfig path: ${KUBECONFIG}"
 echo "  Incus VM: ${INCUS_VM_NAME}"
 echo "  Remote Docker endpoint: ssh://docker-remote@${REMOTE_DOCKER_HOST}:${REMOTE_DOCKER_PORT}"
 echo "  Remote Docker SSH secret: openclaw-remote-docker-ssh"
+echo "  OpenClaw gateway token: ${OPENCLAW_GATEWAY_TOKEN_VALUE}"
 echo "  OpenClaw URL: http://openclaw.localtest.me"
 echo "  Infisical URL: http://infisical.localtest.me"
 echo "  Bootstrap log: ${BOOTSTRAP_LOG_FILE}"

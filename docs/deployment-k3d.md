@@ -57,7 +57,38 @@ Expected local browser endpoints served by the k3d `ingress-nginx` controller:
 - `http://infisical.localtest.me`
 - `http://openclaw.localtest.me`
 
-## 4) Teardown
+After a successful bootstrap, the summary output prints:
+
+- the kubeconfig path used for the cluster
+- the OpenClaw gateway token that was written into `openclaw-app-secrets`
+- the local service URLs
+
+## 4) First-use OpenClaw token and device pairing
+
+When you first open OpenClaw in a browser:
+
+1. Browse to `http://openclaw.localtest.me`.
+2. Paste the **OpenClaw gateway token** from the bootstrap summary into the Control UI settings if prompted.
+3. If OpenClaw shows **pairing required**, keep that browser tab open and approve the device from Kubernetes with `kubectl`.
+
+List device requests and currently paired devices:
+
+```bash
+kubectl --kubeconfig ~/.kube/k3d-ai-homebase-dev.yaml -n ai-homebase exec -it deploy/platform-stack-openclaw -- openclaw devices list
+```
+
+Approve the pending request:
+
+```bash
+kubectl --kubeconfig ~/.kube/k3d-ai-homebase-dev.yaml -n ai-homebase exec -it deploy/platform-stack-openclaw -- openclaw devices approve <requestId>
+```
+
+Notes:
+
+- Replace the kubeconfig path if you bootstrapped with a different `--cluster-name` or `--kubeconfig`.
+- If `devices list` shows only paired devices and no pending request, clear browser site data for `openclaw.localtest.me`, reopen the printed OpenClaw URL, and then re-run `devices list` while the pairing screen is still open.
+
+## 5) Teardown
 
 Remove both the local cluster and the Incus VM together:
 
@@ -65,7 +96,7 @@ Remove both the local cluster and the Incus VM together:
 ./scripts/k3d-local-teardown.sh --cluster-name ai-homebase-dev --vm-name openclaw-sandbox
 ```
 
-## 5) Local ingress host access
+## 6) Local ingress host access
 
 `*.localtest.me` usually resolves to `127.0.0.1` automatically.
 If it does not, add entries such as:
@@ -74,7 +105,7 @@ If it does not, add entries such as:
 127.0.0.1 infisical.localtest.me openclaw.localtest.me
 ```
 
-## 6) When to override defaults
+## 7) When to override defaults
 
 Use the default `values.yaml + values-k3d.yaml` layering unless you have a concrete local need such as:
 
