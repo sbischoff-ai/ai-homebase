@@ -89,7 +89,6 @@ openclaw:
       workspace: ~/.openclaw/workspace
       sandbox:
         mode: non-main
-        backend: docker
         scope: agent
         docker:
           image: openclaw-sandbox:bookworm-slim

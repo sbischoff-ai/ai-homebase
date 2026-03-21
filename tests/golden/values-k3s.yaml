@@ -5,16 +5,16 @@ data:
     \    \"token\": \"${OPENCLAW_GATEWAY_TOKEN}\"\n    },\n    \"controlUi\": {\n\
     \      \"enabled\": true,\n      \"allowedOrigins\": [\"http://openclaw.vpn.homebase.internal\"\
     ]\n    }\n  },\n  \"agents\": {\n    \"defaults\": {\n      \"workspace\": \"\
-    ~/.openclaw/workspace\",\n      \"sandbox\": {\"backend\":\"docker\",\"browser\"\
-    :{\"cdpPort\":9222,\"cdpSourceRange\":\"\",\"enableNoVnc\":true,\"enabled\":true,\"\
-    headless\":false,\"image\":\"openclaw-sandbox-browser:bookworm-slim\",\"network\"\
-    :\"bridge\",\"noVncPort\":6080,\"vncPort\":5900},\"docker\":{\"capDrop\":[\"ALL\"\
-    ],\"cpus\":1,\"image\":\"openclaw-sandbox:bookworm-slim\",\"memory\":\"1g\",\"\
-    memorySwap\":\"2g\",\"network\":\"bridge\",\"pidsLimit\":256,\"readOnlyRoot\"\
-    :true,\"tmpfs\":[\"/tmp\",\"/var/tmp\",\"/run\"],\"user\":\"1000:1000\",\"workdir\"\
-    :\"/workspace\"},\"mode\":\"non-main\",\"scope\":\"agent\"}\n    },\n    \"list\"\
-    : [{\"id\":\"default\",\"name\":\"OpenClaw Assistant\",\"workspace\":\"~/.openclaw/workspace\"\
-    }]\n  },\n  \"plugins\": {\"entries\":{}}\n}\n"
+    ~/.openclaw/workspace\",\n      \"sandbox\": {\"browser\":{\"cdpPort\":9222,\"\
+    cdpSourceRange\":\"\",\"enableNoVnc\":true,\"enabled\":true,\"headless\":false,\"\
+    image\":\"openclaw-sandbox-browser:bookworm-slim\",\"network\":\"bridge\",\"noVncPort\"\
+    :6080,\"vncPort\":5900},\"docker\":{\"capDrop\":[\"ALL\"],\"cpus\":1,\"image\"\
+    :\"openclaw-sandbox:bookworm-slim\",\"memory\":\"1g\",\"memorySwap\":\"2g\",\"\
+    network\":\"bridge\",\"pidsLimit\":256,\"readOnlyRoot\":true,\"tmpfs\":[\"/tmp\"\
+    ,\"/var/tmp\",\"/run\"],\"user\":\"1000:1000\",\"workdir\":\"/workspace\"},\"\
+    mode\":\"non-main\",\"scope\":\"agent\"}\n    },\n    \"list\": [{\"id\":\"default\"\
+    ,\"name\":\"OpenClaw Assistant\",\"workspace\":\"~/.openclaw/workspace\"}]\n \
+    \ },\n  \"plugins\": {\"entries\":{}}\n}\n"
 kind: ConfigMap
 metadata:
   labels:
