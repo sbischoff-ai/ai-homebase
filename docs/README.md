@@ -27,6 +27,10 @@ Use this page as the full documentation map for `ai-homebase`, organized by oper
 - [`docs/runbook-homelab.md`](./runbook-homelab.md): Read this after install when you need the k3s homelab validation, upgrade, and health-check workflow.
 - [`docs/commands.md`](./commands.md): Read this when you want the canonical lint, render, install, CI, and helper commands in one place during day-2 operations.
 
+## Examples
+
+- [`examples/README.md`](../examples/README.md): Read this when you need real layer-on-top overlay patterns for supported targets, service profiles, and remote Docker customization.
+
 ## Reference
 
 - [`docs/architecture.md`](./architecture.md): Read this when you need the platform layout, supported targets, and trust-boundary overview as a reference.

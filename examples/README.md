@@ -22,6 +22,16 @@ If an OpenClaw pod stalls in `Init:CrashLoopBackOff`, inspect the `remote-docker
 
 When you override OpenHands control-plane storage in example overlays, use `openhands.persistence.*`. The legacy `openhands.workspace.*` keys remain only as a temporary compatibility fallback for older overlays and should not be used in new files.
 
+## Example overlay guide
+
+These example files are layer-on-top overlays, not standalone configs: apply them only after `charts/platform-stack/values.yaml` and the appropriate supported target overlay for your environment.
+
+- `examples/k3d.values.override.yaml`: Use this as an optional layer-on-top overlay after `values-k3d.yaml` when you need local `k3d`-specific hostnames, image, ingress, or temporary service adjustments.
+- `examples/k3s.values.override.yaml`: Use this as an optional layer-on-top overlay after `values-k3s.yaml` when you need homelab `k3s` hostnames, registry settings, or other environment-specific production overrides.
+- `examples/profile-core-only.override.yaml`: Use this as a layer-on-top profile overlay when you want only the core OpenClaw and OpenHands services enabled on top of an existing target stack.
+- `examples/profile-content-services.override.yaml`: Use this as a layer-on-top profile overlay when you want to enable the optional content and collaboration services on top of an existing target stack.
+- `examples/openclaw.remote-docker.values.yaml`: Use this as a layer-on-top overlay when a concrete environment needs to override the standard OpenClaw remote Docker endpoint, SSH Secret, or sandbox image settings.
+
 ## k3d local override layering
 
 Order:

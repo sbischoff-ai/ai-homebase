@@ -13,6 +13,7 @@ Use the root README as the orientation page, then move into the deployment entry
 - [Understand configuration and values layering](./docs/configuration.md)
 - [Review service toggles and contracts](./docs/services.md)
 - [See operator commands](./docs/commands.md)
+- [Use example layer-on-top overlays](./examples/README.md)
 
 ## Minimum bootstrap commands
 
@@ -29,4 +30,4 @@ Homelab `k3s` bootstrap:
 ./scripts/install.sh --profile k3s
 ```
 
-For the full command catalog, including dependency refresh, lint, render, CI, and helper scripts, see [`docs/commands.md`](./docs/commands.md).
+For the full command catalog, including dependency refresh, lint, render, CI, and helper scripts, see [`docs/commands.md`](./docs/commands.md). For real layer-on-top overlay patterns, see [`examples/README.md`](./examples/README.md).
