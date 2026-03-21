@@ -8,6 +8,12 @@ RELEASE_NAME="${RELEASE_NAME:-platform-stack}"
 KUBECONFIG_PATH="${KUBECONFIG_PATH:-${KUBECONFIG:-}}"
 OPENCLAW_GATEWAY_TOKEN="${OPENCLAW_GATEWAY_TOKEN:-local-dev-token}"
 OPENAI_API_KEY="${OPENAI_API_KEY:-}"
+ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"
+BRAVE_API_KEY="${BRAVE_API_KEY:-}"
+PERPLEXITY_API_KEY="${PERPLEXITY_API_KEY:-}"
+GEMINI_API_KEY="${GEMINI_API_KEY:-}"
+XAI_API_KEY="${XAI_API_KEY:-}"
+MOONSHOT_API_KEY="${MOONSHOT_API_KEY:-}"
 REMOTE_DOCKER_SECRET_NAME="${REMOTE_DOCKER_SECRET_NAME:-openclaw-remote-docker-ssh}"
 REMOTE_DOCKER_HOST="${REMOTE_DOCKER_HOST:-host.k3d.internal}"
 REMOTE_DOCKER_PORT="${REMOTE_DOCKER_PORT:-2222}"
@@ -16,6 +22,15 @@ POSTGRES_ADMIN_PASSWORD="${POSTGRES_ADMIN_PASSWORD:-postgres-local-dev}"
 REDIS_PASSWORD="${REDIS_PASSWORD:-redis-local-dev}"
 INFISICAL_AUTH_SECRET="${INFISICAL_AUTH_SECRET:-}"
 INFISICAL_ENCRYPTION_KEY="${INFISICAL_ENCRYPTION_KEY:-}"
+OPENCLAW_PROVIDER_ENV_VARS=(
+  OPENAI_API_KEY
+  ANTHROPIC_API_KEY
+  BRAVE_API_KEY
+  PERPLEXITY_API_KEY
+  GEMINI_API_KEY
+  XAI_API_KEY
+  MOONSHOT_API_KEY
+)
 
 usage() {
   cat <<USAGE
@@ -32,7 +47,7 @@ Options:
   --remote-docker-host <host>    Hostname OpenClaw should use for the SSH-backed Docker endpoint (default: ${REMOTE_DOCKER_HOST})
   --remote-docker-port <port>    SSH port for the remote Docker endpoint (default: ${REMOTE_DOCKER_PORT})
   --remote-docker-key <path>     Private key path generated for the Incus sandbox VM (default: ${REMOTE_DOCKER_KEY_PATH})
-  OPENAI_API_KEY env var         Required OpenAI API key for OpenClaw local bootstrap secret
+  Provider env vars              At least one supported OpenClaw key is required: OPENAI_API_KEY, ANTHROPIC_API_KEY, BRAVE_API_KEY, PERPLEXITY_API_KEY, GEMINI_API_KEY, XAI_API_KEY, or MOONSHOT_API_KEY
   --postgres-admin-password <v>  shared PostgreSQL admin password (default: generated local value)
   --redis-password <v>           shared Redis password (default: generated local value)
   --verbose                      Stream full command output
@@ -68,8 +83,16 @@ for cmd in kubectl openssl ssh-keyscan; do
   fi
 done
 
-if [[ -z "$OPENAI_API_KEY" ]]; then
-  fail 'OPENAI_API_KEY is required. Export it before running this script (for example: export OPENAI_API_KEY="sk-...").'
+has_openclaw_provider_key=0
+for env_var in "${OPENCLAW_PROVIDER_ENV_VARS[@]}"; do
+  if [[ -n "${!env_var:-}" ]]; then
+    has_openclaw_provider_key=1
+    break
+  fi
+done
+
+if [[ "$has_openclaw_provider_key" -eq 0 ]]; then
+  fail 'At least one supported OpenClaw provider/search key is required. Export one of OPENAI_API_KEY, ANTHROPIC_API_KEY, BRAVE_API_KEY, PERPLEXITY_API_KEY, GEMINI_API_KEY, XAI_API_KEY, or MOONSHOT_API_KEY before running this script.'
   exit 1
 fi
 
@@ -186,9 +209,16 @@ create_and_apply_secret shared-redis-auth \
 create_and_apply_secret shared-postgresql-initdb \
   --from-literal=00_bootstrap.sql="-- reserved for local bootstrap init scripts"
 
+OPENCLAW_SECRET_ARGS=(
+  --from-literal=OPENCLAW_GATEWAY_TOKEN="$OPENCLAW_GATEWAY_TOKEN"
+)
+for env_var in "${OPENCLAW_PROVIDER_ENV_VARS[@]}"; do
+  if [[ -n "${!env_var:-}" ]]; then
+    OPENCLAW_SECRET_ARGS+=(--from-literal="${env_var}=${!env_var}")
+  fi
+done
 create_and_apply_secret openclaw-app-secrets \
-  --from-literal=OPENCLAW_GATEWAY_TOKEN="$OPENCLAW_GATEWAY_TOKEN" \
-  --from-literal=OPENAI_API_KEY="$OPENAI_API_KEY"
+  "${OPENCLAW_SECRET_ARGS[@]}"
 
 create_remote_docker_secret \
   "$REMOTE_DOCKER_SECRET_NAME" \

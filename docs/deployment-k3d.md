@@ -6,6 +6,8 @@ Use this guide when you want to validate the supported local `k3d` target togeth
 
 ```bash
 export OPENAI_API_KEY="<your-openai-api-key>"
+# or export ANTHROPIC_API_KEY / GEMINI_API_KEY / XAI_API_KEY / MOONSHOT_API_KEY
+# optionally add BRAVE_API_KEY / PERPLEXITY_API_KEY for built-in web search
 ./scripts/k3d-local-bootstrap.sh --cluster-name ai-homebase-dev
 ```
 
@@ -14,7 +16,7 @@ This workflow:
 - Creates or reuses a local `k3d` cluster.
 - Pins the local cluster to a Kubernetes 1.32-compatible k3s image by default instead of relying on the `k3d` binary's built-in default.
 - Boots the Incus-backed `openclaw-sandbox` VM used by the standard remote Docker posture.
-- Generates the required Kubernetes Secrets.
+- Generates the required Kubernetes Secrets from any exported supported OpenClaw provider/search keys (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `BRAVE_API_KEY`, `PERPLEXITY_API_KEY`, `GEMINI_API_KEY`, `XAI_API_KEY`, `MOONSHOT_API_KEY`).
 - Deploys `platform-stack` with `charts/platform-stack/values.yaml` and `charts/platform-stack/values-k3d.yaml`.
 - Runs the local smoke checks.
 
@@ -61,6 +63,7 @@ After a successful bootstrap, the summary output prints:
 
 - the kubeconfig path used for the cluster
 - the OpenClaw gateway token that was written into `openclaw-app-secrets`
+- the auto-selected default OpenClaw model when a model-provider key was exported
 - the local service URLs
 
 ## 4) First-use OpenClaw token and device pairing

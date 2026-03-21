@@ -11,6 +11,8 @@ Use this path for smoke tests and local iteration.
 
 ```bash
 export OPENAI_API_KEY="<your-openai-api-key>"
+# or ANTHROPIC_API_KEY / GEMINI_API_KEY / XAI_API_KEY / MOONSHOT_API_KEY
+# optionally add BRAVE_API_KEY / PERPLEXITY_API_KEY for built-in web search
 ./scripts/k3d-local-bootstrap.sh --cluster-name ai-homebase-dev
 ```
 

@@ -5,15 +5,15 @@ data:
     \    \"token\": \"${OPENCLAW_GATEWAY_TOKEN}\"\n    },\n    \"controlUi\": {\n\
     \      \"enabled\": true,\n      \"allowedOrigins\": [\"https://openclaw.homebase.local\"\
     ]\n    },\n    \"trustedProxies\": []\n  },\n  \"agents\": {\n    \"defaults\"\
-    : {\n      \"workspace\": \"~/.openclaw/workspace\",\n      \"sandbox\": {\"browser\"\
-    :{\"cdpPort\":9222,\"cdpSourceRange\":\"\",\"enableNoVnc\":true,\"enabled\":true,\"\
-    headless\":false,\"image\":\"openclaw-sandbox-browser:bookworm-slim\",\"network\"\
-    :\"bridge\",\"noVncPort\":6080,\"vncPort\":5900},\"docker\":{\"capDrop\":[\"ALL\"\
-    ],\"cpus\":1,\"image\":\"openclaw-sandbox:bookworm-slim\",\"memory\":\"1g\",\"\
-    memorySwap\":\"2g\",\"network\":\"bridge\",\"pidsLimit\":256,\"readOnlyRoot\"\
+    : {\n      \"workspace\": \"/home/node/.openclaw/workspace\",\n      \"sandbox\"\
+    : {\"browser\":{\"cdpPort\":9222,\"cdpSourceRange\":\"\",\"enableNoVnc\":true,\"\
+    enabled\":true,\"headless\":false,\"image\":\"openclaw-sandbox-browser:bookworm-slim\"\
+    ,\"network\":\"bridge\",\"noVncPort\":6080,\"vncPort\":5900},\"docker\":{\"capDrop\"\
+    :[\"ALL\"],\"cpus\":1,\"image\":\"openclaw-sandbox:bookworm-slim\",\"memory\"\
+    :\"1g\",\"memorySwap\":\"2g\",\"network\":\"bridge\",\"pidsLimit\":256,\"readOnlyRoot\"\
     :true,\"tmpfs\":[\"/tmp\",\"/var/tmp\",\"/run\"],\"user\":\"1000:1000\",\"workdir\"\
     :\"/workspace\"},\"mode\":\"non-main\",\"scope\":\"agent\"}\n    },\n    \"list\"\
-    : [{\"id\":\"default\",\"name\":\"OpenClaw Assistant\",\"workspace\":\"~/.openclaw/workspace\"\
+    : [{\"id\":\"default\",\"name\":\"OpenClaw Assistant\",\"workspace\":\"/home/node/.openclaw/workspace\"\
     }]\n  },\n  \"plugins\": {\"entries\":{}}\n}\n"
 kind: ConfigMap
 metadata:
@@ -245,7 +245,7 @@ spec:
         - name: OPENCLAW_STATE_DIR
           value: /home/node/.openclaw
         - name: OPENCLAW_CONFIG_PATH
-          value: /etc/openclaw/openclaw.json
+          value: /home/node/.openclaw/openclaw.json
         - name: OPENCLAW_SANDBOX
           value: '1'
         - name: DOCKER_HOST
@@ -309,14 +309,49 @@ spec:
           name: tmp
         - mountPath: /home/node/.openclaw
           name: data
-        - mountPath: /etc/openclaw/openclaw.json
-          name: config
-          readOnly: true
-          subPath: openclaw.json
         - mountPath: /home/node/.ssh
           name: remote-docker-ssh
           readOnly: true
       initContainers:
+      - command:
+        - /bin/sh
+        - -c
+        - "set -eu\ntarget_dir=\"/config-target-root\"\ntarget_file=\"${target_dir}/openclaw.json\"\
+          \nmkdir -p \"${target_dir}\"\nif [ ! -s /config-source/openclaw.json ];\
+          \ then\n  echo >&2 \"Rendered ConfigMap file /config-source/openclaw.json\
+          \ is missing or empty; verify the openclaw ConfigMap rendered correctly\
+          \ before deployment.\"\n  exit 1\nfi\nif [ -s \"${target_file}\" ]; then\n\
+          \  echo \"Preserving existing OpenClaw config at ${target_file}.\"\n  exit\
+          \ 0\nfi\ncp -f /config-source/openclaw.json \"${target_file}\" || {\n  echo\
+          \ >&2 \"Failed to bootstrap ${target_file} from /config-source/openclaw.json;\
+          \ verify the writable config target volume is mounted and accessible to\
+          \ the init container.\"\n  exit 1\n}\nchmod 0755 \"${target_dir}\" || {\n\
+          \  echo >&2 \"Failed to set mode 0755 on ${target_dir} before handing it\
+          \ to the main container.\"\n  exit 1\n}\nchmod 0644 \"${target_file}\" ||\
+          \ {\n  echo >&2 \"Failed to set mode 0644 on ${target_file} after bootstrapping\
+          \ the rendered config.\"\n  exit 1\n}\nchown -R 1000:1000 \"${target_dir}\"\
+          \ || {\n  echo >&2 \"Failed to hand ${target_dir} to UID/GID 1000 after\
+          \ bootstrapping the rendered config.\"\n  exit 1\n}\n"
+        image: ghcr.io/openclaw/openclaw:2026.3.13-1
+        imagePullPolicy: IfNotPresent
+        name: config-permissions
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            add:
+            - CHOWN
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 0
+          runAsNonRoot: false
+          runAsUser: 0
+        volumeMounts:
+        - mountPath: /config-source
+          name: config-source
+          readOnly: true
+        - mountPath: /config-target-root
+          name: data
       - command:
         - /bin/sh
         - -c
@@ -385,7 +420,7 @@ spec:
           - key: openclaw.json
             path: openclaw.json
           name: platform-stack-openclaw
-        name: config
+        name: config-source
       - name: remote-docker-ssh-secret
         secret:
           secretName: openclaw-remote-docker-ssh

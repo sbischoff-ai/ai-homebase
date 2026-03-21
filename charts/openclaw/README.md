@@ -7,7 +7,7 @@ This chart deploys OpenClaw as a **single trusted-boundary, long-running gateway
 - **One replica** (`replicaCount: 1`) because the gateway owns mutable state.
 - **Durable state** (`persistence.enabled: true`) mounted at `/home/node/.openclaw` and exported as `OPENCLAW_STATE_DIR`.
 - **Writable runtime tempdir** mounted at `/tmp` via `emptyDir` (`medium: Memory`) so non-root UID `1000` can always create OpenClaw startup temp paths (for example `/tmp/openclaw-1000`) even when the root filesystem is read-only.
-- A rendered `openclaw.json` from chart values, used only to bootstrap the persistent config file at `/home/node/.openclaw/openclaw.json` on first start. After that, UI-driven settings changes stay on the PVC across pod restarts and redeploys instead of being overwritten from the ConfigMap.
+- A rendered `openclaw.json` from chart values, used only to bootstrap the persistent config file at `/home/node/.openclaw/openclaw.json` on first start. After that, UI-driven settings changes stay on the PVC across pod restarts and redeploys instead of being overwritten from the ConfigMap. The shipped workspace path is the absolute `/home/node/.openclaw/workspace` to stay inside the PVC without duplicating `.openclaw` in the resolved path.
 - The container explicitly starts the gateway in the foreground (`node openclaw.mjs gateway --allow-unconfigured`) to avoid container runtime startup flows that assume a user-level service manager (for example `systemctl --user`).
 - Gateway runtime env is pinned for Kubernetes (`OPENCLAW_GATEWAY_PORT`, `OPENCLAW_GATEWAY_BIND=0.0.0.0`, `OPENCLAW_HOME`, `OPENCLAW_STATE_DIR`, `OPENCLAW_CONFIG_PATH`) so bind/port/state paths are explicit inside the container.
 - Gateway defaults for remote access:
@@ -24,11 +24,9 @@ This chart deploys OpenClaw as a **single trusted-boundary, long-running gateway
 You must provide a Kubernetes Secret that includes:
 
 - `OPENCLAW_GATEWAY_TOKEN` (**mandatory**) for gateway authentication.
-- At least one model provider key for assistant responses:
-  - `OPENAI_API_KEY`, or
-  - `ANTHROPIC_API_KEY`.
+- At least one model provider key for assistant responses, for example `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `XAI_API_KEY`, or `MOONSHOT_API_KEY`.
 
-Without a model provider key, the UI can load but the assistant will not produce responses.
+Search-only keys such as `BRAVE_API_KEY` and `PERPLEXITY_API_KEY` enable built-in web search but do not by themselves make chat replies work.
 
 If `openclaw.gateway.auth.mode=token`, Helm rendering fails unless `existingSecret` and `secretKeys.gatewayToken` are configured.
 
@@ -36,9 +34,9 @@ If `openclaw.gateway.auth.mode=token`, Helm rendering fails unless `existingSecr
 
 Optional keys for additional providers and web-search tooling:
 
-- `BRAVE_API_KEY`
+- `BRAVE_API_KEY` (preferred; `BRAVE_SEARCH_API_KEY` remains as a legacy alias)
 - `PERPLEXITY_API_KEY`
-- `GEMINI_API_KEY`
+- `GEMINI_API_KEY` (preferred; `GOOGLE_API_KEY` remains as a legacy alias)
 - `XAI_API_KEY`
 - `KIMI_API_KEY` / `MOONSHOT_API_KEY`
 - `TAVILY_API_KEY`

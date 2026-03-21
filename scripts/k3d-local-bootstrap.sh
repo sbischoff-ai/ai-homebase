@@ -16,6 +16,29 @@ OVERRIDE_VALUES_FILE=""
 REMOTE_DOCKER_HOST_EXPLICIT=0
 REMOTE_DOCKER_PORT_EXPLICIT=0
 OPENCLAW_GATEWAY_TOKEN_VALUE="${OPENCLAW_GATEWAY_TOKEN:-local-dev-token}"
+OPENCLAW_PROVIDER_ENV_VARS=(
+  OPENAI_API_KEY
+  ANTHROPIC_API_KEY
+  BRAVE_API_KEY
+  PERPLEXITY_API_KEY
+  GEMINI_API_KEY
+  XAI_API_KEY
+  MOONSHOT_API_KEY
+)
+OPENCLAW_MODEL_PRIORITY=(
+  OPENAI_API_KEY
+  ANTHROPIC_API_KEY
+  GEMINI_API_KEY
+  XAI_API_KEY
+  MOONSHOT_API_KEY
+)
+declare -A OPENCLAW_DEFAULT_MODELS=(
+  [OPENAI_API_KEY]='openai/gpt-5.2'
+  [ANTHROPIC_API_KEY]='anthropic/claude-opus-4-6'
+  [GEMINI_API_KEY]='google/gemini-3-pro-preview'
+  [XAI_API_KEY]='xai/grok-4'
+  [MOONSHOT_API_KEY]='moonshot/kimi-k2.5'
+)
 
 usage() {
   cat <<USAGE
@@ -33,7 +56,7 @@ Options:
   --remote-docker-port <p> SSH port for the remote Docker endpoint (default: ${REMOTE_DOCKER_PORT})
   --remote-docker-key <p>  Private key path for the OpenClaw remote Docker Secret (default: ${REMOTE_DOCKER_KEY_PATH})
   --incus-connection-info <p> Path to the Incus VM connection info env file (default: ${INCUS_CONNECTION_INFO_PATH})
-  OPENAI_API_KEY env var   Required OpenAI API key for bootstrap secret generation
+  Provider env vars        At least one supported OpenClaw key is required: OPENAI_API_KEY, ANTHROPIC_API_KEY, BRAVE_API_KEY, PERPLEXITY_API_KEY, GEMINI_API_KEY, XAI_API_KEY, or MOONSHOT_API_KEY
   --verbose                Stream full command output
   -h, --help               Show this help message
 USAGE
@@ -71,10 +94,29 @@ on_error() {
 }
 trap on_error ERR
 
-if [[ -z "${OPENAI_API_KEY:-}" ]]; then
-  fail "OPENAI_API_KEY is required. Export it before running this script (for example: export OPENAI_API_KEY=\"sk-...\")."
+has_openclaw_provider_key=0
+for env_var in "${OPENCLAW_PROVIDER_ENV_VARS[@]}"; do
+  if [[ -n "${!env_var:-}" ]]; then
+    has_openclaw_provider_key=1
+    break
+  fi
+done
+
+if [[ "$has_openclaw_provider_key" -eq 0 ]]; then
+  fail 'At least one supported OpenClaw provider/search key is required. Export one of OPENAI_API_KEY, ANTHROPIC_API_KEY, BRAVE_API_KEY, PERPLEXITY_API_KEY, GEMINI_API_KEY, XAI_API_KEY, or MOONSHOT_API_KEY before running this script.'
   exit 1
 fi
+
+resolve_openclaw_default_model() {
+  local env_var
+  for env_var in "${OPENCLAW_MODEL_PRIORITY[@]}"; do
+    if [[ -n "${!env_var:-}" ]]; then
+      printf '%s' "${OPENCLAW_DEFAULT_MODELS[$env_var]}"
+      return 0
+    fi
+  done
+  return 1
+}
 
 step "Bootstrapping k3d cluster and ingress"
 K3D_UP_CMD=(
@@ -82,7 +124,6 @@ K3D_UP_CMD=(
   --cluster-name "$CLUSTER_NAME"
   --kubeconfig "$KUBECONFIG_PATH"
 )
-
 
 run_quiet "${K3D_UP_CMD[@]}"
 ok "Cluster is ready"
@@ -112,12 +153,23 @@ run_quiet ./scripts/k3d-bootstrap-secrets.sh \
   --remote-docker-key "$REMOTE_DOCKER_KEY_PATH"
 ok "Secrets are ready"
 
+OPENCLAW_DEFAULT_MODEL="$(resolve_openclaw_default_model || true)"
 OVERRIDE_VALUES_FILE="$(mktemp /tmp/ai-homebase-k3d-remote-docker.XXXXXX.yaml)"
-cat >"$OVERRIDE_VALUES_FILE" <<EOF
+cat >"$OVERRIDE_VALUES_FILE" <<EOF2
 openclaw:
   remoteDocker:
     dockerHost: ssh://docker-remote@${REMOTE_DOCKER_HOST}:${REMOTE_DOCKER_PORT}
-EOF
+EOF2
+
+if [[ -n "$OPENCLAW_DEFAULT_MODEL" ]]; then
+  cat >>"$OVERRIDE_VALUES_FILE" <<EOF2
+  openclaw:
+    agents:
+      defaults:
+        model:
+          primary: ${OPENCLAW_DEFAULT_MODEL}
+EOF2
+fi
 trap 'rm -f "$OVERRIDE_VALUES_FILE"' EXIT
 
 step "Deploying platform stack and running smoke checks"
@@ -141,5 +193,10 @@ echo "  Remote Docker endpoint: ssh://docker-remote@${REMOTE_DOCKER_HOST}:${REMO
 echo "  Remote Docker SSH secret: openclaw-remote-docker-ssh"
 echo "  OpenClaw gateway token: ${OPENCLAW_GATEWAY_TOKEN_VALUE}"
 echo "  OpenClaw URL: http://openclaw.localtest.me"
+if [[ -n "$OPENCLAW_DEFAULT_MODEL" ]]; then
+  echo "  OpenClaw default model: ${OPENCLAW_DEFAULT_MODEL}"
+else
+  echo "  OpenClaw default model: not auto-configured (no model-provider API key was set; search-only keys still bootstrap web tools)"
+fi
 echo "  Infisical URL: http://infisical.localtest.me"
 echo "  Bootstrap log: ${BOOTSTRAP_LOG_FILE}"

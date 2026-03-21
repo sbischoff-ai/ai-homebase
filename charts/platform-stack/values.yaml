@@ -97,6 +97,7 @@ openclaw:
       trustedProxies: []
     agents:
       defaults:
+        workspace: /home/node/.openclaw/workspace
         sandbox:
           mode: non-main
           scope: agent
@@ -145,8 +146,14 @@ openclaw:
     gatewayToken: OPENCLAW_GATEWAY_TOKEN
     openaiApiKey: ""
     anthropicApiKey: ""
-    googleApiKey: ""
+    braveApiKey: ""
+    kimiApiKey: ""
+    moonshotApiKey: ""
     tavilyApiKey: ""
+    perplexityApiKey: ""
+    geminiApiKey: ""
+    xaiApiKey: ""
+    googleApiKey: ""
     braveSearchApiKey: ""
   secretRefs: []
 

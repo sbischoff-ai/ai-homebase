@@ -3,30 +3,58 @@
   "type": "object",
   "title": "platform-stack values",
   "additionalProperties": true,
-  "required": ["global", "certManager", "openclaw"],
+  "required": [
+    "global",
+    "certManager",
+    "openclaw"
+  ],
   "properties": {
     "certManager": {
       "type": "object",
       "additionalProperties": true,
       "properties": {
-        "enabled": { "type": "boolean", "default": true },
-        "resourcesEnabled": { "type": "boolean", "default": false },
-        "resourceNamespace": { "type": "string", "default": "" },
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "resourcesEnabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "resourceNamespace": {
+          "type": "string",
+          "default": ""
+        },
         "internalCA": {
           "type": "object",
           "additionalProperties": true,
           "properties": {
-            "enabled": { "type": "boolean", "default": true },
-            "selfSignedClusterIssuerName": { "type": "string", "minLength": 1 },
-            "caClusterIssuerName": { "type": "string", "minLength": 1 }
+            "enabled": {
+              "type": "boolean",
+              "default": true
+            },
+            "selfSignedClusterIssuerName": {
+              "type": "string",
+              "minLength": 1
+            },
+            "caClusterIssuerName": {
+              "type": "string",
+              "minLength": 1
+            }
           }
         },
         "openclawCertificate": {
           "type": "object",
           "additionalProperties": true,
           "properties": {
-            "enabled": { "type": "boolean", "default": true },
-            "name": { "type": "string", "minLength": 1 }
+            "enabled": {
+              "type": "boolean",
+              "default": true
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1
+            }
           }
         }
       }
@@ -34,13 +62,18 @@
     "global": {
       "type": "object",
       "description": "Shared conventions applied across subcharts.",
-      "required": ["domain", "hosts"],
+      "required": [
+        "domain",
+        "hosts"
+      ],
       "additionalProperties": true,
       "properties": {
         "imagePullSecrets": {
           "type": "array",
           "default": [],
-          "items": { "$ref": "#/definitions/nameOrLocalRef" }
+          "items": {
+            "$ref": "#/definitions/nameOrLocalRef"
+          }
         },
         "storageClass": {
           "type": "string",
@@ -56,23 +89,42 @@
         "hosts": {
           "type": "object",
           "description": "Default hostnames by service.",
-          "additionalProperties": { "$ref": "#/definitions/hostname" },
+          "additionalProperties": {
+            "$ref": "#/definitions/hostname"
+          },
           "properties": {
-            "openclaw": { "$ref": "#/definitions/hostname" },
-            "nextcloud": { "$ref": "#/definitions/hostname" },
-            "gitea": { "$ref": "#/definitions/hostname" },
-            "paperlessNgx": { "$ref": "#/definitions/hostname" },
-            "infisical": { "$ref": "#/definitions/hostname" }
+            "openclaw": {
+              "$ref": "#/definitions/hostname"
+            },
+            "nextcloud": {
+              "$ref": "#/definitions/hostname"
+            },
+            "gitea": {
+              "$ref": "#/definitions/hostname"
+            },
+            "paperlessNgx": {
+              "$ref": "#/definitions/hostname"
+            },
+            "infisical": {
+              "$ref": "#/definitions/hostname"
+            }
           }
         }
       }
     },
     "openclaw": {
       "type": "object",
-      "required": ["enabled", "service", "ingress"],
+      "required": [
+        "enabled",
+        "service",
+        "ingress"
+      ],
       "additionalProperties": true,
       "properties": {
-        "enabled": { "type": "boolean", "default": true },
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        },
         "existingSecret": {
           "type": "string",
           "default": "openclaw-app-secrets",
@@ -82,49 +134,111 @@
           "type": "object",
           "additionalProperties": true,
           "properties": {
-            "enabled": { "type": "boolean", "default": true },
-            "dockerHost": { "type": "string", "default": "ssh://docker-remote@openclaw-sandbox:2222" },
-            "home": { "type": "string", "default": "/home/node" },
+            "enabled": {
+              "type": "boolean",
+              "default": true
+            },
+            "dockerHost": {
+              "type": "string",
+              "default": "ssh://docker-remote@openclaw-sandbox:2222"
+            },
+            "home": {
+              "type": "string",
+              "default": "/home/node"
+            },
             "ssh": {
               "type": "object",
               "additionalProperties": true,
               "properties": {
-                "secretName": { "type": "string", "default": "openclaw-remote-docker-ssh" },
-                "mountPath": { "type": "string", "default": "/home/node/.ssh" }
+                "secretName": {
+                  "type": "string",
+                  "default": "openclaw-remote-docker-ssh"
+                },
+                "mountPath": {
+                  "type": "string",
+                  "default": "/home/node/.ssh"
+                }
               }
             }
           }
         },
-        "service": { "$ref": "#/definitions/service" },
-        "ingress": { "$ref": "#/definitions/ingressWithHosts" },
-        "persistence": { "$ref": "#/definitions/persistence" },
-        "secretRefs": { "$ref": "#/definitions/secretRefs" }
+        "service": {
+          "$ref": "#/definitions/service"
+        },
+        "ingress": {
+          "$ref": "#/definitions/ingressWithHosts"
+        },
+        "persistence": {
+          "$ref": "#/definitions/persistence"
+        },
+        "secretRefs": {
+          "$ref": "#/definitions/secretRefs"
+        },
+        "secretKeys": {
+          "$ref": "#/definitions/openclawSecretKeys"
+        }
       }
     },
-    "nextcloud": { "$ref": "#/definitions/optionalServiceToggle" },
-    "gitea": { "$ref": "#/definitions/optionalServiceToggle" },
-    "paperlessNgx": { "$ref": "#/definitions/optionalServiceToggle" },
-    "infisical": { "$ref": "#/definitions/optionalServiceToggle" }
+    "nextcloud": {
+      "$ref": "#/definitions/optionalServiceToggle"
+    },
+    "gitea": {
+      "$ref": "#/definitions/optionalServiceToggle"
+    },
+    "paperlessNgx": {
+      "$ref": "#/definitions/optionalServiceToggle"
+    },
+    "infisical": {
+      "$ref": "#/definitions/optionalServiceToggle"
+    }
   },
   "not": {
     "anyOf": [
-      { "required": ["externalSecrets"] },
-      { "required": ["observability"] },
-      { "required": ["persistence"] },
-      { "required": ["autoscaling"] },
-      { "required": ["workerIsolation"] }
+      {
+        "required": [
+          "externalSecrets"
+        ]
+      },
+      {
+        "required": [
+          "observability"
+        ]
+      },
+      {
+        "required": [
+          "persistence"
+        ]
+      },
+      {
+        "required": [
+          "autoscaling"
+        ]
+      },
+      {
+        "required": [
+          "workerIsolation"
+        ]
+      }
     ]
   },
   "definitions": {
     "nameOrLocalRef": {
       "oneOf": [
-        { "type": "string", "minLength": 1 },
+        {
+          "type": "string",
+          "minLength": 1
+        },
         {
           "type": "object",
           "properties": {
-            "name": { "type": "string", "minLength": 1 }
+            "name": {
+              "type": "string",
+              "minLength": 1
+            }
           },
-          "required": ["name"],
+          "required": [
+            "name"
+          ],
           "additionalProperties": true
         }
       ]
@@ -138,39 +252,70 @@
     },
     "service": {
       "type": "object",
-      "required": ["type"],
+      "required": [
+        "type"
+      ],
       "additionalProperties": true,
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["ClusterIP", "NodePort", "LoadBalancer", "ExternalName"],
+          "enum": [
+            "ClusterIP",
+            "NodePort",
+            "LoadBalancer",
+            "ExternalName"
+          ],
           "default": "ClusterIP",
           "description": "Kubernetes Service type."
         },
-        "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        },
         "targetPort": {
           "oneOf": [
-            { "type": "integer", "minimum": 1, "maximum": 65535 },
-            { "type": "string", "minLength": 1 }
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65535
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
           ]
         }
       }
     },
     "ingressWithHosts": {
       "type": "object",
-      "required": ["enabled", "hosts"],
+      "required": [
+        "enabled",
+        "hosts"
+      ],
       "additionalProperties": true,
       "properties": {
-        "enabled": { "type": "boolean", "default": false },
-        "className": { "type": "string", "default": "" },
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "className": {
+          "type": "string",
+          "default": ""
+        },
         "hosts": {
           "type": "array",
           "default": [],
           "items": {
             "type": "object",
-            "required": ["host"],
+            "required": [
+              "host"
+            ],
             "properties": {
-              "host": { "$ref": "#/definitions/hostname" }
+              "host": {
+                "$ref": "#/definitions/hostname"
+              }
             },
             "additionalProperties": true
           }
@@ -181,7 +326,10 @@
       "type": "object",
       "additionalProperties": true,
       "properties": {
-        "enabled": { "type": "boolean", "default": true },
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        },
         "size": {
           "type": "string",
           "default": "10Gi",
@@ -199,11 +347,24 @@
       "default": [],
       "items": {
         "type": "object",
-        "required": ["name", "key", "envVar"],
+        "required": [
+          "name",
+          "key",
+          "envVar"
+        ],
         "properties": {
-          "name": { "type": "string", "minLength": 1 },
-          "key": { "type": "string", "minLength": 1 },
-          "envVar": { "type": "string", "minLength": 1 }
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "envVar": {
+            "type": "string",
+            "minLength": 1
+          }
         },
         "additionalProperties": true
       }
@@ -212,7 +373,64 @@
       "type": "object",
       "additionalProperties": true,
       "properties": {
-        "enabled": { "type": "boolean", "default": false }
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "openclawSecretKeys": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "gatewayToken": {
+          "type": "string",
+          "default": "OPENCLAW_GATEWAY_TOKEN"
+        },
+        "openaiApiKey": {
+          "type": "string",
+          "default": ""
+        },
+        "anthropicApiKey": {
+          "type": "string",
+          "default": ""
+        },
+        "braveApiKey": {
+          "type": "string",
+          "default": ""
+        },
+        "kimiApiKey": {
+          "type": "string",
+          "default": ""
+        },
+        "moonshotApiKey": {
+          "type": "string",
+          "default": ""
+        },
+        "tavilyApiKey": {
+          "type": "string",
+          "default": ""
+        },
+        "perplexityApiKey": {
+          "type": "string",
+          "default": ""
+        },
+        "geminiApiKey": {
+          "type": "string",
+          "default": ""
+        },
+        "xaiApiKey": {
+          "type": "string",
+          "default": ""
+        },
+        "googleApiKey": {
+          "type": "string",
+          "default": ""
+        },
+        "braveSearchApiKey": {
+          "type": "string",
+          "default": ""
+        }
       }
     }
   }

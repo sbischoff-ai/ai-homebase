@@ -17,6 +17,10 @@ assert_contains() {
 run_case() {
   local case_name="$1"
   local token_value="$2"
+  local provider_env_name="$3"
+  local provider_env_value="$4"
+  local expected_model="$5"
+
   local sandbox_dir
   sandbox_dir="$(mktemp -d)"
   trap 'rm -rf "${sandbox_dir}"' RETURN
@@ -43,8 +47,8 @@ SH
   local output_file="${sandbox_dir}/output.log"
   (
     cd "${repo_dir}"
-    export OPENAI_API_KEY="test-openai-key"
     export FAKE_COMMAND_LOG="${command_log}"
+    export "${provider_env_name}=${provider_env_value}"
     if [[ -n "${token_value}" ]]; then
       export OPENCLAW_GATEWAY_TOKEN="${token_value}"
     fi
@@ -56,34 +60,30 @@ SH
       --kubeconfig "${kubeconfig_path}"
   ) >"${output_file}" 2>&1
 
-  local output
+  local output commands
   output="$(cat "${output_file}")"
+  commands="$(cat "${command_log}")"
 
   assert_contains "${output}" "Local bootstrap complete."
   assert_contains "${output}" "  Kubeconfig path: ${kubeconfig_path}"
   assert_contains "${output}" "  OpenClaw URL: http://openclaw.localtest.me"
+  assert_contains "${output}" "  OpenClaw default model: ${expected_model}"
   assert_contains "${output}" "  Infisical URL: http://infisical.localtest.me"
 
   case "${case_name}" in
-    default-token)
-      assert_contains "${output}" "  OpenClaw gateway token: local-dev-token"
-      ;;
-    explicit-token)
-      assert_contains "${output}" "  OpenClaw gateway token: ${token_value}"
-      ;;
-    *)
-      printf 'unknown case_name: %s\n' "${case_name}" >&2
-      exit 1
-      ;;
+    default-token) assert_contains "${output}" "  OpenClaw gateway token: local-dev-token" ;;
+    explicit-token) assert_contains "${output}" "  OpenClaw gateway token: ${token_value}" ;;
+    *) printf 'unknown case_name: %s\n' "${case_name}" >&2; exit 1 ;;
   esac
 
-  assert_contains "$(cat "${command_log}")" "k3d-bootstrap-secrets.sh --namespace test-namespace --release-name test-release --kubeconfig ${kubeconfig_path}"
+  assert_contains "${commands}" "k3d-bootstrap-secrets.sh --namespace test-namespace --release-name test-release --kubeconfig ${kubeconfig_path}"
+  assert_contains "${commands}" "test-local-k3d.sh --release-name test-release --namespace test-namespace --kubeconfig ${kubeconfig_path} --values-file charts/platform-stack/values.yaml --values-file charts/platform-stack/values-k3d.yaml --values-file /tmp/ai-homebase-k3d-remote-docker"
 
   trap - RETURN
   rm -rf "${sandbox_dir}"
 }
 
-run_case default-token ""
-run_case explicit-token "test-gateway-token"
+run_case default-token "" OPENAI_API_KEY test-openai-key openai/gpt-5.2
+run_case explicit-token test-gateway-token ANTHROPIC_API_KEY test-anthropic-key anthropic/claude-opus-4-6
 
 echo "k3d local bootstrap tests passed"
