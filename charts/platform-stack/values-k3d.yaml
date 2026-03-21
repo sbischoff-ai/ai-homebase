@@ -41,9 +41,15 @@ openclaw:
   secretKeys:
     gatewayToken: OPENCLAW_GATEWAY_TOKEN
     openaiApiKey: OPENAI_API_KEY
-    anthropicApiKey: ""
-    googleApiKey: ""
+    anthropicApiKey: ANTHROPIC_API_KEY
+    braveApiKey: BRAVE_API_KEY
+    kimiApiKey: ""
+    moonshotApiKey: MOONSHOT_API_KEY
     tavilyApiKey: ""
+    perplexityApiKey: PERPLEXITY_API_KEY
+    geminiApiKey: GEMINI_API_KEY
+    xaiApiKey: XAI_API_KEY
+    googleApiKey: ""
     braveSearchApiKey: ""
   secretRefs: []
   openclaw:

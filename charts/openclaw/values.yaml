@@ -87,7 +87,7 @@ openclaw:
     trustedProxies: []
   agents:
     defaults:
-      workspace: ~/.openclaw/workspace
+      workspace: /home/node/.openclaw/workspace
       sandbox:
         mode: non-main
         scope: agent
@@ -120,7 +120,7 @@ openclaw:
     list:
       - id: default
         name: OpenClaw Assistant
-        workspace: ~/.openclaw/workspace
+        workspace: /home/node/.openclaw/workspace
   plugins:
     entries: {}
 

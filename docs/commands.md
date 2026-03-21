@@ -102,7 +102,9 @@ scripts/ci/check_golden.sh
 ## Local bootstrap and Incus sandbox helpers
 
 ```bash
-./scripts/k3d-local-bootstrap.sh --cluster-name ai-homebase-dev
+OPENAI_API_KEY="<your-openai-api-key>" ./scripts/k3d-local-bootstrap.sh --cluster-name ai-homebase-dev
+# or substitute ANTHROPIC_API_KEY / GEMINI_API_KEY / XAI_API_KEY / MOONSHOT_API_KEY
+# optionally add BRAVE_API_KEY / PERPLEXITY_API_KEY for built-in web search
 ./scripts/incus-vm-up.sh --vm-name openclaw-sandbox
 # First boot may take several minutes while cloud-init installs Docker Engine and SSH.
 # The helper seeds explicit NoCloud user-data + network-config before the VM starts,
