@@ -6,7 +6,7 @@ global:
   hosts:
     openclaw: openclaw.localtest.me
     nextcloud: nextcloud.localtest.me
-    gitea: gitea.vpn.homebase.internal
+    gitea: gitea.localtest.me
     paperlessNgx: paperless.localtest.me
     infisical: infisical.localtest.me
 
@@ -61,7 +61,23 @@ nextcloud:
     enabled: false
 
 gitea:
-  enabled: false
+  enabled: true
+  gitea:
+    ingress:
+      enabled: true
+      className: nginx
+      hosts:
+        - host: gitea.localtest.me
+          paths:
+            - path: /
+              pathType: Prefix
+    persistence:
+      enabled: true
+      size: 5Gi
+      storageClass: local-path
+    admin:
+      username: git-admin
+      existingSecret: ""
 
 paperlessNgx:
   enabled: false
