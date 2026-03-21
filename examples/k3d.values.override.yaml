@@ -12,12 +12,12 @@ openclaw:
 #     repository: k3d-ai-homebase-registry.localhost:5000/openclaw
 #     tag: dev
 
-# Example: temporarily enable an optional service for a focused local test.
+# Example: scale local Gitea storage up for a repo-heavy test.
 # gitea:
-#   enabled: true
-#   persistence:
-#     enabled: true
-#     size: 5Gi
+#   gitea:
+#     persistence:
+#       enabled: true
+#       size: 20Gi
 
 # Example: override the standard OpenClaw remote Docker sandbox endpoint or images.
 # Layer examples/openclaw.remote-docker.values.yaml after the target overlay when the default

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import re
 import subprocess
+from pathlib import Path
 
 LEGACY_CERT_MANAGER_PATTERN = re.compile(r"certManager[A-Z]")
 
@@ -212,6 +213,21 @@ def assert_k3d_default_ingress_classes() -> None:
             )
 
 
+def assert_k3d_gitea_overlay_values() -> None:
+    values_text = Path(K3D_VALUES).read_text()
+    required_snippets = {
+        "gitea:\n  enabled: true": "gitea.enabled=true",
+        "    gitea: gitea.localtest.me": "global.hosts.gitea=gitea.localtest.me",
+        "      className: nginx": "gitea.gitea.ingress.className=nginx",
+        "        - host: gitea.localtest.me": "gitea.gitea.ingress.hosts[0].host=gitea.localtest.me",
+        "      size: 5Gi": "gitea.gitea.persistence.size=5Gi",
+        "      storageClass: local-path": "gitea.gitea.persistence.storageClass=local-path",
+    }
+    for snippet, description in required_snippets.items():
+        if snippet not in values_text:
+            raise SystemExit(f"k3d overlay must set {description}")
+
+
 def main() -> None:
     for case in MATRIX:
         rendered = render_template(BASE_VALUES, set_values=case["set"])
@@ -235,6 +251,9 @@ def main() -> None:
 
     assert_k3d_default_ingress_classes()
     print("k3d overlay: asserted nginx ingressClassName + expected hosts for OpenClaw/Infisical")
+
+    assert_k3d_gitea_overlay_values()
+    print("k3d overlay: asserted gitea is enabled with local ingress + persistence values")
 
 
 if __name__ == "__main__":
