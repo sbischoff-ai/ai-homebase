@@ -291,6 +291,10 @@ for doc in [doc for doc in re.split(r"\n---\n", text) if doc.strip()]:
         continue
     if kind_match.group(1).strip() != kind_filter:
         continue
+    resource_name = name_match.group(1).strip().strip("\"")
+    if f"{release_name}-gitea" in resource_name:
+        print(resource_name)
+        continue
     labels_match = re.search(
         r"^  labels:\n(?P<body>(?:^    .*\n?)*)",
         doc,
@@ -301,7 +305,7 @@ for doc in [doc for doc in re.split(r"\n---\n", text) if doc.strip()]:
         continue
     if "app.kubernetes.io/name: gitea" not in labels:
         continue
-    print(name_match.group(1).strip().strip("\""))
+    print(resource_name)
 ' "$kind_filter" "$RELEASE_NAME"
 }
 
@@ -338,7 +342,7 @@ wait_for_gitea_workloads() {
   done < <(manifest_named_resources Deployment)
 
   if [[ ${#workload_entries[@]} -eq 0 ]]; then
-    fail "Gitea is enabled, but no labeled Deployment/StatefulSet was rendered for release=${RELEASE_NAME}"
+    fail "Gitea is enabled, but no rendered Deployment/StatefulSet was found for release=${RELEASE_NAME}"
     return 1
   fi
 
@@ -360,7 +364,7 @@ verify_gitea_services() {
   done < <(manifest_named_resources Service)
 
   if [[ ${#service_names[@]} -eq 0 ]]; then
-    fail "Gitea is enabled, but no labeled Service was rendered for release=${RELEASE_NAME}"
+    fail "Gitea is enabled, but no rendered Service was found for release=${RELEASE_NAME}"
     return 1
   fi
 

@@ -166,9 +166,13 @@ def docs_with_labels(rendered: str, *, kind: str | None = None) -> list[tuple[st
     return docs
 
 
-def gitea_labeled_docs(rendered: str, *, kind: str | None = None) -> list[str]:
+def gitea_rendered_docs(rendered: str, *, kind: str | None = None) -> list[str]:
     matches: list[str] = []
     for doc, labels in docs_with_labels(rendered, kind=kind):
+        _, resource_name = document_kind_name(doc)
+        if resource_name is not None and "platform-stack-gitea" in resource_name:
+            matches.append(doc)
+            continue
         if labels.get("app.kubernetes.io/instance") != "platform-stack":
             continue
         if labels.get("app.kubernetes.io/name") != "gitea":
@@ -214,12 +218,12 @@ def assert_gitea_single_path(case: dict[str, object], rendered: str, resources: 
         )
 
     workload_kinds = ("StatefulSet", "Deployment")
-    workload_count = sum(len(gitea_labeled_docs(rendered, kind=kind)) for kind in workload_kinds)
+    workload_count = sum(len(gitea_rendered_docs(rendered, kind=kind)) for kind in workload_kinds)
     if workload_count == 0:
-        raise SystemExit(f"{case['name']} rendered no labeled gitea workload resources")
+        raise SystemExit(f"{case['name']} rendered no gitea workload resources")
     if workload_count > 1:
         raise SystemExit(
-            f"{case['name']} rendered multiple labeled gitea workloads: {workload_count}"
+            f"{case['name']} rendered multiple gitea workloads: {workload_count}"
         )
 
 
@@ -266,17 +270,17 @@ def assert_k3d_default_ingress_classes() -> None:
 def assert_k3d_gitea_overlay_resources() -> None:
     rendered = render_template(BASE_VALUES, K3D_VALUES)
 
-    workload_docs = gitea_labeled_docs(rendered, kind="StatefulSet") + gitea_labeled_docs(rendered, kind="Deployment")
+    workload_docs = gitea_rendered_docs(rendered, kind="StatefulSet") + gitea_rendered_docs(rendered, kind="Deployment")
     if not workload_docs:
-        raise SystemExit("k3d overlay did not render a labeled gitea workload")
+        raise SystemExit("k3d overlay did not render a gitea workload")
 
-    service_docs = gitea_labeled_docs(rendered, kind="Service")
+    service_docs = gitea_rendered_docs(rendered, kind="Service")
     if not service_docs:
-        raise SystemExit("k3d overlay did not render a labeled gitea Service")
+        raise SystemExit("k3d overlay did not render a gitea Service")
 
-    ingress_docs = gitea_labeled_docs(rendered, kind="Ingress")
+    ingress_docs = gitea_rendered_docs(rendered, kind="Ingress")
     if not ingress_docs:
-        raise SystemExit("k3d overlay did not render a labeled gitea Ingress")
+        raise SystemExit("k3d overlay did not render a gitea Ingress")
 
     ingress = ingress_docs[0]
     rendered_class_name = ingress_class_name(ingress)
@@ -290,9 +294,9 @@ def assert_k3d_gitea_overlay_resources() -> None:
             f"k3d overlay rendered gitea ingress hosts={hosts!r}, expected 'gitea.localtest.me'"
         )
 
-    pvc_docs = gitea_labeled_docs(rendered, kind="PersistentVolumeClaim")
+    pvc_docs = gitea_rendered_docs(rendered, kind="PersistentVolumeClaim")
     if not pvc_docs:
-        raise SystemExit("k3d overlay did not render a labeled gitea PersistentVolumeClaim")
+        raise SystemExit("k3d overlay did not render a gitea PersistentVolumeClaim")
 
 
 def main() -> None:

@@ -70,25 +70,16 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: platform-stack-gitea
-  labels:
-    app.kubernetes.io/name: gitea
-    app.kubernetes.io/instance: platform-stack
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: platform-stack-gitea-http
-  labels:
-    app.kubernetes.io/name: gitea
-    app.kubernetes.io/instance: platform-stack
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: platform-stack-gitea-ssh
-  labels:
-    app.kubernetes.io/name: gitea
-    app.kubernetes.io/instance: platform-stack
 YAML
     fi
     exit 0
