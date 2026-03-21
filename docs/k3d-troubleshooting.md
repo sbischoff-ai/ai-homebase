@@ -16,7 +16,6 @@ Use this page when the concise workflow in [`docs/deployment-k3d.md`](./deployme
 - The supported path expects an OpenClaw image that includes Docker CLI and OpenSSH client support.
 - Shared OpenClaw defaults render the Docker sandbox backend with explicit `docker.*` and `browser.*` settings.
 - Operators still need an environment-appropriate `browser.cdpSourceRange` when the reachable browser sandbox CIDR differs from the default.
-- OpenHands continues to use the upstream in-cluster Kubernetes runtime.
 
 ### Incus VM bootstrap behavior
 
@@ -140,7 +139,6 @@ A complete example looks like this:
 
   networking.extraHosts = ''
     127.0.0.1 openclaw.localtest.me
-    127.0.0.1 openhands.localtest.me
     127.0.0.1 infisical.localtest.me
     127.0.0.1 nextcloud.localtest.me
     127.0.0.1 paperless.localtest.me

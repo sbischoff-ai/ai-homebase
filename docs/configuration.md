@@ -34,7 +34,7 @@ Add extra overlays only for concrete environment decisions such as:
 
 - Real domains and DNS names.
 - Actual secret references.
-- Storage sizing or class overrides, including `openhands.persistence.*` for the OpenHands control-plane volume.
+- Storage sizing or class overrides.
 - Environment-specific domains, TLS, or ingress-class details.
 
 Do not encode persistent environment decisions only as CLI `--set` flags.
@@ -50,15 +50,12 @@ Cloud-provider-specific deployment profiles and conditionals have been removed.
 
 ## Runtime defaults
 
-The supported targets now split runtime posture by service:
+The supported targets split runtime posture by service:
 
-- `openhands.runtime.mode` is fixed to `kubernetes`, and `openhands.kubernetes.*` renders the upstream `[kubernetes]` config block used for in-cluster runtime sandboxes.
 - `openclaw.openclaw.agents.defaults.sandbox.*` renders the OpenClaw sandbox configuration directly into `openclaw.json`; the shipped defaults rely on OpenClaw's implicit Docker sandbox backend instead of emitting an explicit `backend` key.
 - `openclaw.remoteDocker.*` is part of the standard OpenClaw posture for every supported target: keep it enabled and use overlays only to change the SSH endpoint, Secret name, or image details for a concrete environment.
 
-OpenHands Kubernetes runtime defaults assume OpenHands itself is running inside the cluster and create per-session runtime resources in the configured namespace. OpenClaw now renders its Docker/browser sandbox JSON directly from chart values, and the standard `openclaw.remoteDocker.*` block wires `DOCKER_HOST`, `HOME`, and SSH material into the pod so Docker commands execute against the supported remote daemon over SSH.
-
-OpenHands operator-facing storage overrides should use `openhands.persistence.*`. The umbrella chart still carries `openhands.workspace.*` defaults as a temporary compatibility layer for older overlays, but that path is deprecated and should not be used in new values files.
+OpenClaw now renders its Docker/browser sandbox JSON directly from chart values, and the standard `openclaw.remoteDocker.*` block wires `DOCKER_HOST`, `HOME`, and SSH material into the pod so Docker commands execute against the supported remote daemon over SSH.
 
 ## Values schema validation
 
@@ -68,7 +65,6 @@ Current schema coverage includes:
 
 - `charts/platform-stack/values.schema.json`
 - `charts/openclaw/values.schema.json`
-- `charts/openhands/values.schema.json`
 - `charts/nextcloud/values.schema.json`
 - `charts/paperless-ngx/values.schema.json`
 - `charts/infisical/values.schema.json`
@@ -82,10 +78,10 @@ Use `global.*` for shared conventions such as domain names, storage defaults, im
 
 Use service-specific blocks when behavior must diverge, especially for:
 
-- `openclaw.*` and `openhands.*`
+- `openclaw.*`
 - Secret references and env contracts
 - Persistence and ingress controls
-- OpenHands Kubernetes runtime settings and OpenClaw sandbox settings
+- OpenClaw sandbox settings
 
 ## Toggle strategy for service composition
 
@@ -102,8 +98,5 @@ Commit only secret **references** in versioned overlays and generate the actual 
 ## Example deployment command pattern
 
 ```bash
-helm upgrade --install platform-stack charts/platform-stack \
-  -n <namespace> \
-  -f charts/platform-stack/values.yaml \
-  -f charts/platform-stack/values-<target>.yaml
+helm upgrade --install platform-stack charts/platform-stack   -n <namespace>   -f charts/platform-stack/values.yaml   -f charts/platform-stack/values-<target>.yaml
 ```

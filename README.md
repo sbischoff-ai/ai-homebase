@@ -1,6 +1,6 @@
 # ai-homebase
 
-`ai-homebase` is a Helm-based homelab stack for running an AI control plane around OpenClaw and OpenHands, with optional services such as Nextcloud, Paperless-ngx, Gitea, and Infisical.
+`ai-homebase` is a Helm-based homelab stack for running an AI control plane around OpenClaw, with optional services such as Nextcloud, Paperless-ngx, Gitea, and Infisical.
 
 The repository intentionally supports two targets: `k3d` for local testing and `k3s` for the productive homelab server. Shared Helm values provide the baseline platform posture, while target overlays keep local and homelab deployment behavior explicit.
 

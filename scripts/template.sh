@@ -9,7 +9,7 @@ SET_ARGS=()
 
 normalize_service_key() {
   case "$1" in
-    openclaw|openhands|nextcloud|gitea|infisical) echo "$1" ;;
+    openclaw|nextcloud|gitea|infisical) echo "$1" ;;
     paperless-ngx|paperlessNgx) echo "paperlessNgx" ;;
     *) return 1 ;;
   esac
