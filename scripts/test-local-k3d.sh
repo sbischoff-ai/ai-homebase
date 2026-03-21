@@ -233,14 +233,14 @@ wait_for_workload() {
   deployment_name="$(resolve_deployment_name "$app_name")"
 
   step "Waiting for deployment/${deployment_name} rollout"
-  run_checked kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" rollout status "deployment/${deployment_name}" --timeout=300s
+  run_checked kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" rollout status "deployment/${deployment_name}" --timeout=600s
 
   step "Waiting for pods to become Ready (app=${app_name})"
   run_checked kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" wait \
     --for=condition=Ready \
     pod \
     -l "app.kubernetes.io/instance=${RELEASE_NAME},app.kubernetes.io/name=${app_name}" \
-    --timeout=300s
+    --timeout=600s
 }
 
 is_openclaw_ingress_enabled() {
