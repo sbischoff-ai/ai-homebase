@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import re
 import subprocess
-from pathlib import Path
 
 LEGACY_CERT_MANAGER_PATTERN = re.compile(r"certManager[A-Z]")
 
@@ -19,11 +18,11 @@ CERT_MANAGER_EXPECTED_RESOURCES = {
     ("Deployment", "platform-stack-cert-manager-webhook"),
 }
 
-LEGACY_GITEA_WRAPPER_SOURCES = {
-    "# Source: platform-stack/charts/gitea/templates/statefulset.yaml",
-    "# Source: platform-stack/charts/gitea/templates/service.yaml",
-    "# Source: platform-stack/charts/gitea/templates/ingress.yaml",
-    "# Source: platform-stack/charts/gitea/templates/pvc.yaml",
+K3D_GITEA_EXPECTED_RESOURCES = {
+    ("Ingress", "platform-stack-gitea"),
+    ("Service", "platform-stack-gitea-http"),
+    ("Service", "platform-stack-gitea-ssh"),
+    ("StatefulSet", "platform-stack-gitea"),
 }
 
 MATRIX = [
@@ -150,26 +149,25 @@ def assert_removed_platform_settings_configmap(resources: set[tuple[str | None, 
         )
 
 
-def assert_gitea_single_path(case: dict[str, object], rendered: str, resources: set[tuple[str | None, str | None]]) -> None:
-    gitea_enabled = case["set"].get("gitea.enabled") == "true"
-    if not gitea_enabled:
-        return
+def assert_gitea_rendered_resources(profile_name: str, rendered: str, resources: set[tuple[str | None, str | None]]) -> None:
+    missing = sorted(K3D_GITEA_EXPECTED_RESOURCES - resources)
+    if missing:
+        raise SystemExit(f"{profile_name} missing expected gitea resources: {missing}")
 
-    legacy_sources = sorted(source for source in LEGACY_GITEA_WRAPPER_SOURCES if source in rendered)
-    if legacy_sources:
+    ingress = find_document(rendered, kind="Ingress", name="platform-stack-gitea")
+    if ingress is None:
+        raise SystemExit(f"{profile_name} missing gitea ingress document")
+
+    rendered_class_name = ingress_class_name(ingress)
+    if rendered_class_name != "nginx":
         raise SystemExit(
-            f"{case['name']} still renders removed local gitea wrapper templates: {legacy_sources}"
+            f"{profile_name} rendered gitea ingressClassName={rendered_class_name!r}, expected 'nginx'"
         )
 
-    workload_kinds = {"StatefulSet", "Deployment"}
-    workload_count = sum(
-        1
-        for kind, resource_name in resources
-        if resource_name == "platform-stack-gitea" and kind in workload_kinds
-    )
-    if workload_count > 1:
+    hosts = ingress_hosts(ingress)
+    if "gitea.localtest.me" not in hosts:
         raise SystemExit(
-            f"{case['name']} rendered multiple gitea workloads for platform-stack-gitea: {workload_count}"
+            f"{profile_name} rendered gitea hosts={hosts!r}, expected to include 'gitea.localtest.me'"
         )
 
 
@@ -213,19 +211,10 @@ def assert_k3d_default_ingress_classes() -> None:
             )
 
 
-def assert_k3d_gitea_overlay_values() -> None:
-    values_text = Path(K3D_VALUES).read_text()
-    required_snippets = {
-        "gitea:\n  enabled: true": "gitea.enabled=true",
-        "    gitea: gitea.localtest.me": "global.hosts.gitea=gitea.localtest.me",
-        "      className: nginx": "gitea.gitea.ingress.className=nginx",
-        "        - host: gitea.localtest.me": "gitea.gitea.ingress.hosts[0].host=gitea.localtest.me",
-        "      size: 5Gi": "gitea.gitea.persistence.size=5Gi",
-        "      storageClass: local-path": "gitea.gitea.persistence.storageClass=local-path",
-    }
-    for snippet, description in required_snippets.items():
-        if snippet not in values_text:
-            raise SystemExit(f"k3d overlay must set {description}")
+def assert_k3d_gitea_overlay_render() -> None:
+    rendered = render_template(BASE_VALUES, K3D_VALUES)
+    resources = rendered_resources(rendered)
+    assert_gitea_rendered_resources("k3d overlay", rendered, resources)
 
 
 def main() -> None:
@@ -236,7 +225,8 @@ def main() -> None:
         if missing:
             raise SystemExit(f"{case['name']} missing expected resources: {missing}")
         assert_removed_platform_settings_configmap(resources)
-        assert_gitea_single_path(case, rendered, resources)
+        if case["set"].get("gitea.enabled") == "true":
+            assert_gitea_rendered_resources(case["name"], rendered, resources)
         print(f"{case['name']}: asserted {len(case['expect_present'])} resource(s)")
 
     for profile_name, values_files in {
@@ -252,8 +242,8 @@ def main() -> None:
     assert_k3d_default_ingress_classes()
     print("k3d overlay: asserted nginx ingressClassName + expected hosts for OpenClaw/Infisical")
 
-    assert_k3d_gitea_overlay_values()
-    print("k3d overlay: asserted gitea is enabled with local ingress + persistence values")
+    assert_k3d_gitea_overlay_render()
+    print("k3d overlay: asserted gitea renders expected ingress, services, and workload")
 
 
 if __name__ == "__main__":

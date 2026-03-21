@@ -212,38 +212,8 @@ on_error() {
 }
 trap 'on_error ${LINENO} "${BASH_COMMAND}"' ERR
 
-resolve_deployment_name() {
-  local app_name="$1"
-  local deployment_name
-  deployment_name="$(kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" get deployment \
-    -l "app.kubernetes.io/instance=${RELEASE_NAME},app.kubernetes.io/name=${app_name}" \
-    -o jsonpath='{.items[0].metadata.name}')"
-
-  if [[ -z "$deployment_name" ]]; then
-    fail "Unable to find deployment for app=${app_name}, release=${RELEASE_NAME} in namespace=${NAMESPACE}"
-    return 1
-  fi
-
-  echo "$deployment_name"
-}
-
-wait_for_workload() {
-  local app_name="$1"
-  local deployment_name
-  deployment_name="$(resolve_deployment_name "$app_name")"
-
-  step "Waiting for deployment/${deployment_name} rollout"
-  run_checked kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" rollout status "deployment/${deployment_name}" --timeout=600s
-
-  step "Waiting for pods to become Ready (app=${app_name})"
-  run_checked kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" wait \
-    --for=condition=Ready \
-    pod \
-    -l "app.kubernetes.io/instance=${RELEASE_NAME},app.kubernetes.io/name=${app_name}" \
-    --timeout=600s
-}
-
-is_openclaw_ingress_enabled() {
+effective_bool_value() {
+  local value_path="$1"
   helm get values "$RELEASE_NAME" \
     "${HELM_KUBECONFIG_ARGS[@]}" \
     "${HELM_CONTEXT_ARGS[@]}" \
@@ -254,9 +224,70 @@ import json
 import sys
 
 values = json.load(sys.stdin)
-enabled = values.get("openclaw", {}).get("ingress", {}).get("enabled", False)
-print("true" if enabled else "false")
-'
+path = sys.argv[1].split(".")
+current = values
+for key in path:
+    if not isinstance(current, dict) or key not in current:
+        print("false")
+        raise SystemExit(0)
+    current = current[key]
+print("true" if bool(current) else "false")
+' "$value_path"
+}
+
+is_openclaw_ingress_enabled() {
+  effective_bool_value "openclaw.ingress.enabled"
+}
+
+is_gitea_enabled() {
+  effective_bool_value "gitea.enabled"
+}
+
+list_labeled_resources() {
+  local resource_types="$1"
+  local app_name="$2"
+  kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" get "$resource_types" \
+    -l "app.kubernetes.io/instance=${RELEASE_NAME},app.kubernetes.io/name=${app_name}" \
+    -o jsonpath='{range .items[*]}{.kind}{"/"}{.metadata.name}{"\n"}{end}'
+}
+
+wait_for_labeled_workloads() {
+  local app_name="$1"
+  local selector="app.kubernetes.io/instance=${RELEASE_NAME},app.kubernetes.io/name=${app_name}"
+  local workload_refs=()
+
+  mapfile -t workload_refs < <(list_labeled_resources 'deployment,statefulset' "$app_name")
+
+  if [[ ${#workload_refs[@]} -eq 0 ]]; then
+    fail "Unable to find deployment/statefulset for app=${app_name}, release=${RELEASE_NAME} in namespace=${NAMESPACE}"
+    return 1
+  fi
+
+  for workload_ref in "${workload_refs[@]}"; do
+    step "Waiting for ${workload_ref} rollout"
+    run_checked kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" rollout status "$workload_ref" --timeout=600s
+  done
+
+  step "Waiting for pods to become Ready (app=${app_name})"
+  run_checked kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" wait \
+    --for=condition=Ready \
+    pod \
+    -l "$selector" \
+    --timeout=600s
+}
+
+assert_service_exists() {
+  local app_name="$1"
+  local service_refs=()
+
+  mapfile -t service_refs < <(list_labeled_resources 'service' "$app_name")
+
+  if [[ ${#service_refs[@]} -eq 0 ]]; then
+    fail "Expected at least one Service for app=${app_name}, release=${RELEASE_NAME} in namespace=${NAMESPACE}"
+    return 1
+  fi
+
+  step "Verified ${#service_refs[@]} Service resource(s) for app=${app_name}: ${service_refs[*]}"
 }
 
 step "Updating Helm dependencies"
@@ -271,7 +302,7 @@ run_checked helm upgrade --install "$RELEASE_NAME" charts/platform-stack \
   --hide-notes \
   "${VALUES_ARGS[@]}"
 
-wait_for_workload openclaw
+wait_for_labeled_workloads openclaw
 
 if [[ "$(is_openclaw_ingress_enabled)" == "true" ]]; then
   step "Checking openclaw ingress endpoint"
@@ -280,6 +311,13 @@ if [[ "$(is_openclaw_ingress_enabled)" == "true" ]]; then
     http://127.0.0.1/
 else
   warn "Skipping OpenClaw ingress endpoint check because openclaw.ingress.enabled=false in effective values"
+fi
+
+if [[ "$(is_gitea_enabled)" == "true" ]]; then
+  wait_for_labeled_workloads gitea
+  assert_service_exists gitea
+else
+  warn "Skipping Gitea workload/service validation because gitea.enabled=false in effective values"
 fi
 
 

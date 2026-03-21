@@ -47,7 +47,8 @@ What you need to know:
 
 - The k3d scripts use `charts/platform-stack/values.yaml` plus `charts/platform-stack/values-k3d.yaml` by default.
 - Use this command after secrets are in place and any one-off override file is ready.
-- The local smoke check waits up to 600 seconds for each deployment rollout/readiness check so slower first boots do not fail just before OpenClaw becomes Ready.
+- The local smoke check waits up to 600 seconds for each OpenClaw or Gitea rollout/readiness check that is enabled in the effective values, so slower first boots do not fail just before those workloads become Ready.
+- When `gitea.enabled=true` in the effective values, the smoke check also verifies that at least one labeled Gitea Service exists in the namespace after install.
 - If you only need generic install, lint, template, or helper-script commands outside this k3d-specific workflow, use [`docs/commands.md`](./commands.md).
 
 ## 3) Service access
@@ -56,12 +57,13 @@ Expected local browser endpoints served by the k3d `ingress-nginx` controller:
 
 - `http://infisical.localtest.me`
 - `http://openclaw.localtest.me`
+- `http://gitea.localtest.me`
 
 After a successful bootstrap, the summary output prints:
 
 - the kubeconfig path used for the cluster
 - the OpenClaw gateway token that was written into `openclaw-app-secrets`
-- the local service URLs
+- the local service URLs for OpenClaw, Gitea, and Infisical
 
 ## 4) First-use OpenClaw token and device pairing
 
