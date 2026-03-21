@@ -142,6 +142,20 @@
       "type": "object",
       "additionalProperties": true,
       "properties": {
+        "gateway": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "trustedProxies": {
+              "type": "array",
+              "default": [],
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
         "agents": {
           "type": "object",
           "additionalProperties": true,

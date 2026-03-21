@@ -19,7 +19,8 @@ data:
         "controlUi": {
           "enabled": {{ .Values.openclaw.gateway.controlUi.enabled }},
           "allowedOrigins": {{ toJson .Values.openclaw.gateway.controlUi.allowedOrigins }}
-        }
+        },
+        "trustedProxies": {{ toJson (.Values.openclaw.gateway.trustedProxies | default (list)) }}
       },
       "agents": {
         "defaults": {

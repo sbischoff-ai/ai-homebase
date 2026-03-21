@@ -19,3 +19,27 @@ helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
 {{ toYaml . }}
 {{- end }}
 {{- end -}}
+
+{{- define "platform-stack.certManagerResourceNamespace" -}}
+{{- coalesce .Values.certManager.resourceNamespace .Values.certManagerChart.clusterResourceNamespace .Values.certManagerChart.namespace .Release.Namespace -}}
+{{- end -}}
+
+{{- define "platform-stack.openclawIngressHost" -}}
+{{- $globalHost := .Values.global.hosts.openclaw | default "" -}}
+{{- $defaultHost := .Values.openclaw.ingress.defaultHost | default "" -}}
+{{- $hosts := .Values.openclaw.ingress.hosts | default (list) -}}
+{{- $firstHost := "" -}}
+{{- if and (kindIs "slice" $hosts) (gt (len $hosts) 0) -}}
+  {{- $firstHost = default "" (get (index $hosts 0) "host") -}}
+{{- end -}}
+{{- coalesce $firstHost $defaultHost $globalHost -}}
+{{- end -}}
+
+{{- define "platform-stack.openclawTlsSecretName" -}}
+{{- $tls := .Values.openclaw.ingress.tls | default (list) -}}
+{{- $secretName := "" -}}
+{{- if and (kindIs "slice" $tls) (gt (len $tls) 0) -}}
+  {{- $secretName = default "" (get (index $tls 0) "secretName") -}}
+{{- end -}}
+{{- $secretName -}}
+{{- end -}}

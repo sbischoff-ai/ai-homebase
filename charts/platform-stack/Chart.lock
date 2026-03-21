@@ -1,4 +1,7 @@
 dependencies:
+- name: cert-manager
+  repository: oci://quay.io/jetstack/charts
+  version: v1.20.0
 - name: openclaw
   repository: file://../openclaw
   version: 0.1.0
@@ -20,5 +23,5 @@ dependencies:
 - name: shared-redis
   repository: file://../shared-redis
   version: 0.1.0
-digest: sha256:6c09d3e25409a6b13816f4364987ea6564e7b94c89949356d3b7d1fd44b25767
-generated: "2026-03-21T18:40:23.46594055Z"
+digest: sha256:e680612dd6f7a73f3e70d90152308fffafdd19db8b45f6b91c1a8a8c85f2bd65
+generated: "2026-03-21T19:09:34.475388379Z"

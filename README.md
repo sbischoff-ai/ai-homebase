@@ -34,3 +34,15 @@ For the validation, install, upgrade, and health-check workflow, use [`docs/runb
 - Command reference: [`docs/commands.md`](./docs/commands.md)
 - Example overlays: [`examples/README.md`](./examples/README.md)
 - Quick target chooser: [`docs/deployment.md`](./docs/deployment.md)
+
+## Internal CA and ingress TLS
+
+The shared platform defaults now deploy `cert-manager`, bootstrap an internal CA, and issue the OpenClaw ingress certificate from that CA. Clients that connect to the OpenClaw HTTPS hostname must trust the exported root CA certificate before browsers or API clients will accept the ingress certificate. Never export the CA private key from Kubernetes; only distribute the public CA certificate.
+
+Extract the public CA certificate with:
+
+```bash
+kubectl get secret platform-stack-root-ca -n <namespace> -o jsonpath='{.data.ca\.crt}' | base64 -d > platform-stack-root-ca.crt
+```
+
+If you override the root CA Secret name or cert-manager resource namespace, adjust the command to match your values.

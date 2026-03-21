@@ -36,6 +36,8 @@ input_path = Path(sys.argv[1])
 output_path = Path(sys.argv[2])
 
 stable_kinds = {
+    "Certificate",
+    "ClusterIssuer",
     "ConfigMap",
     "CronJob",
     "DaemonSet",

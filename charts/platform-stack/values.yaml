@@ -15,6 +15,41 @@ global:
   affinity: {}
   env: []
 
+certManagerChart:
+  crds:
+    enabled: true
+    keep: true
+
+certManager:
+  enabled: true
+  resourceNamespace: ""
+  internalCA:
+    enabled: true
+    selfSignedClusterIssuerName: platform-stack-selfsigned-bootstrap
+    caClusterIssuerName: platform-stack-root-ca
+    rootCertificate:
+      name: platform-stack-root-ca
+      secretName: platform-stack-root-ca
+      commonName: platform-stack.homebase.local
+      duration: 87600h # 10 years
+      renewBefore: 720h # 30 days
+      privateKey:
+        algorithm: ECDSA
+        size: 256
+        rotationPolicy: Always
+      subject:
+        organizations:
+          - ai-homebase
+  openclawCertificate:
+    enabled: true
+    name: openclaw-ingress
+    duration: 2160h # 90 days
+    renewBefore: 360h # 15 days
+    issuerRef:
+      kind: ClusterIssuer
+      group: cert-manager.io
+      name: ""
+
 openclaw:
   enabled: true
   replicaCount: 1
@@ -31,7 +66,10 @@ openclaw:
         paths:
           - path: /
             pathType: Prefix
-    tls: []
+    tls:
+      - secretName: openclaw-tls
+        hosts:
+          - openclaw.homebase.local
   service:
     type: ClusterIP
     port: 18789
@@ -54,7 +92,8 @@ openclaw:
     gateway:
       controlUi:
         allowedOrigins:
-          - http://openclaw.homebase.local
+          - https://openclaw.homebase.local
+      trustedProxies: []
     agents:
       defaults:
         sandbox:
