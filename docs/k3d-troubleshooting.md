@@ -8,6 +8,7 @@ Use this page when the concise workflow in [`docs/deployment-k3d.md`](./deployme
 
 - `./scripts/k3d-local-bootstrap.sh` exports `KUBECONFIG` to the dedicated kubeconfig path for the lifetime of the script so nested `kubectl` and `helm` calls all target the same local cluster.
 - The local bootstrap disables the default k3s Traefik add-on during cluster creation so Helm-managed `ingress-nginx` is the single intended HTTP/HTTPS ingress controller.
+- `scripts/k3d-up.sh` pins `rancher/k3s:v1.32.11-k3s1` by default so the local cluster is new enough for the repository's current cert-manager CRDs.
 - `k3d` still uses Docker to run the local cluster node containers.
 
 ### OpenClaw sandbox behavior

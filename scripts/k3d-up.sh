@@ -11,6 +11,7 @@ INGRESS_NAMESPACE="${INGRESS_NAMESPACE:-ingress-nginx}"
 INGRESS_RELEASE_NAME="${INGRESS_RELEASE_NAME:-ingress-nginx}"
 INGRESS_CHART_REF="${INGRESS_CHART_REF:-ingress-nginx/ingress-nginx}"
 KUBECONFIG_PATH="${KUBECONFIG_PATH:-${HOME}/.kube/k3d-${CLUSTER_NAME}.yaml}"
+K3S_IMAGE="${K3S_IMAGE:-rancher/k3s:v1.32.11-k3s1}"
 usage() {
   cat <<USAGE
 Usage: $0 [options]
@@ -23,6 +24,7 @@ Options:
   --https-port <port>           Host HTTPS port mapped to LB 443 (default: ${HTTPS_PORT})
   --without-https               Do not map host HTTPS port 443 to the k3s load balancer
   --kubeconfig <path>           Write/use dedicated kubeconfig path (default: ${KUBECONFIG_PATH})
+  --k3s-image <image>           k3s image to use for the cluster (default: ${K3S_IMAGE})
   --verbose                     Stream full command output
   -h, --help                    Show this help message
 USAGE
@@ -35,6 +37,7 @@ while [[ $# -gt 0 ]]; do
     --https-port) HTTPS_PORT="$2"; shift 2 ;;
     --without-https) ENABLE_HTTPS="false"; shift ;;
     --kubeconfig) KUBECONFIG_PATH="$2"; shift 2 ;;
+    --k3s-image) K3S_IMAGE="$2"; shift 2 ;;
     --verbose) BOOTSTRAP_VERBOSE=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
@@ -120,6 +123,7 @@ else
     echo "ℹ Cluster not found; creating new cluster ${CLUSTER_NAME}."
     CREATE_ARGS=(
       --wait
+      --image "$K3S_IMAGE"
       -p "${HTTP_PORT}:80@loadbalancer"
       --volume "/lib/modules:/lib/modules@all"
       --k3s-arg "--disable=traefik@server:*"
@@ -204,6 +208,7 @@ run_quiet kubectl "${KUBECTL_ARGS[@]}" wait --namespace "$INGRESS_NAMESPACE" \
 
 ok "Ingress controller is ready"
 echo "k3d cluster ${CLUSTER_NAME} is ready with ingress-nginx"
+echo "k3s image: ${K3S_IMAGE}"
 echo "Kubeconfig written to: ${KUBECONFIG_PATH}"
 echo "Bootstrap log: ${BOOTSTRAP_LOG_FILE}"
 echo "KUBECONFIG exported for this run: ${KUBECONFIG}"
