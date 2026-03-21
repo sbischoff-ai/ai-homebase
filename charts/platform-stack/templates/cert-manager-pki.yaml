@@ -1,4 +1,4 @@
-{{- $internalCAEnabled := and (.Values.certManager.enabled | default false) (.Values.certManager.internalCA.enabled | default false) -}}
+{{- $internalCAEnabled := and (.Values.certManager.enabled | default false) (.Values.certManager.resourcesEnabled | default false) (.Values.certManager.internalCA.enabled | default false) -}}
 {{- if $internalCAEnabled }}
 {{- $resourceNamespace := include "platform-stack.certManagerResourceNamespace" . -}}
 apiVersion: cert-manager.io/v1

@@ -65,6 +65,13 @@ helm dependency update charts/platform-stack
   --disable-service nextcloud \
   --disable-service gitea \
   > /tmp/platform-stack-core-only.yaml
+
+# Render with cert-manager custom resources explicitly enabled
+helm template platform-stack charts/platform-stack \
+  --namespace ai-homebase \
+  --values charts/platform-stack/values.yaml \
+  --set certManager.resourcesEnabled=true \
+  > /tmp/platform-stack-with-cert-manager-resources.yaml
 ```
 
 ## CI-equivalent checks

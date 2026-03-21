@@ -7,6 +7,21 @@ PROFILE="${PROFILE:-}"
 VALUES_FILES=()
 KUBE_CONTEXT="${KUBE_CONTEXT:-}"
 SET_ARGS=()
+CERT_MANAGER_CRD_WAIT_TIMEOUT="${CERT_MANAGER_CRD_WAIT_TIMEOUT:-180s}"
+CERT_MANAGER_DEPLOYMENT_WAIT_TIMEOUT="${CERT_MANAGER_DEPLOYMENT_WAIT_TIMEOUT:-180s}"
+CERT_MANAGER_CRDS=(
+  certificates.cert-manager.io
+  certificaterequests.cert-manager.io
+  challenges.acme.cert-manager.io
+  clusterissuers.cert-manager.io
+  issuers.cert-manager.io
+  orders.acme.cert-manager.io
+)
+CERT_MANAGER_DEPLOYMENTS=(
+  cert-manager
+  cert-manager-cainjector
+  cert-manager-webhook
+)
 
 normalize_service_key() {
   case "$1" in
@@ -48,6 +63,41 @@ Supported services: openclaw, nextcloud, gitea, paperless-ngx, infisical
 USAGE
 }
 
+helm_upgrade_install() {
+  helm upgrade --install "$RELEASE_NAME" charts/platform-stack \
+    "${HELM_CONTEXT_ARGS[@]}" \
+    --namespace "$NAMESPACE" \
+    --create-namespace \
+    "${VALUES_ARGS[@]}" \
+    "$@" \
+    "${SET_ARGS[@]}"
+}
+
+cert_manager_install_enabled() {
+  helm template "$RELEASE_NAME" charts/platform-stack \
+    "${HELM_CONTEXT_ARGS[@]}" \
+    --namespace "$NAMESPACE" \
+    "${VALUES_ARGS[@]}" \
+    "${SET_ARGS[@]}" \
+    | grep -q 'helm.sh/chart: cert-manager'
+}
+
+wait_for_cert_manager_crds() {
+  local crd
+  for crd in "${CERT_MANAGER_CRDS[@]}"; do
+    echo "Waiting for cert-manager CRD ${crd}"
+    kubectl "${KUBECTL_CONTEXT_ARGS[@]}" wait --for=create "crd/${crd}" --timeout "${CERT_MANAGER_CRD_WAIT_TIMEOUT}"
+  done
+}
+
+wait_for_cert_manager_deployments() {
+  local deployment
+  for deployment in "${CERT_MANAGER_DEPLOYMENTS[@]}"; do
+    echo "Waiting for cert-manager deployment ${deployment} in namespace ${NAMESPACE}"
+    kubectl "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" rollout status "deployment/${deployment}" --timeout "${CERT_MANAGER_DEPLOYMENT_WAIT_TIMEOUT}"
+  done
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --profile) PROFILE="$2"; shift 2 ;;
@@ -83,9 +133,11 @@ if [[ ${#VALUES_FILES[@]} -eq 0 ]]; then
   }
 fi
 
-KUBE_CONTEXT_ARGS=()
+HELM_CONTEXT_ARGS=()
+KUBECTL_CONTEXT_ARGS=()
 if [[ -n "$KUBE_CONTEXT" ]]; then
-  KUBE_CONTEXT_ARGS=(--kube-context "$KUBE_CONTEXT")
+  HELM_CONTEXT_ARGS=(--kube-context "$KUBE_CONTEXT")
+  KUBECTL_CONTEXT_ARGS=(--context "$KUBE_CONTEXT")
 fi
 
 VALUES_ARGS=()
@@ -94,9 +146,14 @@ for values_file in "${VALUES_FILES[@]}"; do
 done
 
 helm dependency update charts/platform-stack
-helm upgrade --install "$RELEASE_NAME" charts/platform-stack \
-  "${KUBE_CONTEXT_ARGS[@]}" \
-  --namespace "$NAMESPACE" \
-  --create-namespace \
-  "${VALUES_ARGS[@]}" \
-  "${SET_ARGS[@]}"
+
+if cert_manager_install_enabled; then
+  echo "Installing cert-manager controller stack before enabling cert-manager custom resources"
+  helm_upgrade_install --set certManager.resourcesEnabled=false
+  wait_for_cert_manager_crds
+  wait_for_cert_manager_deployments
+  echo "Re-running install with cert-manager custom resources enabled"
+  helm_upgrade_install --set certManager.resourcesEnabled=true
+else
+  helm_upgrade_install
+fi

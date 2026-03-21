@@ -14,7 +14,7 @@ Use the homelab entry command:
 ./scripts/install.sh --profile k3s
 ```
 
-For dependency refresh and alternate install wrappers, use [`docs/commands.md`](./commands.md).
+For dependency refresh and alternate install wrappers, use [`docs/commands.md`](./commands.md). When `certManager.enabled=true`, `./scripts/install.sh` automatically does a two-step bootstrap so the first apply installs the cert-manager CRDs/controller stack before the chart renders the internal PKI and OpenClaw certificate resources.
 
 ## 3) Health checks
 

@@ -22,6 +22,7 @@ certManagerChart:
 
 certManager:
   enabled: true
+  resourcesEnabled: false
   resourceNamespace: ""
   internalCA:
     enabled: true

@@ -1,4 +1,4 @@
-{{- $certEnabled := and (.Values.certManager.enabled | default false) (.Values.certManager.openclawCertificate.enabled | default false) (.Values.openclaw.enabled | default false) (.Values.openclaw.ingress.enabled | default false) -}}
+{{- $certEnabled := and (.Values.certManager.enabled | default false) (.Values.certManager.resourcesEnabled | default false) (.Values.certManager.openclawCertificate.enabled | default false) (.Values.openclaw.enabled | default false) (.Values.openclaw.ingress.enabled | default false) -}}
 {{- if $certEnabled }}
 {{- $host := include "platform-stack.openclawIngressHost" . -}}
 {{- $secretName := include "platform-stack.openclawTlsSecretName" . -}}
