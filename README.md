@@ -4,30 +4,33 @@
 
 The repository intentionally supports two targets: `k3d` for local testing and `k3s` for the productive homelab server. Shared Helm values provide the baseline platform posture, while target overlays keep local and homelab deployment behavior explicit.
 
-Use the root README as the orientation page, then move into the deployment entrypoint, full documentation map, configuration, services, and operator commands.
+## Start here
 
-## Choose your path
+- Read the [documentation index](./docs/README.md) for the full map of deeper guides.
+- Review [configuration and values layering](./docs/configuration.md) before changing defaults or overlays.
+- Check [service toggles and contracts](./docs/services.md) when you need service-specific behavior or secret wiring.
 
-- [Deployment entrypoint](./docs/deployment.md)
-- [Full documentation map](./docs/README.md)
-- [Understand configuration and values layering](./docs/configuration.md)
-- [Review service toggles and contracts](./docs/services.md)
-- [See operator commands](./docs/commands.md)
-- [Use example layer-on-top overlays](./examples/README.md)
+## Common next actions
 
-## Minimum bootstrap commands
-
-Local `k3d` bootstrap:
+### Bootstrap a local `k3d` cluster
 
 ```bash
 export OPENAI_API_KEY="<your-openai-api-key>"
 ./scripts/k3d-local-bootstrap.sh --cluster-name ai-homebase-dev
 ```
 
-Homelab `k3s` bootstrap:
+For the full local workflow, troubleshooting, and teardown steps, start with [`docs/deployment-k3d.md`](./docs/deployment-k3d.md).
+
+### Install to the homelab `k3s` target
 
 ```bash
 ./scripts/install.sh --profile k3s
 ```
 
-For the full command catalog, including dependency refresh, lint, render, CI, and helper scripts, see [`docs/commands.md`](./docs/commands.md). For real layer-on-top overlay patterns, see [`examples/README.md`](./examples/README.md).
+For the validation, install, upgrade, and health-check workflow, use [`docs/runbook-homelab.md`](./docs/runbook-homelab.md).
+
+### Look up operator commands and overlays
+
+- Command reference: [`docs/commands.md`](./docs/commands.md)
+- Example overlays: [`examples/README.md`](./examples/README.md)
+- Quick target chooser: [`docs/deployment.md`](./docs/deployment.md)
