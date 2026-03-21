@@ -23,5 +23,5 @@ dependencies:
 - name: shared-redis
   repository: file://../shared-redis
   version: 0.1.0
-digest: sha256:e680612dd6f7a73f3e70d90152308fffafdd19db8b45f6b91c1a8a8c85f2bd65
-generated: "2026-03-21T19:09:34.475388379Z"
+digest: sha256:e1d2319b7c6cad19f677e6c2cf78606b8e13a8deb985a6d8b1c25f855383bafe
+generated: "2026-03-21T20:34:05.691984124Z"

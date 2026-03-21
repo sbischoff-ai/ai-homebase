@@ -21,6 +21,7 @@ Canonical baseline posture in this document refers to `charts/platform-stack/val
 
 - Installed through the umbrella chart as the standard in-cluster certificate controller stack.
 - Baseline posture enables CRD installation plus the controller, webhook, and cainjector deployments.
+- Upstream cert-manager chart values are configured under the canonical umbrella key `cert-manager.*`, while umbrella-specific toggles and PKI resources stay under `certManager.*`.
 - `certManager.resourcesEnabled=false` by default so first-install renders can succeed before the cert-manager CRDs exist; enable it only after the cert-manager CRDs and deployments are ready.
 - `./scripts/install.sh` automatically performs that two-step bootstrap whenever `certManager.enabled=true`: first it installs the controller stack with `certManager.resourcesEnabled=false`, then it waits for the CRDs and cert-manager deployments/webhook to become ready before applying again with `certManager.resourcesEnabled=true`.
 - `certManager.internalCA.enabled=true` uses cert-manager's standard SelfSigned → CA bootstrapping pattern:

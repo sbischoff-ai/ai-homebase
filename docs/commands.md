@@ -72,6 +72,12 @@ helm template platform-stack charts/platform-stack \
   --values charts/platform-stack/values.yaml \
   --set certManager.resourcesEnabled=true \
   > /tmp/platform-stack-with-cert-manager-resources.yaml
+
+# Regression check: rendered manifests must use canonical lowercase cert-manager naming
+if rg -n "certManager[A-Z]|cert[-]manager[A-Z]" /tmp/platform-stack-with-cert-manager-resources.yaml; then
+  echo "Found legacy or mixed-case cert-manager naming" >&2
+  exit 1
+fi
 ```
 
 ## CI-equivalent checks

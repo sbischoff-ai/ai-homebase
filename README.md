@@ -38,7 +38,7 @@ For the validation, install, upgrade, and health-check workflow, use [`docs/runb
 
 ## Internal CA and ingress TLS
 
-The shared platform defaults now deploy `cert-manager`, bootstrap an internal CA, and issue the OpenClaw ingress certificate from that CA. The Helm values now keep cert-manager `cert-manager.io/v1` resources disabled by default so first install can succeed before the CRDs exist; `./scripts/install.sh` automatically performs a two-step bootstrap that enables those resources after the cert-manager CRDs and deployments are ready. Clients that connect to the OpenClaw HTTPS hostname must trust the exported root CA certificate before browsers or API clients will accept the ingress certificate. Never export the CA private key from Kubernetes; only distribute the public CA certificate.
+The shared platform defaults now deploy `cert-manager`, bootstrap an internal CA, and issue the OpenClaw ingress certificate from that CA. The umbrella toggle and PKI resources remain under `certManager.*`, while upstream subchart values now live under the canonical lowercase `cert-manager:` key in umbrella values files. The Helm values keep cert-manager `cert-manager.io/v1` resources disabled by default so first install can succeed before the CRDs exist; `./scripts/install.sh` automatically performs a two-step bootstrap that enables those resources after the cert-manager CRDs and deployments are ready. Clients that connect to the OpenClaw HTTPS hostname must trust the exported root CA certificate before browsers or API clients will accept the ingress certificate. Never export the CA private key from Kubernetes; only distribute the public CA certificate.
 
 Extract the public CA certificate with:
 
