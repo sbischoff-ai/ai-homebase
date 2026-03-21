@@ -37,7 +37,7 @@ scripts/ci/check_golden.sh
 
 ## OpenClaw dedicated config file
 
-The `openclaw` chart renders an `openclaw.json` ConfigMap entry from structured `openclaw.*` values and mounts it into the pod.
+The `openclaw` chart renders an `openclaw.json` ConfigMap entry from structured `openclaw.*` values, then uses it only to bootstrap `/home/node/.openclaw/openclaw.json` when that persistent file does not exist yet. Once bootstrapped, OpenClaw keeps using the PVC-backed file so UI-driven settings survive pod restarts and redeploys.
 
 Relevant sandbox-related value paths:
 

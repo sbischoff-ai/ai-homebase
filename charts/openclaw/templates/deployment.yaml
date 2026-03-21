@@ -5,6 +5,8 @@
 {{- $allowedOriginsIncludesWildcard := has "*" $allowedOrigins }}
 {{- $nonLoopbackBind := not (or (eq $gatewayBind "") (eq $gatewayBind "localhost") (eq $gatewayBind "127.0.0.1") (eq $gatewayBind "::1") (eq $gatewayBind "loopback") (eq $gatewayBind "local")) }}
 {{- $remoteDockerEnabled := .Values.remoteDocker.enabled | default false }}
+{{- $persistentConfigEnabled := and .Values.config.enabled .Values.persistence.enabled }}
+{{- $configPath := ternary (printf "%s/openclaw.json" (trimSuffix "/" .Values.persistence.mountPath)) "/etc/openclaw/openclaw.json" $persistentConfigEnabled }}
 {{- if and (eq $gatewayAuthMode "token") (not .Values.existingSecret) }}
 {{- fail "openclaw.existingSecret is required when openclaw.gateway.auth.mode=token" }}
 {{- end }}
@@ -71,8 +73,68 @@ spec:
       {{- end }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
-      {{- if $remoteDockerEnabled }}
+      {{- if or .Values.config.enabled $remoteDockerEnabled }}
       initContainers:
+        {{- if .Values.config.enabled }}
+        - name: config-permissions
+          image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -eu
+              target_dir={{ ternary "/config-target-root" "/config-target" $persistentConfigEnabled | quote }}
+              target_file="${target_dir}/openclaw.json"
+              mkdir -p "${target_dir}"
+              if [ ! -s /config-source/openclaw.json ]; then
+                echo >&2 "Rendered ConfigMap file /config-source/openclaw.json is missing or empty; verify the openclaw ConfigMap rendered correctly before deployment."
+                exit 1
+              fi
+              if [ -s "${target_file}" ]; then
+                echo "Preserving existing OpenClaw config at ${target_file}."
+                exit 0
+              fi
+              cp -f /config-source/openclaw.json "${target_file}" || {
+                echo >&2 "Failed to bootstrap ${target_file} from /config-source/openclaw.json; verify the writable config target volume is mounted and accessible to the init container."
+                exit 1
+              }
+              chmod 0755 "${target_dir}" || {
+                echo >&2 "Failed to set mode 0755 on ${target_dir} before handing it to the main container."
+                exit 1
+              }
+              chmod 0644 "${target_file}" || {
+                echo >&2 "Failed to set mode 0644 on ${target_file} after bootstrapping the rendered config."
+                exit 1
+              }
+              chown -R 1000:1000 "${target_dir}" || {
+                echo >&2 "Failed to hand ${target_dir} to UID/GID 1000 after bootstrapping the rendered config."
+                exit 1
+              }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: false
+            runAsUser: 0
+            runAsGroup: 0
+            capabilities:
+              drop:
+                - ALL
+              add:
+                - CHOWN
+          volumeMounts:
+            - name: config-source
+              mountPath: /config-source
+              readOnly: true
+            {{- if $persistentConfigEnabled }}
+            - name: data
+              mountPath: /config-target-root
+            {{- else }}
+            - name: config
+              mountPath: /config-target
+            {{- end }}
+        {{- end }}
+        {{- if $remoteDockerEnabled }}
         - name: remote-docker-ssh-permissions
           image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
@@ -133,6 +195,7 @@ spec:
               readOnly: true
             - name: remote-docker-ssh
               mountPath: /ssh-target
+        {{- end }}
       {{- end }}
       containers:
         - name: {{ include "openclaw.name" . }}
@@ -160,7 +223,7 @@ spec:
             - name: OPENCLAW_STATE_DIR
               value: {{ .Values.persistence.mountPath | quote }}
             - name: OPENCLAW_CONFIG_PATH
-              value: /etc/openclaw/openclaw.json
+              value: {{ $configPath | quote }}
             - name: OPENCLAW_SANDBOX
               value: {{ ternary "1" "0" (ne (toString $sandboxMode) "off") | quote }}
             {{- if $remoteDockerEnabled }}
@@ -314,11 +377,9 @@ spec:
             - name: data
               mountPath: {{ .Values.persistence.mountPath }}
             {{- end }}
-            {{- if .Values.config.enabled }}
+            {{- if and .Values.config.enabled (not $persistentConfigEnabled) }}
             - name: config
-              mountPath: /etc/openclaw/openclaw.json
-              subPath: openclaw.json
-              readOnly: true
+              mountPath: /etc/openclaw
             {{- end }}
             {{- if $remoteDockerEnabled }}
             - name: remote-docker-ssh
@@ -338,12 +399,16 @@ spec:
             claimName: {{ default (include "openclaw.fullname" .) .Values.persistence.existingClaim }}
         {{- end }}
         {{- if .Values.config.enabled }}
-        - name: config
+        - name: config-source
           configMap:
             name: {{ include "openclaw.fullname" . }}
             items:
               - key: openclaw.json
                 path: openclaw.json
+        {{- if not $persistentConfigEnabled }}
+        - name: config
+          emptyDir: {}
+        {{- end }}
         {{- end }}
         {{- if $remoteDockerEnabled }}
         - name: remote-docker-ssh-secret

@@ -41,7 +41,7 @@ Canonical baseline posture in this document refers to `charts/platform-stack/val
 ### OpenClaw
 
 - General AI assistant service for user-facing chat/API use.
-- The chart renders `openclaw.json` from structured `openclaw.*` values.
+- The chart renders `openclaw.json` from structured `openclaw.*` values and uses it only to seed `/home/node/.openclaw/openclaw.json` on first start; later UI changes persist on the OpenClaw PVC and are not overwritten on redeploy.
 - OpenClaw defaults to Docker sandboxing with `mode=non-main` and `scope=agent`, plus explicit `docker.*` and `browser.*` sandbox image/runtime settings rendered into `openclaw.json`; the chart intentionally omits `backend` because the shipped OpenClaw image already defaults it to Docker.
 - The browser sandbox config exposes `openclaw.agents.defaults.sandbox.browser.cdpSourceRange` so operators can match the CIDR that reaches the remote browser container's CDP port.
 - `openclaw.remoteDocker.*` exports `DOCKER_HOST` and `HOME`, then mounts SSH credentials for Docker's `ssh://` transport so OpenClaw launches Docker/browser sandboxes on the standard remote daemon without changing the OpenClaw backend away from `docker`.
