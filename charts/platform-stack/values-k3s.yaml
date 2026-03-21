@@ -23,6 +23,10 @@ openclaw:
         paths:
           - path: /
             pathType: Prefix
+    tls:
+      - secretName: openclaw-tls
+        hosts:
+          - openclaw.vpn.homebase.internal
   persistence:
     enabled: true
     size: 50Gi
@@ -41,7 +45,9 @@ openclaw:
     gateway:
       controlUi:
         allowedOrigins:
-          - http://openclaw.vpn.homebase.internal
+          - https://openclaw.vpn.homebase.internal
+      trustedProxies:
+        - 10.42.0.0/16
 
 
 nextcloud:

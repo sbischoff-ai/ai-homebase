@@ -3,8 +3,33 @@
   "type": "object",
   "title": "platform-stack values",
   "additionalProperties": true,
-  "required": ["global", "openclaw"],
+  "required": ["global", "certManager", "openclaw"],
   "properties": {
+    "certManager": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "resourceNamespace": { "type": "string", "default": "" },
+        "internalCA": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "enabled": { "type": "boolean", "default": true },
+            "selfSignedClusterIssuerName": { "type": "string", "minLength": 1 },
+            "caClusterIssuerName": { "type": "string", "minLength": 1 }
+          }
+        },
+        "openclawCertificate": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "enabled": { "type": "boolean", "default": true },
+            "name": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    },
     "global": {
       "type": "object",
       "description": "Shared conventions applied across subcharts.",

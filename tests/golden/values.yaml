@@ -1,20 +1,89 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: platform-stack
+  name: openclaw-ingress
+  namespace: ai-homebase
+spec:
+  commonName: openclaw.homebase.local
+  dnsNames:
+  - openclaw.homebase.local
+  duration: 2160h
+  issuerRef:
+    group: cert-manager.io
+    kind: ClusterIssuer
+    name: platform-stack-root-ca
+  renewBefore: 360h
+  secretName: openclaw-tls
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: platform-stack
+  name: platform-stack-root-ca
+  namespace: ai-homebase
+spec:
+  commonName: platform-stack.homebase.local
+  duration: 87600h
+  isCA: true
+  issuerRef:
+    group: cert-manager.io
+    kind: ClusterIssuer
+    name: platform-stack-selfsigned-bootstrap
+  privateKey:
+    algorithm: ECDSA
+    rotationPolicy: Always
+    size: 256
+  renewBefore: 720h
+  secretName: platform-stack-root-ca
+  subject:
+    organizations:
+    - ai-homebase
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: platform-stack
+  name: platform-stack-root-ca
+spec:
+  ca:
+    secretName: platform-stack-root-ca
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: platform-stack
+  name: platform-stack-selfsigned-bootstrap
+---
 apiVersion: v1
 data:
   openclaw.json: "{\n  \"gateway\": {\n    \"mode\": \"local\",\n    \"bind\": \"\
     lan\",\n    \"port\": 18789,\n    \"auth\": {\n      \"mode\": \"token\",\n  \
     \    \"token\": \"${OPENCLAW_GATEWAY_TOKEN}\"\n    },\n    \"controlUi\": {\n\
-    \      \"enabled\": true,\n      \"allowedOrigins\": [\"http://openclaw.homebase.local\"\
-    ]\n    }\n  },\n  \"agents\": {\n    \"defaults\": {\n      \"workspace\": \"\
-    ~/.openclaw/workspace\",\n      \"sandbox\": {\"browser\":{\"cdpPort\":9222,\"\
-    cdpSourceRange\":\"\",\"enableNoVnc\":true,\"enabled\":true,\"headless\":false,\"\
-    image\":\"openclaw-sandbox-browser:bookworm-slim\",\"network\":\"bridge\",\"noVncPort\"\
-    :6080,\"vncPort\":5900},\"docker\":{\"capDrop\":[\"ALL\"],\"cpus\":1,\"image\"\
-    :\"openclaw-sandbox:bookworm-slim\",\"memory\":\"1g\",\"memorySwap\":\"2g\",\"\
-    network\":\"bridge\",\"pidsLimit\":256,\"readOnlyRoot\":true,\"tmpfs\":[\"/tmp\"\
-    ,\"/var/tmp\",\"/run\"],\"user\":\"1000:1000\",\"workdir\":\"/workspace\"},\"\
-    mode\":\"non-main\",\"scope\":\"agent\"}\n    },\n    \"list\": [{\"id\":\"default\"\
-    ,\"name\":\"OpenClaw Assistant\",\"workspace\":\"~/.openclaw/workspace\"}]\n \
-    \ },\n  \"plugins\": {\"entries\":{}}\n}\n"
+    \      \"enabled\": true,\n      \"allowedOrigins\": [\"https://openclaw.homebase.local\"\
+    ]\n    },\n    \"trustedProxies\": []\n  },\n  \"agents\": {\n    \"defaults\"\
+    : {\n      \"workspace\": \"~/.openclaw/workspace\",\n      \"sandbox\": {\"browser\"\
+    :{\"cdpPort\":9222,\"cdpSourceRange\":\"\",\"enableNoVnc\":true,\"enabled\":true,\"\
+    headless\":false,\"image\":\"openclaw-sandbox-browser:bookworm-slim\",\"network\"\
+    :\"bridge\",\"noVncPort\":6080,\"vncPort\":5900},\"docker\":{\"capDrop\":[\"ALL\"\
+    ],\"cpus\":1,\"image\":\"openclaw-sandbox:bookworm-slim\",\"memory\":\"1g\",\"\
+    memorySwap\":\"2g\",\"network\":\"bridge\",\"pidsLimit\":256,\"readOnlyRoot\"\
+    :true,\"tmpfs\":[\"/tmp\",\"/var/tmp\",\"/run\"],\"user\":\"1000:1000\",\"workdir\"\
+    :\"/workspace\"},\"mode\":\"non-main\",\"scope\":\"agent\"}\n    },\n    \"list\"\
+    : [{\"id\":\"default\",\"name\":\"OpenClaw Assistant\",\"workspace\":\"~/.openclaw/workspace\"\
+    }]\n  },\n  \"plugins\": {\"entries\":{}}\n}\n"
 kind: ConfigMap
 metadata:
   labels:
@@ -391,6 +460,245 @@ spec:
           secretName: openclaw-remote-docker-ssh
       - name: remote-docker-ssh
 ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: certManagerChart
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: certManagerChart
+    app.kubernetes.io/version: v1.20.0
+  name: platform-stack-certManagerChart
+  namespace: ai-homebase
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: controller
+      app.kubernetes.io/instance: platform-stack
+      app.kubernetes.io/name: certManagerChart
+  template:
+    metadata:
+      annotations:
+        prometheus.io/path: /metrics
+        prometheus.io/port: '9402'
+        prometheus.io/scrape: 'true'
+      labels:
+        app: certManagerChart
+        app.kubernetes.io/component: controller
+        app.kubernetes.io/instance: platform-stack
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: certManagerChart
+        app.kubernetes.io/version: v1.20.0
+    spec:
+      containers:
+      - args:
+        - --v=2
+        - --cluster-resource-namespace=$(POD_NAMESPACE)
+        - --leader-election-namespace=kube-system
+        - --acme-http01-solver-image=quay.io/jetstack/cert-manager-acmesolver:v1.20.0
+        - --max-concurrent-challenges=60
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        image: quay.io/jetstack/cert-manager-controller:v1.20.0
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 8
+          httpGet:
+            path: /livez
+            port: http-healthz
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 15
+        name: certManagerChart-controller
+        ports:
+        - containerPort: 9402
+          name: http-metrics
+          protocol: TCP
+        - containerPort: 9403
+          name: http-healthz
+          protocol: TCP
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+      enableServiceLinks: false
+      nodeSelector:
+        kubernetes.io/os: linux
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: platform-stack-certManagerChart
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: cainjector
+    app.kubernetes.io/component: cainjector
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: cainjector
+    app.kubernetes.io/version: v1.20.0
+  name: platform-stack-certManagerChart-cainjector
+  namespace: ai-homebase
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: cainjector
+      app.kubernetes.io/instance: platform-stack
+      app.kubernetes.io/name: cainjector
+  template:
+    metadata:
+      annotations:
+        prometheus.io/path: /metrics
+        prometheus.io/port: '9402'
+        prometheus.io/scrape: 'true'
+      labels:
+        app: cainjector
+        app.kubernetes.io/component: cainjector
+        app.kubernetes.io/instance: platform-stack
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: cainjector
+        app.kubernetes.io/version: v1.20.0
+    spec:
+      containers:
+      - args:
+        - --v=2
+        - --leader-election-namespace=kube-system
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        image: quay.io/jetstack/cert-manager-cainjector:v1.20.0
+        imagePullPolicy: IfNotPresent
+        name: certManagerChart-cainjector
+        ports:
+        - containerPort: 9402
+          name: http-metrics
+          protocol: TCP
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+      enableServiceLinks: false
+      nodeSelector:
+        kubernetes.io/os: linux
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: platform-stack-certManagerChart-cainjector
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: webhook
+    app.kubernetes.io/component: webhook
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: webhook
+    app.kubernetes.io/version: v1.20.0
+  name: platform-stack-certManagerChart-webhook
+  namespace: ai-homebase
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: webhook
+      app.kubernetes.io/instance: platform-stack
+      app.kubernetes.io/name: webhook
+  template:
+    metadata:
+      annotations:
+        prometheus.io/path: /metrics
+        prometheus.io/port: '9402'
+        prometheus.io/scrape: 'true'
+      labels:
+        app: webhook
+        app.kubernetes.io/component: webhook
+        app.kubernetes.io/instance: platform-stack
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: webhook
+        app.kubernetes.io/version: v1.20.0
+    spec:
+      containers:
+      - args:
+        - --v=2
+        - --secure-port=10250
+        - --dynamic-serving-ca-secret-namespace=$(POD_NAMESPACE)
+        - --dynamic-serving-ca-secret-name=platform-stack-certManagerChart-webhook-ca
+        - --dynamic-serving-dns-names=platform-stack-certManagerChart-webhook
+        - --dynamic-serving-dns-names=platform-stack-certManagerChart-webhook.$(POD_NAMESPACE)
+        - --dynamic-serving-dns-names=platform-stack-certManagerChart-webhook.$(POD_NAMESPACE).svc
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        image: quay.io/jetstack/cert-manager-webhook:v1.20.0
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /livez
+            port: healthcheck
+            scheme: HTTP
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: certManagerChart-webhook
+        ports:
+        - containerPort: 10250
+          name: https
+          protocol: TCP
+        - containerPort: 6080
+          name: healthcheck
+          protocol: TCP
+        - containerPort: 9402
+          name: http-metrics
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /healthz
+            port: healthcheck
+            scheme: HTTP
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          successThreshold: 1
+          timeoutSeconds: 1
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+      enableServiceLinks: false
+      nodeSelector:
+        kubernetes.io/os: linux
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: platform-stack-certManagerChart-webhook
+---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -460,6 +768,10 @@ spec:
               number: 18789
         path: /
         pathType: Prefix
+  tls:
+  - hosts:
+    - openclaw.homebase.local
+    secretName: openclaw-tls
 ---
 apiVersion: batch/v1
 kind: Job
@@ -486,6 +798,64 @@ spec:
         name: infisical-schema-migration
       restartPolicy: OnFailure
       serviceAccountName: platform-stack-infisical
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  annotations:
+    helm.sh/hook: post-install
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+    helm.sh/hook-weight: '1'
+  labels:
+    app: startupapicheck
+    app.kubernetes.io/component: startupapicheck
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: startupapicheck
+    app.kubernetes.io/version: v1.20.0
+  name: platform-stack-certManagerChart-startupapicheck
+  namespace: ai-homebase
+spec:
+  backoffLimit: 4
+  template:
+    metadata:
+      labels:
+        app: startupapicheck
+        app.kubernetes.io/component: startupapicheck
+        app.kubernetes.io/instance: platform-stack
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: startupapicheck
+        app.kubernetes.io/version: v1.20.0
+    spec:
+      containers:
+      - args:
+        - check
+        - api
+        - --wait=1m
+        - -v
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        image: quay.io/jetstack/cert-manager-startupapicheck:v1.20.0
+        imagePullPolicy: IfNotPresent
+        name: certManagerChart-startupapicheck
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+      enableServiceLinks: false
+      nodeSelector:
+        kubernetes.io/os: linux
+      restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: platform-stack-certManagerChart-startupapicheck
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -611,6 +981,81 @@ spec:
   type: ClusterIP
 ---
 apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: certManagerChart
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: certManagerChart
+    app.kubernetes.io/version: v1.20.0
+  name: platform-stack-certManagerChart
+  namespace: ai-homebase
+spec:
+  ports:
+  - name: tcp-prometheus-servicemonitor
+    port: 9402
+    protocol: TCP
+    targetPort: http-metrics
+  selector:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/name: certManagerChart
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: cainjector
+    app.kubernetes.io/component: cainjector
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: cainjector
+    app.kubernetes.io/version: v1.20.0
+  name: platform-stack-certManagerChart-cainjector
+  namespace: ai-homebase
+spec:
+  ports:
+  - name: http-metrics
+    port: 9402
+    protocol: TCP
+  selector:
+    app.kubernetes.io/component: cainjector
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/name: cainjector
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: webhook
+    app.kubernetes.io/component: webhook
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: webhook
+    app.kubernetes.io/version: v1.20.0
+  name: platform-stack-certManagerChart-webhook
+  namespace: ai-homebase
+spec:
+  ports:
+  - name: https
+    port: 443
+    protocol: TCP
+    targetPort: https
+  - name: metrics
+    port: 9402
+    protocol: TCP
+    targetPort: http-metrics
+  selector:
+    app.kubernetes.io/component: webhook
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/name: webhook
+  type: ClusterIP
+---
+apiVersion: v1
 automountServiceAccountToken: false
 kind: ServiceAccount
 metadata:
@@ -619,6 +1064,66 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: openclaw
   name: platform-stack-openclaw
+---
+apiVersion: v1
+automountServiceAccountToken: true
+kind: ServiceAccount
+metadata:
+  labels:
+    app: certManagerChart
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: certManagerChart
+    app.kubernetes.io/version: v1.20.0
+  name: platform-stack-certManagerChart
+  namespace: ai-homebase
+---
+apiVersion: v1
+automountServiceAccountToken: true
+kind: ServiceAccount
+metadata:
+  labels:
+    app: cainjector
+    app.kubernetes.io/component: cainjector
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: cainjector
+    app.kubernetes.io/version: v1.20.0
+  name: platform-stack-certManagerChart-cainjector
+  namespace: ai-homebase
+---
+apiVersion: v1
+automountServiceAccountToken: true
+kind: ServiceAccount
+metadata:
+  annotations:
+    helm.sh/hook: post-install
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+    helm.sh/hook-weight: '-5'
+  labels:
+    app: startupapicheck
+    app.kubernetes.io/component: startupapicheck
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: startupapicheck
+    app.kubernetes.io/version: v1.20.0
+  name: platform-stack-certManagerChart-startupapicheck
+  namespace: ai-homebase
+---
+apiVersion: v1
+automountServiceAccountToken: true
+kind: ServiceAccount
+metadata:
+  labels:
+    app: webhook
+    app.kubernetes.io/component: webhook
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: webhook
+    app.kubernetes.io/version: v1.20.0
+  name: platform-stack-certManagerChart-webhook
+  namespace: ai-homebase
 ---
 apiVersion: v1
 kind: ServiceAccount

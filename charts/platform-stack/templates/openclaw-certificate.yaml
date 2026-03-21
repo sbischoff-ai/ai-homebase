@@ -1,0 +1,29 @@
+{{- $certEnabled := and (.Values.certManager.enabled | default false) (.Values.certManager.openclawCertificate.enabled | default false) (.Values.openclaw.enabled | default false) (.Values.openclaw.ingress.enabled | default false) -}}
+{{- if $certEnabled }}
+{{- $host := include "platform-stack.openclawIngressHost" . -}}
+{{- $secretName := include "platform-stack.openclawTlsSecretName" . -}}
+{{- if not $host }}
+{{- fail "certManager.openclawCertificate.enabled=true requires an OpenClaw ingress host" }}
+{{- end }}
+{{- if not $secretName }}
+{{- fail "certManager.openclawCertificate.enabled=true requires openclaw.ingress.tls[0].secretName" }}
+{{- end }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .Values.certManager.openclawCertificate.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "platform-stack.labels" . | nindent 4 }}
+spec:
+  secretName: {{ $secretName }}
+  commonName: {{ $host | quote }}
+  dnsNames:
+    - {{ $host | quote }}
+  duration: {{ .Values.certManager.openclawCertificate.duration }}
+  renewBefore: {{ .Values.certManager.openclawCertificate.renewBefore }}
+  issuerRef:
+    name: {{ default .Values.certManager.internalCA.caClusterIssuerName .Values.certManager.openclawCertificate.issuerRef.name }}
+    kind: {{ .Values.certManager.openclawCertificate.issuerRef.kind }}
+    group: {{ .Values.certManager.openclawCertificate.issuerRef.group }}
+{{- end }}

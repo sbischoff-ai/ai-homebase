@@ -1,0 +1,48 @@
+{{- $internalCAEnabled := and (.Values.certManager.enabled | default false) (.Values.certManager.internalCA.enabled | default false) -}}
+{{- if $internalCAEnabled }}
+{{- $resourceNamespace := include "platform-stack.certManagerResourceNamespace" . -}}
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: {{ .Values.certManager.internalCA.selfSignedClusterIssuerName }}
+  labels:
+    {{- include "platform-stack.labels" . | nindent 4 }}
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .Values.certManager.internalCA.rootCertificate.name }}
+  namespace: {{ $resourceNamespace }}
+  labels:
+    {{- include "platform-stack.labels" . | nindent 4 }}
+spec:
+  isCA: true
+  commonName: {{ .Values.certManager.internalCA.rootCertificate.commonName | quote }}
+  secretName: {{ .Values.certManager.internalCA.rootCertificate.secretName }}
+  duration: {{ .Values.certManager.internalCA.rootCertificate.duration }}
+  renewBefore: {{ .Values.certManager.internalCA.rootCertificate.renewBefore }}
+  privateKey:
+    algorithm: {{ .Values.certManager.internalCA.rootCertificate.privateKey.algorithm }}
+    size: {{ .Values.certManager.internalCA.rootCertificate.privateKey.size }}
+    rotationPolicy: {{ .Values.certManager.internalCA.rootCertificate.privateKey.rotationPolicy }}
+  {{- with .Values.certManager.internalCA.rootCertificate.subject }}
+  subject:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  issuerRef:
+    name: {{ .Values.certManager.internalCA.selfSignedClusterIssuerName }}
+    kind: ClusterIssuer
+    group: cert-manager.io
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: {{ .Values.certManager.internalCA.caClusterIssuerName }}
+  labels:
+    {{- include "platform-stack.labels" . | nindent 4 }}
+spec:
+  ca:
+    secretName: {{ .Values.certManager.internalCA.rootCertificate.secretName }}
+{{- end }}

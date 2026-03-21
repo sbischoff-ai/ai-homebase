@@ -78,10 +78,15 @@ Use `global.*` for shared conventions such as domain names, storage defaults, im
 
 Use service-specific blocks when behavior must diverge, especially for:
 
+- `certManager.*`
 - `openclaw.*`
 - Secret references and env contracts
 - Persistence and ingress controls
 - OpenClaw sandbox settings
+
+`certManager.internalCA.*` controls the internal PKI bootstrap resources (SelfSigned bootstrap issuer, root CA certificate Secret, and CA ClusterIssuer), while the OpenClaw ingress hostname and TLS Secret remain driven by `openclaw.ingress.hosts[*]` and `openclaw.ingress.tls[*]`. Keep those values aligned so the cert-manager `Certificate` and the rendered ingress reference the same hostname and Secret.
+
+For reverse-proxied OpenClaw deployments, set `openclaw.openclaw.gateway.trustedProxies` to the ingress-controller source CIDRs or IPs for the active target overlay. Keep `openclaw.openclaw.gateway.controlUi.allowedOrigins` on the external HTTPS origin, while OpenClaw itself continues serving plain HTTP behind the ingress controller.
 
 ## Toggle strategy for service composition
 

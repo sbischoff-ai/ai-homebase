@@ -84,6 +84,7 @@ openclaw:
       enabled: true
       allowedOrigins:
         - https://openclaw.example.com
+    trustedProxies: []
   agents:
     defaults:
       workspace: ~/.openclaw/workspace

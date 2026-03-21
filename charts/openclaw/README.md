@@ -61,8 +61,11 @@ With ingress enabled by default, make sure all of the following stay aligned:
 2. TLS for that hostname (`ingress.tls`) when your environment requires HTTPS.
 3. `openclaw.gateway.controlUi.allowedOrigins` to exact browser origin(s), for example:
    - `https://openclaw.example.com`
+4. `openclaw.gateway.trustedProxies` to the ingress-controller source CIDRs or IPs that set forwarded headers for OpenClaw.
 
 For non-loopback binds, wildcard origins are intentionally rejected.
+
+When TLS terminates at the ingress controller, keep OpenClaw itself on HTTP and set `openclaw.gateway.trustedProxies` to the proxy addresses that forward `X-Forwarded-For` / `X-Real-IP`. For the repo's standard in-cluster nginx ingress posture, this is typically the pod CIDR used by the controller deployment.
 
 ## First-use auth and pairing behavior
 
