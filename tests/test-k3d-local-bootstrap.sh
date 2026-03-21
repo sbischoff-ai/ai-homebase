@@ -68,6 +68,7 @@ SH
   assert_contains "${output}" "  Kubeconfig path: ${kubeconfig_path}"
   assert_contains "${output}" "  OpenClaw URL: http://openclaw.localtest.me"
   assert_contains "${output}" "  OpenClaw default model: ${expected_model}"
+  assert_contains "${output}" "  Gitea URL: http://gitea.localtest.me"
   assert_contains "${output}" "  Infisical URL: http://infisical.localtest.me"
 
   case "${case_name}" in

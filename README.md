@@ -23,7 +23,7 @@ export OPENAI_API_KEY="<your-openai-api-key>"
 
 For the full local workflow, troubleshooting, and teardown steps, start with [`docs/deployment-k3d.md`](./docs/deployment-k3d.md).
 The local k3d bootstrap pins a Kubernetes 1.32-compatible k3s image by default; override it with `K3S_IMAGE=<image>` if you need a different supported version.
-On success, the bootstrap summary prints the kubeconfig path, the OpenClaw gateway token, the auto-selected default OpenClaw model (when a model-provider API key was exported), and the local service URLs. If OpenClaw asks for first-use pairing approval, use the documented `kubectl exec ... openclaw devices ...` flow in [`docs/deployment-k3d.md`](./docs/deployment-k3d.md#4-first-use-openclaw-token-and-device-pairing).
+On success, the bootstrap summary prints the kubeconfig path, the OpenClaw gateway token, the auto-selected default OpenClaw model (when a model-provider API key was exported), and the local OpenClaw, Gitea, and Infisical URLs. If OpenClaw asks for first-use pairing approval, use the documented `kubectl exec ... openclaw devices ...` flow in [`docs/deployment-k3d.md`](./docs/deployment-k3d.md#4-first-use-openclaw-token-and-device-pairing).
 
 ### Install to the homelab `k3s` target
 

@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import re
 import subprocess
-from pathlib import Path
 
 LEGACY_CERT_MANAGER_PATTERN = re.compile(r"certManager[A-Z]")
 
@@ -121,8 +120,61 @@ def document_kind_name(doc: str) -> tuple[str | None, str | None]:
     return kind, name
 
 
+def document_metadata_labels(doc: str) -> dict[str, str]:
+    labels: dict[str, str] = {}
+    in_metadata = False
+    in_labels = False
+
+    for line in doc.splitlines():
+        if line == "metadata:":
+            in_metadata = True
+            in_labels = False
+            continue
+
+        if in_metadata and line and not line.startswith("  "):
+            break
+
+        if not in_metadata:
+            continue
+
+        if line == "  labels:":
+            in_labels = True
+            continue
+
+        if in_labels:
+            if line and not line.startswith("    "):
+                in_labels = False
+                continue
+            if line.startswith("    ") and ":" in line:
+                key, value = line.strip().split(":", 1)
+                labels[key.strip()] = value.strip().strip('"')
+
+    return labels
+
+
 def rendered_resources(rendered: str) -> set[tuple[str | None, str | None]]:
     return {document_kind_name(doc) for doc in split_documents(rendered)}
+
+
+def docs_with_labels(rendered: str, *, kind: str | None = None) -> list[tuple[str, dict[str, str]]]:
+    docs: list[tuple[str, dict[str, str]]] = []
+    for doc in split_documents(rendered):
+        doc_kind, _ = document_kind_name(doc)
+        if kind is not None and doc_kind != kind:
+            continue
+        docs.append((doc, document_metadata_labels(doc)))
+    return docs
+
+
+def gitea_labeled_docs(rendered: str, *, kind: str | None = None) -> list[str]:
+    matches: list[str] = []
+    for doc, labels in docs_with_labels(rendered, kind=kind):
+        if labels.get("app.kubernetes.io/instance") != "platform-stack":
+            continue
+        if labels.get("app.kubernetes.io/name") != "gitea":
+            continue
+        matches.append(doc)
+    return matches
 
 
 def find_document(rendered: str, *, kind: str, name: str) -> str | None:
@@ -161,15 +213,13 @@ def assert_gitea_single_path(case: dict[str, object], rendered: str, resources: 
             f"{case['name']} still renders removed local gitea wrapper templates: {legacy_sources}"
         )
 
-    workload_kinds = {"StatefulSet", "Deployment"}
-    workload_count = sum(
-        1
-        for kind, resource_name in resources
-        if resource_name == "platform-stack-gitea" and kind in workload_kinds
-    )
+    workload_kinds = ("StatefulSet", "Deployment")
+    workload_count = sum(len(gitea_labeled_docs(rendered, kind=kind)) for kind in workload_kinds)
+    if workload_count == 0:
+        raise SystemExit(f"{case['name']} rendered no labeled gitea workload resources")
     if workload_count > 1:
         raise SystemExit(
-            f"{case['name']} rendered multiple gitea workloads for platform-stack-gitea: {workload_count}"
+            f"{case['name']} rendered multiple labeled gitea workloads: {workload_count}"
         )
 
 
@@ -213,19 +263,36 @@ def assert_k3d_default_ingress_classes() -> None:
             )
 
 
-def assert_k3d_gitea_overlay_values() -> None:
-    values_text = Path(K3D_VALUES).read_text()
-    required_snippets = {
-        "gitea:\n  enabled: true": "gitea.enabled=true",
-        "    gitea: gitea.localtest.me": "global.hosts.gitea=gitea.localtest.me",
-        "      className: nginx": "gitea.gitea.ingress.className=nginx",
-        "        - host: gitea.localtest.me": "gitea.gitea.ingress.hosts[0].host=gitea.localtest.me",
-        "      size: 5Gi": "gitea.gitea.persistence.size=5Gi",
-        "      storageClass: local-path": "gitea.gitea.persistence.storageClass=local-path",
-    }
-    for snippet, description in required_snippets.items():
-        if snippet not in values_text:
-            raise SystemExit(f"k3d overlay must set {description}")
+def assert_k3d_gitea_overlay_resources() -> None:
+    rendered = render_template(BASE_VALUES, K3D_VALUES)
+
+    workload_docs = gitea_labeled_docs(rendered, kind="StatefulSet") + gitea_labeled_docs(rendered, kind="Deployment")
+    if not workload_docs:
+        raise SystemExit("k3d overlay did not render a labeled gitea workload")
+
+    service_docs = gitea_labeled_docs(rendered, kind="Service")
+    if not service_docs:
+        raise SystemExit("k3d overlay did not render a labeled gitea Service")
+
+    ingress_docs = gitea_labeled_docs(rendered, kind="Ingress")
+    if not ingress_docs:
+        raise SystemExit("k3d overlay did not render a labeled gitea Ingress")
+
+    ingress = ingress_docs[0]
+    rendered_class_name = ingress_class_name(ingress)
+    if rendered_class_name != "nginx":
+        raise SystemExit(
+            f"k3d overlay rendered gitea ingressClassName={rendered_class_name!r}, expected 'nginx'"
+        )
+    hosts = ingress_hosts(ingress)
+    if "gitea.localtest.me" not in hosts:
+        raise SystemExit(
+            f"k3d overlay rendered gitea ingress hosts={hosts!r}, expected 'gitea.localtest.me'"
+        )
+
+    pvc_docs = gitea_labeled_docs(rendered, kind="PersistentVolumeClaim")
+    if not pvc_docs:
+        raise SystemExit("k3d overlay did not render a labeled gitea PersistentVolumeClaim")
 
 
 def main() -> None:
@@ -252,8 +319,8 @@ def main() -> None:
     assert_k3d_default_ingress_classes()
     print("k3d overlay: asserted nginx ingressClassName + expected hosts for OpenClaw/Infisical")
 
-    assert_k3d_gitea_overlay_values()
-    print("k3d overlay: asserted gitea is enabled with local ingress + persistence values")
+    assert_k3d_gitea_overlay_resources()
+    print("k3d overlay: asserted rendered gitea workload/service/ingress/pvc resources")
 
 
 if __name__ == "__main__":

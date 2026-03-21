@@ -198,5 +198,6 @@ if [[ -n "$OPENCLAW_DEFAULT_MODEL" ]]; then
 else
   echo "  OpenClaw default model: not auto-configured (no model-provider API key was set; search-only keys still bootstrap web tools)"
 fi
+echo "  Gitea URL: http://gitea.localtest.me"
 echo "  Infisical URL: http://infisical.localtest.me"
 echo "  Bootstrap log: ${BOOTSTRAP_LOG_FILE}"
