@@ -43,7 +43,6 @@ The `openclaw` chart renders an `openclaw.json` ConfigMap entry from structured 
 Relevant sandbox-related value paths:
 
 - `openclaw.agents.defaults.sandbox.mode`
-- `openclaw.agents.defaults.sandbox.backend`
 - `openclaw.agents.defaults.sandbox.scope`
 - `openclaw.agents.defaults.sandbox.docker.*`
 - `openclaw.agents.defaults.sandbox.browser.*`

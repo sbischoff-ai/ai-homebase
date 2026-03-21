@@ -84,7 +84,7 @@ It is **not intended to be a hostile multi-tenant shared service**.
 
 ## Sandbox configuration
 
-The chart renders `agents.defaults.sandbox.*` plus `plugins.*` into `openclaw.json`. The shipped defaults set up Docker sandboxing with explicit `docker.*` and `browser.*` fields, including `browser.cdpSourceRange` for remote browser access control, and keep `remoteDocker.enabled=true` so the Deployment exports `DOCKER_HOST`/`HOME`, prepares an SSH directory at `remoteDocker.ssh.mountPath`, and mounts the referenced Secret for the standard remote Docker path while OpenClaw still uses the `docker` backend.
+The chart renders `agents.defaults.sandbox.*` plus `plugins.*` into `openclaw.json`. The shipped defaults set up Docker sandboxing with explicit `docker.*` and `browser.*` fields, including `browser.cdpSourceRange` for remote browser access control, and keep `remoteDocker.enabled=true` so the Deployment exports `DOCKER_HOST`/`HOME`, prepares an SSH directory at `remoteDocker.ssh.mountPath`, and mounts the referenced Secret for the standard remote Docker path while OpenClaw relies on its implicit default Docker backend instead of an explicit `backend` key.
 
 Remote Docker mode assumes the OpenClaw container image already includes both:
 

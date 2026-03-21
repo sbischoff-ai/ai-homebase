@@ -155,7 +155,6 @@
                   "additionalProperties": true,
                   "properties": {
                     "mode": { "type": "string", "default": "non-main" },
-                    "backend": { "type": "string", "default": "docker" },
                     "scope": { "type": "string", "default": "agent" },
                     "docker": {
                       "type": "object",

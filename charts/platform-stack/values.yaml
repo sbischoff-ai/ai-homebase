@@ -60,7 +60,6 @@ openclaw:
       defaults:
         sandbox:
           mode: non-main
-          backend: docker
           scope: agent
           docker:
             image: openclaw-sandbox:bookworm-slim
