@@ -22,7 +22,7 @@ openclaw:
           - path: /
             pathType: Prefix
   persistence:
-    enabled: false
+    enabled: true
   remoteDocker:
     enabled: true
     dockerHost: ssh://docker-remote@host.k3d.internal:2222
@@ -46,7 +46,7 @@ openclaw:
     gateway:
       controlUi:
         allowedOrigins:
-          - http://openclaw.localtest.me
+          - https://openclaw.localtest.me
 
 
 nextcloud:

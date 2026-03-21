@@ -3,7 +3,7 @@ data:
   openclaw.json: "{\n  \"gateway\": {\n    \"mode\": \"local\",\n    \"bind\": \"\
     lan\",\n    \"port\": 18789,\n    \"auth\": {\n      \"mode\": \"token\",\n  \
     \    \"token\": \"${OPENCLAW_GATEWAY_TOKEN}\"\n    },\n    \"controlUi\": {\n\
-    \      \"enabled\": true,\n      \"allowedOrigins\": [\"http://openclaw.localtest.me\"\
+    \      \"enabled\": true,\n      \"allowedOrigins\": [\"https://openclaw.localtest.me\"\
     ]\n    }\n  },\n  \"agents\": {\n    \"defaults\": {\n      \"workspace\": \"\
     ~/.openclaw/workspace\",\n      \"sandbox\": {\"browser\":{\"cdpPort\":9222,\"\
     cdpSourceRange\":\"\",\"enableNoVnc\":true,\"enabled\":true,\"headless\":false,\"\
@@ -250,6 +250,8 @@ spec:
         volumeMounts:
         - mountPath: /tmp
           name: tmp
+        - mountPath: /home/node/.openclaw
+          name: data
         - mountPath: /etc/openclaw/openclaw.json
           name: config
           readOnly: true
@@ -318,6 +320,9 @@ spec:
       - emptyDir:
           medium: Memory
         name: tmp
+      - name: data
+        persistentVolumeClaim:
+          claimName: platform-stack-openclaw
       - configMap:
           items:
           - key: openclaw.json
@@ -401,6 +406,21 @@ spec:
         name: infisical-schema-migration
       restartPolicy: OnFailure
       serviceAccountName: platform-stack-infisical
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: openclaw
+  name: platform-stack-openclaw
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
 ---
 apiVersion: v1
 kind: Service
