@@ -133,7 +133,10 @@ for values_path in (
     REPO_ROOT / "charts" / "gitea" / "values.yaml",
     REPO_ROOT / "charts" / "platform-stack" / "values.yaml",
 ):
-    assert "actions:" not in values_path.read_text()
+    values_text = values_path.read_text()
+    assert "actions:" not in values_text
+    assert "repository: docker.gitea.com/gitea" in values_text
+    assert 'tag: "1.25.5"' in values_text
 
 assert len(module.gitea_rendered_docs(RENDERED_WITH_LABELS, kind="StatefulSet")) == 1
 assert len(module.gitea_rendered_docs(RENDERED_WITH_LABELS, kind="Service")) == 1
