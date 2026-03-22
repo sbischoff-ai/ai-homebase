@@ -305,7 +305,7 @@ psql -v ON_ERROR_STOP=1 \
   --username "\${POSTGRES_USER:-postgres}" \
   --dbname postgres \
   --set=gitea_db_password="\${GITEA_DB_PASSWORD}" \
-  --set=vaultwarden_db_password="\${VAULTWARDEN_DB_PASSWORD}" <<SQL
+  --set=vaultwarden_db_password="\${VAULTWARDEN_DB_PASSWORD}" <<'SQL'
 DO \$\$
 BEGIN
   IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'gitea') THEN
