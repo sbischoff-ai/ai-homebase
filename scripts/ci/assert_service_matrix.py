@@ -239,6 +239,16 @@ def ingress_class_name(doc: str) -> str | None:
     return None if match is None else match.group(1).strip('"')
 
 
+def has_local_path_5gi_persistence(doc: str) -> bool:
+    storage_class_patterns = (
+        r"^\s*storageClassName:\s*['\"]?local-path['\"]?\s*$",
+        r"^\s*storageClass:\s*['\"]?local-path['\"]?\s*$",
+    )
+    has_storage_class = any(re.search(pattern, doc, flags=re.MULTILINE) for pattern in storage_class_patterns)
+    has_storage_request = re.search(r"^\s*storage:\s*['\"]?5Gi['\"]?\s*$", doc, flags=re.MULTILINE) is not None
+    return has_storage_class and has_storage_request
+
+
 def assert_removed_platform_settings_configmap(resources: set[tuple[str | None, str | None]]) -> None:
     removed = ("ConfigMap", "platform-stack-platform-stack-settings")
     if removed in resources:
@@ -339,14 +349,13 @@ def assert_k3d_gitea_overlay_resources() -> None:
     for statefulset in statefulset_docs:
         if (
             "volumeClaimTemplates:" in statefulset
-            and "storageClassName: local-path" in statefulset
-            and "storage: 5Gi" in statefulset
+            and has_local_path_5gi_persistence(statefulset)
         ):
             return
 
     pvc_docs = gitea_rendered_docs(rendered, kind="PersistentVolumeClaim")
     for pvc in pvc_docs:
-        if "storageClassName: local-path" in pvc and "storage: 5Gi" in pvc:
+        if has_local_path_5gi_persistence(pvc):
             return
 
     raise SystemExit(
