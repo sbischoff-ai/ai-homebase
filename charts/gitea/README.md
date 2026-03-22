@@ -2,7 +2,7 @@
 
 This wrapper chart keeps local/offline-friendly platform dependency wiring while pinning the upstream `gitea/gitea` chart version.
 
-The default application image is the upstream rootless variant, configured as `docker.gitea.com/gitea:1.25.5` with `image.rootless=true` so the chart resolves to `docker.gitea.com/gitea:1.25.5-rootless`. The dedicated `docker.gitea.com` registry uses a single `gitea` path segment, so the older Docker Hub-style `gitea/gitea` repository path must not be used there.
+The default application image is the upstream rootless variant, configured with `image.repository=gitea` and `image.rootless=true`, so the upstream chart resolves the workload image to `docker.gitea.com/gitea:1.25.5-rootless`. The upstream chart already supplies the `docker.gitea.com` registry separately, so repeating it inside `image.repository` creates the invalid `docker.gitea.com/docker.gitea.com/gitea` pull path.
 
 ## Deployment model
 
