@@ -184,6 +184,11 @@ def document_metadata_labels(doc: str) -> dict[str, str]:
     return labels
 
 
+def document_source(doc: str) -> str | None:
+    match = re.search(r"^# Source:\s*(.+)$", doc, re.MULTILINE)
+    return None if match is None else match.group(1).strip()
+
+
 def rendered_resources(rendered: str) -> set[tuple[str | None, str | None]]:
     return {document_kind_name(doc) for doc in split_documents(rendered)}
 
@@ -201,6 +206,10 @@ def docs_with_labels(rendered: str, *, kind: str | None = None) -> list[tuple[st
 def gitea_rendered_docs(rendered: str, *, kind: str | None = None) -> list[str]:
     matches: list[str] = []
     for doc, labels in docs_with_labels(rendered, kind=kind):
+        source = document_source(doc) or ""
+        if "charts/gitea/charts/gitea/templates/gitea/" in source or "charts/gitea/templates/gitea/" in source:
+            matches.append(doc)
+            continue
         _, resource_name = document_kind_name(doc)
         if resource_name is not None and "platform-stack-gitea" in resource_name:
             matches.append(doc)
@@ -327,16 +336,22 @@ def assert_k3d_gitea_overlay_resources() -> None:
             f"k3d overlay rendered gitea ingress hosts={hosts!r}, expected 'gitea.localtest.me'"
         )
 
-    if not statefulset_docs:
-        raise SystemExit("k3d overlay did not render the expected gitea StatefulSet")
+    for statefulset in statefulset_docs:
+        if (
+            "volumeClaimTemplates:" in statefulset
+            and "storageClassName: local-path" in statefulset
+            and "storage: 5Gi" in statefulset
+        ):
+            return
 
-    statefulset = statefulset_docs[0]
-    if "volumeClaimTemplates:" not in statefulset:
-        raise SystemExit("k3d overlay rendered gitea without StatefulSet volumeClaimTemplates")
-    if "storageClassName: local-path" not in statefulset:
-        raise SystemExit("k3d overlay rendered gitea without local-path storageClassName")
-    if "storage: 5Gi" not in statefulset:
-        raise SystemExit("k3d overlay rendered gitea without 5Gi persistence request")
+    pvc_docs = gitea_rendered_docs(rendered, kind="PersistentVolumeClaim")
+    for pvc in pvc_docs:
+        if "storageClassName: local-path" in pvc and "storage: 5Gi" in pvc:
+            return
+
+    raise SystemExit(
+        "k3d overlay rendered gitea without 5Gi local-path persistence in either StatefulSet volumeClaimTemplates or PersistentVolumeClaim resources"
+    )
 
 
 def main() -> None:

@@ -89,6 +89,42 @@ spec:
     - host: gitea.localtest.me
 """
 
+RENDERED_WITH_DEPLOYMENT_AND_PVC = """# Source: platform-stack/charts/gitea/charts/gitea/templates/gitea/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: custom-gitea-workload
+spec: {}
+---
+# Source: platform-stack/charts/gitea/charts/gitea/templates/gitea/service-http.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: custom-gitea-http
+spec: {}
+---
+# Source: platform-stack/charts/gitea/charts/gitea/templates/gitea/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: custom-gitea-ingress
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: gitea.localtest.me
+---
+# Source: platform-stack/charts/gitea/charts/gitea/templates/gitea/pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: custom-gitea-pvc
+spec:
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 5Gi
+"""
+
 labels = module.document_metadata_labels(module.split_documents(RENDERED_WITH_LABELS)[0])
 assert labels["app.kubernetes.io/name"] == "gitea"
 assert labels["app.kubernetes.io/instance"] == "platform-stack"
@@ -110,6 +146,11 @@ assert len(module.gitea_rendered_docs(RENDERED_WITH_NAME_FALLBACK, kind="Statefu
 assert len(module.gitea_rendered_docs(RENDERED_WITH_NAME_FALLBACK, kind="Service")) == 1
 assert len(module.gitea_rendered_docs(RENDERED_WITH_NAME_FALLBACK, kind="Ingress")) == 1
 assert "volumeClaimTemplates:" in module.gitea_rendered_docs(RENDERED_WITH_NAME_FALLBACK, kind="StatefulSet")[0]
+
+assert len(module.gitea_rendered_docs(RENDERED_WITH_DEPLOYMENT_AND_PVC, kind="Deployment")) == 1
+assert len(module.gitea_rendered_docs(RENDERED_WITH_DEPLOYMENT_AND_PVC, kind="Service")) == 1
+assert len(module.gitea_rendered_docs(RENDERED_WITH_DEPLOYMENT_AND_PVC, kind="Ingress")) == 1
+assert len(module.gitea_rendered_docs(RENDERED_WITH_DEPLOYMENT_AND_PVC, kind="PersistentVolumeClaim")) == 1
 
 calls: list[list[str]] = []
 
@@ -152,5 +193,12 @@ try:
         assert "template error details" in message
 finally:
     module.subprocess.run = real_run
+
+real_render_template = module.render_template
+module.render_template = lambda *args, **kwargs: RENDERED_WITH_DEPLOYMENT_AND_PVC
+try:
+    module.assert_k3d_gitea_overlay_resources()
+finally:
+    module.render_template = real_render_template
 
 print("assert_service_matrix helper tests passed")
