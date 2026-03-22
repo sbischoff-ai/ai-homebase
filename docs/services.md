@@ -63,6 +63,7 @@ Canonical baseline posture in this document refers to `charts/platform-stack/val
 
 - Source control service with persistent repositories.
 - Disabled in the umbrella baseline, then enabled by both supported overlays with `k3d` sized down for local testing and `k3s` sized for the homelab.
+- Baseline image defaults use the upstream rootless image from `docker.gitea.com/gitea:1.25.5` so rendered workloads resolve to `docker.gitea.com/gitea:1.25.5-rootless` instead of the invalid double-`gitea` repository path.
 - Intended as an internal homelab service unless you deliberately expose it.
 - Back up repositories and application state.
 

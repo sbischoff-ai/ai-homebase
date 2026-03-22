@@ -1,8 +1,8 @@
 gitea:
   enabled: true
   image:
-    repository: gitea/gitea
-    tag: "1.25"
+    repository: docker.gitea.com/gitea
+    tag: "1.25.5"
     rootless: true
     pullPolicy: IfNotPresent
   service:
