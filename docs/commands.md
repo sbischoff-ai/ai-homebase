@@ -119,6 +119,8 @@ source ~/.local/state/ai-homebase/incus/openclaw-sandbox.env
   --remote-docker-host "$HOST_LISTEN_ADDRESS" \
   --remote-docker-port "$SSH_HOST_PORT" \
   --remote-docker-key ~/.local/state/ai-homebase/incus/openclaw-sandbox-id_ed25519
+# Re-running local bootstrap keeps the first-boot shared-postgresql-initdb Secret
+# and also reconciles the live Gitea role/database on a reused k3d cluster.
 # Optional explicit override when you intentionally need a new Gitea DB password:
 GITEA_DB_PASSWORD="<new-password>" ./scripts/k3d-bootstrap-secrets.sh --namespace ai-homebase
 ./scripts/incus-vm-down.sh --vm-name openclaw-sandbox

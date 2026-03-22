@@ -25,6 +25,7 @@ For the full local workflow, troubleshooting, and teardown steps, start with [`d
 The local k3d bootstrap pins a Kubernetes 1.32-compatible k3s image by default; override it with `K3S_IMAGE=<image>` if you need a different supported version.
 On success, the bootstrap summary prints the kubeconfig path, the OpenClaw gateway token, the auto-selected default OpenClaw model (when a model-provider API key was exported), and the local OpenClaw, Gitea, and Vaultwarden URLs. If OpenClaw asks for first-use pairing approval, use the documented `kubectl exec ... openclaw devices ...` flow in [`docs/deployment-k3d.md`](./docs/deployment-k3d.md#4-first-use-openclaw-token-and-device-pairing).
 The local bootstrap only maps provider/search Secret keys for the env vars you actually exported, so leaving `ANTHROPIC_API_KEY` unset does not make the pod request it at runtime.
+When you re-run local bootstrap against an existing k3d cluster, it now keeps the first-boot `/docker-entrypoint-initdb.d` Secret for fresh PostgreSQL volumes and also live-reconciles the Gitea PostgreSQL role/database on a running reused cluster so Gitea does not depend solely on first-init SQL execution.
 
 ### Install to the homelab `k3s` target
 
