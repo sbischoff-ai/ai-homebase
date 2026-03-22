@@ -18,7 +18,12 @@
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": ["ClusterIP", "NodePort", "LoadBalancer", "ExternalName"]
+                  "enum": [
+                    "ClusterIP",
+                    "NodePort",
+                    "LoadBalancer",
+                    "ExternalName"
+                  ]
                 }
               }
             },
@@ -28,7 +33,12 @@
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": ["ClusterIP", "NodePort", "LoadBalancer", "ExternalName"]
+                  "enum": [
+                    "ClusterIP",
+                    "NodePort",
+                    "LoadBalancer",
+                    "ExternalName"
+                  ]
                 }
               }
             }
@@ -42,9 +52,13 @@
               "type": "array",
               "items": {
                 "type": "object",
-                "required": ["host"],
+                "required": [
+                  "host"
+                ],
                 "properties": {
-                  "host": { "type": "string" }
+                  "host": {
+                    "type": "string"
+                  }
                 },
                 "additionalProperties": true
               }
@@ -55,15 +69,21 @@
           "type": "object",
           "additionalProperties": true,
           "properties": {
-            "storageClass": { "type": "string" }
+            "storageClass": {
+              "type": "string"
+            }
           }
         },
         "image": {
           "type": "object",
           "additionalProperties": true,
           "properties": {
-            "tag": { "type": "string" },
-            "rootless": { "type": "boolean" }
+            "tag": {
+              "type": "string"
+            },
+            "rootless": {
+              "type": "boolean"
+            }
           }
         },
         "podSecurityContext": {
@@ -92,7 +112,9 @@
               "type": "array",
               "items": {
                 "type": "object",
-                "required": ["name"],
+                "required": [
+                  "name"
+                ],
                 "properties": {
                   "name": {
                     "type": "string",
@@ -109,8 +131,16 @@
                 },
                 "additionalProperties": true,
                 "oneOf": [
-                  { "required": ["value"] },
-                  { "required": ["valueFrom"] }
+                  {
+                    "required": [
+                      "value"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "valueFrom"
+                    ]
+                  }
                 ]
               }
             },
@@ -123,7 +153,9 @@
                   "secret": {
                     "type": "object",
                     "additionalProperties": true,
-                    "required": ["secretName"],
+                    "required": [
+                      "secretName"
+                    ],
                     "properties": {
                       "secretName": {
                         "type": "string",
@@ -134,6 +166,13 @@
                 }
               }
             }
+          }
+        },
+        "preExtraInitContainers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
           }
         }
       }

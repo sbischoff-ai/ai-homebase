@@ -88,6 +88,7 @@ scripts/ci/lint_all_charts.sh
 scripts/ci/render_profiles.sh
 python3 scripts/ci/validate_rendered_yaml.py rendered-values.yaml rendered-values-k3d.yaml rendered-values-k3s.yaml
 python3 scripts/ci/assert_service_matrix.py
+python3 scripts/ci/assert_postgresql_bootstrap_contract.py
 scripts/ci/check_golden.sh
 ```
 
@@ -119,10 +120,11 @@ source ~/.local/state/ai-homebase/incus/openclaw-sandbox.env
   --remote-docker-host "$HOST_LISTEN_ADDRESS" \
   --remote-docker-port "$SSH_HOST_PORT" \
   --remote-docker-key ~/.local/state/ai-homebase/incus/openclaw-sandbox-id_ed25519
-# Re-running local bootstrap keeps the first-boot shared-postgresql-initdb Secret
-# and also reconciles the live Gitea role/database on a reused k3d cluster.
-# Optional explicit override when you intentionally need a new Gitea DB password:
+# Re-running local bootstrap refreshes the app secrets, while the chart-managed
+# shared PostgreSQL bootstrap Job reconciles live gitea/vaultwarden roles+databases.
+# Optional explicit overrides when you intentionally need new DB passwords:
 GITEA_DB_PASSWORD="<new-password>" ./scripts/k3d-bootstrap-secrets.sh --namespace ai-homebase
+VAULTWARDEN_DB_PASSWORD="<new-password>" ./scripts/k3d-bootstrap-secrets.sh --namespace ai-homebase
 ./scripts/incus-vm-down.sh --vm-name openclaw-sandbox
 ./scripts/k3d-local-teardown.sh --cluster-name ai-homebase-dev --vm-name openclaw-sandbox
 ./scripts/openclaw-remote-docker-load-images.sh \

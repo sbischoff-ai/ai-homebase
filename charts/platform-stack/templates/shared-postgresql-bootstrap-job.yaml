@@ -1,0 +1,98 @@
+{{- if eq (include "platform-stack.sharedPostgresqlBootstrapEnabled" .) "true" }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "platform-stack.sharedPostgresqlBootstrapJobName" . }}
+  labels:
+    {{- include "platform-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: shared-postgresql-bootstrap
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 6
+  template:
+    metadata:
+      labels:
+        {{- include "platform-stack.labels" . | nindent 8 }}
+        app.kubernetes.io/component: shared-postgresql-bootstrap
+    spec:
+      restartPolicy: OnFailure
+      {{- $pullSecrets := .Values.global.imagePullSecrets | default (list) }}
+      {{- if $pullSecrets }}
+      imagePullSecrets:
+        {{- range $pullSecrets }}
+        - name: {{ .name | default . }}
+        {{- end }}
+      {{- end }}
+      containers:
+        - name: shared-postgresql-bootstrap
+          image: "{{ .Values.sharedPostgresql.bootstrap.image.registry }}/{{ .Values.sharedPostgresql.bootstrap.image.repository }}:{{ .Values.sharedPostgresql.bootstrap.image.tag }}"
+          imagePullPolicy: {{ .Values.sharedPostgresql.bootstrap.image.pullPolicy }}
+          env:
+            - name: PGHOST
+              value: {{ include "platform-stack.sharedPostgresqlFullname" . | quote }}
+            - name: PGPORT
+              value: {{ default 5432 .Values.sharedPostgresql.service.port | toString | quote }}
+            - name: PGUSER
+              value: postgres
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.sharedPostgresql.auth.existingSecret }}
+                  key: {{ .Values.sharedPostgresql.auth.secretKeys.adminPasswordKey }}
+            {{- if .Values.gitea.enabled }}
+            - name: GITEA_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: gitea-config-secrets
+                  key: GITEA__database__PASSWD
+            {{- end }}
+            {{- if .Values.vaultwarden.enabled }}
+            - name: VAULTWARDEN_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: vaultwarden-config-secrets
+                  key: VAULTWARDEN_DB_PASSWORD
+            {{- end }}
+          command:
+            - /bin/sh
+            - -ceu
+            - |
+              until pg_isready -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" --dbname postgres; do
+                echo "waiting for ${PGHOST}:${PGPORT}"
+                sleep 2
+              done
+              {{- if .Values.gitea.enabled }}
+              psql -v ON_ERROR_STOP=1 --dbname postgres --set=gitea_db_password="$GITEA_DB_PASSWORD" <<'SQL'
+              DO $$
+              BEGIN
+                IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'gitea') THEN
+                  EXECUTE format('CREATE ROLE gitea LOGIN PASSWORD %L', :'gitea_db_password');
+                ELSE
+                  EXECUTE format('ALTER ROLE gitea WITH LOGIN PASSWORD %L', :'gitea_db_password');
+                END IF;
+              END
+              $$;
+              SELECT 'CREATE DATABASE gitea OWNER gitea'
+              WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'gitea')\gexec
+              ALTER DATABASE gitea OWNER TO gitea;
+              SQL
+              {{- end }}
+              {{- if .Values.vaultwarden.enabled }}
+              psql -v ON_ERROR_STOP=1 --dbname postgres --set=vaultwarden_db_password="$VAULTWARDEN_DB_PASSWORD" <<'SQL'
+              DO $$
+              BEGIN
+                IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'vaultwarden') THEN
+                  EXECUTE format('CREATE ROLE vaultwarden LOGIN PASSWORD %L', :'vaultwarden_db_password');
+                ELSE
+                  EXECUTE format('ALTER ROLE vaultwarden WITH LOGIN PASSWORD %L', :'vaultwarden_db_password');
+                END IF;
+              END
+              $$;
+              SELECT 'CREATE DATABASE vaultwarden OWNER vaultwarden'
+              WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'vaultwarden')\gexec
+              ALTER DATABASE vaultwarden OWNER TO vaultwarden;
+              SQL
+              {{- end }}
+{{- end }}

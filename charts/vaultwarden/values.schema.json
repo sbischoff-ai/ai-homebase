@@ -175,6 +175,30 @@
           "default": true
         }
       }
+    },
+    "bootstrapWait": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "image": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "repository": {
+              "type": "string",
+              "minLength": 1
+            },
+            "tag": {
+              "type": "string",
+              "minLength": 1
+            },
+            "pullPolicy": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
     }
   }
 }

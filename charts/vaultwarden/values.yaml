@@ -82,6 +82,12 @@ databaseUrlSecret:
   name: ""
   key: ""
 
+bootstrapWait:
+  image:
+    repository: docker.io/postgres
+    tag: "17.5-alpine"
+    pullPolicy: IfNotPresent
+
 appConfig:
   domain: ""
   signupsAllowed: false
