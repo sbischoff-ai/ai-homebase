@@ -27,10 +27,10 @@ spec:
     - metadata:
         name: data
       spec:
-        storageClassName: local-path
+        storageClassName: "local-path"
         resources:
           requests:
-            storage: 5Gi
+            storage: "5Gi"
 ---
 # Source: example/templates/gitea-service.yaml
 apiVersion: v1
@@ -66,10 +66,10 @@ spec:
     - metadata:
         name: data
       spec:
-        storageClassName: local-path
+        storageClassName: "local-path"
         resources:
           requests:
-            storage: 5Gi
+            storage: "5Gi"
 ---
 # Source: example/templates/gitea-service.yaml
 apiVersion: v1
@@ -119,10 +119,10 @@ kind: PersistentVolumeClaim
 metadata:
   name: custom-gitea-pvc
 spec:
-  storageClassName: local-path
+  storageClass: "local-path"
   resources:
     requests:
-      storage: 5Gi
+      storage: "5Gi"
 """
 
 labels = module.document_metadata_labels(module.split_documents(RENDERED_WITH_LABELS)[0])
@@ -139,18 +139,19 @@ assert len(module.gitea_rendered_docs(RENDERED_WITH_LABELS, kind="StatefulSet"))
 assert len(module.gitea_rendered_docs(RENDERED_WITH_LABELS, kind="Service")) == 1
 assert len(module.gitea_rendered_docs(RENDERED_WITH_LABELS, kind="Ingress")) == 1
 assert "volumeClaimTemplates:" in module.gitea_rendered_docs(RENDERED_WITH_LABELS, kind="StatefulSet")[0]
-assert "storageClassName: local-path" in module.gitea_rendered_docs(RENDERED_WITH_LABELS, kind="StatefulSet")[0]
-assert "storage: 5Gi" in module.gitea_rendered_docs(RENDERED_WITH_LABELS, kind="StatefulSet")[0]
+assert module.has_local_path_5gi_persistence(module.gitea_rendered_docs(RENDERED_WITH_LABELS, kind="StatefulSet")[0])
 
 assert len(module.gitea_rendered_docs(RENDERED_WITH_NAME_FALLBACK, kind="StatefulSet")) == 1
 assert len(module.gitea_rendered_docs(RENDERED_WITH_NAME_FALLBACK, kind="Service")) == 1
 assert len(module.gitea_rendered_docs(RENDERED_WITH_NAME_FALLBACK, kind="Ingress")) == 1
 assert "volumeClaimTemplates:" in module.gitea_rendered_docs(RENDERED_WITH_NAME_FALLBACK, kind="StatefulSet")[0]
+assert module.has_local_path_5gi_persistence(module.gitea_rendered_docs(RENDERED_WITH_NAME_FALLBACK, kind="StatefulSet")[0])
 
 assert len(module.gitea_rendered_docs(RENDERED_WITH_DEPLOYMENT_AND_PVC, kind="Deployment")) == 1
 assert len(module.gitea_rendered_docs(RENDERED_WITH_DEPLOYMENT_AND_PVC, kind="Service")) == 1
 assert len(module.gitea_rendered_docs(RENDERED_WITH_DEPLOYMENT_AND_PVC, kind="Ingress")) == 1
 assert len(module.gitea_rendered_docs(RENDERED_WITH_DEPLOYMENT_AND_PVC, kind="PersistentVolumeClaim")) == 1
+assert module.has_local_path_5gi_persistence(module.gitea_rendered_docs(RENDERED_WITH_DEPLOYMENT_AND_PVC, kind="PersistentVolumeClaim")[0])
 
 calls: list[list[str]] = []
 
