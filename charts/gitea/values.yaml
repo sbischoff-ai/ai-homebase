@@ -38,30 +38,54 @@ gitea:
     capabilities:
       drop:
         - ALL
-  admin:
-    username: git-admin
-    existingSecret: ""
-  # Phase 1 intentionally focuses on Git/PR/wiki workflows.
-  # Keep actions/runners unset here; upstream moved them to a dedicated chart.
-  config:
-    database:
-      DB_TYPE: postgres
-      HOST: platform-stack-shared-postgresql:5432
-      NAME: gitea
-      USER: gitea
-    session:
-      PROVIDER: redis
-    cache:
-      ENABLED: true
-      ADAPTER: redis
-    queue:
-      TYPE: redis
-    global_lock:
-      SERVICE_TYPE: redis
-  additionalConfigFromEnvs: []
-  additionalConfigSources:
-    - secret:
-        secretName: gitea-config-secrets
+  gitea:
+    admin:
+      username: git-admin
+      existingSecret: ""
+    # Phase 1 intentionally focuses on Git/PR/wiki workflows.
+    # Keep actions/runners unset here; upstream moved them to a dedicated chart.
+    config:
+      database:
+        DB_TYPE: postgres
+        HOST: platform-stack-shared-postgresql:5432
+        NAME: gitea
+        USER: gitea
+      session:
+        PROVIDER: redis
+      cache:
+        ENABLED: true
+        ADAPTER: redis
+      queue:
+        TYPE: redis
+      global_lock:
+        SERVICE_TYPE: redis
+    additionalConfigFromEnvs:
+      - name: GITEA__database__PASSWD
+        valueFrom:
+          secretKeyRef:
+            name: gitea-config-secrets
+            key: GITEA__database__PASSWD
+      - name: GITEA__session__PROVIDER_CONFIG
+        valueFrom:
+          secretKeyRef:
+            name: gitea-config-secrets
+            key: GITEA__session__PROVIDER_CONFIG
+      - name: GITEA__cache__HOST
+        valueFrom:
+          secretKeyRef:
+            name: gitea-config-secrets
+            key: GITEA__cache__HOST
+      - name: GITEA__queue__CONN_STR
+        valueFrom:
+          secretKeyRef:
+            name: gitea-config-secrets
+            key: GITEA__queue__CONN_STR
+      - name: GITEA__global_lock__SERVICE_CONN_STR
+        valueFrom:
+          secretKeyRef:
+            name: gitea-config-secrets
+            key: GITEA__global_lock__SERVICE_CONN_STR
+    additionalConfigSources: []
   postgresql:
     enabled: false
     primary:

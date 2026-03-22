@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Static assertions for the Gitea secret-backed config contract."""
+"""Static assertions for the Gitea env-backed config contract."""
 
 from __future__ import annotations
 
@@ -27,41 +27,35 @@ def main() -> None:
         ("charts/gitea/values.yaml", wrapper_values),
         ("charts/platform-stack/values.yaml", platform_values),
     ):
-        require(text, "additionalConfigFromEnvs: []", context=name)
-        require(text, "additionalConfigSources:", context=name)
-        require(text, "secretName: gitea-config-secrets", context=name)
-        forbid(text, "GITEA__database__PASSWD", context=name)
-        forbid(text, "GITEA__session__PROVIDER_CONFIG", context=name)
-        forbid(text, "GITEA__cache__HOST", context=name)
-        forbid(text, "GITEA__queue__CONN_STR", context=name)
-        forbid(text, "GITEA__global_lock__SERVICE_CONN_STR", context=name)
+        require(text, "additionalConfigFromEnvs:", context=name)
+        require(text, "name: GITEA__database__PASSWD", context=name)
+        require(text, "name: GITEA__session__PROVIDER_CONFIG", context=name)
+        require(text, "name: GITEA__cache__HOST", context=name)
+        require(text, "name: GITEA__queue__CONN_STR", context=name)
+        require(text, "name: GITEA__global_lock__SERVICE_CONN_STR", context=name)
+        require(text, "name: gitea-config-secrets", context=name)
+        require(text, "additionalConfigSources: []", context=name)
+        forbid(text, "secretName: gitea-config-secrets", context=name)
 
-    for key in ("database", "session", "cache", "queue", "global_lock"):
+    for key in (
+        "GITEA__database__PASSWD",
+        "GITEA__session__PROVIDER_CONFIG",
+        "GITEA__cache__HOST",
+        "GITEA__queue__CONN_STR",
+        "GITEA__global_lock__SERVICE_CONN_STR",
+    ):
         require(
             bootstrap_script,
             f'--from-literal={key}=',
             context="scripts/k3d-bootstrap-secrets.sh",
         )
 
-    for section_key in (
-        "PASSWD=",
-        "PROVIDER_CONFIG=",
-        "HOST=",
-        "CONN_STR=",
-        "SERVICE_CONN_STR=",
-    ):
-        require(
-            bootstrap_script,
-            section_key,
-            context="scripts/k3d-bootstrap-secrets.sh",
-        )
-
-    if re.search(r"GITEA__(?:database|session|cache|queue|global_lock)__", bootstrap_script):
+    if re.search(r'--from-literal=(?:database|session|cache|queue|global_lock)=', bootstrap_script):
         raise SystemExit(
-            "scripts/k3d-bootstrap-secrets.sh still writes legacy env-style Gitea config keys"
+            "scripts/k3d-bootstrap-secrets.sh still writes legacy section-style Gitea config keys"
         )
 
-    print("gitea config contract: secret-backed config sources are aligned")
+    print("gitea config contract: env-backed secret refs are aligned")
 
 
 if __name__ == "__main__":
