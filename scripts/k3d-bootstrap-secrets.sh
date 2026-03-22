@@ -206,8 +206,38 @@ create_and_apply_secret shared-postgresql-auth \
 create_and_apply_secret shared-redis-auth \
   --from-literal=redis-password="$REDIS_PASSWORD"
 
+GITEA_DB_PASSWORD="${GITEA_DB_PASSWORD:-$(openssl rand -hex 24)}"
+GITEA_REDIS_URI="redis://:${REDIS_PASSWORD}@platform-stack-shared-redis:6379/0?pool_size=100&idle_timeout=180s"
+GITEA_INITDB_SCRIPT="$(mktemp)"
+cat >"${GITEA_INITDB_SCRIPT}" <<EOF
+#!/bin/sh
+set -eu
+psql -v ON_ERROR_STOP=1 --username "${POSTGRES_USER:-postgres}" --dbname postgres <<SQL
+DO \$\$
+BEGIN
+  IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'gitea') THEN
+    CREATE ROLE gitea LOGIN PASSWORD '${GITEA_DB_PASSWORD}';
+  ELSE
+    ALTER ROLE gitea WITH LOGIN PASSWORD '${GITEA_DB_PASSWORD}';
+  END IF;
+END
+\$\$;
+SQL
+if [ "$(psql -v ON_ERROR_STOP=1 --username "${POSTGRES_USER:-postgres}" --dbname postgres -tAc "SELECT 1 FROM pg_database WHERE datname = 'gitea'")" != "1" ]; then
+  psql -v ON_ERROR_STOP=1 --username "${POSTGRES_USER:-postgres}" --dbname postgres -c "CREATE DATABASE gitea OWNER gitea"
+fi
+EOF
+
 create_and_apply_secret shared-postgresql-initdb \
-  --from-literal=00_bootstrap.sql="-- reserved for local bootstrap init scripts"
+  --from-file=00_bootstrap.sh="${GITEA_INITDB_SCRIPT}"
+rm -f "${GITEA_INITDB_SCRIPT}"
+
+create_and_apply_secret gitea-config-secrets \
+  --from-literal=GITEA__database__PASSWD="$GITEA_DB_PASSWORD" \
+  --from-literal=GITEA__session__PROVIDER_CONFIG="$GITEA_REDIS_URI" \
+  --from-literal=GITEA__cache__HOST="$GITEA_REDIS_URI" \
+  --from-literal=GITEA__queue__CONN_STR="$GITEA_REDIS_URI" \
+  --from-literal=GITEA__global_lock__SERVICE_CONN_STR="$GITEA_REDIS_URI"
 
 OPENCLAW_SECRET_ARGS=(
   --from-literal=OPENCLAW_GATEWAY_TOKEN="$OPENCLAW_GATEWAY_TOKEN"

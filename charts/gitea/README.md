@@ -23,4 +23,6 @@ This wrapper is configured for centralized backends:
 - `gitea.gitea.redis.enabled=false`
 - `gitea.gitea.redis-cluster.enabled=false`
 
-Set non-sensitive DB host/name/user in `gitea.gitea.config.database.*` and inject sensitive settings through upstream chart secret/env mechanisms (for example `gitea.gitea.additionalConfigFromEnvs` and `gitea.gitea.additionalConfigSources`).
+Set non-sensitive DB host/name/user in `gitea.gitea.config.database.*` and inject sensitive settings through upstream chart secret/env mechanisms (for example `gitea.gitea.additionalConfigFromEnvs` and `gitea.gitea.additionalConfigSources`). The upstream chart expects `gitea.gitea.additionalConfigFromEnvs` entries to be full Kubernetes `env` objects (`name` plus `value`/`valueFrom`), not bare strings.
+
+The default wrapper values now read the sensitive database and Redis settings from a `gitea-config-secrets` Secret. For local `k3d` bootstrap, `scripts/k3d-bootstrap-secrets.sh` also seeds the shared PostgreSQL init script so the `gitea` database role and database exist before the Gitea init containers run.

@@ -83,6 +83,32 @@
         "containerSecurityContext": {
           "type": "object",
           "additionalProperties": true
+        },
+        "additionalConfigFromEnvs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "value": {
+                "type": "string"
+              },
+              "valueFrom": {
+                "type": "object",
+                "minProperties": 1,
+                "additionalProperties": true
+              }
+            },
+            "additionalProperties": true,
+            "oneOf": [
+              { "required": ["value"] },
+              { "required": ["valueFrom"] }
+            ]
+          }
         }
       }
     }

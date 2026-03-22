@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import importlib.util
 import subprocess
+
 from types import SimpleNamespace
 from pathlib import Path
 
@@ -137,6 +138,21 @@ for values_path in (
     assert "actions:" not in values_text
     assert "repository: gitea" in values_text
     assert 'tag: "1.25.5"' in values_text
+
+for values_path in (
+    REPO_ROOT / "charts" / "gitea" / "values.yaml",
+    REPO_ROOT / "charts" / "platform-stack" / "values.yaml",
+):
+    values_text = values_path.read_text()
+    assert "- name: GITEA__database__PASSWD" in values_text
+    assert "name: gitea-config-secrets" in values_text
+    assert "key: GITEA__database__PASSWD" in values_text
+    assert "- GITEA__database__PASSWD" not in values_text
+
+bootstrap_secret_script = (REPO_ROOT / "scripts" / "k3d-bootstrap-secrets.sh").read_text()
+assert "create_and_apply_secret gitea-config-secrets" in bootstrap_secret_script
+assert "CREATE ROLE gitea LOGIN PASSWORD" in bootstrap_secret_script
+assert "CREATE DATABASE gitea OWNER gitea" in bootstrap_secret_script
 
 assert len(module.gitea_rendered_docs(RENDERED_WITH_LABELS, kind="StatefulSet")) == 1
 assert len(module.gitea_rendered_docs(RENDERED_WITH_LABELS, kind="Service")) == 1
