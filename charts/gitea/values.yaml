@@ -2,7 +2,8 @@ gitea:
   enabled: true
   image:
     repository: gitea/gitea
-    tag: "1.25-rootless"
+    tag: "1.25"
+    rootless: true
     pullPolicy: IfNotPresent
   service:
     http:
