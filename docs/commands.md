@@ -119,6 +119,8 @@ source ~/.local/state/ai-homebase/incus/openclaw-sandbox.env
   --remote-docker-host "$HOST_LISTEN_ADDRESS" \
   --remote-docker-port "$SSH_HOST_PORT" \
   --remote-docker-key ~/.local/state/ai-homebase/incus/openclaw-sandbox-id_ed25519
+# Optional explicit override when you intentionally need a new Gitea DB password:
+GITEA_DB_PASSWORD="<new-password>" ./scripts/k3d-bootstrap-secrets.sh --namespace ai-homebase
 ./scripts/incus-vm-down.sh --vm-name openclaw-sandbox
 ./scripts/k3d-local-teardown.sh --cluster-name ai-homebase-dev --vm-name openclaw-sandbox
 ./scripts/openclaw-remote-docker-load-images.sh \
