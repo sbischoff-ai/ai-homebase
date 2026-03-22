@@ -2,6 +2,8 @@
 
 This wrapper chart keeps local/offline-friendly platform dependency wiring while pinning the upstream `gitea/gitea` chart version.
 
+The default application image tag is `gitea/gitea:1.25-rootless`.
+
 ## Deployment model
 
 This chart is now a **true wrapper** around the upstream Gitea chart:
