@@ -135,7 +135,7 @@ for values_path in (
 ):
     values_text = values_path.read_text()
     assert "actions:" not in values_text
-    assert "repository: docker.gitea.com/gitea" in values_text
+    assert "repository: gitea" in values_text
     assert 'tag: "1.25.5"' in values_text
 
 assert len(module.gitea_rendered_docs(RENDERED_WITH_LABELS, kind="StatefulSet")) == 1
