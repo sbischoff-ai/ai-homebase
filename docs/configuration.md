@@ -82,6 +82,7 @@ Use service-specific blocks when behavior must diverge, especially for:
 - `certManager.*` umbrella toggles and PKI resources
 - `cert-manager.*` upstream subchart values passed through the umbrella chart
 - `openclaw.*`
+- `sharedPostgresql.bootstrap.*` for the chart-managed live PostgreSQL reconciliation Job image
 - `gitea.gitea.*` upstream wrapper values, including disabling upstream `valkey` / `valkey-cluster` in favor of the umbrella `sharedRedis` service
 - Secret references and env contracts
 - Persistence and ingress controls
@@ -112,3 +113,6 @@ Commit only secret **references** in versioned overlays and generate the actual 
 ```bash
 helm upgrade --install platform-stack charts/platform-stack   -n <namespace>   -f charts/platform-stack/values.yaml   -f charts/platform-stack/values-<target>.yaml
 ```
+
+
+Shared PostgreSQL no longer relies on a persistent `/docker-entrypoint-initdb.d` payload for Gitea/Vaultwarden role creation. Instead, the umbrella chart renders a live reconciliation Job when `sharedPostgresql.enabled=true` and either `gitea.enabled=true` or `vaultwarden.enabled=true`; the corresponding workloads gate startup on direct SQL connectivity to their dedicated role/database.

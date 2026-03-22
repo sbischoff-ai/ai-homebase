@@ -30,6 +30,29 @@ spec:
         - name: {{ . }}
         {{- end }}
       {{- end }}
+      initContainers:
+        - name: wait-for-shared-postgresql-bootstrap
+          image: "{{ .Values.bootstrapWait.image.repository }}:{{ .Values.bootstrapWait.image.tag }}"
+          imagePullPolicy: {{ .Values.bootstrapWait.image.pullPolicy }}
+          command:
+            - /bin/sh
+            - -ceu
+            - |
+              until PGPASSWORD="$VAULTWARDEN_DB_PASSWORD" psql \
+                --host platform-stack-shared-postgresql \
+                --port 5432 \
+                --username vaultwarden \
+                --dbname vaultwarden \
+                -tAc "SELECT current_database(), current_user;" | grep -qx 'vaultwarden|vaultwarden'; do
+                echo "waiting for live PostgreSQL bootstrap of vaultwarden"
+                sleep 2
+              done
+          env:
+            - name: VAULTWARDEN_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.databaseUrlSecret.name }}
+                  key: VAULTWARDEN_DB_PASSWORD
       containers:
         - name: vaultwarden
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"

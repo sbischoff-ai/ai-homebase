@@ -5,7 +5,6 @@ from __future__ import annotations
 
 from pathlib import Path
 import re
-import sys
 
 
 def require(text: str, needle: str, *, context: str) -> None:
@@ -27,6 +26,8 @@ def main() -> None:
         ("charts/gitea/values.yaml", wrapper_values),
         ("charts/platform-stack/values.yaml", platform_values),
     ):
+        require(text, "preExtraInitContainers:", context=name)
+        require(text, "wait-for-shared-postgresql-bootstrap", context=name)
         require(text, "additionalConfigFromEnvs:", context=name)
         require(text, "name: GITEA__database__PASSWD", context=name)
         require(text, "name: GITEA__session__PROVIDER_CONFIG", context=name)
@@ -70,34 +71,14 @@ def main() -> None:
         'resolve_gitea_db_password',
         context="scripts/k3d-bootstrap-secrets.sh",
     )
-    require(
+    forbid(
         bootstrap_script,
         'create_and_apply_secret shared-postgresql-initdb',
         context="scripts/k3d-bootstrap-secrets.sh",
     )
-    require(
+    forbid(
         bootstrap_script,
         'reconcile_gitea_postgres_live',
-        context="scripts/k3d-bootstrap-secrets.sh",
-    )
-    require(
-        bootstrap_script,
-        'kubectl "${KUBECTL_ARGS[@]}" -n "$NAMESPACE" exec',
-        context="scripts/k3d-bootstrap-secrets.sh",
-    )
-    require(
-        bootstrap_script,
-        "ALTER DATABASE gitea OWNER TO gitea;",
-        context="scripts/k3d-bootstrap-secrets.sh",
-    )
-    require(
-        bootstrap_script,
-        "Waiting for ${pod_name} to become Ready",
-        context="scripts/k3d-bootstrap-secrets.sh",
-    )
-    require(
-        bootstrap_script,
-        """--set=vaultwarden_db_password="\\${VAULTWARDEN_DB_PASSWORD}" <<'SQL'""",
         context="scripts/k3d-bootstrap-secrets.sh",
     )
 

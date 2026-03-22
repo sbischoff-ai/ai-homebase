@@ -44,3 +44,20 @@ helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
 {{- end -}}
 {{- $secretName -}}
 {{- end -}}
+
+
+{{- define "platform-stack.sharedPostgresqlFullname" -}}
+{{- if .Values.sharedPostgresql.fullnameOverride -}}
+{{- .Values.sharedPostgresql.fullnameOverride | trunc 63 | trimSuffix "-" -}}
+{{- else -}}
+{{- printf "%s-shared-postgresql" .Release.Name | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "platform-stack.sharedPostgresqlBootstrapEnabled" -}}
+{{- if and .Values.sharedPostgresql.enabled (or .Values.gitea.enabled .Values.vaultwarden.enabled) -}}true{{- end -}}
+{{- end -}}
+
+{{- define "platform-stack.sharedPostgresqlBootstrapJobName" -}}
+{{- printf "%s-bootstrap" (include "platform-stack.sharedPostgresqlFullname" .) | trunc 63 | trimSuffix "-" -}}
+{{- end -}}

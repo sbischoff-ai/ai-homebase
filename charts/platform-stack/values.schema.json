@@ -6,7 +6,8 @@
   "required": [
     "global",
     "certManager",
-    "openclaw"
+    "openclaw",
+    "sharedPostgresql"
   ],
   "properties": {
     "certManager": {
@@ -196,6 +197,48 @@
     },
     "infisical": {
       "$ref": "#/definitions/optionalServiceToggle"
+    },
+    "sharedPostgresql": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "fullnameOverride": {
+          "type": "string",
+          "default": "platform-stack-shared-postgresql"
+        },
+        "bootstrap": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "image": {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "registry": {
+                  "type": "string",
+                  "default": "docker.io"
+                },
+                "repository": {
+                  "type": "string",
+                  "default": "postgres"
+                },
+                "tag": {
+                  "type": "string",
+                  "default": "17.5-alpine"
+                },
+                "pullPolicy": {
+                  "type": "string",
+                  "default": "IfNotPresent"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "not": {

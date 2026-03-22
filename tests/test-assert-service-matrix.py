@@ -154,8 +154,12 @@ for values_path in (
 
 bootstrap_secret_script = (REPO_ROOT / "scripts" / "k3d-bootstrap-secrets.sh").read_text()
 assert "create_and_apply_secret gitea-config-secrets" in bootstrap_secret_script
-assert "CREATE ROLE gitea LOGIN PASSWORD" in bootstrap_secret_script
-assert "CREATE DATABASE gitea OWNER gitea" in bootstrap_secret_script
+assert "create_and_apply_secret shared-postgresql-initdb" not in bootstrap_secret_script
+assert "VAULTWARDEN_DB_PASSWORD" in bootstrap_secret_script
+
+bootstrap_job_template = (REPO_ROOT / "charts" / "platform-stack" / "templates" / "shared-postgresql-bootstrap-job.yaml").read_text()
+assert "CREATE DATABASE gitea OWNER gitea" in bootstrap_job_template
+assert "CREATE DATABASE vaultwarden OWNER vaultwarden" in bootstrap_job_template
 
 assert len(module.gitea_rendered_docs(RENDERED_WITH_LABELS, kind="StatefulSet")) == 1
 assert len(module.gitea_rendered_docs(RENDERED_WITH_LABELS, kind="Service")) == 1
