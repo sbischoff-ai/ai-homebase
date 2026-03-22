@@ -40,15 +40,15 @@ openclaw:
   existingSecret: openclaw-app-secrets
   secretKeys:
     gatewayToken: OPENCLAW_GATEWAY_TOKEN
-    openaiApiKey: OPENAI_API_KEY
-    anthropicApiKey: ANTHROPIC_API_KEY
-    braveApiKey: BRAVE_API_KEY
+    openaiApiKey: ""
+    anthropicApiKey: ""
+    braveApiKey: ""
     kimiApiKey: ""
-    moonshotApiKey: MOONSHOT_API_KEY
+    moonshotApiKey: ""
     tavilyApiKey: ""
-    perplexityApiKey: PERPLEXITY_API_KEY
-    geminiApiKey: GEMINI_API_KEY
-    xaiApiKey: XAI_API_KEY
+    perplexityApiKey: ""
+    geminiApiKey: ""
+    xaiApiKey: ""
     googleApiKey: ""
     braveSearchApiKey: ""
   secretRefs: []
