@@ -56,7 +56,7 @@ The supported targets split runtime posture by service:
 - `openclaw.remoteDocker.*` is part of the standard OpenClaw posture for every supported target: keep it enabled and use overlays only to change the SSH endpoint, Secret name, or image details for a concrete environment.
 
 OpenClaw now renders its Docker/browser sandbox JSON directly from chart values, and the standard `openclaw.remoteDocker.*` block wires `DOCKER_HOST`, `HOME`, and SSH material into the pod so Docker commands execute against the supported remote daemon over SSH.
-The shared OpenClaw defaults also pin `openclaw.openclaw.agents.defaults.workspace` to `/home/node/.openclaw/workspace` so the persisted path stays inside the PVC without duplicating `.openclaw`, while the `k3d` overlay maps the supported provider/search secret keys that local bootstrap can forward into `openclaw-app-secrets`.
+The shared OpenClaw defaults also pin `openclaw.openclaw.agents.defaults.workspace` to `/home/node/.openclaw/workspace` so the persisted path stays inside the PVC without duplicating `.openclaw`, while the `k3d` overlay keeps provider/search secret key mappings optional and local bootstrap fills in only the exported keys it forwards into `openclaw-app-secrets`.
 
 ## Values schema validation
 

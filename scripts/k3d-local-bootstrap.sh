@@ -39,6 +39,15 @@ declare -A OPENCLAW_DEFAULT_MODELS=(
   [XAI_API_KEY]='xai/grok-4'
   [MOONSHOT_API_KEY]='moonshot/kimi-k2.5'
 )
+declare -A OPENCLAW_SECRET_KEY_VALUE_NAMES=(
+  [OPENAI_API_KEY]='openaiApiKey'
+  [ANTHROPIC_API_KEY]='anthropicApiKey'
+  [BRAVE_API_KEY]='braveApiKey'
+  [PERPLEXITY_API_KEY]='perplexityApiKey'
+  [GEMINI_API_KEY]='geminiApiKey'
+  [XAI_API_KEY]='xaiApiKey'
+  [MOONSHOT_API_KEY]='moonshotApiKey'
+)
 
 usage() {
   cat <<USAGE
@@ -118,6 +127,22 @@ resolve_openclaw_default_model() {
   return 1
 }
 
+append_openclaw_secret_key_overrides() {
+  local env_var
+  cat <<'EOF2'
+  secretKeys:
+    gatewayToken: OPENCLAW_GATEWAY_TOKEN
+EOF2
+
+  for env_var in "${OPENCLAW_PROVIDER_ENV_VARS[@]}"; do
+    if [[ -n "${!env_var:-}" ]]; then
+      printf '    %s: %s\n' "${OPENCLAW_SECRET_KEY_VALUE_NAMES[$env_var]}" "$env_var"
+    else
+      printf "    %s: \"\"\n" "${OPENCLAW_SECRET_KEY_VALUE_NAMES[$env_var]}"
+    fi
+  done
+}
+
 step "Bootstrapping k3d cluster and ingress"
 K3D_UP_CMD=(
   ./scripts/k3d-up.sh
@@ -160,6 +185,8 @@ openclaw:
   remoteDocker:
     dockerHost: ssh://docker-remote@${REMOTE_DOCKER_HOST}:${REMOTE_DOCKER_PORT}
 EOF2
+
+append_openclaw_secret_key_overrides >>"$OVERRIDE_VALUES_FILE"
 
 if [[ -n "$OPENCLAW_DEFAULT_MODEL" ]]; then
   cat >>"$OVERRIDE_VALUES_FILE" <<EOF2

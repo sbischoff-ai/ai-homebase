@@ -17,6 +17,7 @@ This workflow:
 - Pins the local cluster to a Kubernetes 1.32-compatible k3s image by default instead of relying on the `k3d` binary's built-in default.
 - Boots the Incus-backed `openclaw-sandbox` VM used by the standard remote Docker posture.
 - Generates the required Kubernetes Secrets from any exported supported OpenClaw provider/search keys (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `BRAVE_API_KEY`, `PERPLEXITY_API_KEY`, `GEMINI_API_KEY`, `XAI_API_KEY`, `MOONSHOT_API_KEY`).
+- Writes the matching OpenClaw secret key mappings only for the provider/search env vars you actually exported, so unset optional keys are not requested from Kubernetes at pod startup.
 - Deploys `platform-stack` with `charts/platform-stack/values.yaml` and `charts/platform-stack/values-k3d.yaml`.
 - Runs the local smoke checks.
 
