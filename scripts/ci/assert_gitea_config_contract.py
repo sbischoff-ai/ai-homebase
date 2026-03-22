@@ -50,6 +50,22 @@ def main() -> None:
             context="scripts/k3d-bootstrap-secrets.sh",
         )
 
+    require(
+        bootstrap_script,
+        'get secret gitea-config-secrets',
+        context="scripts/k3d-bootstrap-secrets.sh",
+    )
+    require(
+        bootstrap_script,
+        "jsonpath='{.data.GITEA__database__PASSWD}'",
+        context="scripts/k3d-bootstrap-secrets.sh",
+    )
+    require(
+        bootstrap_script,
+        'resolve_gitea_db_password',
+        context="scripts/k3d-bootstrap-secrets.sh",
+    )
+
     if re.search(r'--from-literal=(?:database|session|cache|queue|global_lock)=', bootstrap_script):
         raise SystemExit(
             "scripts/k3d-bootstrap-secrets.sh still writes legacy section-style Gitea config keys"

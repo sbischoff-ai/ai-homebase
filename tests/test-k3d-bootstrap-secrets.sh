@@ -19,7 +19,8 @@ run_case() {
   local case_name="$1"
   local ssh_keyscan_mode="$2"
   local key_mode="$3"
-  shift 3
+  local existing_gitea_db_password_mode="$4"
+  shift 4
 
   local sandbox_dir
   sandbox_dir="$(mktemp -d)"
@@ -49,6 +50,14 @@ if [[ "$1" == "-n" ]]; then
 fi
 
 case "$1" in
+  get)
+    if [[ "$2" == "secret" && "$3" == "gitea-config-secrets" ]]; then
+      if [[ "${FAKE_EXISTING_GITEA_DB_PASSWORD_B64:-}" != "" ]]; then
+        printf '%s' "${FAKE_EXISTING_GITEA_DB_PASSWORD_B64}"
+      fi
+      exit 0
+    fi
+    ;;
   apply)
     if [[ "$2" == "-f" ]]; then
       manifest_path="$3"
@@ -122,6 +131,11 @@ SH
     export FAKE_KUBECTL_LOG="${kubectl_log}"
     export FAKE_NAMESPACE="test-namespace"
     export FAKE_SSH_KEYSCAN_MODE="${ssh_keyscan_mode}"
+    case "${existing_gitea_db_password_mode}" in
+      none) unset FAKE_EXISTING_GITEA_DB_PASSWORD_B64 ;;
+      existing) export FAKE_EXISTING_GITEA_DB_PASSWORD_B64="ZXhpc3RpbmctZ2l0ZWEtcGFzc3dvcmQ=" ;;
+      *) printf 'unknown existing_gitea_db_password_mode: %s\n' "${existing_gitea_db_password_mode}" >&2; exit 1 ;;
+    esac
     export INFISICAL_AUTH_SECRET="test-auth-secret"
     export INFISICAL_ENCRYPTION_KEY="test-encryption-key-32-chars-1234"
     export HOME="${sandbox_dir}/home"
@@ -150,6 +164,7 @@ SH
       assert_contains "${output}" "updated secret openclaw-remote-docker-ssh"
       assert_contains "${kubectl_output}" "literal=OPENCLAW_GATEWAY_TOKEN=local-dev-token"
       assert_contains "${kubectl_output}" "literal=OPENAI_API_KEY=test-openai-key"
+      assert_contains "${kubectl_output}" "literal=GITEA__database__PASSWD=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
       assert_contains "${kubectl_output}" "validated-id-ed25519=${key_path}"
       assert_contains "${kubectl_output}" "validated-known-hosts="
       ;;
@@ -162,6 +177,19 @@ SH
       assert_contains "${kubectl_output}" "literal=OPENAI_API_KEY=test-openai-key"
       assert_contains "${kubectl_output}" "literal=BRAVE_API_KEY=test-brave-key"
       assert_contains "${kubectl_output}" "literal=GEMINI_API_KEY=test-gemini-key"
+      ;;
+    success-existing-gitea-password)
+      [[ ${status} -eq 0 ]] || { printf 'expected success, got status %s\n%s\n' "${status}" "${output}" >&2; exit 1; }
+      assert_contains "${kubectl_output}" "get secret gitea-config-secrets -o jsonpath={.data.GITEA__database__PASSWD}"
+      assert_contains "${kubectl_output}" "literal=GITEA__database__PASSWD=existing-gitea-password"
+      ;;
+    success-explicit-gitea-password)
+      [[ ${status} -eq 0 ]] || { printf 'expected success, got status %s\n%s\n' "${status}" "${output}" >&2; exit 1; }
+      assert_contains "${kubectl_output}" "literal=GITEA__database__PASSWD=explicit-gitea-password"
+      if [[ "${kubectl_output}" == *"get secret gitea-config-secrets -o jsonpath={.data.GITEA__database__PASSWD}"* ]]; then
+        printf 'did not expect bootstrap to read the existing gitea secret when an explicit password was provided\n%s\n' "${kubectl_output}" >&2
+        exit 1
+      fi
       ;;
     missing-provider)
       [[ ${status} -ne 0 ]] || { printf 'expected failure without provider/search key\n%s\n' "${output}" >&2; exit 1; }
@@ -186,11 +214,13 @@ SH
   rm -rf "${sandbox_dir}"
 }
 
-run_case success-openai success present OPENAI_API_KEY=test-openai-key
-run_case success-anthropic success present ANTHROPIC_API_KEY=test-anthropic-key
-run_case success-multiple success present OPENAI_API_KEY=test-openai-key BRAVE_API_KEY=test-brave-key GEMINI_API_KEY=test-gemini-key
-run_case missing-provider success present
-run_case missing-key success empty OPENAI_API_KEY=test-openai-key
-run_case empty-known-hosts empty present OPENAI_API_KEY=test-openai-key
+run_case success-openai success present none OPENAI_API_KEY=test-openai-key
+run_case success-anthropic success present none ANTHROPIC_API_KEY=test-anthropic-key
+run_case success-multiple success present none OPENAI_API_KEY=test-openai-key BRAVE_API_KEY=test-brave-key GEMINI_API_KEY=test-gemini-key
+run_case success-existing-gitea-password success present existing OPENAI_API_KEY=test-openai-key
+run_case success-explicit-gitea-password success present none OPENAI_API_KEY=test-openai-key GITEA_DB_PASSWORD=explicit-gitea-password
+run_case missing-provider success present none
+run_case missing-key success empty none OPENAI_API_KEY=test-openai-key
+run_case empty-known-hosts empty present none OPENAI_API_KEY=test-openai-key
 
 echo "k3d bootstrap secrets tests passed"

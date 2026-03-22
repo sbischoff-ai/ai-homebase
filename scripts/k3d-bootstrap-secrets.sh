@@ -14,6 +14,7 @@ PERPLEXITY_API_KEY="${PERPLEXITY_API_KEY:-}"
 GEMINI_API_KEY="${GEMINI_API_KEY:-}"
 XAI_API_KEY="${XAI_API_KEY:-}"
 MOONSHOT_API_KEY="${MOONSHOT_API_KEY:-}"
+GITEA_DB_PASSWORD="${GITEA_DB_PASSWORD:-}"
 REMOTE_DOCKER_SECRET_NAME="${REMOTE_DOCKER_SECRET_NAME:-openclaw-remote-docker-ssh}"
 REMOTE_DOCKER_HOST="${REMOTE_DOCKER_HOST:-host.k3d.internal}"
 REMOTE_DOCKER_PORT="${REMOTE_DOCKER_PORT:-2222}"
@@ -48,6 +49,7 @@ Options:
   Provider env vars              At least one supported OpenClaw key is required: OPENAI_API_KEY, ANTHROPIC_API_KEY, BRAVE_API_KEY, PERPLEXITY_API_KEY, GEMINI_API_KEY, XAI_API_KEY, or MOONSHOT_API_KEY
   --postgres-admin-password <v>  shared PostgreSQL admin password (default: generated local value)
   --redis-password <v>           shared Redis password (default: generated local value)
+  --gitea-db-password <v>        Gitea database password (default: reuse existing secret value or generate)
   --verbose                      Stream full command output
   -h, --help                     Show this help message
 USAGE
@@ -65,6 +67,7 @@ while [[ $# -gt 0 ]]; do
     --remote-docker-key) REMOTE_DOCKER_KEY_PATH="$2"; shift 2 ;;
     --postgres-admin-password) POSTGRES_ADMIN_PASSWORD="$2"; shift 2 ;;
     --redis-password) REDIS_PASSWORD="$2"; shift 2 ;;
+    --gitea-db-password) GITEA_DB_PASSWORD="$2"; shift 2 ;;
     --verbose) BOOTSTRAP_VERBOSE=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
@@ -74,7 +77,7 @@ done
 bootstrap_init_logging
 trap 'fail "Bootstrap secrets generation failed. Log: ${BOOTSTRAP_LOG_FILE}"' ERR
 
-for cmd in kubectl openssl ssh-keyscan; do
+for cmd in base64 kubectl openssl ssh-keyscan; do
   if ! command -v "$cmd" >/dev/null 2>&1; then
     fail "Missing required dependency: $cmd"
     exit 1
@@ -166,6 +169,26 @@ create_remote_docker_secret() {
   rm -f "$known_hosts_file"
 }
 
+resolve_gitea_db_password() {
+  local existing_password_b64=""
+
+  if [[ -n "$GITEA_DB_PASSWORD" ]]; then
+    printf '%s' "$GITEA_DB_PASSWORD"
+    return 0
+  fi
+
+  existing_password_b64="$(
+    kubectl "${KUBECTL_ARGS[@]}" -n "$NAMESPACE" get secret gitea-config-secrets \
+      -o jsonpath='{.data.GITEA__database__PASSWD}' 2>>"$BOOTSTRAP_LOG_FILE" || true
+  )"
+  if [[ -n "$existing_password_b64" ]]; then
+    printf '%s' "$existing_password_b64" | base64 --decode
+    return 0
+  fi
+
+  openssl rand -hex 24
+}
+
 step "Ensuring namespace ${NAMESPACE} exists"
 apply_manifest <<MANIFEST
 apiVersion: v1
@@ -182,7 +205,7 @@ create_and_apply_secret shared-postgresql-auth \
 create_and_apply_secret shared-redis-auth \
   --from-literal=redis-password="$REDIS_PASSWORD"
 
-GITEA_DB_PASSWORD="${GITEA_DB_PASSWORD:-$(openssl rand -hex 24)}"
+GITEA_DB_PASSWORD="$(resolve_gitea_db_password)"
 GITEA_REDIS_URI="redis://:${REDIS_PASSWORD}@platform-stack-shared-redis:6379/0?pool_size=100&idle_timeout=180s"
 GITEA_INITDB_SCRIPT="$(mktemp)"
 cat >"${GITEA_INITDB_SCRIPT}" <<EOF
