@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import importlib.util
+import subprocess
 from types import SimpleNamespace
 from pathlib import Path
 
@@ -126,5 +127,23 @@ assert calls[:3] == [
     ["helm", "dependency", "update", "charts/platform-stack"],
     ["helm", "template", "platform-stack", "charts/platform-stack", "-f", module.BASE_VALUES, "-f", module.K3D_VALUES],
 ]
+
+
+def fake_run_failure(cmd: list[str], check: bool, capture_output: bool, text: bool) -> SimpleNamespace:
+    raise subprocess.CalledProcessError(1, cmd, stderr="template error details")
+
+
+module._DEPENDENCIES_READY = True
+module.subprocess.run = fake_run_failure
+try:
+    try:
+        module.render_template(module.BASE_VALUES)
+        raise AssertionError("expected render_template() to raise SystemExit")
+    except SystemExit as exc:
+        message = str(exc)
+        assert "failed to render Helm templates" in message
+        assert "template error details" in message
+finally:
+    module.subprocess.run = real_run
 
 print("assert_service_matrix helper tests passed")

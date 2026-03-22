@@ -96,7 +96,7 @@ def render_template(*values_files: str, set_values: dict[str, str] | None = None
     for key, value in (set_values or {}).items():
         cmd.extend(["--set", f"{key}={value}"])
 
-    return subprocess.run(cmd, check=True, capture_output=True, text=True).stdout
+    return run_command(cmd, context="failed to render Helm templates")
 
 
 def ensure_chart_dependencies() -> None:
@@ -105,21 +105,22 @@ def ensure_chart_dependencies() -> None:
         return
 
     for chart_path in DEPENDENCY_UPDATE_PATHS:
-        try:
-            subprocess.run(
-                ["helm", "dependency", "update", chart_path],
-                check=True,
-                capture_output=True,
-                text=True,
-            )
-        except subprocess.CalledProcessError as exc:
-            stderr = (exc.stderr or "").strip()
-            detail = f": {stderr.splitlines()[-1]}" if stderr else ""
-            raise SystemExit(
-                f"failed to update Helm dependencies for {chart_path}{detail}"
-            ) from exc
+        run_command(
+            ["helm", "dependency", "update", chart_path],
+            context=f"failed to update Helm dependencies for {chart_path}",
+        )
 
     _DEPENDENCIES_READY = True
+
+
+def run_command(cmd: list[str], *, context: str) -> str:
+    try:
+        return subprocess.run(cmd, check=True, capture_output=True, text=True).stdout
+    except subprocess.CalledProcessError as exc:
+        stderr = (exc.stderr or "").strip()
+        stdout = (exc.stdout or "").strip()
+        detail = stderr or stdout or f"command exited with status {exc.returncode}"
+        raise SystemExit(f"{context}: {' '.join(cmd)}\n{detail}") from exc
 
 
 def split_documents(rendered: str) -> list[str]:
