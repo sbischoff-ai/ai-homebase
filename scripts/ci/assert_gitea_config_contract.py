@@ -95,6 +95,11 @@ def main() -> None:
         "Waiting for ${pod_name} to become Ready",
         context="scripts/k3d-bootstrap-secrets.sh",
     )
+    require(
+        bootstrap_script,
+        """--set=vaultwarden_db_password="\\${VAULTWARDEN_DB_PASSWORD}" <<'SQL'""",
+        context="scripts/k3d-bootstrap-secrets.sh",
+    )
 
     if re.search(r'--from-literal=(?:database|session|cache|queue|global_lock)=', bootstrap_script):
         raise SystemExit(
