@@ -38,6 +38,7 @@ MATRIX = [
         "set": {
             "nextcloud.enabled": "false",
             "gitea.enabled": "false",
+            "vaultwarden.enabled": "false",
             "paperlessNgx.enabled": "false",
         },
         "expect_present": {
@@ -50,6 +51,7 @@ MATRIX = [
         "set": {
             "nextcloud.enabled": "true",
             "gitea.enabled": "true",
+            "vaultwarden.enabled": "false",
             "paperlessNgx.enabled": "true",
         },
         "expect_present": {
@@ -65,10 +67,13 @@ MATRIX = [
         "set": {
             "nextcloud.enabled": "true",
             "gitea.enabled": "true",
+            "vaultwarden.enabled": "true",
             "paperlessNgx.enabled": "true",
         },
         "expect_present": {
             ("Ingress", "platform-stack-openclaw"),
+            ("Deployment", "platform-stack-vaultwarden"),
+            ("Ingress", "platform-stack-vaultwarden"),
             ("StatefulSet", "platform-stack-nextcloud"),
             ("Ingress", "platform-stack-nextcloud"),
             ("StatefulSet", "platform-stack-paperless-ngx"),
@@ -295,6 +300,7 @@ def assert_k3d_default_ingress_classes() -> None:
     rendered = render_template(BASE_VALUES, K3D_VALUES)
     expected = {
         "platform-stack-openclaw": "openclaw.localtest.me",
+        "platform-stack-vaultwarden": "vaultwarden.localtest.me",
     }
     for name, host in expected.items():
         ingress = find_document(rendered, kind="Ingress", name=name)

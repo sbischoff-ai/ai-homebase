@@ -273,6 +273,10 @@ is_gitea_enabled() {
   effective_bool_value "gitea.enabled"
 }
 
+is_vaultwarden_enabled() {
+  effective_bool_value "vaultwarden.enabled"
+}
+
 manifest_named_resources() {
   local kind_filter="$1"
   helm get manifest "$RELEASE_NAME" \
@@ -376,6 +380,22 @@ verify_gitea_services() {
   ok "Validated ${#service_names[@]} Gitea Service resource(s)"
 }
 
+verify_labeled_service() {
+  local app_name="$1"
+  local service_name
+
+  service_name="$(kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" get service \
+    -l "app.kubernetes.io/instance=${RELEASE_NAME},app.kubernetes.io/name=${app_name}" \
+    -o jsonpath='{.items[0].metadata.name}')"
+
+  if [[ -z "$service_name" ]]; then
+    fail "Unable to find Service for app=${app_name}, release=${RELEASE_NAME} in namespace=${NAMESPACE}"
+    return 1
+  fi
+
+  wait_for_named_resource Service "$service_name"
+}
+
 step "Updating Gitea chart dependencies"
 run_checked helm dependency update charts/gitea
 
@@ -398,6 +418,17 @@ if [[ "$(is_gitea_enabled)" == "true" ]]; then
   verify_gitea_services
 else
   warn "Skipping Gitea workload/service checks because gitea.enabled=false in effective values"
+fi
+
+if [[ "$(is_vaultwarden_enabled)" == "true" ]]; then
+  wait_for_workload vaultwarden
+  verify_labeled_service vaultwarden
+  step "Checking vaultwarden ingress endpoint"
+  run_checked curl --silent --show-error --fail \
+    -H 'Host: vaultwarden.localtest.me' \
+    http://127.0.0.1/
+else
+  warn "Skipping Vaultwarden workload/service/ingress checks because vaultwarden.enabled=false in effective values"
 fi
 
 if [[ "$(is_openclaw_ingress_enabled)" == "true" ]]; then

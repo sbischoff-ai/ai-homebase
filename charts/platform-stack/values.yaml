@@ -6,6 +6,7 @@ global:
     openclaw: openclaw.homebase.local
     nextcloud: cloud.homebase.local
     gitea: gitea.vpn.homebase.internal
+    vaultwarden: vaultwarden.homebase.local
     paperlessNgx: paperless.homebase.local
   commonLabels: {}
   podAnnotations: {}
@@ -295,6 +296,47 @@ gitea:
       enabled: false
     redis-cluster:
       enabled: false
+
+vaultwarden:
+  enabled: false
+  image:
+    repository: ghcr.io/dani-garcia/vaultwarden
+    tag: "1.35.4"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 80
+    annotations: {}
+  ingress:
+    enabled: true
+    className: ""
+    annotations: {}
+    hosts:
+      - host: vaultwarden.homebase.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+  persistence:
+    enabled: true
+    existingClaim: ""
+    accessModes:
+      - ReadWriteOnce
+    size: 20Gi
+    storageClass: ""
+    annotations: {}
+  resources: {}
+  existingSecret: ""
+  secretRefs: []
+  databaseUrlSecret:
+    name: vaultwarden-config-secrets
+    key: DATABASE_URL
+  appConfig:
+    domain: ""
+    signupsAllowed: false
+    invitationsAllowed: true
+    websocketEnabled: true
 
 # Compatibility bridge for paperless-ngx subchart-local gating:
 # keep this true so umbrella toggle paperlessNgx.enabled remains the single operator switch.

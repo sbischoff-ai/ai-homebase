@@ -21,6 +21,10 @@ dependencies:
     version: 0.1.0
     repository: file://../gitea
     condition: gitea.enabled
+  - name: vaultwarden
+    version: 0.1.0
+    repository: file://../vaultwarden
+    condition: vaultwarden.enabled
   - name: paperless-ngx
     version: 0.1.0
     repository: file://../paperless-ngx

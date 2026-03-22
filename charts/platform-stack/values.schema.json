@@ -104,6 +104,12 @@
             },
             "paperlessNgx": {
               "$ref": "#/definitions/hostname"
+            },
+            "vaultwarden": {
+              "$ref": "#/definitions/hostname"
+            },
+            "infisical": {
+              "$ref": "#/definitions/hostname"
             }
           }
         }
@@ -183,6 +189,12 @@
       "$ref": "#/definitions/optionalServiceToggle"
     },
     "paperlessNgx": {
+      "$ref": "#/definitions/optionalServiceToggle"
+    },
+    "vaultwarden": {
+      "$ref": "#/definitions/optionalServiceToggle"
+    },
+    "infisical": {
       "$ref": "#/definitions/optionalServiceToggle"
     }
   },

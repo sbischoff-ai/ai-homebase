@@ -8,6 +8,8 @@ All examples in this directory use placeholders only. Replace values like `<your
 kubectl --context <your-kube-context> -n <your-namespace> create secret generic openclaw-app-secrets   --from-literal=OPENCLAW_GATEWAY_TOKEN=<dummy-openclaw-gateway-token>
 
 kubectl --context <your-kube-context> -n <your-namespace> create secret generic openclaw-remote-docker-ssh   --from-file=id_ed25519=<path-to-private-key>   --from-file=known_hosts=<path-to-known-hosts>
+
+kubectl --context <your-kube-context> -n <your-namespace> create secret generic vaultwarden-config-secrets   --from-literal=DATABASE_URL=postgresql://vaultwarden:<db-password>@platform-stack-shared-postgresql:5432/vaultwarden
 ```
 
 `openclaw-remote-docker-ssh` is part of the standard OpenClaw deployment posture in this repo; every supported target needs an equivalent Secret even if you override the name in values. The chart requires the Secret referenced by `remoteDocker.ssh.secretName` to provide exactly two SSH data keys: non-empty `id_ed25519` and non-empty `known_hosts`.
@@ -21,7 +23,7 @@ These example files are layer-on-top overlays, not standalone configs: apply the
 - `examples/k3d.values.override.yaml`: Use this as an optional layer-on-top overlay after `values-k3d.yaml` when you need local `k3d`-specific hostnames, image, ingress, or temporary service adjustments.
 - `examples/k3s.values.override.yaml`: Use this as an optional layer-on-top overlay after `values-k3s.yaml` when you need homelab `k3s` hostnames, registry settings, or other environment-specific production overrides.
 - `examples/profile-core-only.override.yaml`: Use this as a layer-on-top profile overlay when you want only the core OpenClaw service enabled on top of an existing target stack.
-- `examples/profile-content-services.override.yaml`: Use this as a layer-on-top profile overlay when you want to enable the optional content and collaboration services on top of an existing target stack.
+- `examples/profile-content-services.override.yaml`: Use this as a layer-on-top profile overlay when you want to enable the optional content, password-management, and collaboration services on top of an existing target stack.
 - `examples/openclaw.remote-docker.values.yaml`: Use this as a layer-on-top overlay when a concrete environment needs to override the standard OpenClaw remote Docker endpoint, SSH Secret, or sandbox image settings.
 
 ## k3d local override layering

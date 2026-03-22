@@ -15,6 +15,7 @@ GEMINI_API_KEY="${GEMINI_API_KEY:-}"
 XAI_API_KEY="${XAI_API_KEY:-}"
 MOONSHOT_API_KEY="${MOONSHOT_API_KEY:-}"
 GITEA_DB_PASSWORD="${GITEA_DB_PASSWORD:-}"
+VAULTWARDEN_DB_PASSWORD="${VAULTWARDEN_DB_PASSWORD:-}"
 REMOTE_DOCKER_SECRET_NAME="${REMOTE_DOCKER_SECRET_NAME:-openclaw-remote-docker-ssh}"
 REMOTE_DOCKER_HOST="${REMOTE_DOCKER_HOST:-host.k3d.internal}"
 REMOTE_DOCKER_PORT="${REMOTE_DOCKER_PORT:-2222}"
@@ -50,6 +51,7 @@ Options:
   --postgres-admin-password <v>  shared PostgreSQL admin password (default: generated local value)
   --redis-password <v>           shared Redis password (default: generated local value)
   --gitea-db-password <v>        Gitea database password (default: reuse existing secret value or generate)
+  --vaultwarden-db-password <v>  Vaultwarden database password (default: reuse existing secret value or generate)
   --verbose                      Stream full command output
   -h, --help                     Show this help message
 USAGE
@@ -68,6 +70,7 @@ while [[ $# -gt 0 ]]; do
     --postgres-admin-password) POSTGRES_ADMIN_PASSWORD="$2"; shift 2 ;;
     --redis-password) REDIS_PASSWORD="$2"; shift 2 ;;
     --gitea-db-password) GITEA_DB_PASSWORD="$2"; shift 2 ;;
+    --vaultwarden-db-password) VAULTWARDEN_DB_PASSWORD="$2"; shift 2 ;;
     --verbose) BOOTSTRAP_VERBOSE=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
@@ -189,6 +192,35 @@ resolve_gitea_db_password() {
   openssl rand -hex 24
 }
 
+resolve_vaultwarden_db_password() {
+  local existing_database_url_b64=""
+
+  if [[ -n "$VAULTWARDEN_DB_PASSWORD" ]]; then
+    printf '%s' "$VAULTWARDEN_DB_PASSWORD"
+    return 0
+  fi
+
+  existing_database_url_b64="$(
+    kubectl "${KUBECTL_ARGS[@]}" -n "$NAMESPACE" get secret vaultwarden-config-secrets \
+      -o jsonpath='{.data.DATABASE_URL}' 2>>"$BOOTSTRAP_LOG_FILE" || true
+  )"
+  if [[ -n "$existing_database_url_b64" ]]; then
+    printf '%s' "$existing_database_url_b64" | base64 --decode | python3 -c '
+import sys
+from urllib.parse import unquote, urlparse
+
+database_url = sys.stdin.read().strip()
+parsed = urlparse(database_url)
+if parsed.password is None:
+    raise SystemExit(1)
+print(unquote(parsed.password), end="")
+'
+    return 0
+  fi
+
+  openssl rand -hex 24
+}
+
 step "Ensuring namespace ${NAMESPACE} exists"
 apply_manifest <<MANIFEST
 apiVersion: v1
@@ -206,6 +238,7 @@ create_and_apply_secret shared-redis-auth \
   --from-literal=redis-password="$REDIS_PASSWORD"
 
 GITEA_DB_PASSWORD="$(resolve_gitea_db_password)"
+VAULTWARDEN_DB_PASSWORD="$(resolve_vaultwarden_db_password)"
 GITEA_REDIS_URI="redis://:${REDIS_PASSWORD}@platform-stack-shared-redis:6379/0?pool_size=100&idle_timeout=180s"
 GITEA_INITDB_SCRIPT="$(mktemp)"
 cat >"${GITEA_INITDB_SCRIPT}" <<EOF
@@ -219,11 +252,20 @@ BEGIN
   ELSE
     ALTER ROLE gitea WITH LOGIN PASSWORD '${GITEA_DB_PASSWORD}';
   END IF;
+
+  IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'vaultwarden') THEN
+    CREATE ROLE vaultwarden LOGIN PASSWORD '${VAULTWARDEN_DB_PASSWORD}';
+  ELSE
+    ALTER ROLE vaultwarden WITH LOGIN PASSWORD '${VAULTWARDEN_DB_PASSWORD}';
+  END IF;
 END
 \$\$;
 SQL
 if [ "$(psql -v ON_ERROR_STOP=1 --username "${POSTGRES_USER:-postgres}" --dbname postgres -tAc "SELECT 1 FROM pg_database WHERE datname = 'gitea'")" != "1" ]; then
   psql -v ON_ERROR_STOP=1 --username "${POSTGRES_USER:-postgres}" --dbname postgres -c "CREATE DATABASE gitea OWNER gitea"
+fi
+if [ "$(psql -v ON_ERROR_STOP=1 --username "${POSTGRES_USER:-postgres}" --dbname postgres -tAc "SELECT 1 FROM pg_database WHERE datname = 'vaultwarden'")" != "1" ]; then
+  psql -v ON_ERROR_STOP=1 --username "${POSTGRES_USER:-postgres}" --dbname postgres -c "CREATE DATABASE vaultwarden OWNER vaultwarden"
 fi
 EOF
 
@@ -237,6 +279,9 @@ create_and_apply_secret gitea-config-secrets \
   --from-literal=GITEA__cache__HOST="${GITEA_REDIS_URI}" \
   --from-literal=GITEA__queue__CONN_STR="${GITEA_REDIS_URI}" \
   --from-literal=GITEA__global_lock__SERVICE_CONN_STR="${GITEA_REDIS_URI}"
+
+create_and_apply_secret vaultwarden-config-secrets \
+  --from-literal=DATABASE_URL="postgresql://vaultwarden:${VAULTWARDEN_DB_PASSWORD}@platform-stack-shared-postgresql:5432/vaultwarden"
 
 OPENCLAW_SECRET_ARGS=(
   --from-literal=OPENCLAW_GATEWAY_TOKEN="$OPENCLAW_GATEWAY_TOKEN"

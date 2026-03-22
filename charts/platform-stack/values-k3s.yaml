@@ -8,6 +8,7 @@ global:
     openclaw: openclaw.vpn.homebase.internal
     nextcloud: cloud.homebase.internal
     gitea: gitea.vpn.homebase.internal
+    vaultwarden: vaultwarden.vpn.homebase.internal
     paperlessNgx: paperless.vpn.homebase.internal
   commonLabels:
     environment: k3s
@@ -82,6 +83,21 @@ gitea:
     admin:
       username: git-admin
       existingSecret: ""
+
+vaultwarden:
+  enabled: true
+  ingress:
+    enabled: true
+    className: nginx
+    hosts:
+      - host: vaultwarden.vpn.homebase.internal
+        paths:
+          - path: /
+            pathType: Prefix
+  persistence:
+    enabled: true
+    size: 20Gi
+    storageClass: local-path
 
 paperlessNgx:
   enabled: true

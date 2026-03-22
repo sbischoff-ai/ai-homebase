@@ -7,6 +7,11 @@ nextcloud:
 gitea:
   enabled: false
 
+vaultwarden:
+  enabled: false
+
 paperlessNgx:
   enabled: false
 
+infisical:
+  enabled: false

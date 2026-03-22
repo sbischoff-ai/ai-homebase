@@ -11,6 +11,7 @@ Use `global.*` for shared defaults such as hostnames, storage class, image pull 
 - `openclaw.enabled`
 - `nextcloud.enabled`
 - `gitea.enabled`
+- `vaultwarden.enabled`
 - `paperlessNgx.enabled`
 
 It also includes shared backend dependencies:
