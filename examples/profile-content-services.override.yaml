@@ -4,6 +4,8 @@ nextcloud:
 gitea:
   enabled: true
 
-paperlessNgx:
+vaultwarden:
   enabled: true
 
+paperlessNgx:
+  enabled: true

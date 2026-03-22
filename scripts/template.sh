@@ -10,7 +10,7 @@ SET_ARGS=()
 normalize_service_key() {
   case "$1" in
     cert-manager|certManager) echo "certManager" ;;
-    openclaw|nextcloud|gitea) echo "$1" ;;
+    openclaw|nextcloud|gitea|vaultwarden) echo "$1" ;;
     paperless-ngx|paperlessNgx) echo "paperlessNgx" ;;
     *) return 1 ;;
   esac

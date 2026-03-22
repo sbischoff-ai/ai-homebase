@@ -141,6 +141,7 @@ A complete example looks like this:
 
   networking.extraHosts = ''
     127.0.0.1 openclaw.localtest.me
+    127.0.0.1 vaultwarden.localtest.me
     127.0.0.1 nextcloud.localtest.me
     127.0.0.1 paperless.localtest.me
   '';
@@ -149,7 +150,7 @@ A complete example looks like this:
 }
 ```
 
-Replace `yourUser` with the local account that runs `k3d`, `incus`, and the repository helper scripts. The extra host entries cover every shipped `values-k3d.yaml` hostname; `nextcloud.localtest.me` and `paperless.localtest.me` are only needed if you enable those optional services locally, but keeping them in `extraHosts` avoids surprise DNS mismatches later.
+Replace `yourUser` with the local account that runs `k3d`, `incus`, and the repository helper scripts. The extra host entries cover every shipped `values-k3d.yaml` hostname; `nextcloud.localtest.me` and `paperless.localtest.me` are only needed if you enable those optional services locally, but keeping them in `extraHosts` avoids surprise DNS mismatches later. `vaultwarden.localtest.me` is included because Vaultwarden is enabled in the shipped k3d profile.
 
 After rebuilding your NixOS configuration, log out/in so the new group membership applies, initialize Incus if needed, and then continue with the k3d bootstrap flow.
 

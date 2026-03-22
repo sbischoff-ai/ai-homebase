@@ -50,7 +50,7 @@ What you need to know:
 
 - The k3d scripts use `charts/platform-stack/values.yaml` plus `charts/platform-stack/values-k3d.yaml` by default.
 - Use this command after secrets are in place and any one-off override file is ready.
-- The local smoke check waits up to 600 seconds for each deployment rollout/readiness check so slower first boots do not fail just before OpenClaw becomes Ready; when the effective `gitea.enabled=true`, it also waits for the rendered Gitea workload and Services before declaring success.
+- The local smoke check waits up to 600 seconds for each deployment rollout/readiness check so slower first boots do not fail just before OpenClaw becomes Ready; when the effective `gitea.enabled=true`, it also waits for the rendered Gitea workload and Services before declaring success, and when `vaultwarden.enabled=true`, it waits for the Vaultwarden deployment, Service, and ingress endpoint.
 - If you only need generic install, lint, template, or helper-script commands outside this k3d-specific workflow, use [`docs/commands.md`](./commands.md).
 
 ## 3) Service access
@@ -58,6 +58,7 @@ What you need to know:
 Expected local browser endpoints served by the k3d `ingress-nginx` controller:
 
 - `http://gitea.localtest.me`
+- `http://vaultwarden.localtest.me`
 - `http://openclaw.localtest.me`
 
 After a successful bootstrap, the summary output prints:
@@ -65,7 +66,7 @@ After a successful bootstrap, the summary output prints:
 - the kubeconfig path used for the cluster
 - the OpenClaw gateway token that was written into `openclaw-app-secrets`
 - the auto-selected default OpenClaw model when a model-provider key was exported
-- the local service URLs for OpenClaw and Gitea
+- the local service URLs for OpenClaw, Gitea, and Vaultwarden
 
 ## 4) First-use OpenClaw token and device pairing
 
@@ -106,7 +107,7 @@ Remove both the local cluster and the Incus VM together:
 If it does not, add entries such as:
 
 ```text
-127.0.0.1 gitea.localtest.me openclaw.localtest.me
+127.0.0.1 gitea.localtest.me vaultwarden.localtest.me openclaw.localtest.me
 ```
 
 ## 7) When to override defaults

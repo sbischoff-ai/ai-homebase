@@ -5,6 +5,7 @@ global:
     openclaw: <openclaw-k3s-hostname>
     nextcloud: <nextcloud-k3s-hostname>
     gitea: <gitea-k3s-hostname>
+    vaultwarden: <vaultwarden-k3s-hostname>
     paperlessNgx: <paperless-k3s-hostname>
   imagePullSecrets:
     - <optional-image-pull-secret>

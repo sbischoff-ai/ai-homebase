@@ -15,6 +15,11 @@ gitea:
       storageClass: <default-storage-class>
       size: 200Gi
 
+vaultwarden:
+  persistence:
+    storageClass: <default-storage-class>
+    size: 100Gi
+
 paperlessNgx:
   persistence:
     data:

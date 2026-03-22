@@ -13,7 +13,7 @@ Prefer files over `--set` for anything long-lived or shared.
 
 Incus sandbox VM assets intentionally live outside the Helm values hierarchy in `incus/` and `scripts/incus-vm-*.sh`. They are companion host/bootstrap resources rather than chart-managed Kubernetes objects, so keep their sizing, image, and access settings in those dedicated files/scripts instead of trying to encode them in chart values.
 
-Canonical global host key for the Paperless ingress default is `global.hosts.paperlessNgx`.
+Canonical global host keys include `global.hosts.paperlessNgx` for Paperless and `global.hosts.vaultwarden` for Vaultwarden.
 
 ## Layering model
 
@@ -69,6 +69,7 @@ Current schema coverage includes:
 - `charts/nextcloud/values.schema.json`
 - `charts/paperless-ngx/values.schema.json`
 - `charts/gitea/values.schema.json`
+- `charts/vaultwarden/values.schema.json`
 
 When adding or changing values keys, update both the chart values and schema in the same change.
 

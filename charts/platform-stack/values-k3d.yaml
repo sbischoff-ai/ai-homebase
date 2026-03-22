@@ -7,6 +7,7 @@ global:
     openclaw: openclaw.localtest.me
     nextcloud: nextcloud.localtest.me
     gitea: gitea.localtest.me
+    vaultwarden: vaultwarden.localtest.me
     paperlessNgx: paperless.localtest.me
 
 openclaw:
@@ -84,6 +85,21 @@ gitea:
       username: git-admin
       existingSecret: ""
 
+vaultwarden:
+  enabled: true
+  ingress:
+    enabled: true
+    className: nginx
+    hosts:
+      - host: vaultwarden.localtest.me
+        paths:
+          - path: /
+            pathType: Prefix
+  persistence:
+    enabled: true
+    size: 5Gi
+    storageClass: local-path
+
 paperlessNgx:
   enabled: false
   persistence:
@@ -95,4 +111,3 @@ paperlessNgx:
       enabled: false
     export:
       enabled: false
-
