@@ -35,6 +35,11 @@ def main() -> None:
         require(text, "name: GITEA__global_lock__SERVICE_CONN_STR", context=name)
         require(text, "name: gitea-config-secrets", context=name)
         require(text, "additionalConfigSources: []", context=name)
+        if not re.search(r"\bvalkey:\n\s+enabled: false", text):
+            raise SystemExit(f"{name} is missing disabled valkey configuration")
+        if not re.search(r"\bvalkey-cluster:\n\s+enabled: false", text):
+            raise SystemExit(f"{name} is missing disabled valkey-cluster configuration")
+        forbid(text, "redis-cluster:", context=name)
         forbid(text, "secretName: gitea-config-secrets", context=name)
 
     for key in (

@@ -82,6 +82,7 @@ Use service-specific blocks when behavior must diverge, especially for:
 - `certManager.*` umbrella toggles and PKI resources
 - `cert-manager.*` upstream subchart values passed through the umbrella chart
 - `openclaw.*`
+- `gitea.gitea.*` upstream wrapper values, including disabling upstream `valkey` / `valkey-cluster` in favor of the umbrella `sharedRedis` service
 - Secret references and env contracts
 - Persistence and ingress controls
 - OpenClaw sandbox settings

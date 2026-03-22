@@ -244,6 +244,78 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: vaultwarden
+  name: platform-stack-vaultwarden
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: platform-stack
+      app.kubernetes.io/name: vaultwarden
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: platform-stack
+        app.kubernetes.io/name: vaultwarden
+    spec:
+      containers:
+      - env:
+        - name: DATA_FOLDER
+          value: /data
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              key: DATABASE_URL
+              name: vaultwarden-config-secrets
+        - name: DOMAIN
+          value: https://vaultwarden.localtest.me
+        - name: SIGNUPS_ALLOWED
+          value: 'false'
+        - name: INVITATIONS_ALLOWED
+          value: 'true'
+        - name: WEBSOCKET_ENABLED
+          value: 'true'
+        image: ghcr.io/dani-garcia/vaultwarden:1.35.4
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          tcpSocket:
+            port: http
+        name: vaultwarden
+        ports:
+        - containerPort: 80
+          name: http
+        readinessProbe:
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          tcpSocket:
+            port: http
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: false
+        volumeMounts:
+        - mountPath: /data
+          name: data
+      securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: platform-stack-vaultwarden-data
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
     app: cert-manager
     app.kubernetes.io/component: controller
     app.kubernetes.io/instance: platform-stack
@@ -479,6 +551,249 @@ spec:
           type: RuntimeDefault
       serviceAccountName: platform-stack-cert-manager-webhook
 ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: gitea
+  name: platform-stack-gitea
+  namespace: ai-homebase
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: platform-stack
+      app.kubernetes.io/name: gitea
+  strategy:
+    rollingUpdate:
+      maxSurge: 100%
+      maxUnavailable: 0
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        checksum/config: fc1d9a0c6359313803ba7443effe9e60bc59459e93b3d8d5a52af4ba07634adc
+      labels:
+        app.kubernetes.io/instance: platform-stack
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: gitea
+    spec:
+      containers:
+      - env:
+        - name: SSH_LISTEN_PORT
+          value: '2222'
+        - name: SSH_PORT
+          value: '22'
+        - name: GITEA_APP_INI
+          value: /data/gitea/conf/app.ini
+        - name: GITEA_CUSTOM
+          value: /data/gitea
+        - name: GITEA_WORK_DIR
+          value: /data
+        - name: GITEA_TEMP
+          value: /tmp/gitea
+        - name: TMPDIR
+          value: /tmp/gitea
+        - name: HOME
+          value: /data/gitea/git
+        image: docker.gitea.com/gitea:1.25.5-rootless
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 10
+          initialDelaySeconds: 200
+          periodSeconds: 10
+          successThreshold: 1
+          tcpSocket:
+            port: http
+          timeoutSeconds: 1
+        name: gitea
+        ports:
+        - containerPort: 2222
+          name: ssh
+        - containerPort: 3000
+          name: http
+        readinessProbe:
+          failureThreshold: 3
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          successThreshold: 1
+          tcpSocket:
+            port: http
+          timeoutSeconds: 1
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+        volumeMounts:
+        - mountPath: /tmp
+          name: temp
+        - mountPath: /data
+          name: data
+      initContainers:
+      - command:
+        - /usr/sbinx/init_directory_structure.sh
+        env:
+        - name: GITEA_APP_INI
+          value: /data/gitea/conf/app.ini
+        - name: GITEA_CUSTOM
+          value: /data/gitea
+        - name: GITEA_WORK_DIR
+          value: /data
+        - name: GITEA_TEMP
+          value: /tmp/gitea
+        image: docker.gitea.com/gitea:1.25.5-rootless
+        imagePullPolicy: IfNotPresent
+        name: init-directories
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+        volumeMounts:
+        - mountPath: /usr/sbinx
+          name: init
+        - mountPath: /tmp
+          name: temp
+        - mountPath: /data
+          name: data
+      - command:
+        - /usr/sbinx/config_environment.sh
+        env:
+        - name: GITEA_APP_INI
+          value: /data/gitea/conf/app.ini
+        - name: GITEA_CUSTOM
+          value: /data/gitea
+        - name: GITEA_WORK_DIR
+          value: /data
+        - name: GITEA_TEMP
+          value: /tmp/gitea
+        - name: TMP_EXISTING_ENVS_FILE
+          value: /tmp/existing-envs
+        - name: ENV_TO_INI_MOUNT_POINT
+          value: /env-to-ini-mounts
+        - name: GITEA__database__PASSWD
+          valueFrom:
+            secretKeyRef:
+              key: GITEA__database__PASSWD
+              name: gitea-config-secrets
+        - name: GITEA__session__PROVIDER_CONFIG
+          valueFrom:
+            secretKeyRef:
+              key: GITEA__session__PROVIDER_CONFIG
+              name: gitea-config-secrets
+        - name: GITEA__cache__HOST
+          valueFrom:
+            secretKeyRef:
+              key: GITEA__cache__HOST
+              name: gitea-config-secrets
+        - name: GITEA__queue__CONN_STR
+          valueFrom:
+            secretKeyRef:
+              key: GITEA__queue__CONN_STR
+              name: gitea-config-secrets
+        - name: GITEA__global_lock__SERVICE_CONN_STR
+          valueFrom:
+            secretKeyRef:
+              key: GITEA__global_lock__SERVICE_CONN_STR
+              name: gitea-config-secrets
+        image: docker.gitea.com/gitea:1.25.5-rootless
+        imagePullPolicy: IfNotPresent
+        name: init-app-ini
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+        volumeMounts:
+        - mountPath: /usr/sbinx
+          name: config
+        - mountPath: /tmp
+          name: temp
+        - mountPath: /data
+          name: data
+        - mountPath: /env-to-ini-mounts/inlines/
+          name: inline-config-sources
+      - command:
+        - /usr/sbinx/configure_gitea.sh
+        env:
+        - name: GITEA_APP_INI
+          value: /data/gitea/conf/app.ini
+        - name: GITEA_CUSTOM
+          value: /data/gitea
+        - name: GITEA_WORK_DIR
+          value: /data
+        - name: GITEA_TEMP
+          value: /tmp/gitea
+        - name: HOME
+          value: /data/gitea/git
+        - name: GITEA_ADMIN_USERNAME
+          value: git-admin
+        - name: GITEA_ADMIN_PASSWORD
+          value: r8sA8CPHD9!bt6d
+        - name: GITEA_ADMIN_PASSWORD_MODE
+          value: keepUpdated
+        image: docker.gitea.com/gitea:1.25.5-rootless
+        imagePullPolicy: IfNotPresent
+        name: configure-gitea
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+          runAsUser: 1000
+        volumeMounts:
+        - mountPath: /usr/sbinx
+          name: init
+        - mountPath: /tmp
+          name: temp
+        - mountPath: /data
+          name: data
+      securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      terminationGracePeriodSeconds: 60
+      volumes:
+      - name: init
+        secret:
+          defaultMode: 110
+          secretName: platform-stack-gitea-init
+      - name: config
+        secret:
+          defaultMode: 110
+          secretName: platform-stack-gitea
+      - name: inline-config-sources
+        secret:
+          secretName: platform-stack-gitea-inline-config
+      - name: temp
+      - name: data
+        persistentVolumeClaim:
+          claimName: gitea-shared-storage
+---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -504,6 +819,51 @@ spec:
   - hosts:
     - openclaw.localtest.me
     secretName: openclaw-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: vaultwarden
+  name: platform-stack-vaultwarden
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: vaultwarden.localtest.me
+    http:
+      paths:
+      - backend:
+          service:
+            name: platform-stack-vaultwarden
+            port:
+              number: 80
+        path: /
+        pathType: Prefix
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: gitea
+  name: platform-stack-gitea
+  namespace: ai-homebase
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: gitea.localtest.me
+    http:
+      paths:
+      - backend:
+          service:
+            name: platform-stack-gitea-http
+            port:
+              number: 3000
+        path: /
+        pathType: Prefix
 ---
 apiVersion: batch/v1
 kind: Job
@@ -579,6 +939,247 @@ spec:
       storage: 10Gi
 ---
 apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: vaultwarden
+  name: platform-stack-vaultwarden-data
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: local-path
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  annotations:
+    helm.sh/resource-policy: keep
+  name: gitea-shared-storage
+  namespace: ai-homebase
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: local-path
+  volumeMode: Filesystem
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: gitea
+  name: platform-stack-gitea
+  namespace: ai-homebase
+stringData:
+  assertions: ''
+  config_environment.sh: "#!/usr/bin/env bash\nset -euo pipefail\n\nfunction env2ini::log()\
+    \ {\n  printf \"${1}\\n\"\n}\n\nfunction env2ini::read_config_to_env() {\n  local\
+    \ section=\"${1}\"\n  local line=\"${2}\"\n\n  if [[ -z \"${line}\" ]]; then\n\
+    \    # skip empty line\n    return\n  fi\n\n  # 'xargs echo -n' trims all leading/trailing\
+    \ whitespaces and a trailing new line\n  local setting=\"$(awk -F '=' '{print\
+    \ $1}' <<< \"${line}\" | xargs echo -n)\"\n\n  if [[ -z \"${setting}\" ]]; then\n\
+    \    env2ini::log '  ! invalid setting'\n    exit 1\n  fi\n\n  local value=''\n\
+    \  local regex=\"^${setting}(\\s*)=(\\s*)(.*)\"\n  if [[ $line =~ $regex ]]; then\n\
+    \    value=\"${BASH_REMATCH[3]}\"\n  else\n    env2ini::log '  ! invalid setting'\n\
+    \    exit 1\n  fi\n\n  env2ini::log \"    + '${setting}'\"\n\n  if [[ -z \"${section}\"\
+    \ ]]; then\n    export \"GITEA____${setting^^}=${value}\"                    \
+    \       # '^^' makes the variable content uppercase\n    return\n  fi\n\n  local\
+    \ masked_section=\"${section//./_0X2E_}\"                            # '//' instructs\
+    \ to replace all matches\n  masked_section=\"${masked_section//-/_0X2D_}\"\n\n\
+    \  export \"GITEA__${masked_section^^}__${setting^^}=${value}\"        # '^^'\
+    \ makes the variable content uppercase\n}\n\nfunction env2ini::reload_preset_envs()\
+    \ {\n  env2ini::log \"Reloading preset envs...\"\n\n  while read -r line; do\n\
+    \    if [[ -z \"${line}\" ]]; then\n      # skip empty line\n      return\n  \
+    \  fi\n\n    # 'xargs echo -n' trims all leading/trailing whitespaces and a trailing\
+    \ new line\n    local setting=\"$(awk -F '=' '{print $1}' <<< \"${line}\" | xargs\
+    \ echo -n)\"\n\n    if [[ -z \"${setting}\" ]]; then\n      env2ini::log '  !\
+    \ invalid setting'\n      exit 1\n    fi\n\n    local value=''\n    local regex=\"\
+    ^${setting}(\\s*)=(\\s*)(.*)\"\n    if [[ $line =~ $regex ]]; then\n      value=\"\
+    ${BASH_REMATCH[3]}\"\n    else\n      env2ini::log '  ! invalid setting'\n   \
+    \   exit 1\n    fi\n\n    env2ini::log \"  + '${setting}'\"\n\n    export \"${setting^^}=${value}\"\
+    \                           # '^^' makes the variable content uppercase\n  done\
+    \ < \"$TMP_EXISTING_ENVS_FILE\"\n\n  rm $TMP_EXISTING_ENVS_FILE\n}\n\n\nfunction\
+    \ env2ini::process_config_file() {\n  local config_file=\"${1}\"\n  local section=\"\
+    $(basename \"${config_file}\")\"\n\n  if [[ $section == '_generals_' ]]; then\n\
+    \    env2ini::log \"  [ini root]\"\n    section=''\n  else\n    env2ini::log \"\
+    \  ${section}\"\n  fi\n\n  while read -r line; do\n    env2ini::read_config_to_env\
+    \ \"${section}\" \"${line}\"\n  done < <(awk 1 \"${config_file}\")           \
+    \                  # Helm .toYaml trims the trailing new line which breaks line\
+    \ processing; awk 1 ... adds it back while reading\n}\n\nfunction env2ini::load_config_sources()\
+    \ {\n  local path=\"${1}\"\n\n  if [[ -d \"${path}\" ]]; then\n    env2ini::log\
+    \ \"Processing $(basename \"${path}\")...\"\n\n    while read -d '' configFile;\
+    \ do\n      env2ini::process_config_file \"${configFile}\"\n    done < <(find\
+    \ \"${path}\" -type l -not -name '..data' -print0)\n\n    env2ini::log \"\\n\"\
+    \n  fi\n}\n\nfunction env2ini::generate_initial_secrets() {\n  # These environment\
+    \ variables will either be\n  #   - overwritten with user defined values,\n  #\
+    \   - initially used to set up Gitea\n  # Anyway, they won't harm existing app.ini\
+    \ files\n\n  export GITEA__SECURITY__INTERNAL_TOKEN=$(gitea generate secret INTERNAL_TOKEN)\n\
+    \  export GITEA__SECURITY__SECRET_KEY=$(gitea generate secret SECRET_KEY)\n  export\
+    \ GITEA__OAUTH2__JWT_SECRET=$(gitea generate secret JWT_SECRET)\n  export GITEA__SERVER__LFS_JWT_SECRET=$(gitea\
+    \ generate secret LFS_JWT_SECRET)\n\n  env2ini::log \"...Initial secrets generated\\\
+    n\"\n}\n\n# save existing envs prior to script execution. Necessary to keep order\
+    \ of preexisting and custom envs\nenv | (grep -e '^GITEA__' || [[ $? == 1 ]])\
+    \ > $TMP_EXISTING_ENVS_FILE\n\n# MUST BE CALLED BEFORE OTHER CONFIGURATION\nenv2ini::generate_initial_secrets\n\
+    \nenv2ini::load_config_sources \"$ENV_TO_INI_MOUNT_POINT/inlines/\"\nenv2ini::load_config_sources\
+    \ \"$ENV_TO_INI_MOUNT_POINT/additionals/\"\n\n# load existing envs to override\
+    \ auto generated envs\nenv2ini::reload_preset_envs\n\nenv2ini::log \"=== All configuration\
+    \ sources loaded ===\\n\"\n\n# safety to prevent rewrite of secret keys if an\
+    \ app.ini already exists\nif [ -f ${GITEA_APP_INI} ]; then\n  env2ini::log 'An\
+    \ app.ini file already exists. To prevent overwriting secret keys, these settings\
+    \ are dropped and remain unchanged:'\n  env2ini::log '  - security.INTERNAL_TOKEN'\n\
+    \  env2ini::log '  - security.SECRET_KEY'\n  env2ini::log '  - oauth2.JWT_SECRET'\n\
+    \  env2ini::log '  - server.LFS_JWT_SECRET'\n\n  unset GITEA__SECURITY__INTERNAL_TOKEN\n\
+    \  unset GITEA__SECURITY__SECRET_KEY\n  unset GITEA__OAUTH2__JWT_SECRET\n  unset\
+    \ GITEA__SERVER__LFS_JWT_SECRET\nfi\n\nenvironment-to-ini -o $GITEA_APP_INI\n"
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: gitea
+  name: platform-stack-gitea-init
+  namespace: ai-homebase
+stringData:
+  configure_gitea.sh: "#!/usr/bin/env bash\n\nset -euo pipefail\n\necho '==== BEGIN\
+    \ GITEA CONFIGURATION ===='\n\n{ # try\n  gitea migrate\n} || { # catch\n  echo\
+    \ \"Gitea migrate might fail due to database connection...This init-container\
+    \ will try again in a few seconds\"\n  exit 1\n}\nfunction configure_admin_user()\
+    \ {\n  local full_admin_list=$(gitea admin user list --admin)\n  local actual_user_table=''\n\
+    \n  # We might have distorted output due to warning logs, so we have to detect\
+    \ the actual user table by its headline and trim output above that line\n  local\
+    \ regex=\"(.*)(ID\\s+Username\\s+Email\\s+IsActive.*)\"\n  if [[ \"${full_admin_list}\"\
+    \ =~ $regex ]]; then\n    actual_user_table=$(echo \"${BASH_REMATCH[2]}\" | tail\
+    \ -n+2) # tail'ing to drop the table headline\n  else\n    # This code block should\
+    \ never be reached, as long as the output table header remains the same.\n   \
+    \ # If this code block is reached, the regex doesn't match anymore and we probably\
+    \ have to adjust this script.\n\n    echo \"ERROR: 'configure_admin_user' was\
+    \ not able to determine the current list of admin users.\"\n    echo \"      \
+    \ Please review the output of 'gitea admin user list --admin' shown below.\"\n\
+    \    echo \"       If you think it is an issue with the Helm Chart provisioning,\
+    \ file an issue at https://gitea.com/gitea/helm-gitea/issues.\"\n    echo \"DEBUG:\
+    \ Output of 'gitea admin user list --admin'\"\n    echo \"--\"\n    echo \"${full_admin_list}\"\
+    \n    echo \"--\"\n    exit 1\n  fi\n\n  local ACCOUNT_ID=$(echo \"${actual_user_table}\"\
+    \ | grep -E \"\\s+${GITEA_ADMIN_USERNAME}\\s+\" | awk -F \" \" \"{printf \\$1}\"\
+    )\n  if [[ -z \"${ACCOUNT_ID}\" ]]; then\n    local -a create_args\n    create_args=(--admin\
+    \ --username \"${GITEA_ADMIN_USERNAME}\" --password \"${GITEA_ADMIN_PASSWORD}\"\
+    \ --email \"gitea@local.domain\")\n    if [[ \"${GITEA_ADMIN_PASSWORD_MODE}\"\
+    \ = initialOnlyRequireReset ]]; then\n      create_args+=(--must-change-password=true)\n\
+    \    else\n      create_args+=(--must-change-password=false)\n    fi\n    echo\
+    \ \"No admin user '${GITEA_ADMIN_USERNAME}' found. Creating now...\"\n    gitea\
+    \ admin user create \"${create_args[@]}\"\n    echo '...created.'\n  else\n  \
+    \  if [[ \"${GITEA_ADMIN_PASSWORD_MODE}\" = keepUpdated ]]; then\n      echo \"\
+    Admin account '${GITEA_ADMIN_USERNAME}' already exist. Running update to sync\
+    \ password...\"\n      # See https://gitea.com/gitea/helm-gitea/issues/673\n \
+    \     # --must-change-password argument was added to change-password, defaulting\
+    \ to true, counter to the previous behavior\n      #   which acted as if it were\
+    \ provided with =false. If the argument is present in this version of gitea, then\
+    \ we\n      #   should add it to prevent requiring frequent admin password resets.\n\
+    \      local -a change_args\n      change_args=(--username \"${GITEA_ADMIN_USERNAME}\"\
+    \ --password \"${GITEA_ADMIN_PASSWORD}\")\n      if gitea admin user change-password\
+    \ --help | grep -qF -- '--must-change-password'; then\n        change_args+=(--must-change-password=false)\n\
+    \      fi\n      gitea admin user change-password \"${change_args[@]}\"\n    \
+    \  echo '...password sync done.'\n    else\n      echo \"Admin account '${GITEA_ADMIN_USERNAME}'\
+    \ already exist, but update mode is set to '${GITEA_ADMIN_PASSWORD_MODE}'. Skipping.\"\
+    \n    fi\n  fi\n}\n\nconfigure_admin_user\n\nfunction configure_ldap() {\n   \
+    \ echo 'no ldap configuration... skipping.'\n}\n\nconfigure_ldap\n\nfunction configure_oauth()\
+    \ {\n    echo 'no oauth configuration... skipping.'\n}\n\nconfigure_oauth\n\n\
+    echo '==== END GITEA CONFIGURATION ===='"
+  configure_gpg_environment.sh: '#!/usr/bin/env bash
+
+    set -eu
+
+
+    gpg --batch --import "$TMP_RAW_GPG_KEY"
+
+    '
+  init_directory_structure.sh: '#!/usr/bin/env bash
+
+
+    set -euo pipefail
+
+    mkdir -pv /data/git/.ssh
+
+    chmod -Rv 700 /data/git/.ssh
+
+    [ ! -d /data/gitea/conf ] && mkdir -pv /data/gitea/conf
+
+
+    # prepare temp directory structure
+
+    mkdir -pv "${GITEA_TEMP}"
+
+    chmod -v ug+rwx "${GITEA_TEMP}"'
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: gitea
+  name: platform-stack-gitea-inline-config
+  namespace: ai-homebase
+stringData:
+  _generals_: ''
+  cache: 'ADAPTER=redis
+
+    ENABLED=true
+
+    HOST='
+  database: 'DB_TYPE=postgres
+
+    HOST=platform-stack-shared-postgresql:5432
+
+    NAME=gitea
+
+    USER=gitea'
+  global_lock: SERVICE_TYPE=redis
+  indexer: ISSUE_INDEXER_TYPE=db
+  metrics: ENABLED=false
+  queue: 'CONN_STR=
+
+    TYPE=redis'
+  repository: ROOT=/data/git/gitea-repositories
+  security: INSTALL_LOCK=true
+  server: 'APP_DATA_PATH=/data
+
+    DOMAIN=gitea.localtest.me
+
+    ENABLE_PPROF=false
+
+    HTTP_PORT=3000
+
+    PROTOCOL=http
+
+    ROOT_URL=http://gitea.localtest.me
+
+    SSH_DOMAIN=gitea.localtest.me
+
+    SSH_LISTEN_PORT=2222
+
+    SSH_PORT=22
+
+    START_SSH_SERVER=true'
+  service: DISABLE_REGISTRATION=true
+  session: 'PROVIDER=redis
+
+    PROVIDER_CONFIG='
+type: Opaque
+---
+apiVersion: v1
 kind: Service
 metadata:
   labels:
@@ -629,6 +1230,24 @@ spec:
   selector:
     app.kubernetes.io/instance: platform-stack
     app.kubernetes.io/name: sharedRedis
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: vaultwarden
+  name: platform-stack-vaultwarden
+spec:
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80
+  selector:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/name: vaultwarden
   type: ClusterIP
 ---
 apiVersion: v1
@@ -704,6 +1323,46 @@ spec:
     app.kubernetes.io/component: webhook
     app.kubernetes.io/instance: platform-stack
     app.kubernetes.io/name: webhook
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: gitea
+  name: platform-stack-gitea-http
+  namespace: ai-homebase
+spec:
+  clusterIP: None
+  ports:
+  - name: http
+    port: 3000
+  selector:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/name: gitea
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: gitea
+  name: platform-stack-gitea-ssh
+  namespace: ai-homebase
+spec:
+  clusterIP: None
+  ports:
+  - name: ssh
+    port: 22
+    protocol: TCP
+    targetPort: 2222
+  selector:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/name: gitea
   type: ClusterIP
 ---
 apiVersion: v1

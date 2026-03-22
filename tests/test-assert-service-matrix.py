@@ -138,6 +138,9 @@ for values_path in (
     assert "actions:" not in values_text
     assert "repository: gitea" in values_text
     assert 'tag: "1.25.5"' in values_text
+    assert 'valkey:' in values_text
+    assert 'valkey-cluster:' in values_text
+    assert 'redis-cluster:' not in values_text
 
 for values_path in (
     REPO_ROOT / "charts" / "gitea" / "values.yaml",
