@@ -212,7 +212,7 @@ gitea:
     enabled: true
     image:
       repository: gitea/gitea
-      tag: "1.22.0"
+      tag: "1.25-rootless"
       pullPolicy: IfNotPresent
     service:
       http:
