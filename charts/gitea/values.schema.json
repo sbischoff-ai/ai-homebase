@@ -58,6 +58,14 @@
             "storageClass": { "type": "string" }
           }
         },
+        "image": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "tag": { "type": "string" },
+            "rootless": { "type": "boolean" }
+          }
+        },
         "admin": {
           "type": "object",
           "additionalProperties": true,
