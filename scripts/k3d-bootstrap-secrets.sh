@@ -172,6 +172,59 @@ create_remote_docker_secret() {
   rm -f "$known_hosts_file"
 }
 
+wait_for_shared_postgresql_ready() {
+  local statefulset_name="$1"
+  local pod_name="${statefulset_name}-0"
+
+  step "Waiting for ${pod_name} to become Ready"
+  if ! run_quiet kubectl "${KUBECTL_ARGS[@]}" -n "$NAMESPACE" wait \
+    --for=condition=Ready "pod/${pod_name}" --timeout=180s; then
+    fail "Shared PostgreSQL pod ${pod_name} did not become Ready in namespace ${NAMESPACE}; cannot reconcile the live Gitea database bootstrap."
+    return 1
+  fi
+}
+
+reconcile_gitea_postgres_live() {
+  local statefulset_name="$1"
+
+  if ! kubectl "${KUBECTL_ARGS[@]}" -n "$NAMESPACE" get "statefulset/${statefulset_name}" \
+    >/dev/null 2>>"$BOOTSTRAP_LOG_FILE"; then
+    return 0
+  fi
+
+  wait_for_shared_postgresql_ready "$statefulset_name"
+
+  step "Reconciling live Gitea PostgreSQL role/database on reused cluster"
+  if ! run_quiet kubectl "${KUBECTL_ARGS[@]}" -n "$NAMESPACE" exec \
+    "statefulset/${statefulset_name}" -- env GITEA_DB_PASSWORD="$GITEA_DB_PASSWORD" \
+    sh -ceu '
+      : "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required in the PostgreSQL container environment}"
+      export PGPASSWORD="${POSTGRES_PASSWORD}"
+      psql -v ON_ERROR_STOP=1 \
+        --username "${POSTGRES_USER:-postgres}" \
+        --dbname postgres \
+        --set=gitea_db_password="$GITEA_DB_PASSWORD" <<'"'"'SQL'"'"'
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = '"'"'gitea'"'"') THEN
+    EXECUTE format('"'"'CREATE ROLE gitea LOGIN PASSWORD %L'"'"', :'gitea_db_password');
+  ELSE
+    EXECUTE format('"'"'ALTER ROLE gitea WITH LOGIN PASSWORD %L'"'"', :'gitea_db_password');
+  END IF;
+END
+$$;
+SELECT '"'"'CREATE DATABASE gitea OWNER gitea'"'"'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '"'"'gitea'"'"')\gexec
+ALTER DATABASE gitea OWNER TO gitea;
+SQL
+    '; then
+    fail "Unable to reconcile the live Gitea PostgreSQL role/database in ${NAMESPACE}. Check connectivity to ${statefulset_name} and inspect ${BOOTSTRAP_LOG_FILE}."
+    return 1
+  fi
+
+  ok "Reconciled live Gitea PostgreSQL role/database"
+}
+
 resolve_gitea_db_password() {
   local existing_password_b64=""
 
@@ -239,34 +292,44 @@ create_and_apply_secret shared-redis-auth \
 
 GITEA_DB_PASSWORD="$(resolve_gitea_db_password)"
 VAULTWARDEN_DB_PASSWORD="$(resolve_vaultwarden_db_password)"
+GITEA_DB_PASSWORD_SHELL_QUOTED="$(printf '%q' "$GITEA_DB_PASSWORD")"
+VAULTWARDEN_DB_PASSWORD_SHELL_QUOTED="$(printf '%q' "$VAULTWARDEN_DB_PASSWORD")"
 GITEA_REDIS_URI="redis://:${REDIS_PASSWORD}@platform-stack-shared-redis:6379/0?pool_size=100&idle_timeout=180s"
 GITEA_INITDB_SCRIPT="$(mktemp)"
 cat >"${GITEA_INITDB_SCRIPT}" <<EOF
 #!/bin/sh
 set -eu
-psql -v ON_ERROR_STOP=1 --username "${POSTGRES_USER:-postgres}" --dbname postgres <<SQL
+export GITEA_DB_PASSWORD=${GITEA_DB_PASSWORD_SHELL_QUOTED}
+export VAULTWARDEN_DB_PASSWORD=${VAULTWARDEN_DB_PASSWORD_SHELL_QUOTED}
+psql -v ON_ERROR_STOP=1 \
+  --username "\${POSTGRES_USER:-postgres}" \
+  --dbname postgres \
+  --set=gitea_db_password="\${GITEA_DB_PASSWORD}" \
+  --set=vaultwarden_db_password="\${VAULTWARDEN_DB_PASSWORD}" <<SQL
 DO \$\$
 BEGIN
   IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'gitea') THEN
-    CREATE ROLE gitea LOGIN PASSWORD '${GITEA_DB_PASSWORD}';
+    EXECUTE format('CREATE ROLE gitea LOGIN PASSWORD %L', :'gitea_db_password');
   ELSE
-    ALTER ROLE gitea WITH LOGIN PASSWORD '${GITEA_DB_PASSWORD}';
+    EXECUTE format('ALTER ROLE gitea WITH LOGIN PASSWORD %L', :'gitea_db_password');
   END IF;
 
   IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'vaultwarden') THEN
-    CREATE ROLE vaultwarden LOGIN PASSWORD '${VAULTWARDEN_DB_PASSWORD}';
+    EXECUTE format('CREATE ROLE vaultwarden LOGIN PASSWORD %L', :'vaultwarden_db_password');
   ELSE
-    ALTER ROLE vaultwarden WITH LOGIN PASSWORD '${VAULTWARDEN_DB_PASSWORD}';
+    EXECUTE format('ALTER ROLE vaultwarden WITH LOGIN PASSWORD %L', :'vaultwarden_db_password');
   END IF;
 END
 \$\$;
 SQL
-if [ "$(psql -v ON_ERROR_STOP=1 --username "${POSTGRES_USER:-postgres}" --dbname postgres -tAc "SELECT 1 FROM pg_database WHERE datname = 'gitea'")" != "1" ]; then
-  psql -v ON_ERROR_STOP=1 --username "${POSTGRES_USER:-postgres}" --dbname postgres -c "CREATE DATABASE gitea OWNER gitea"
+if [ "\$(psql -v ON_ERROR_STOP=1 --username "\${POSTGRES_USER:-postgres}" --dbname postgres -tAc "SELECT 1 FROM pg_database WHERE datname = 'gitea'")" != "1" ]; then
+  psql -v ON_ERROR_STOP=1 --username "\${POSTGRES_USER:-postgres}" --dbname postgres -c "CREATE DATABASE gitea OWNER gitea"
 fi
-if [ "$(psql -v ON_ERROR_STOP=1 --username "${POSTGRES_USER:-postgres}" --dbname postgres -tAc "SELECT 1 FROM pg_database WHERE datname = 'vaultwarden'")" != "1" ]; then
-  psql -v ON_ERROR_STOP=1 --username "${POSTGRES_USER:-postgres}" --dbname postgres -c "CREATE DATABASE vaultwarden OWNER vaultwarden"
+psql -v ON_ERROR_STOP=1 --username "\${POSTGRES_USER:-postgres}" --dbname postgres -c "ALTER DATABASE gitea OWNER TO gitea"
+if [ "\$(psql -v ON_ERROR_STOP=1 --username "\${POSTGRES_USER:-postgres}" --dbname postgres -tAc "SELECT 1 FROM pg_database WHERE datname = 'vaultwarden'")" != "1" ]; then
+  psql -v ON_ERROR_STOP=1 --username "\${POSTGRES_USER:-postgres}" --dbname postgres -c "CREATE DATABASE vaultwarden OWNER vaultwarden"
 fi
+psql -v ON_ERROR_STOP=1 --username "\${POSTGRES_USER:-postgres}" --dbname postgres -c "ALTER DATABASE vaultwarden OWNER TO vaultwarden"
 EOF
 
 create_and_apply_secret shared-postgresql-initdb \
@@ -279,6 +342,8 @@ create_and_apply_secret gitea-config-secrets \
   --from-literal=GITEA__cache__HOST="${GITEA_REDIS_URI}" \
   --from-literal=GITEA__queue__CONN_STR="${GITEA_REDIS_URI}" \
   --from-literal=GITEA__global_lock__SERVICE_CONN_STR="${GITEA_REDIS_URI}"
+
+reconcile_gitea_postgres_live "${RELEASE_NAME}-shared-postgresql"
 
 create_and_apply_secret vaultwarden-config-secrets \
   --from-literal=DATABASE_URL="postgresql://vaultwarden:${VAULTWARDEN_DB_PASSWORD}@platform-stack-shared-postgresql:5432/vaultwarden"

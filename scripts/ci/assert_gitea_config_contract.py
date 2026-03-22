@@ -65,6 +65,31 @@ def main() -> None:
         'resolve_gitea_db_password',
         context="scripts/k3d-bootstrap-secrets.sh",
     )
+    require(
+        bootstrap_script,
+        'create_and_apply_secret shared-postgresql-initdb',
+        context="scripts/k3d-bootstrap-secrets.sh",
+    )
+    require(
+        bootstrap_script,
+        'reconcile_gitea_postgres_live',
+        context="scripts/k3d-bootstrap-secrets.sh",
+    )
+    require(
+        bootstrap_script,
+        'kubectl "${KUBECTL_ARGS[@]}" -n "$NAMESPACE" exec',
+        context="scripts/k3d-bootstrap-secrets.sh",
+    )
+    require(
+        bootstrap_script,
+        "ALTER DATABASE gitea OWNER TO gitea;",
+        context="scripts/k3d-bootstrap-secrets.sh",
+    )
+    require(
+        bootstrap_script,
+        "Waiting for ${pod_name} to become Ready",
+        context="scripts/k3d-bootstrap-secrets.sh",
+    )
 
     if re.search(r'--from-literal=(?:database|session|cache|queue|global_lock)=', bootstrap_script):
         raise SystemExit(
