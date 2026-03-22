@@ -140,12 +140,15 @@ FAKECURL
       --kubeconfig "${sandbox_dir}/kubeconfig.yaml"
   ) >"${output_file}" 2>&1
 
-  local output kubectl_output curl_output
+  local output helm_output kubectl_output curl_output
   output="$(cat "${output_file}")"
+  helm_output="$(cat "${helm_log}")"
   kubectl_output="$(cat "${kubectl_log}")"
   curl_output="$(cat "${curl_log}")"
 
   assert_contains "${output}" "Local k3d smoke checks passed"
+  assert_contains "${helm_output}" "dependency update charts/gitea"
+  assert_contains "${helm_output}" "dependency update charts/platform-stack"
   assert_contains "${curl_output}" "-H Host: openclaw.localtest.me http://127.0.0.1/"
 
   case "${case_name}" in

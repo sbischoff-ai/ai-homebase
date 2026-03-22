@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import importlib.util
+from types import SimpleNamespace
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -101,5 +102,29 @@ assert len(module.gitea_rendered_docs(RENDERED_WITH_NAME_FALLBACK, kind="Statefu
 assert len(module.gitea_rendered_docs(RENDERED_WITH_NAME_FALLBACK, kind="Service")) == 1
 assert len(module.gitea_rendered_docs(RENDERED_WITH_NAME_FALLBACK, kind="Ingress")) == 1
 assert len(module.gitea_rendered_docs(RENDERED_WITH_NAME_FALLBACK, kind="PersistentVolumeClaim")) == 1
+
+calls: list[list[str]] = []
+
+
+def fake_run(cmd: list[str], check: bool, capture_output: bool, text: bool) -> SimpleNamespace:
+    calls.append(cmd)
+    if cmd[:3] == ["helm", "template", "platform-stack"]:
+        return SimpleNamespace(stdout="kind: ConfigMap\nmetadata:\n  name: test\n")
+    return SimpleNamespace(stdout="")
+
+
+module._DEPENDENCIES_READY = False
+real_run = module.subprocess.run
+module.subprocess.run = fake_run
+try:
+    module.render_template(module.BASE_VALUES, module.K3D_VALUES)
+finally:
+    module.subprocess.run = real_run
+
+assert calls[:3] == [
+    ["helm", "dependency", "update", "charts/gitea"],
+    ["helm", "dependency", "update", "charts/platform-stack"],
+    ["helm", "template", "platform-stack", "charts/platform-stack", "-f", module.BASE_VALUES, "-f", module.K3D_VALUES],
+]
 
 print("assert_service_matrix helper tests passed")

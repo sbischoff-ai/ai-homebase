@@ -18,7 +18,8 @@ make smoke-k3d
 ## Canonical lint/template commands
 
 ```bash
-# Refresh umbrella dependencies when needed
+# Refresh nested Gitea + umbrella dependencies when needed
+helm dependency update charts/gitea
 helm dependency update charts/platform-stack
 
 # Lint shared defaults
