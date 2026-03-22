@@ -109,6 +109,26 @@
               { "required": ["valueFrom"] }
             ]
           }
+        },
+        "additionalConfigSources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "secret": {
+                "type": "object",
+                "additionalProperties": true,
+                "required": ["secretName"],
+                "properties": {
+                  "secretName": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            }
+          }
         }
       }
     }
