@@ -10,7 +10,7 @@ This chart is now a **true wrapper** around the upstream Gitea chart:
 
 - Local workload templates were removed.
 - Workload resources are rendered only by the upstream dependency.
-- Wrapper values pass through under `gitea.*` (for example `gitea.gitea.config.*`, `gitea.gitea.ingress.*`, `gitea.gitea.persistence.*`).
+- Wrapper values pass through under `gitea.*`. Because the upstream chart itself keeps application settings under its own `gitea.*` block, wrapper callers must use paths like `gitea.gitea.gitea.config.*`, while top-level upstream settings such as image/ingress/persistence remain at `gitea.gitea.image.*`, `gitea.gitea.ingress.*`, and `gitea.gitea.persistence.*`.
 
 No adaptor templates are required at this time.
 
@@ -23,6 +23,6 @@ This wrapper is configured for centralized backends:
 - `gitea.gitea.redis.enabled=false`
 - `gitea.gitea.redis-cluster.enabled=false`
 
-Set non-sensitive DB host/name/user in `gitea.gitea.config.database.*` and inject sensitive settings through upstream chart secret-backed config sources. The shipped defaults now mount a `gitea-config-secrets` Secret through `gitea.gitea.additionalConfigSources` so the upstream `configure-gitea` init container can merge the secret-backed `[database]`, `[session]`, `[cache]`, `[queue]`, and `[global_lock]` keys directly into `app.ini` before database initialization runs.
+Set non-sensitive DB host/name/user in `gitea.gitea.gitea.config.database.*` and inject sensitive settings through upstream chart environment-backed config sources. The shipped defaults now populate `gitea.gitea.gitea.additionalConfigFromEnvs` from the `gitea-config-secrets` Secret so the upstream `init-app-ini` container writes `database`, `session`, `cache`, `queue`, and `global_lock` settings into `app.ini` before database initialization runs.
 
-For local `k3d` bootstrap, `scripts/k3d-bootstrap-secrets.sh` creates that `gitea-config-secrets` Secret with `database`, `session`, `cache`, `queue`, and `global_lock` keys, then seeds the shared PostgreSQL init script so the `gitea` database role and database exist before the Gitea init containers run.
+For local `k3d` bootstrap, `scripts/k3d-bootstrap-secrets.sh` creates that `gitea-config-secrets` Secret with the env-style keys `GITEA__database__PASSWD`, `GITEA__session__PROVIDER_CONFIG`, `GITEA__cache__HOST`, `GITEA__queue__CONN_STR`, and `GITEA__global_lock__SERVICE_CONN_STR`, then seeds the shared PostgreSQL init script so the `gitea` database role and database exist before the Gitea init containers run.

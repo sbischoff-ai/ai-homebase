@@ -66,16 +66,6 @@
             "rootless": { "type": "boolean" }
           }
         },
-        "admin": {
-          "type": "object",
-          "additionalProperties": true,
-          "properties": {
-            "existingSecret": {
-              "type": "string",
-              "description": "Secret used by upstream chart for bootstrap/admin credentials."
-            }
-          }
-        },
         "podSecurityContext": {
           "type": "object",
           "additionalProperties": true
@@ -84,46 +74,62 @@
           "type": "object",
           "additionalProperties": true
         },
-        "additionalConfigFromEnvs": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "required": ["name"],
-            "properties": {
-              "name": {
-                "type": "string",
-                "minLength": 1
-              },
-              "value": {
-                "type": "string"
-              },
-              "valueFrom": {
-                "type": "object",
-                "minProperties": 1,
-                "additionalProperties": true
+        "gitea": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "admin": {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "existingSecret": {
+                  "type": "string",
+                  "description": "Secret used by upstream chart for bootstrap/admin credentials."
+                }
               }
             },
-            "additionalProperties": true,
-            "oneOf": [
-              { "required": ["value"] },
-              { "required": ["valueFrom"] }
-            ]
-          }
-        },
-        "additionalConfigSources": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "additionalProperties": true,
-            "properties": {
-              "secret": {
+            "additionalConfigFromEnvs": {
+              "type": "array",
+              "items": {
                 "type": "object",
-                "additionalProperties": true,
-                "required": ["secretName"],
+                "required": ["name"],
                 "properties": {
-                  "secretName": {
+                  "name": {
                     "type": "string",
                     "minLength": 1
+                  },
+                  "value": {
+                    "type": "string"
+                  },
+                  "valueFrom": {
+                    "type": "object",
+                    "minProperties": 1,
+                    "additionalProperties": true
+                  }
+                },
+                "additionalProperties": true,
+                "oneOf": [
+                  { "required": ["value"] },
+                  { "required": ["valueFrom"] }
+                ]
+              }
+            },
+            "additionalConfigSources": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": true,
+                "properties": {
+                  "secret": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "required": ["secretName"],
+                    "properties": {
+                      "secretName": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
                   }
                 }
               }

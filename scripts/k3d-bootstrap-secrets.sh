@@ -233,11 +233,11 @@ create_and_apply_secret shared-postgresql-initdb \
 rm -f "${GITEA_INITDB_SCRIPT}"
 
 create_and_apply_secret gitea-config-secrets \
-  --from-literal=database="PASSWD=${GITEA_DB_PASSWORD}" \
-  --from-literal=session="PROVIDER_CONFIG=${GITEA_REDIS_URI}" \
-  --from-literal=cache="HOST=${GITEA_REDIS_URI}" \
-  --from-literal=queue="CONN_STR=${GITEA_REDIS_URI}" \
-  --from-literal=global_lock="SERVICE_CONN_STR=${GITEA_REDIS_URI}"
+  --from-literal=GITEA__database__PASSWD="${GITEA_DB_PASSWORD}" \
+  --from-literal=GITEA__session__PROVIDER_CONFIG="${GITEA_REDIS_URI}" \
+  --from-literal=GITEA__cache__HOST="${GITEA_REDIS_URI}" \
+  --from-literal=GITEA__queue__CONN_STR="${GITEA_REDIS_URI}" \
+  --from-literal=GITEA__global_lock__SERVICE_CONN_STR="${GITEA_REDIS_URI}"
 
 OPENCLAW_SECRET_ARGS=(
   --from-literal=OPENCLAW_GATEWAY_TOKEN="$OPENCLAW_GATEWAY_TOKEN"
