@@ -22,7 +22,6 @@ PVC templates resolve storage class in this order:
 - **Nextcloud**: heavy long-term data growth.
 - **Gitea**: repositories and attachments accumulate over time.
 - **Paperless-ngx**: size `data`, `media`, `consume`, and `export` independently.
-- **Infisical**: protect the shared PostgreSQL and Redis backends.
 
 ## Backup and restore expectations
 

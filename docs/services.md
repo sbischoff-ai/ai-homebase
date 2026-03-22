@@ -13,7 +13,6 @@ Canonical baseline posture in this document refers to `charts/platform-stack/val
 | `nextcloud` | `nextcloud.enabled` | Enabled | Disabled to keep local smoke tests light | Enabled for the productive homelab | Enabled in baseline; `k3s` keeps ingress on and moves it to the `nginx` ingress class | Baseline PVC enabled (`250Gi`); `k3d` disables the service and persistence; `k3s` keeps persistence on with `250Gi` on `local-path` | `existingSecret` is optional in baseline and empty by default; provide one in overlays when operator-managed app secrets are needed |
 | `gitea` | `gitea.enabled` | Disabled | Enabled for local source-control smoke tests | Enabled for the productive homelab | Subchart ingress is enabled when the service is enabled; baseline uses `internal-nginx`, and both overlays switch it to `nginx` | Subchart PVC is enabled by default (`120Gi`); `k3d` keeps it on with a smaller `5Gi` `local-path` volume, while `k3s` uses `120Gi` on `local-path` | `gitea.gitea.gitea.admin.existingSecret` is empty by default and should be set in overlays; the wrapper now reads database/session/cache/queue/lock settings from `gitea-config-secrets` via `gitea.gitea.gitea.additionalConfigFromEnvs`, and shared PostgreSQL bootstrap must create the `gitea` role/database before startup |
 | `paperless-ngx` | `paperlessNgx.enabled` | Disabled | Disabled | Enabled for the productive homelab | Baseline ingress is enabled when the service is enabled; `k3s` keeps ingress on and switches it to the `nginx` ingress class | Baseline enables all four PVCs (`data`, `media`, `consume`, `export`); `k3d` disables the service and each PVC; `k3s` enables the service with all four PVCs on `local-path` | `existingSecret` is optional in baseline and empty by default; provide Secret references in overlays for mail, OCR, or other runtime integrations |
-| `infisical` | `infisical.enabled` | Enabled | Enabled for local smoke tests | Enabled for the productive homelab | Enabled in baseline; both overlays keep ingress on and switch to the `nginx` ingress class | No Infisical-managed PVCs are enabled here because the chart is wired to shared PostgreSQL and Redis services instead of bundled stateful dependencies | Baseline expects `infisical.infisical.kubeSecretRef=infisical-secrets`; `autoBootstrap.credentialSecret.name` defaults to `infisical-bootstrap-credentials` when bootstrap automation is turned on |
 
 ## Per-service notes
 
@@ -74,12 +73,6 @@ Canonical baseline posture in this document refers to `charts/platform-stack/val
 - Multi-volume document pipeline with separate `data`, `media`, `consume`, and `export` persistence paths.
 - Disabled in the umbrella baseline and `k3d`, then enabled by the supported `k3s` overlay.
 - Default posture is internal/service-only unless ingress is intentionally enabled.
-
-### Infisical
-
-- In-cluster secret-management component using externalized DB/cache backends from shared services.
-- Enabled in the umbrella baseline and in both supported overlays.
-- Shared PostgreSQL and Redis remain the expected runtime dependencies instead of the bundled Infisical subchart dependencies.
 
 ## External VPN gateway note
 

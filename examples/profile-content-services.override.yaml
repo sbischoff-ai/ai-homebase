@@ -7,5 +7,3 @@ gitea:
 paperlessNgx:
   enabled: true
 
-infisical:
-  enabled: true

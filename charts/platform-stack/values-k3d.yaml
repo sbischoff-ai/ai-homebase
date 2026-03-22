@@ -8,7 +8,6 @@ global:
     nextcloud: nextcloud.localtest.me
     gitea: gitea.localtest.me
     paperlessNgx: paperless.localtest.me
-    infisical: infisical.localtest.me
 
 openclaw:
   enabled: true
@@ -97,18 +96,3 @@ paperlessNgx:
     export:
       enabled: false
 
-infisical:
-  enabled: true
-  ingress:
-    enabled: true
-    hostName: infisical.localtest.me
-    ingressClassName: nginx
-    annotations: {}
-    tls: []
-  postgresql:
-    enabled: false
-    primary:
-      persistence:
-        enabled: false
-  redis:
-    enabled: false

@@ -6,7 +6,6 @@ global:
     nextcloud: <nextcloud-k3s-hostname>
     gitea: <gitea-k3s-hostname>
     paperlessNgx: <paperless-k3s-hostname>
-    infisical: <infisical-k3s-hostname>
   imagePullSecrets:
     - <optional-image-pull-secret>
 

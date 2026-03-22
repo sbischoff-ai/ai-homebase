@@ -39,7 +39,6 @@ MATRIX = [
             "nextcloud.enabled": "false",
             "gitea.enabled": "false",
             "paperlessNgx.enabled": "false",
-            "infisical.enabled": "false",
         },
         "expect_present": {
             ("Deployment", "platform-stack-openclaw"),
@@ -52,7 +51,6 @@ MATRIX = [
             "nextcloud.enabled": "true",
             "gitea.enabled": "true",
             "paperlessNgx.enabled": "true",
-            "infisical.enabled": "false",
         },
         "expect_present": {
             ("Ingress", "platform-stack-openclaw"),
@@ -68,12 +66,9 @@ MATRIX = [
             "nextcloud.enabled": "true",
             "gitea.enabled": "true",
             "paperlessNgx.enabled": "true",
-            "infisical.enabled": "true",
         },
         "expect_present": {
             ("Ingress", "platform-stack-openclaw"),
-            ("Deployment", "platform-stack-infisical"),
-            ("Ingress", "infisical-ingress"),
             ("StatefulSet", "platform-stack-nextcloud"),
             ("Ingress", "platform-stack-nextcloud"),
             ("StatefulSet", "platform-stack-paperless-ngx"),
@@ -300,7 +295,6 @@ def assert_k3d_default_ingress_classes() -> None:
     rendered = render_template(BASE_VALUES, K3D_VALUES)
     expected = {
         "platform-stack-openclaw": "openclaw.localtest.me",
-        "infisical-ingress": "infisical.localtest.me",
     }
     for name, host in expected.items():
         ingress = find_document(rendered, kind="Ingress", name=name)
@@ -385,7 +379,7 @@ def main() -> None:
         print(f"{profile_name}: asserted canonical cert-manager naming")
 
     assert_k3d_default_ingress_classes()
-    print("k3d overlay: asserted nginx ingressClassName + expected hosts for OpenClaw/Infisical")
+    print("k3d overlay: asserted nginx ingressClassName + expected host for OpenClaw")
 
     assert_k3d_gitea_overlay_resources()
     print("k3d overlay: asserted rendered gitea workload/service/ingress + StatefulSet persistence")

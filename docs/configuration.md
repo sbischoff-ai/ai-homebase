@@ -68,7 +68,6 @@ Current schema coverage includes:
 - `charts/openclaw/values.schema.json`
 - `charts/nextcloud/values.schema.json`
 - `charts/paperless-ngx/values.schema.json`
-- `charts/infisical/values.schema.json`
 - `charts/gitea/values.schema.json`
 
 When adding or changing values keys, update both the chart values and schema in the same change.

@@ -141,7 +141,6 @@ A complete example looks like this:
 
   networking.extraHosts = ''
     127.0.0.1 openclaw.localtest.me
-    127.0.0.1 infisical.localtest.me
     127.0.0.1 nextcloud.localtest.me
     127.0.0.1 paperless.localtest.me
   '';
