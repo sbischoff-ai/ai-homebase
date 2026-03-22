@@ -302,7 +302,8 @@ def assert_k3d_default_ingress_classes() -> None:
 def assert_k3d_gitea_overlay_resources() -> None:
     rendered = render_template(BASE_VALUES, K3D_VALUES)
 
-    workload_docs = gitea_rendered_docs(rendered, kind="StatefulSet") + gitea_rendered_docs(rendered, kind="Deployment")
+    statefulset_docs = gitea_rendered_docs(rendered, kind="StatefulSet")
+    workload_docs = statefulset_docs + gitea_rendered_docs(rendered, kind="Deployment")
     if not workload_docs:
         raise SystemExit("k3d overlay did not render a gitea workload")
 
@@ -326,9 +327,16 @@ def assert_k3d_gitea_overlay_resources() -> None:
             f"k3d overlay rendered gitea ingress hosts={hosts!r}, expected 'gitea.localtest.me'"
         )
 
-    pvc_docs = gitea_rendered_docs(rendered, kind="PersistentVolumeClaim")
-    if not pvc_docs:
-        raise SystemExit("k3d overlay did not render a gitea PersistentVolumeClaim")
+    if not statefulset_docs:
+        raise SystemExit("k3d overlay did not render the expected gitea StatefulSet")
+
+    statefulset = statefulset_docs[0]
+    if "volumeClaimTemplates:" not in statefulset:
+        raise SystemExit("k3d overlay rendered gitea without StatefulSet volumeClaimTemplates")
+    if "storageClassName: local-path" not in statefulset:
+        raise SystemExit("k3d overlay rendered gitea without local-path storageClassName")
+    if "storage: 5Gi" not in statefulset:
+        raise SystemExit("k3d overlay rendered gitea without 5Gi persistence request")
 
 
 def main() -> None:
@@ -356,7 +364,7 @@ def main() -> None:
     print("k3d overlay: asserted nginx ingressClassName + expected hosts for OpenClaw/Infisical")
 
     assert_k3d_gitea_overlay_resources()
-    print("k3d overlay: asserted rendered gitea workload/service/ingress/pvc resources")
+    print("k3d overlay: asserted rendered gitea workload/service/ingress + StatefulSet persistence")
 
 
 if __name__ == "__main__":
