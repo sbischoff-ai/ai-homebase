@@ -163,7 +163,7 @@ print_failure_hints() {
   fi
 
   if [[ "$log_content" == *"found in Chart.yaml, but missing in charts/"* ]]; then
-    hints+=("Missing chart dependencies: run 'helm dependency update charts/platform-stack' before retrying.")
+    hints+=("Missing chart dependencies: run 'helm dependency update charts/gitea' and 'helm dependency update charts/platform-stack' before retrying.")
   fi
 
   if [[ "$log_content" == *"timed out waiting for the condition"* ]] || [[ "$log_content" == *"no matching resources found"* ]]; then
@@ -186,6 +186,7 @@ print_next_steps() {
   echo "   kubectl ${KUBECTL_KUBECONFIG_ARGS[*]} ${KUBECTL_CONTEXT_ARGS[*]} -n ${NAMESPACE} get pods,deploy,statefulset,job,ingress" >&2
   echo "   kubectl ${KUBECTL_KUBECONFIG_ARGS[*]} ${KUBECTL_CONTEXT_ARGS[*]} -n ${NAMESPACE} get events --sort-by=.lastTimestamp | tail -n 40" >&2
   echo "3) If Helm failed, refresh dependencies and retry install:" >&2
+  echo "   helm dependency update charts/gitea" >&2
   echo "   helm dependency update charts/platform-stack" >&2
   echo "   helm upgrade --install ${RELEASE_NAME} charts/platform-stack --namespace ${NAMESPACE} --create-namespace ${VALUES_ARGS[*]}" >&2
   echo "4) Review full bootstrap log:" >&2
@@ -375,7 +376,10 @@ verify_gitea_services() {
   ok "Validated ${#service_names[@]} Gitea Service resource(s)"
 }
 
-step "Updating Helm dependencies"
+step "Updating Gitea chart dependencies"
+run_checked helm dependency update charts/gitea
+
+step "Updating platform-stack dependencies"
 run_checked helm dependency update charts/platform-stack
 
 step "Installing/upgrading release ${RELEASE_NAME}"

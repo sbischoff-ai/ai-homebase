@@ -25,6 +25,13 @@ LEGACY_GITEA_WRAPPER_SOURCES = {
     "# Source: platform-stack/charts/gitea/templates/pvc.yaml",
 }
 
+DEPENDENCY_UPDATE_PATHS = (
+    "charts/gitea",
+    "charts/platform-stack",
+)
+
+_DEPENDENCIES_READY = False
+
 MATRIX = [
     {
         "name": "core-only",
@@ -77,6 +84,7 @@ MATRIX = [
 
 
 def render_template(*values_files: str, set_values: dict[str, str] | None = None) -> str:
+    ensure_chart_dependencies()
     cmd = [
         "helm",
         "template",
@@ -89,6 +97,29 @@ def render_template(*values_files: str, set_values: dict[str, str] | None = None
         cmd.extend(["--set", f"{key}={value}"])
 
     return subprocess.run(cmd, check=True, capture_output=True, text=True).stdout
+
+
+def ensure_chart_dependencies() -> None:
+    global _DEPENDENCIES_READY
+    if _DEPENDENCIES_READY:
+        return
+
+    for chart_path in DEPENDENCY_UPDATE_PATHS:
+        try:
+            subprocess.run(
+                ["helm", "dependency", "update", chart_path],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+        except subprocess.CalledProcessError as exc:
+            stderr = (exc.stderr or "").strip()
+            detail = f": {stderr.splitlines()[-1]}" if stderr else ""
+            raise SystemExit(
+                f"failed to update Helm dependencies for {chart_path}{detail}"
+            ) from exc
+
+    _DEPENDENCIES_READY = True
 
 
 def split_documents(rendered: str) -> list[str]:

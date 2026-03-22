@@ -6,7 +6,8 @@
 - Read service toggles, defaults, and secret contracts: `docs/services.md`.
 
 ## Canonical validation commands
-- Update umbrella dependencies when chart metadata changes:
+- Update nested Gitea + umbrella dependencies when chart metadata changes or a render must include Gitea resources:
+  - `helm dependency update charts/gitea`
   - `helm dependency update charts/platform-stack`
 - Lint shared defaults:
   - `./scripts/lint.sh --values-file charts/platform-stack/values.yaml`
@@ -42,6 +43,7 @@ If toggle behavior changed, include at least one rendered manifest check using `
 
 ## Troubleshooting (Helm/chart issues)
 - Dependency errors (`found in Chart.yaml, but missing in charts/`):
+  - Run `helm dependency update charts/gitea` first when the missing resources involve Gitea's upstream subchart.
   - Run `helm dependency update charts/platform-stack`.
 - YAML/template parse failures:
   - Re-run with exact layered inputs using `./scripts/template.sh ...` and inspect the generated `/tmp/*.yaml` around the reported object.
