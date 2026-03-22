@@ -91,130 +91,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app: infisical
-    chart: infisical-0.2.0
-    component: infisical
-    heritage: Helm
-    release: platform-stack
-  name: platform-stack-infisical
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: infisical
-      component: infisical
-      release: platform-stack
-  template:
-    metadata:
-      labels:
-        app: infisical
-        component: infisical
-        release: platform-stack
-    spec:
-      containers:
-      - env:
-        - name: AUTH_SECRET
-          valueFrom:
-            secretKeyRef:
-              key: AUTH_SECRET
-              name: infisical-secrets
-        - name: ENCRYPTION_KEY
-          valueFrom:
-            secretKeyRef:
-              key: ENCRYPTION_KEY
-              name: infisical-secrets
-        - name: SITE_URL
-          valueFrom:
-            secretKeyRef:
-              key: SITE_URL
-              name: infisical-secrets
-        - name: SMTP_HOST
-          valueFrom:
-            secretKeyRef:
-              key: SMTP_HOST
-              name: infisical-secrets
-              optional: true
-        - name: SMTP_PORT
-          valueFrom:
-            secretKeyRef:
-              key: SMTP_PORT
-              name: infisical-secrets
-              optional: true
-        - name: SMTP_USERNAME
-          valueFrom:
-            secretKeyRef:
-              key: SMTP_USERNAME
-              name: infisical-secrets
-              optional: true
-        - name: SMTP_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              key: SMTP_PASSWORD
-              name: infisical-secrets
-              optional: true
-        - name: SMTP_FROM_ADDRESS
-          valueFrom:
-            secretKeyRef:
-              key: SMTP_FROM_ADDRESS
-              name: infisical-secrets
-              optional: true
-        - name: SMTP_FROM_NAME
-          valueFrom:
-            secretKeyRef:
-              key: SMTP_FROM_NAME
-              name: infisical-secrets
-              optional: true
-        - name: DB_CONNECTION_URI
-          valueFrom:
-            secretKeyRef:
-              key: DB_CONNECTION_URI
-              name: infisical-secrets
-              optional: true
-        - name: REDIS_URL
-          valueFrom:
-            secretKeyRef:
-              key: REDIS_URL
-              name: infisical-secrets
-              optional: true
-        image: infisical/infisical:v0.151.0
-        imagePullPolicy: IfNotPresent
-        name: infisical-infisical
-        ports:
-        - containerPort: 8080
-        readinessProbe:
-          httpGet:
-            path: /api/status
-            port: 8080
-          initialDelaySeconds: 10
-          periodSeconds: 5
-        resources:
-          limits:
-            memory: 1000Mi
-          requests:
-            cpu: 350m
-        securityContext:
-          allowPrivilegeEscalation: false
-          capabilities:
-            drop:
-            - ALL
-          readOnlyRootFilesystem: false
-          runAsNonRoot: false
-      initContainers:
-      - args:
-        - job
-        - platform-stack-schema-migration-1
-        image: ghcr.io/groundnuty/k8s-wait-for:no-root-v2.0
-        imagePullPolicy: IfNotPresent
-        name: migration-init
-      securityContext:
-        seccompProfile:
-          type: RuntimeDefault
-      serviceAccountName: platform-stack-infisical
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  labels:
     app.kubernetes.io/instance: platform-stack
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: openclaw
@@ -677,31 +553,6 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: infisical-ingress
-spec:
-  ingressClassName: nginx
-  rules:
-  - host: infisical.vpn.homebase.internal
-    http:
-      paths:
-      - backend:
-          service:
-            name: platform-stack-infisical
-            port:
-              number: 8080
-        path: /
-        pathType: Prefix
-      - backend:
-          service:
-            name: platform-stack-infisical
-            port:
-              number: 8080
-        path: /ss-webhook
-        pathType: Exact
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
   labels:
     app.kubernetes.io/instance: platform-stack
     app.kubernetes.io/managed-by: Helm
@@ -774,32 +625,6 @@ spec:
               number: 8000
         path: /
         pathType: Prefix
----
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: platform-stack-schema-migration-1
-spec:
-  backoffLimit: 10
-  template:
-    metadata:
-      labels:
-        app.kubernetes.io/instance: platform-stack
-        app.kubernetes.io/managed-by: Helm
-      name: platform-stack-create-tables
-    spec:
-      containers:
-      - command:
-        - npm
-        - run
-        - migration:latest
-        envFrom:
-        - secretRef:
-            name: infisical-secrets
-        image: infisical/infisical:v0.151.0
-        name: infisical-schema-migration
-      restartPolicy: OnFailure
-      serviceAccountName: platform-stack-infisical
 ---
 apiVersion: batch/v1
 kind: Job
@@ -962,27 +787,6 @@ spec:
     requests:
       storage: 50Gi
   storageClassName: local-path
----
-apiVersion: v1
-kind: Service
-metadata:
-  labels:
-    app: infisical
-    chart: infisical-0.2.0
-    component: infisical
-    heritage: Helm
-    release: platform-stack
-  name: platform-stack-infisical
-spec:
-  ports:
-  - port: 8080
-    protocol: TCP
-    targetPort: 8080
-  selector:
-    app: infisical
-    component: infisical
-    release: platform-stack
-  type: ClusterIP
 ---
 apiVersion: v1
 kind: Service
@@ -1228,18 +1032,6 @@ metadata:
     app.kubernetes.io/version: v1.20.0
     environment: k3s
   name: platform-stack-cert-manager-webhook
-  namespace: ai-homebase
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  labels:
-    app: infisical
-    chart: infisical-0.2.0
-    component: infisical
-    heritage: Helm
-    release: platform-stack
-  name: platform-stack-infisical
   namespace: ai-homebase
 ---
 apiVersion: apps/v1

@@ -58,7 +58,6 @@ What you need to know:
 Expected local browser endpoints served by the k3d `ingress-nginx` controller:
 
 - `http://gitea.localtest.me`
-- `http://infisical.localtest.me`
 - `http://openclaw.localtest.me`
 
 After a successful bootstrap, the summary output prints:
@@ -66,7 +65,7 @@ After a successful bootstrap, the summary output prints:
 - the kubeconfig path used for the cluster
 - the OpenClaw gateway token that was written into `openclaw-app-secrets`
 - the auto-selected default OpenClaw model when a model-provider key was exported
-- the local service URLs for OpenClaw, Gitea, and Infisical
+- the local service URLs for OpenClaw and Gitea
 
 ## 4) First-use OpenClaw token and device pairing
 
@@ -107,7 +106,7 @@ Remove both the local cluster and the Incus VM together:
 If it does not, add entries such as:
 
 ```text
-127.0.0.1 gitea.localtest.me infisical.localtest.me openclaw.localtest.me
+127.0.0.1 gitea.localtest.me openclaw.localtest.me
 ```
 
 ## 7) When to override defaults

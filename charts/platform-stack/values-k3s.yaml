@@ -9,7 +9,6 @@ global:
     nextcloud: cloud.homebase.internal
     gitea: gitea.vpn.homebase.internal
     paperlessNgx: paperless.vpn.homebase.internal
-    infisical: infisical.vpn.homebase.internal
   commonLabels:
     environment: k3s
 
@@ -112,18 +111,6 @@ paperlessNgx:
       size: 20Gi
       storageClass: local-path
 
-infisical:
-  enabled: true
-  ingress:
-    enabled: true
-    hostName: infisical.vpn.homebase.internal
-    ingressClassName: nginx
-    annotations: {}
-    tls: []
-  postgresql:
-    enabled: false
-  redis:
-    enabled: false
 
 sharedPostgresql:
   enabled: true

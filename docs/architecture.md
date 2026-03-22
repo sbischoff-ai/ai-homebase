@@ -3,7 +3,7 @@
 `ai-homebase` is structured as a modular homelab platform:
 
 1. **Core AI plane**: OpenClaw.
-2. **Supporting personal-cloud services**: Nextcloud, Gitea, Paperless-ngx, and Infisical.
+2. **Supporting personal-cloud services**: Nextcloud, Gitea, and Paperless-ngx.
 
 ## Core AI plane
 

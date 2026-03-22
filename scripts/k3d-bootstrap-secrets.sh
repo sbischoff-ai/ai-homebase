@@ -20,8 +20,6 @@ REMOTE_DOCKER_PORT="${REMOTE_DOCKER_PORT:-2222}"
 REMOTE_DOCKER_KEY_PATH="${REMOTE_DOCKER_KEY_PATH:-${HOME}/.local/state/ai-homebase/incus/openclaw-sandbox-id_ed25519}"
 POSTGRES_ADMIN_PASSWORD="${POSTGRES_ADMIN_PASSWORD:-postgres-local-dev}"
 REDIS_PASSWORD="${REDIS_PASSWORD:-redis-local-dev}"
-INFISICAL_AUTH_SECRET="${INFISICAL_AUTH_SECRET:-}"
-INFISICAL_ENCRYPTION_KEY="${INFISICAL_ENCRYPTION_KEY:-}"
 OPENCLAW_PROVIDER_ENV_VARS=(
   OPENAI_API_KEY
   ANTHROPIC_API_KEY
@@ -96,17 +94,6 @@ if [[ "$has_openclaw_provider_key" -eq 0 ]]; then
   exit 1
 fi
 
-generate_infisical_encryption_key() {
-  while true; do
-    local candidate
-    candidate="$(openssl rand -base64 48 | tr -dc 'A-Za-z0-9' | head -c 32)"
-    if [[ ${#candidate} -eq 32 ]]; then
-      printf '%s' "$candidate"
-      return 0
-    fi
-  done
-}
-
 KUBECTL_ARGS=()
 if [[ -n "$KUBECONFIG_PATH" ]]; then
   KUBECTL_ARGS=(--kubeconfig "$KUBECONFIG_PATH")
@@ -179,17 +166,6 @@ create_remote_docker_secret() {
   rm -f "$known_hosts_file"
 }
 
-if [[ -z "$INFISICAL_AUTH_SECRET" ]]; then
-  INFISICAL_AUTH_SECRET="$(openssl rand -hex 32)"
-fi
-if [[ -z "$INFISICAL_ENCRYPTION_KEY" ]]; then
-  INFISICAL_ENCRYPTION_KEY="$(generate_infisical_encryption_key)"
-fi
-
-INFISICAL_SITE_URL="http://infisical.localtest.me"
-INFISICAL_DB_URI="postgres://postgres:${POSTGRES_ADMIN_PASSWORD}@platform-stack-shared-postgresql:5432/postgres?sslmode=disable"
-INFISICAL_REDIS_URI="redis://:${REDIS_PASSWORD}@platform-stack-shared-redis:6379"
-
 step "Ensuring namespace ${NAMESPACE} exists"
 apply_manifest <<MANIFEST
 apiVersion: v1
@@ -256,12 +232,6 @@ create_remote_docker_secret \
   "$REMOTE_DOCKER_PORT" \
   "$REMOTE_DOCKER_KEY_PATH"
 
-create_and_apply_secret infisical-secrets \
-  --from-literal=AUTH_SECRET="$INFISICAL_AUTH_SECRET" \
-  --from-literal=ENCRYPTION_KEY="$INFISICAL_ENCRYPTION_KEY" \
-  --from-literal=SITE_URL="$INFISICAL_SITE_URL" \
-  --from-literal=DB_CONNECTION_URI="$INFISICAL_DB_URI" \
-  --from-literal=REDIS_URL="$INFISICAL_REDIS_URI"
 
 echo "Bootstrap secrets applied in namespace ${NAMESPACE}."
 echo "Bootstrap log: ${BOOTSTRAP_LOG_FILE}"

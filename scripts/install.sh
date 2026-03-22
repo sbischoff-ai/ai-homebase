@@ -25,7 +25,7 @@ CERT_MANAGER_DEPLOYMENTS=(
 
 normalize_service_key() {
   case "$1" in
-    openclaw|nextcloud|gitea|infisical) echo "$1" ;;
+    openclaw|nextcloud|gitea) echo "$1" ;;
     paperless-ngx|paperlessNgx) echo "paperlessNgx" ;;
     *) return 1 ;;
   esac
@@ -59,7 +59,7 @@ Options:
   --kube-context <context>    Optional kube context
   -h, --help                  Show this help message
 
-Supported services: openclaw, nextcloud, gitea, paperless-ngx, infisical
+Supported services: openclaw, nextcloud, gitea, paperless-ngx
 USAGE
 }
 

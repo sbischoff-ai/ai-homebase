@@ -14,14 +14,11 @@ dependencies:
 - name: paperless-ngx
   repository: file://../paperless-ngx
   version: 0.1.0
-- name: infisical
-  repository: file://../infisical
-  version: 0.2.0
 - name: shared-postgresql
   repository: file://../shared-postgresql
   version: 0.1.0
 - name: shared-redis
   repository: file://../shared-redis
   version: 0.1.0
-digest: sha256:e1d2319b7c6cad19f677e6c2cf78606b8e13a8deb985a6d8b1c25f855383bafe
-generated: "2026-03-21T20:34:05.691984124Z"
+digest: sha256:ac850b3582be0f3705aabf18295c994476ca0b1e521a6761a6d87ff68e12ba21
+generated: "2026-03-22T18:46:03.794929144Z"

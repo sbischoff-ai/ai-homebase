@@ -7,7 +7,6 @@ global:
     nextcloud: cloud.homebase.local
     gitea: gitea.vpn.homebase.internal
     paperlessNgx: paperless.homebase.local
-    infisical: infisical.homebase.local
   commonLabels: {}
   podAnnotations: {}
   nodeSelector: {}
@@ -368,43 +367,6 @@ paperlessNgx:
   existingSecret: ""
   secretRefs: []
 
-infisical:
-  enabled: true
-  infisical:
-    enabled: true
-    image:
-      repository: infisical/infisical
-      tag: "v0.151.0"
-      pullPolicy: IfNotPresent
-    service:
-      type: ClusterIP
-    resources: {}
-    autoBootstrap:
-      enabled: false
-      organization: default-org
-      credentialSecret:
-        name: infisical-bootstrap-credentials
-      secretDestination:
-        name: infisical-bootstrap-secret
-        namespace: default
-    kubeSecretRef: infisical-secrets
-  ingress:
-    enabled: true
-    hostName: infisical.homebase.local
-    ingressClassName: ""
-    annotations: {}
-    tls: []
-    nginx:
-      enabled: false
-  postgresql:
-    enabled: false
-    primary:
-      persistence:
-        enabled: false
-        size: 10Gi
-        storageClass: ""
-  redis:
-    enabled: false
 
 sharedPostgresql:
   enabled: true

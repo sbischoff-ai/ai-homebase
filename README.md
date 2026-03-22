@@ -1,6 +1,6 @@
 # ai-homebase
 
-`ai-homebase` is a Helm-based homelab stack for running an AI control plane around OpenClaw, with optional services such as Nextcloud, Paperless-ngx, Gitea, and Infisical.
+`ai-homebase` is a Helm-based homelab stack for running an AI control plane around OpenClaw, with optional services such as Nextcloud, Paperless-ngx, and Gitea.
 
 The repository intentionally supports two targets: `k3d` for local testing and `k3s` for the productive homelab server. Shared Helm values provide the baseline platform posture, while target overlays keep local and homelab deployment behavior explicit.
 
@@ -23,7 +23,7 @@ export OPENAI_API_KEY="<your-openai-api-key>"
 
 For the full local workflow, troubleshooting, and teardown steps, start with [`docs/deployment-k3d.md`](./docs/deployment-k3d.md).
 The local k3d bootstrap pins a Kubernetes 1.32-compatible k3s image by default; override it with `K3S_IMAGE=<image>` if you need a different supported version.
-On success, the bootstrap summary prints the kubeconfig path, the OpenClaw gateway token, the auto-selected default OpenClaw model (when a model-provider API key was exported), and the local OpenClaw, Gitea, and Infisical URLs. If OpenClaw asks for first-use pairing approval, use the documented `kubectl exec ... openclaw devices ...` flow in [`docs/deployment-k3d.md`](./docs/deployment-k3d.md#4-first-use-openclaw-token-and-device-pairing).
+On success, the bootstrap summary prints the kubeconfig path, the OpenClaw gateway token, the auto-selected default OpenClaw model (when a model-provider API key was exported), and the local OpenClaw and Gitea URLs. If OpenClaw asks for first-use pairing approval, use the documented `kubectl exec ... openclaw devices ...` flow in [`docs/deployment-k3d.md`](./docs/deployment-k3d.md#4-first-use-openclaw-token-and-device-pairing).
 The local bootstrap only maps provider/search Secret keys for the env vars you actually exported, so leaving `ANTHROPIC_API_KEY` unset does not make the pod request it at runtime.
 
 ### Install to the homelab `k3s` target
