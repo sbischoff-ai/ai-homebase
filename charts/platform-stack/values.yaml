@@ -292,9 +292,9 @@ gitea:
           storageClass: ""
     postgresql-ha:
       enabled: false
-    redis:
+    valkey:
       enabled: false
-    redis-cluster:
+    valkey-cluster:
       enabled: false
 
 vaultwarden:

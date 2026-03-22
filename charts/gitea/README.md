@@ -16,12 +16,12 @@ No adaptor templates are required at this time.
 
 ## External database/cache posture
 
-This wrapper is configured for centralized backends:
+This wrapper is configured for centralized backends. The upstream Gitea chart now uses `valkey` / `valkey-cluster` for its bundled cache dependency, so the wrapper disables those subcharts explicitly and points Gitea at the umbrella chart's shared Redis service via secret-backed `app.ini` settings:
 
 - `gitea.gitea.postgresql.enabled=false`
 - `gitea.gitea.postgresql-ha.enabled=false`
-- `gitea.gitea.redis.enabled=false`
-- `gitea.gitea.redis-cluster.enabled=false`
+- `gitea.gitea.valkey.enabled=false`
+- `gitea.gitea.valkey-cluster.enabled=false`
 
 Set non-sensitive DB host/name/user in `gitea.gitea.gitea.config.database.*` and inject sensitive settings through upstream chart environment-backed config sources. The shipped defaults now populate `gitea.gitea.gitea.additionalConfigFromEnvs` from the `gitea-config-secrets` Secret so the upstream `init-app-ini` container writes `database`, `session`, `cache`, `queue`, and `global_lock` settings into `app.ini` before database initialization runs.
 
