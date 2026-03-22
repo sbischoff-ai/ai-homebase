@@ -94,6 +94,12 @@ labels = module.document_metadata_labels(module.split_documents(RENDERED_WITH_LA
 assert labels["app.kubernetes.io/name"] == "gitea"
 assert labels["app.kubernetes.io/instance"] == "platform-stack"
 
+for values_path in (
+    REPO_ROOT / "charts" / "gitea" / "values.yaml",
+    REPO_ROOT / "charts" / "platform-stack" / "values.yaml",
+):
+    assert "actions:" not in values_path.read_text()
+
 assert len(module.gitea_rendered_docs(RENDERED_WITH_LABELS, kind="StatefulSet")) == 1
 assert len(module.gitea_rendered_docs(RENDERED_WITH_LABELS, kind="Service")) == 1
 assert len(module.gitea_rendered_docs(RENDERED_WITH_LABELS, kind="Ingress")) == 1
