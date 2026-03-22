@@ -22,7 +22,15 @@ metadata:
   labels:
     app.kubernetes.io/name: gitea
     app.kubernetes.io/instance: platform-stack
-spec: {}
+spec:
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        storageClassName: local-path
+        resources:
+          requests:
+            storage: 5Gi
 ---
 # Source: example/templates/gitea-service.yaml
 apiVersion: v1
@@ -46,16 +54,6 @@ spec:
   ingressClassName: nginx
   rules:
     - host: gitea.localtest.me
----
-# Source: example/templates/gitea-pvc.yaml
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: data-platform-stack-gitea-0
-  labels:
-    app.kubernetes.io/name: gitea
-    app.kubernetes.io/instance: platform-stack
-spec: {}
 """
 
 RENDERED_WITH_NAME_FALLBACK = """# Source: example/templates/gitea-statefulset.yaml
@@ -63,7 +61,15 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: platform-stack-gitea
-spec: {}
+spec:
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        storageClassName: local-path
+        resources:
+          requests:
+            storage: 5Gi
 ---
 # Source: example/templates/gitea-service.yaml
 apiVersion: v1
@@ -81,13 +87,6 @@ spec:
   ingressClassName: nginx
   rules:
     - host: gitea.localtest.me
----
-# Source: example/templates/gitea-pvc.yaml
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: data-platform-stack-gitea-0
-spec: {}
 """
 
 labels = module.document_metadata_labels(module.split_documents(RENDERED_WITH_LABELS)[0])
@@ -103,12 +102,14 @@ for values_path in (
 assert len(module.gitea_rendered_docs(RENDERED_WITH_LABELS, kind="StatefulSet")) == 1
 assert len(module.gitea_rendered_docs(RENDERED_WITH_LABELS, kind="Service")) == 1
 assert len(module.gitea_rendered_docs(RENDERED_WITH_LABELS, kind="Ingress")) == 1
-assert len(module.gitea_rendered_docs(RENDERED_WITH_LABELS, kind="PersistentVolumeClaim")) == 1
+assert "volumeClaimTemplates:" in module.gitea_rendered_docs(RENDERED_WITH_LABELS, kind="StatefulSet")[0]
+assert "storageClassName: local-path" in module.gitea_rendered_docs(RENDERED_WITH_LABELS, kind="StatefulSet")[0]
+assert "storage: 5Gi" in module.gitea_rendered_docs(RENDERED_WITH_LABELS, kind="StatefulSet")[0]
 
 assert len(module.gitea_rendered_docs(RENDERED_WITH_NAME_FALLBACK, kind="StatefulSet")) == 1
 assert len(module.gitea_rendered_docs(RENDERED_WITH_NAME_FALLBACK, kind="Service")) == 1
 assert len(module.gitea_rendered_docs(RENDERED_WITH_NAME_FALLBACK, kind="Ingress")) == 1
-assert len(module.gitea_rendered_docs(RENDERED_WITH_NAME_FALLBACK, kind="PersistentVolumeClaim")) == 1
+assert "volumeClaimTemplates:" in module.gitea_rendered_docs(RENDERED_WITH_NAME_FALLBACK, kind="StatefulSet")[0]
 
 calls: list[list[str]] = []
 
