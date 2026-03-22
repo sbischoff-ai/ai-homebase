@@ -256,11 +256,31 @@ gitea:
       service:
         DISABLE_REGISTRATION: true
     additionalConfigFromEnvs:
-      - GITEA__database__PASSWD
-      - GITEA__session__PROVIDER_CONFIG
-      - GITEA__cache__HOST
-      - GITEA__queue__CONN_STR
-      - GITEA__global_lock__SERVICE_CONN_STR
+      - name: GITEA__database__PASSWD
+        valueFrom:
+          secretKeyRef:
+            name: gitea-config-secrets
+            key: GITEA__database__PASSWD
+      - name: GITEA__session__PROVIDER_CONFIG
+        valueFrom:
+          secretKeyRef:
+            name: gitea-config-secrets
+            key: GITEA__session__PROVIDER_CONFIG
+      - name: GITEA__cache__HOST
+        valueFrom:
+          secretKeyRef:
+            name: gitea-config-secrets
+            key: GITEA__cache__HOST
+      - name: GITEA__queue__CONN_STR
+        valueFrom:
+          secretKeyRef:
+            name: gitea-config-secrets
+            key: GITEA__queue__CONN_STR
+      - name: GITEA__global_lock__SERVICE_CONN_STR
+        valueFrom:
+          secretKeyRef:
+            name: gitea-config-secrets
+            key: GITEA__global_lock__SERVICE_CONN_STR
     additionalConfigSources: []
     postgresql:
       enabled: false
