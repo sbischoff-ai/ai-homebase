@@ -50,7 +50,7 @@ What you need to know:
 
 - The k3d scripts use `charts/platform-stack/values.yaml` plus `charts/platform-stack/values-k3d.yaml` by default.
 - Use this command after secrets are in place and any one-off override file is ready.
-- The local smoke check waits up to 600 seconds for each deployment rollout/readiness check so slower first boots do not fail just before OpenClaw becomes Ready; when the effective `gitea.enabled=true`, it also waits for the rendered Gitea workload and Services before declaring success, and when `vaultwarden.enabled=true`, it waits for the Vaultwarden deployment, Service, and ingress endpoint.
+- The local smoke check now uses per-service rollout/readiness deadlines so slower first boots do not fail while larger images and init chains are still converging: `OPENCLAW_WAIT_TIMEOUT=600s`, `VAULTWARDEN_WAIT_TIMEOUT=900s`, and `GITEA_WAIT_TIMEOUT=1200s` by default. Override those env vars if your machine needs different local validation timing.
 - If you only need generic install, lint, template, or helper-script commands outside this k3d-specific workflow, use [`docs/commands.md`](./commands.md).
 
 ## 3) Service access
