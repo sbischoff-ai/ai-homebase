@@ -66,15 +66,10 @@ spec:
               done
               {{- if .Values.gitea.enabled }}
               psql -v ON_ERROR_STOP=1 --dbname postgres --set=gitea_db_password="$GITEA_DB_PASSWORD" <<'SQL'
-              DO $$
-              BEGIN
-                IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'gitea') THEN
-                  EXECUTE format('CREATE ROLE gitea LOGIN PASSWORD %L', :'gitea_db_password');
-                ELSE
-                  EXECUTE format('ALTER ROLE gitea WITH LOGIN PASSWORD %L', :'gitea_db_password');
-                END IF;
-              END
-              $$;
+              SELECT format('CREATE ROLE gitea LOGIN PASSWORD %L', :'gitea_db_password')
+              WHERE NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'gitea')\gexec
+              SELECT format('ALTER ROLE gitea WITH LOGIN PASSWORD %L', :'gitea_db_password')
+              WHERE EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'gitea')\gexec
               SELECT 'CREATE DATABASE gitea OWNER gitea'
               WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'gitea')\gexec
               ALTER DATABASE gitea OWNER TO gitea;
@@ -82,15 +77,10 @@ spec:
               {{- end }}
               {{- if .Values.vaultwarden.enabled }}
               psql -v ON_ERROR_STOP=1 --dbname postgres --set=vaultwarden_db_password="$VAULTWARDEN_DB_PASSWORD" <<'SQL'
-              DO $$
-              BEGIN
-                IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'vaultwarden') THEN
-                  EXECUTE format('CREATE ROLE vaultwarden LOGIN PASSWORD %L', :'vaultwarden_db_password');
-                ELSE
-                  EXECUTE format('ALTER ROLE vaultwarden WITH LOGIN PASSWORD %L', :'vaultwarden_db_password');
-                END IF;
-              END
-              $$;
+              SELECT format('CREATE ROLE vaultwarden LOGIN PASSWORD %L', :'vaultwarden_db_password')
+              WHERE NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'vaultwarden')\gexec
+              SELECT format('ALTER ROLE vaultwarden WITH LOGIN PASSWORD %L', :'vaultwarden_db_password')
+              WHERE EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'vaultwarden')\gexec
               SELECT 'CREATE DATABASE vaultwarden OWNER vaultwarden'
               WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'vaultwarden')\gexec
               ALTER DATABASE vaultwarden OWNER TO vaultwarden;

@@ -8,6 +8,9 @@ NAMESPACE="${NAMESPACE:-ai-homebase}"
 VALUES_FILES=()
 KUBE_CONTEXT="${KUBE_CONTEXT:-}"
 KUBECONFIG_PATH="${KUBECONFIG_PATH:-${KUBECONFIG:-}}"
+OPENCLAW_WAIT_TIMEOUT="${OPENCLAW_WAIT_TIMEOUT:-600s}"
+GITEA_WAIT_TIMEOUT="${GITEA_WAIT_TIMEOUT:-1200s}"
+VAULTWARDEN_WAIT_TIMEOUT="${VAULTWARDEN_WAIT_TIMEOUT:-900s}"
 
 usage() {
   cat <<USAGE
@@ -21,6 +24,7 @@ Options:
   --values-file <path>        Values file path (repeatable)
   --kube-context <context>    Optional kube context
   --kubeconfig <path>         Optional kubeconfig path (overrides KUBECONFIG env)
+  Env timeouts                OPENCLAW_WAIT_TIMEOUT=${OPENCLAW_WAIT_TIMEOUT}, GITEA_WAIT_TIMEOUT=${GITEA_WAIT_TIMEOUT}, VAULTWARDEN_WAIT_TIMEOUT=${VAULTWARDEN_WAIT_TIMEOUT}
   --verbose                   Stream full command output
   -h, --help                  Show this help message
 USAGE
@@ -229,18 +233,19 @@ resolve_deployment_name() {
 
 wait_for_workload() {
   local app_name="$1"
+  local wait_timeout="${2:-600s}"
   local deployment_name
   deployment_name="$(resolve_deployment_name "$app_name")"
 
   step "Waiting for deployment/${deployment_name} rollout"
-  run_checked kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" rollout status "deployment/${deployment_name}" --timeout=600s
+  run_checked kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" rollout status "deployment/${deployment_name}" --timeout="$wait_timeout"
 
   step "Waiting for pods to become Ready (app=${app_name})"
   run_checked kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" wait \
     --for=condition=Ready \
     pod \
     -l "app.kubernetes.io/instance=${RELEASE_NAME},app.kubernetes.io/name=${app_name}" \
-    --timeout=600s
+    --timeout="$wait_timeout"
 }
 
 effective_bool_value() {
@@ -334,6 +339,7 @@ wait_for_named_resource() {
 }
 
 wait_for_gitea_workloads() {
+  local wait_timeout="${1:-1200s}"
   local workload_entries=()
   local kind
   local workload_name
@@ -356,7 +362,7 @@ wait_for_gitea_workloads() {
     workload_name="${entry#*:}"
     wait_for_named_resource "$kind" "$workload_name"
     step "Waiting for ${kind,,}/${workload_name} rollout"
-    run_checked kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" rollout status "${kind,,}/${workload_name}" --timeout=600s
+    run_checked kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" rollout status "${kind,,}/${workload_name}" --timeout="$wait_timeout"
   done
 }
 
@@ -411,17 +417,17 @@ run_checked helm upgrade --install "$RELEASE_NAME" charts/platform-stack \
   --hide-notes \
   "${VALUES_ARGS[@]}"
 
-wait_for_workload openclaw
+wait_for_workload openclaw "$OPENCLAW_WAIT_TIMEOUT"
 
 if [[ "$(is_gitea_enabled)" == "true" ]]; then
-  wait_for_gitea_workloads
+  wait_for_gitea_workloads "$GITEA_WAIT_TIMEOUT"
   verify_gitea_services
 else
   warn "Skipping Gitea workload/service checks because gitea.enabled=false in effective values"
 fi
 
 if [[ "$(is_vaultwarden_enabled)" == "true" ]]; then
-  wait_for_workload vaultwarden
+  wait_for_workload vaultwarden "$VAULTWARDEN_WAIT_TIMEOUT"
   verify_labeled_service vaultwarden
   step "Checking vaultwarden ingress endpoint"
   run_checked curl --silent --show-error --fail \
