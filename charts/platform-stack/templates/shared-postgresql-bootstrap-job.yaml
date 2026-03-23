@@ -17,7 +17,7 @@ spec:
         {{- include "platform-stack.labels" . | nindent 8 }}
         app.kubernetes.io/component: shared-postgresql-bootstrap
     spec:
-      restartPolicy: OnFailure
+      restartPolicy: Never
       {{- $pullSecrets := .Values.global.imagePullSecrets | default (list) }}
       {{- if $pullSecrets }}
       imagePullSecrets:
@@ -29,6 +29,7 @@ spec:
         - name: shared-postgresql-bootstrap
           image: "{{ .Values.sharedPostgresql.bootstrap.image.registry }}/{{ .Values.sharedPostgresql.bootstrap.image.repository }}:{{ .Values.sharedPostgresql.bootstrap.image.tag }}"
           imagePullPolicy: {{ .Values.sharedPostgresql.bootstrap.image.pullPolicy }}
+          terminationMessagePolicy: FallbackToLogsOnError
           env:
             - name: PGHOST
               value: {{ include "platform-stack.sharedPostgresqlFullname" . | quote }}

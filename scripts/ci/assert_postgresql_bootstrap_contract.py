@@ -56,6 +56,8 @@ def main() -> None:
     require(bootstrap_template, "CREATE DATABASE vaultwarden OWNER vaultwarden", context="charts/platform-stack/templates/shared-postgresql-bootstrap-job.yaml")
     require(bootstrap_template, 'key: GITEA__database__PASSWD', context="charts/platform-stack/templates/shared-postgresql-bootstrap-job.yaml")
     require(bootstrap_template, 'key: VAULTWARDEN_DB_PASSWORD', context="charts/platform-stack/templates/shared-postgresql-bootstrap-job.yaml")
+    require(bootstrap_template, 'restartPolicy: Never', context="charts/platform-stack/templates/shared-postgresql-bootstrap-job.yaml")
+    require(bootstrap_template, 'terminationMessagePolicy: FallbackToLogsOnError', context="charts/platform-stack/templates/shared-postgresql-bootstrap-job.yaml")
 
     forbid(bootstrap_script, "create_and_apply_secret shared-postgresql-initdb", context="scripts/k3d-bootstrap-secrets.sh")
     forbid(bootstrap_script, "reconcile_gitea_postgres_live", context="scripts/k3d-bootstrap-secrets.sh")
@@ -71,6 +73,8 @@ def main() -> None:
     require(rendered_k3d, "name: platform-stack-shared-postgresql-bootstrap", context="rendered k3d manifests")
     require(rendered_k3d, "wait-for-shared-postgresql-bootstrap", context="rendered k3d manifests")
     require(rendered_k3d, "VAULTWARDEN_DB_PASSWORD", context="rendered k3d manifests")
+    require(rendered_k3d, "restartPolicy: Never", context="rendered k3d manifests")
+    require(rendered_k3d, "terminationMessagePolicy: FallbackToLogsOnError", context="rendered k3d manifests")
 
     print("shared PostgreSQL bootstrap contract: chart-managed job + workload waits are aligned")
 
