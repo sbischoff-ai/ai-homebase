@@ -1,24 +1,49 @@
 # Architecture
 
-`ai-homebase` is structured as a modular homelab platform:
+`ai-homebase` is organized around one platform shape with two supported targets.
 
-1. **Core AI plane**: OpenClaw.
-2. **Supporting personal-cloud services**: Nextcloud, Gitea, and Paperless-ngx.
+## Platform Shape
 
-## Core AI plane
+The stack has three main layers:
 
-### OpenClaw
+1. **Control plane**: OpenClaw
+2. **Shared platform services**: PostgreSQL, Redis, cert-manager, ingress, internal PKI
+3. **Optional user-facing apps**: Nextcloud, Gitea, Vaultwarden, Paperless-ngx
 
-OpenClaw is the main assistant experience.
-It owns the rendered sandbox configuration used by the supported target overlays.
-
-## Supported targets
+## Supported Targets
 
 The repository intentionally supports only:
 
-- `k3d` for local testing,
-- `k3s` for the productive homelab deployment.
+- `k3d` for local validation
+- `k3s` for the real homelab deployment
 
-## Trust boundary
+The important constraint is that both targets converge on the same bootstrap and install model after cluster setup. `k3d` exists to exercise the same values, secrets, and service contracts before the `k3s` install.
 
-OpenClaw ships with Docker/browser sandbox defaults plus standard remote-Docker SSH wiring in its chart values. The OpenClaw pod remains the control plane entrypoint, and Docker's own SSH transport carries sandbox execution to the supported Incus-backed remote daemon.
+## Bootstrap Model
+
+The bootstrap flow is split into two phases:
+
+1. **Target-specific cluster preparation**
+   `k3d-local-bootstrap.sh` creates the local cluster and Incus-backed sandbox VM
+   `install-k3s-ubuntu-2404.sh` prepares a fresh Ubuntu host for `k3s`
+2. **Shared stack bootstrap**
+   `bootstrap-stack.sh` creates bootstrap-managed Secrets and then runs the Helm install/upgrade path for either target
+
+`bootstrap.local.toml` is the operator input for both targets. It drives hostnames, provider keys, admin defaults, and user-supplied tokens.
+
+## OpenClaw as the Center
+
+OpenClaw is the main entrypoint and the main reason the stack exists. It renders its sandbox configuration from chart values, stores its persistent runtime state on its PVC, and reaches the supported remote Docker daemon over SSH.
+
+The supporting services are not random add-ons. They exist to make the homelab useful around the AI plane:
+
+- Nextcloud for user content
+- Gitea for source control
+- Vaultwarden for password management
+- Paperless-ngx for documents
+
+## See Also
+
+- Security boundaries: [security.md](./security.md)
+- Networking model: [networking.md](./networking.md)
+- Service contracts: [services.md](./services.md)

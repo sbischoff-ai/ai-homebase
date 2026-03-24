@@ -1,27 +1,28 @@
-# Documentation index
+# Documentation
 
-This is the single index for deeper `ai-homebase` documentation.
+Use this index as the map for the repository after the top-level [README.md](../README.md).
 
-## Start with
+## Entry Points
 
-- [`configuration.md`](./configuration.md): values layering, supported overlays, and where environment-specific decisions belong.
-- [`services.md`](./services.md): service toggles, default posture, secret contracts, and integration notes.
-- [`architecture.md`](./architecture.md): platform layout, supported targets, and trust boundaries.
+- [`deployment.md`](./deployment.md): choose `k3d` or `k3s`
+- [`deployment-k3d.md`](./deployment-k3d.md): full local bootstrap path
+- [`runbook-homelab.md`](./runbook-homelab.md): full homelab `k3s` path
 
-## Deploy and operate
+## Core Concepts
 
-- [`deployment.md`](./deployment.md): quick decision page for choosing the right deployment workflow.
-- [`deployment-k3d.md`](./deployment-k3d.md): local `k3d` bootstrap, manual install flow, service access, and teardown.
-- [`k3d-troubleshooting.md`](./k3d-troubleshooting.md): Incus, cloud-init, networking internals, NixOS host setup notes, and deeper local troubleshooting.
-- [`runbook-homelab.md`](./runbook-homelab.md): homelab `k3s` validation, install, upgrade, and post-install checks.
-- [`commands.md`](./commands.md): canonical lint, render, install, CI, and helper commands.
+- [`configuration.md`](./configuration.md): values layering, bootstrap config, and environment-specific inputs
+- [`services.md`](./services.md): service toggles, secret contracts, and runtime expectations
+- [`architecture.md`](./architecture.md): platform structure and target model
 
-## Platform reference
+## Deep Dives
 
-- [`networking.md`](./networking.md): ingress exposure, local hostname access, and runtime network boundaries.
-- [`storage.md`](./storage.md): persistence sizing, storage-class choices, and backup expectations.
-- [`charts.md`](./charts.md): chart-level structure and Helm packaging details.
+- [`security.md`](./security.md): secrets, trust boundaries, internal CA, Vaultwarden admin access, and remote Docker SSH posture
+- [`networking.md`](./networking.md): ingress model, hostname strategy, TLS posture, and local host access
+- [`storage.md`](./storage.md): persistence and backup expectations
+- [`charts.md`](./charts.md): chart composition and packaging notes
 
-## Examples
+## Operations
 
-- [`../examples/README.md`](../examples/README.md): layer-on-top overlay patterns for supported targets, service profiles, and remote Docker customization.
+- [`commands.md`](./commands.md): canonical commands
+- [`k3d-troubleshooting.md`](./k3d-troubleshooting.md): local troubleshooting and implementation details
+- [`../examples/README.md`](../examples/README.md): example overlays and layer-on-top patterns

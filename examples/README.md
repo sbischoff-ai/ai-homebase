@@ -2,6 +2,8 @@
 
 All examples in this directory use placeholders only. Replace values like `<your-namespace>`, `<your-release>`, and `<your-kube-context>` before running commands.
 
+For normal bootstrap flows, prefer `bootstrap.example.toml` + `bootstrap.local.toml` together with `scripts/bootstrap-stack.sh --profile <k3d|k3s> --bootstrap-config ...`. The manual `kubectl create secret` examples below remain useful for debugging or custom secret-management workflows.
+
 ## Dummy secrets for all components
 
 ```bash

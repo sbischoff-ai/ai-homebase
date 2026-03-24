@@ -1,0 +1,118 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+TARGET_USER="${TARGET_USER:-${SUDO_USER:-${USER}}}"
+K3S_CHANNEL="${K3S_CHANNEL:-stable}"
+K3S_INSTALL_ARGS="${K3S_INSTALL_ARGS:---write-kubeconfig-mode 644}"
+INCUS_BRIDGE_NAME="${INCUS_BRIDGE_NAME:-incusbr0}"
+INCUS_BRIDGE_IPV4="${INCUS_BRIDGE_IPV4:-10.10.10.1/24}"
+INCUS_STORAGE_POOL="${INCUS_STORAGE_POOL:-default}"
+INCUS_STORAGE_DRIVER="${INCUS_STORAGE_DRIVER:-dir}"
+HELM_APT_REPO="/etc/apt/keyrings/helm.gpg"
+KUBECTL_APT_REPO="/etc/apt/keyrings/kubernetes-apt-keyring.gpg"
+
+usage() {
+  cat <<USAGE
+Usage: $0 [options]
+
+Prepare a fresh Ubuntu 24.04 host for the ai-homebase k3s bootstrap flow.
+
+Options:
+  --target-user <name>         User to add to k3s/incus groups (default: ${TARGET_USER})
+  --k3s-channel <name>         k3s install channel (default: ${K3S_CHANNEL})
+  --k3s-install-args <args>    Extra INSTALL_K3S_EXEC args (default: ${K3S_INSTALL_ARGS})
+  --incus-bridge-name <name>   Incus bridge name (default: ${INCUS_BRIDGE_NAME})
+  --incus-bridge-ipv4 <cidr>   Incus bridge IPv4 CIDR (default: ${INCUS_BRIDGE_IPV4})
+  --help                       Show this help message
+USAGE
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --target-user) TARGET_USER="$2"; shift 2 ;;
+    --k3s-channel) K3S_CHANNEL="$2"; shift 2 ;;
+    --k3s-install-args) K3S_INSTALL_ARGS="$2"; shift 2 ;;
+    --incus-bridge-name) INCUS_BRIDGE_NAME="$2"; shift 2 ;;
+    --incus-bridge-ipv4) INCUS_BRIDGE_IPV4="$2"; shift 2 ;;
+    -h|--help|--usage) usage; exit 0 ;;
+    *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
+  esac
+done
+
+if [[ "${EUID}" -ne 0 ]]; then
+  echo "Run this script as root (for example via sudo)." >&2
+  exit 1
+fi
+
+export DEBIAN_FRONTEND=noninteractive
+
+apt-get update
+apt-get install -y --no-install-recommends \
+  apt-transport-https \
+  ca-certificates \
+  curl \
+  gpg \
+  jq \
+  openssh-client \
+  openssl \
+  python3 \
+  python3-venv \
+  software-properties-common
+
+install -d -m 0755 /etc/apt/keyrings
+
+if [[ ! -f "${HELM_APT_REPO}" ]]; then
+  curl -fsSL https://baltocdn.com/helm/signing.asc | gpg --dearmor -o "${HELM_APT_REPO}"
+fi
+cat >/etc/apt/sources.list.d/helm-stable-debian.list <<EOF
+deb [arch=$(dpkg --print-architecture) signed-by=${HELM_APT_REPO}] https://baltocdn.com/helm/stable/debian/ all main
+EOF
+
+if [[ ! -f "${KUBECTL_APT_REPO}" ]]; then
+  curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.34/deb/Release.key | gpg --dearmor -o "${KUBECTL_APT_REPO}"
+fi
+cat >/etc/apt/sources.list.d/kubernetes.list <<EOF
+deb [signed-by=${KUBECTL_APT_REPO}] https://pkgs.k8s.io/core:/stable:/v1.34/deb/ /
+EOF
+
+apt-get update
+apt-get install -y --no-install-recommends helm kubectl incus
+
+if ! command -v k3s >/dev/null 2>&1; then
+  curl -fsSL https://get.k3s.io | INSTALL_K3S_CHANNEL="${K3S_CHANNEL}" INSTALL_K3S_EXEC="${K3S_INSTALL_ARGS}" sh -
+fi
+
+systemctl enable --now k3s
+systemctl enable --now incus
+
+if ! incus profile show default >/dev/null 2>&1; then
+  incus admin init --auto
+fi
+
+if ! incus network show "${INCUS_BRIDGE_NAME}" >/dev/null 2>&1; then
+  incus network create "${INCUS_BRIDGE_NAME}" \
+    ipv4.address="${INCUS_BRIDGE_IPV4}" \
+    ipv4.nat=true \
+    ipv6.address=none
+fi
+
+if ! incus storage show "${INCUS_STORAGE_POOL}" >/dev/null 2>&1; then
+  incus storage create "${INCUS_STORAGE_POOL}" "${INCUS_STORAGE_DRIVER}"
+fi
+
+if ! incus profile device get default root pool >/dev/null 2>&1; then
+  incus profile device add default root disk path=/ pool="${INCUS_STORAGE_POOL}"
+fi
+
+if ! incus profile device get default eth0 network >/dev/null 2>&1; then
+  incus profile device add default eth0 nic network="${INCUS_BRIDGE_NAME}" name=eth0
+fi
+
+usermod -aG incus-admin "${TARGET_USER}"
+usermod -aG k3s "${TARGET_USER}" 2>/dev/null || true
+
+echo "Host preparation complete."
+echo "Next steps:"
+echo "  1. Log out and back in so ${TARGET_USER} picks up new group membership."
+echo "  2. Copy bootstrap.example.toml to bootstrap.local.toml and edit hosts, API keys, and secrets."
+echo "  3. Run ./scripts/bootstrap-stack.sh --profile k3s --bootstrap-config bootstrap.local.toml"

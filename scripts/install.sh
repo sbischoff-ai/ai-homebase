@@ -5,8 +5,11 @@ RELEASE_NAME="${RELEASE_NAME:-platform-stack}"
 NAMESPACE="${NAMESPACE:-ai-homebase}"
 PROFILE="${PROFILE:-}"
 VALUES_FILES=()
+BOOTSTRAP_CONFIG_PATH="${BOOTSTRAP_CONFIG_PATH:-}"
 KUBE_CONTEXT="${KUBE_CONTEXT:-}"
 SET_ARGS=()
+BOOTSTRAP_VALUES_FILE=""
+KUBECONFIG_PATH="${KUBECONFIG_PATH:-${KUBECONFIG:-}}"
 CERT_MANAGER_CRD_WAIT_TIMEOUT="${CERT_MANAGER_CRD_WAIT_TIMEOUT:-180s}"
 CERT_MANAGER_DEPLOYMENT_WAIT_TIMEOUT="${CERT_MANAGER_DEPLOYMENT_WAIT_TIMEOUT:-180s}"
 CERT_MANAGER_CRDS=(
@@ -54,9 +57,11 @@ Options:
   --release-name <name>       Helm release name (default: ${RELEASE_NAME})
   --namespace <name>          Kubernetes namespace (default: ${NAMESPACE})
   --values-file <path>        Values file path (repeatable)
+  --bootstrap-config <path>   Optional bootstrap config file used to render an extra values layer
   --enable-service <name>     Enable a service (repeatable)
   --disable-service <name>    Disable a service (repeatable)
   --kube-context <context>    Optional kube context
+  --kubeconfig <path>         Optional kubeconfig path
   -h, --help                  Show this help message
 
 Supported services: openclaw, nextcloud, gitea, vaultwarden, paperless-ngx
@@ -104,6 +109,8 @@ while [[ $# -gt 0 ]]; do
     --release-name) RELEASE_NAME="$2"; shift 2 ;;
     --namespace) NAMESPACE="$2"; shift 2 ;;
     --values-file) VALUES_FILES+=("$2"); shift 2 ;;
+    --bootstrap-config) BOOTSTRAP_CONFIG_PATH="$2"; shift 2 ;;
+    --kubeconfig) KUBECONFIG_PATH="$2"; shift 2 ;;
     --enable-service)
       service_key="$(normalize_service_key "$2")" || { echo "Unsupported service: $2" >&2; exit 1; }
       SET_ARGS+=(--set "${service_key}.enabled=true")
@@ -133,6 +140,10 @@ if [[ ${#VALUES_FILES[@]} -eq 0 ]]; then
   }
 fi
 
+if [[ -z "$BOOTSTRAP_CONFIG_PATH" && -f bootstrap.local.toml ]]; then
+  BOOTSTRAP_CONFIG_PATH="bootstrap.local.toml"
+fi
+
 HELM_CONTEXT_ARGS=()
 KUBECTL_CONTEXT_ARGS=()
 if [[ -n "$KUBE_CONTEXT" ]]; then
@@ -140,10 +151,22 @@ if [[ -n "$KUBE_CONTEXT" ]]; then
   KUBECTL_CONTEXT_ARGS=(--context "$KUBE_CONTEXT")
 fi
 
+if [[ -n "$KUBECONFIG_PATH" ]]; then
+  HELM_CONTEXT_ARGS+=(--kubeconfig "$KUBECONFIG_PATH")
+  KUBECTL_CONTEXT_ARGS+=(--kubeconfig "$KUBECONFIG_PATH")
+fi
+
 VALUES_ARGS=()
 for values_file in "${VALUES_FILES[@]}"; do
   VALUES_ARGS+=(--values "$values_file")
 done
+
+if [[ -n "$BOOTSTRAP_CONFIG_PATH" ]]; then
+  BOOTSTRAP_VALUES_FILE="$(mktemp /tmp/ai-homebase-bootstrap-install-values.XXXXXX.yaml)"
+  trap 'rm -f "$BOOTSTRAP_VALUES_FILE"' EXIT
+  python3 ./scripts/bootstrap-config.py render-values --config "$BOOTSTRAP_CONFIG_PATH" >"$BOOTSTRAP_VALUES_FILE"
+  VALUES_ARGS+=(--values "$BOOTSTRAP_VALUES_FILE")
+fi
 
 helm dependency update charts/platform-stack
 

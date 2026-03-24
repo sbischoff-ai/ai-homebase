@@ -1,0 +1,46 @@
+[hosts]
+openclaw = "openclaw.localtest.me"
+nextcloud = "nextcloud.localtest.me"
+gitea = "gitea.localtest.me"
+vaultwarden = "vaultwarden.localtest.me"
+paperless = "paperless.localtest.me"
+
+[providers]
+openai_api_key = ""
+anthropic_api_key = ""
+brave_api_key = ""
+perplexity_api_key = ""
+gemini_api_key = ""
+xai_api_key = ""
+moonshot_api_key = ""
+
+[admin]
+name = "Homebase Admin"
+username = "homebase-admin"
+email = "admin@example.invalid"
+password = ""
+
+[secrets]
+openclaw_gateway_token = ""
+postgres_admin_password = ""
+redis_password = ""
+gitea_db_password = ""
+vaultwarden_db_password = ""
+vaultwarden_admin_token = ""
+nextcloud_db_password = ""
+paperless_db_password = ""
+paperless_secret_key = ""
+
+[services.gitea.admin]
+username = ""
+email = ""
+password = ""
+
+[services.nextcloud.admin]
+user = ""
+password = ""
+
+[services.paperless.admin]
+user = ""
+mail = ""
+password = ""

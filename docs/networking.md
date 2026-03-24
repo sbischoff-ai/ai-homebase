@@ -1,18 +1,49 @@
-# Networking and exposure model
+# Networking
 
-This platform is designed so enabled services are reachable through ingress by default.
+This page covers hostname strategy, ingress exposure, TLS posture, and local host access.
 
-## Recommended default exposure
+## Hostname Model
 
-- Every enabled service in the stack renders an ingress by default.
-- Base values provide reusable internal hostnames, and overlays replace them with target-specific hostnames and ingress classes.
-- Nextcloud should still use a dedicated hostname because it is a user-facing content service.
-- Apply TLS and any external access controls in your environment overlays when exposure moves beyond a trusted internal network.
+Service hostnames can be overridden in `bootstrap.local.toml`. The bootstrap-generated values layer then applies those hostnames consistently across both `k3d` and `k3s`.
 
-## Runtime trust boundary
+Relevant services:
 
-OpenClaw uses the `docker` backend and reaches the standard remote Docker daemon over SSH; when browser sandboxes run remotely, set `openclaw.agents.defaults.sandbox.browser.cdpSourceRange` to the CIDR that the remote host sees for traffic coming from the cluster.
+- OpenClaw
+- Nextcloud
+- Gitea
+- Vaultwarden
+- Paperless-ngx
 
-## Local k3d ingress host access
+## Ingress Model
 
-The shipped `values-k3d.yaml` profile points the OpenClaw and Vaultwarden ingresses at the Helm-managed `ingress-nginx` controller by using the `nginx` ingress class. `*.localtest.me` usually resolves to `127.0.0.1` automatically, but some NixOS setups do not provide that resolution out of the box. If browser access to local ingress hosts such as `openclaw.localtest.me` or `vaultwarden.localtest.me` fails, add explicit host mappings as described in [`docs/deployment-k3d.md`](./deployment-k3d.md#6-local-ingress-host-access). That same section now also includes a complete NixOS host example covering `virtualisation.docker.enable`, an Incus `preseed` for `incusbr0`, the required `networking.nftables.enable = true`, and `networking.extraHosts` entries for the shipped local hostnames.
+- Enabled services are ingress-exposed by default
+- `k3d` and `k3s` both use the `nginx` ingress class in the supported overlays
+- Nextcloud and Vaultwarden should keep dedicated hostnames rather than path-sharing
+
+## TLS Posture
+
+The standard platform posture includes `cert-manager`, an internal CA, and an OpenClaw ingress certificate.
+
+Important points:
+
+- the internal CA private key stays inside Kubernetes
+- clients must trust the exported `ca.crt`
+- the root CA is for trusted internal use, not public internet trust
+
+For the full trust and secret model, see [security.md](./security.md).
+
+## OpenClaw Remote Docker Network Boundary
+
+OpenClaw reaches the remote Docker daemon over SSH. When browser sandboxes run remotely, set `openclaw.agents.defaults.sandbox.browser.cdpSourceRange` so the remote host accepts CDP traffic from the cluster network it actually sees.
+
+## Local `k3d` Host Access
+
+If your chosen local hostnames do not resolve automatically:
+
+1. check the values in `bootstrap.local.toml`
+2. add host mappings for those names to `127.0.0.1`
+3. retry the ingress endpoints
+
+The shipped example names use `*.localtest.me`, which usually resolves to loopback automatically.
+
+For deeper local networking and Incus notes, see [k3d-troubleshooting.md](./k3d-troubleshooting.md).

@@ -17,8 +17,8 @@ assert_contains() {
 run_case() {
   local case_name="$1"
   local token_value="$2"
-  local provider_env_name="$3"
-  local provider_env_value="$4"
+  local provider_key="$3"
+  local provider_value="$4"
   local expected_model="$5"
 
   local sandbox_dir
@@ -28,13 +28,37 @@ run_case() {
   local repo_dir="${sandbox_dir}/repo"
   mkdir -p "${repo_dir}/scripts/lib"
   cp "${REPO_ROOT}/scripts/k3d-local-bootstrap.sh" "${repo_dir}/scripts/k3d-local-bootstrap.sh"
+  cp "${REPO_ROOT}/scripts/bootstrap-config.py" "${repo_dir}/scripts/bootstrap-config.py"
   cp "${REPO_ROOT}/scripts/lib/logging.sh" "${repo_dir}/scripts/lib/logging.sh"
   chmod +x "${repo_dir}/scripts/k3d-local-bootstrap.sh"
+  chmod +x "${repo_dir}/scripts/bootstrap-config.py"
 
   local command_log="${sandbox_dir}/commands.log"
   local kubeconfig_path="${sandbox_dir}/kubeconfig.yaml"
+  local bootstrap_config_path="${sandbox_dir}/bootstrap.local.toml"
 
-  for script_name in k3d-up.sh incus-vm-up.sh k3d-bootstrap-secrets.sh test-local-k3d.sh; do
+  cat >"${bootstrap_config_path}" <<EOF
+[providers]
+${provider_key} = "${provider_value}"
+
+[hosts]
+openclaw = "openclaw.test.internal"
+nextcloud = "nextcloud.test.internal"
+gitea = "gitea.test.internal"
+vaultwarden = "vaultwarden.test.internal"
+paperless = "paperless.test.internal"
+
+[admin]
+name = "Test Admin"
+username = "test-admin"
+email = "admin@example.invalid"
+password = "shared-admin-password"
+
+[secrets]
+openclaw_gateway_token = "${token_value}"
+EOF
+
+  for script_name in k3d-up.sh incus-vm-up.sh bootstrap-stack.sh test-local-k3d.sh; do
     cat >"${repo_dir}/scripts/${script_name}" <<'SH'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -48,16 +72,13 @@ SH
   (
     cd "${repo_dir}"
     export FAKE_COMMAND_LOG="${command_log}"
-    export "${provider_env_name}=${provider_env_value}"
-    if [[ -n "${token_value}" ]]; then
-      export OPENCLAW_GATEWAY_TOKEN="${token_value}"
-    fi
 
     ./scripts/k3d-local-bootstrap.sh \
       --cluster-name test-cluster \
       --namespace test-namespace \
       --release-name test-release \
-      --kubeconfig "${kubeconfig_path}"
+      --kubeconfig "${kubeconfig_path}" \
+      --bootstrap-config "${bootstrap_config_path}"
   ) >"${output_file}" 2>&1
 
   local output commands
@@ -66,9 +87,9 @@ SH
 
   assert_contains "${output}" "Local bootstrap complete."
   assert_contains "${output}" "  Kubeconfig path: ${kubeconfig_path}"
-  assert_contains "${output}" "  OpenClaw URL: http://openclaw.localtest.me"
+  assert_contains "${output}" "  OpenClaw URL: http://openclaw.test.internal"
   assert_contains "${output}" "  OpenClaw default model: ${expected_model}"
-  assert_contains "${output}" "  Gitea URL: http://gitea.localtest.me"
+  assert_contains "${output}" "  Gitea URL: http://gitea.test.internal"
 
   case "${case_name}" in
     default-token) assert_contains "${output}" "  OpenClaw gateway token: local-dev-token" ;;
@@ -76,14 +97,15 @@ SH
     *) printf 'unknown case_name: %s\n' "${case_name}" >&2; exit 1 ;;
   esac
 
-  assert_contains "${commands}" "k3d-bootstrap-secrets.sh --namespace test-namespace --release-name test-release --kubeconfig ${kubeconfig_path}"
-  assert_contains "${commands}" "test-local-k3d.sh --release-name test-release --namespace test-namespace --kubeconfig ${kubeconfig_path} --values-file charts/platform-stack/values.yaml --values-file charts/platform-stack/values-k3d.yaml --values-file /tmp/ai-homebase-k3d-remote-docker"
+  assert_contains "${commands}" "bootstrap-stack.sh --profile k3d --namespace test-namespace --release-name test-release --kubeconfig ${kubeconfig_path} --bootstrap-config ${bootstrap_config_path}"
+  assert_contains "${commands}" "--values-file /tmp/ai-homebase-k3d-remote-docker"
+  assert_contains "${commands}" "test-local-k3d.sh --release-name test-release --namespace test-namespace --kubeconfig ${kubeconfig_path} --skip-install"
 
   trap - RETURN
   rm -rf "${sandbox_dir}"
 }
 
-run_case default-token "" OPENAI_API_KEY test-openai-key openai/gpt-5.2
-run_case explicit-token test-gateway-token ANTHROPIC_API_KEY test-anthropic-key anthropic/claude-opus-4-6
+run_case default-token "" openai_api_key test-openai-key openai/gpt-5.2
+run_case explicit-token test-gateway-token anthropic_api_key test-anthropic-key anthropic/claude-opus-4-6
 
 echo "k3d local bootstrap tests passed"
