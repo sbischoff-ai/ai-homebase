@@ -53,7 +53,7 @@ printf '%s\n' "$*" >>"${FAKE_HELM_LOG:?}"
 case "$1 $2" in
   "get values")
     cat <<JSON
-{"openclaw":{"ingress":{"enabled":true,"hosts":[{"host":"openclaw.test.internal"}]}},"nextcloud":{"enabled":false,"ingress":{"hosts":[{"host":"nextcloud.test.internal"}]}},"gitea":{"enabled":${FAKE_GITEA_ENABLED:-true}},"vaultwarden":{"enabled":false,"ingress":{"hosts":[{"host":"vaultwarden.test.internal"}]}},"paperlessNgx":{"enabled":false,"ingress":{"hosts":[{"host":"paperless.test.internal"}]}}}
+{"openclaw":{"ingress":{"enabled":true,"hosts":[{"host":"openclaw.test.internal"}]}},"nextcloud":{"enabled":false,"ingress":{"hosts":[{"host":"nextcloud.test.internal"}]}},"gitea":{"enabled":${FAKE_GITEA_ENABLED:-true}},"vaultwarden":{"enabled":false,"ingress":{"hosts":[{"host":"vaultwarden.test.internal"}]}},"paperlessNgx":{"enabled":true,"ingress":{"hosts":[{"host":"paperless.test.internal"}]}}}
 JSON
     exit 0
     ;;
@@ -99,6 +99,17 @@ for ((i=0; i<${#args[@]}; i++)); do
     if [[ "${resource}" == "statefulset/platform-stack-gitea" || "${resource}" == "service/platform-stack-gitea-http" || "${resource}" == "service/platform-stack-gitea-ssh" ]]; then
       exit 0
     fi
+    if [[ "${resource}" == "statefulset" ]]; then
+      printf 'platform-stack-paperless-ngx'
+      exit 0
+    fi
+    if [[ "${resource}" == "statefulset/platform-stack-paperless-ngx" || "${resource}" == "service/platform-stack-paperless-ngx" ]]; then
+      exit 0
+    fi
+    if [[ "${resource}" == "service" ]]; then
+      printf 'platform-stack-paperless-ngx'
+      exit 0
+    fi
   fi
   if [[ "${args[$i]}" == "rollout" && $((i+2)) -lt ${#args[@]} && "${args[$((i+1))]}" == "status" ]]; then
     exit 0
@@ -116,6 +127,16 @@ FAKEKUBECTL
 #!/usr/bin/env bash
 set -euo pipefail
 printf '%s\n' "$*" >>"${FAKE_CURL_LOG:?}"
+counter_file="${FAKE_CURL_COUNTER_FILE:?}"
+count=0
+if [[ -f "${counter_file}" ]]; then
+  count="$(cat "${counter_file}")"
+fi
+count=$((count + 1))
+printf '%s' "${count}" >"${counter_file}"
+if [[ "${FAKE_FAIL_FIRST_PAPERLESS_CURL:-0}" == "1" && "$*" == *"Host: paperless.test.internal http://127.0.0.1/api/health/"* && "${count}" -eq 2 ]]; then
+  exit 22
+fi
 exit 0
 FAKECURL
   chmod +x "${fake_bin}/curl"
@@ -126,7 +147,9 @@ FAKECURL
     export FAKE_HELM_LOG="${helm_log}"
     export FAKE_KUBECTL_LOG="${kubectl_log}"
     export FAKE_CURL_LOG="${curl_log}"
+    export FAKE_CURL_COUNTER_FILE="${sandbox_dir}/curl-counter"
     export FAKE_GITEA_ENABLED="${gitea_enabled}"
+    export FAKE_FAIL_FIRST_PAPERLESS_CURL="1"
 
     ./scripts/test-local-k3d.sh \
       --release-name platform-stack \

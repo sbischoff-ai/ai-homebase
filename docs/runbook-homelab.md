@@ -48,10 +48,19 @@ kubectl -n ai-homebase get pvc
 kubectl -n ai-homebase describe ingress
 ```
 
+## 5. Optional GitOps Handoff
+
+After the normal `k3s` bootstrap is healthy, you can add Argo CD and switch day-two changes to the GitOps repo:
+
+```bash
+./scripts/bootstrap-gitops.sh --profile k3s --bootstrap-config bootstrap.local.toml
+```
+
 ## See Also
 
 - Commands: [commands.md](./commands.md)
 - Configuration: [configuration.md](./configuration.md)
 - Service contracts: [services.md](./services.md)
+- GitOps flow: [gitops.md](./gitops.md)
 - Security model: [security.md](./security.md)
 - Networking model: [networking.md](./networking.md)

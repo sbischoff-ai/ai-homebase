@@ -5,6 +5,9 @@ dependencies:
 - name: openclaw
   repository: file://../openclaw
   version: 0.1.0
+- name: argo-cd
+  repository: file://../argo-cd
+  version: 0.1.0
 - name: nextcloud
   repository: file://../nextcloud
   version: 0.1.0
@@ -23,5 +26,5 @@ dependencies:
 - name: shared-redis
   repository: file://../shared-redis
   version: 0.1.0
-digest: sha256:1bb035c4b085af2732de228f9aed06e91712c7cfc9904955de7048af4f7a427f
-generated: "2026-03-24T10:06:20.4922754+01:00"
+digest: sha256:0b7e5c91c7f19ac43fd9ec50e61e1368125e942d81c36e22f6066de5926b0387
+generated: "2026-03-24T15:17:16.591360178+01:00"

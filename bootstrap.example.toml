@@ -2,6 +2,7 @@
 openclaw = "openclaw.localtest.me"
 nextcloud = "nextcloud.localtest.me"
 gitea = "gitea.localtest.me"
+argocd = "argocd.localtest.me"
 vaultwarden = "vaultwarden.localtest.me"
 paperless = "paperless.localtest.me"
 
@@ -44,3 +45,17 @@ password = ""
 user = ""
 mail = ""
 password = ""
+
+[services.argocd.admin]
+user = "admin"
+password = ""
+
+[gitops]
+cluster_name = ""
+repo_name = "cluster-gitops"
+repo_branch = "main"
+repo_private = true
+project = "platform-stack"
+robot_username = "gitops-bot"
+robot_email = ""
+robot_password = ""

@@ -103,6 +103,9 @@
             "gitea": {
               "$ref": "#/definitions/hostname"
             },
+            "argocd": {
+              "$ref": "#/definitions/hostname"
+            },
             "paperlessNgx": {
               "$ref": "#/definitions/hostname"
             },
@@ -187,6 +190,9 @@
       "$ref": "#/definitions/optionalServiceToggle"
     },
     "gitea": {
+      "$ref": "#/definitions/optionalServiceToggle"
+    },
+    "argoCd": {
       "$ref": "#/definitions/optionalServiceToggle"
     },
     "paperlessNgx": {

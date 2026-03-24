@@ -1,0 +1,10 @@
+apiVersion: v2
+name: argo-cd
+description: Wrapper chart for deploying Argo CD with platform defaults
+type: application
+version: 0.1.0
+dependencies:
+  - name: argo-cd
+    version: 9.4.10
+    repository: https://argoproj.github.io/argo-helm
+    alias: argocd

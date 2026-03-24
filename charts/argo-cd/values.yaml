@@ -1,0 +1,12 @@
+argocd:
+  fullnameOverride: platform-stack-argocd
+  configs:
+    params:
+      server.insecure: true
+  server:
+    ingress:
+      enabled: true
+      ingressClassName: ""
+      hostname: ""
+      annotations: {}
+      tls: false

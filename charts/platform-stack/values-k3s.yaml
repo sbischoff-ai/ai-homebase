@@ -8,6 +8,7 @@ global:
     openclaw: openclaw.vpn.homebase.internal
     nextcloud: cloud.homebase.internal
     gitea: gitea.vpn.homebase.internal
+    argocd: argocd.vpn.homebase.internal
     vaultwarden: vaultwarden.vpn.homebase.internal
     paperlessNgx: paperless.vpn.homebase.internal
   commonLabels:
@@ -64,6 +65,16 @@ nextcloud:
     enabled: true
     size: 250Gi
     storageClass: local-path
+
+argoCd:
+  enabled: false
+  argocd:
+    server:
+      ingress:
+        enabled: true
+        ingressClassName: nginx
+        hostname: argocd.vpn.homebase.internal
+        tls: false
 
 gitea:
   enabled: true

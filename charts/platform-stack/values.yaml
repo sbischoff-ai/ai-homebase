@@ -6,6 +6,7 @@ global:
     openclaw: openclaw.homebase.local
     nextcloud: cloud.homebase.local
     gitea: gitea.vpn.homebase.internal
+    argocd: argocd.vpn.homebase.internal
     vaultwarden: vaultwarden.homebase.local
     paperlessNgx: paperless.homebase.local
   commonLabels: {}
@@ -157,6 +158,20 @@ openclaw:
     braveSearchApiKey: ""
   secretRefs: []
 
+argoCd:
+  enabled: false
+  argocd:
+    configs:
+      params:
+        server.insecure: true
+    server:
+      ingress:
+        enabled: true
+        ingressClassName: internal-nginx
+        hostname: argocd.vpn.homebase.internal
+        annotations: {}
+        tls: false
+
 nextcloud:
   enabled: true
   image:
@@ -248,7 +263,8 @@ gitea:
     ingress:
       enabled: true
       className: internal-nginx
-      annotations: {}
+      annotations:
+        nginx.ingress.kubernetes.io/proxy-body-size: "32m"
       hosts:
         - host: gitea.vpn.homebase.internal
           paths:
