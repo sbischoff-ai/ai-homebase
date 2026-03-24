@@ -42,6 +42,26 @@ spec:
           ports:
             - name: http
               containerPort: {{ .Values.service.targetPort }}
+          {{- if .Values.probes.liveness.enabled }}
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -ec
+                - su -s /bin/sh www-data -c 'cd /var/www/html && php occ status --no-ansi >/dev/null'
+            initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+          {{- end }}
+          {{- if .Values.probes.readiness.enabled }}
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -ec
+                - su -s /bin/sh www-data -c 'cd /var/www/html && php occ status --no-ansi >/dev/null'
+            initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+          {{- end }}
           {{- $trustedDomains := .Values.trustedDomains }}
           {{- $trustedDomainsValue := "" }}
           {{- if kindIs "slice" $trustedDomains }}
@@ -155,12 +175,12 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- if or (and .Values.persistence.enabled .Values.persistence.existingClaim) .Values.initialApps }}
+      {{- if or .Values.persistence.enabled .Values.initialApps }}
       volumes:
-        {{- if and .Values.persistence.enabled .Values.persistence.existingClaim }}
+        {{- if .Values.persistence.enabled }}
         - name: data
           persistentVolumeClaim:
-            claimName: {{ .Values.persistence.existingClaim }}
+            claimName: {{ include "nextcloud.dataPvcName" . }}
         {{- end }}
         {{- if .Values.initialApps }}
         - name: initial-apps-hook

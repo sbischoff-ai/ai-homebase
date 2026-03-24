@@ -56,6 +56,13 @@ spec:
                   name: vaultwarden-config-secrets
                   key: VAULTWARDEN_DB_PASSWORD
             {{- end }}
+            {{- if .Values.nextcloud.enabled }}
+            - name: NEXTCLOUD_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: nextcloud-config-secrets
+                  key: POSTGRES_PASSWORD
+            {{- end }}
           command:
             - /bin/sh
             - -ceu
@@ -84,6 +91,17 @@ spec:
               SELECT 'CREATE DATABASE vaultwarden OWNER vaultwarden'
               WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'vaultwarden')\gexec
               ALTER DATABASE vaultwarden OWNER TO vaultwarden;
+              SQL
+              {{- end }}
+              {{- if .Values.nextcloud.enabled }}
+              psql -v ON_ERROR_STOP=1 --dbname postgres --set=nextcloud_db_password="$NEXTCLOUD_DB_PASSWORD" <<'SQL'
+              SELECT format('CREATE ROLE nextcloud LOGIN PASSWORD %L', :'nextcloud_db_password')
+              WHERE NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'nextcloud')\gexec
+              SELECT format('ALTER ROLE nextcloud WITH LOGIN PASSWORD %L', :'nextcloud_db_password')
+              WHERE EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'nextcloud')\gexec
+              SELECT 'CREATE DATABASE nextcloud OWNER nextcloud'
+              WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'nextcloud')\gexec
+              ALTER DATABASE nextcloud OWNER TO nextcloud;
               SQL
               {{- end }}
 {{- end }}

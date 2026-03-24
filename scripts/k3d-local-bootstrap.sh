@@ -220,6 +220,7 @@ echo "  Remote Docker endpoint: ssh://docker-remote@${REMOTE_DOCKER_HOST}:${REMO
 echo "  Remote Docker SSH secret: openclaw-remote-docker-ssh"
 echo "  OpenClaw gateway token: ${OPENCLAW_GATEWAY_TOKEN_VALUE}"
 echo "  OpenClaw URL: http://openclaw.localtest.me"
+echo "  Nextcloud URL: http://nextcloud.localtest.me"
 if [[ -n "$OPENCLAW_DEFAULT_MODEL" ]]; then
   echo "  OpenClaw default model: ${OPENCLAW_DEFAULT_MODEL}"
 else

@@ -32,3 +32,11 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- .Values.global.storageClass -}}
 {{- end -}}
 {{- end -}}
+
+{{- define "nextcloud.dataPvcName" -}}
+{{- if .Values.persistence.existingClaim -}}
+{{- .Values.persistence.existingClaim -}}
+{{- else -}}
+data
+{{- end -}}
+{{- end -}}
