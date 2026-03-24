@@ -19,6 +19,7 @@ make smoke-k3d
 
 ```bash
 # Refresh nested Gitea + umbrella dependencies when needed
+helm dependency update charts/argo-cd
 helm dependency update charts/gitea
 helm dependency update charts/platform-stack
 
@@ -97,8 +98,10 @@ scripts/ci/check_golden.sh
 ```bash
 python3 scripts/bootstrap-config.py validate --config bootstrap.local.toml
 ./scripts/bootstrap-stack.sh --profile k3d --bootstrap-config bootstrap.local.toml
+./scripts/bootstrap-gitops.sh --profile k3d --bootstrap-config bootstrap.local.toml
 sudo ./scripts/install-k3s-ubuntu-2404.sh
 ./scripts/bootstrap-stack.sh --profile k3s --bootstrap-config bootstrap.local.toml
+./scripts/bootstrap-gitops.sh --profile k3s --bootstrap-config bootstrap.local.toml
 ./scripts/install-k3d.sh
 ./scripts/install-k3s.sh
 ```

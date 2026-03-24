@@ -9,6 +9,7 @@ Use `global.*` for shared defaults such as hostnames, storage class, image pull 
 `platform-stack` is an umbrella chart with dependency toggles for:
 
 - `openclaw.enabled`
+- `argoCd.enabled`
 - `nextcloud.enabled`
 - `gitea.enabled`
 - `vaultwarden.enabled`

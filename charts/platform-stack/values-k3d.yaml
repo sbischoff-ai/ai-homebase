@@ -7,6 +7,7 @@ global:
     openclaw: openclaw.localtest.me
     nextcloud: nextcloud.localtest.me
     gitea: gitea.localtest.me
+    argocd: argocd.localtest.me
     vaultwarden: vaultwarden.localtest.me
     paperlessNgx: paperless.localtest.me
 
@@ -37,6 +38,9 @@ openclaw:
     limits:
       cpu: 2000m
       memory: 8Gi
+  env:
+    - name: NODE_OPTIONS
+      value: --max-old-space-size=2048
   existingSecret: openclaw-app-secrets
   secretKeys:
     gatewayToken: OPENCLAW_GATEWAY_TOKEN
@@ -77,6 +81,20 @@ nextcloud:
     enabled: true
     size: 10Gi
     storageClass: local-path
+
+argoCd:
+  enabled: false
+  argocd:
+    redis:
+      enabled: true
+    redis-ha:
+      enabled: false
+    server:
+      ingress:
+        enabled: true
+        ingressClassName: nginx
+        hostname: argocd.localtest.me
+        tls: false
 
 gitea:
   enabled: true

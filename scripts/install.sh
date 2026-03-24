@@ -29,6 +29,7 @@ CERT_MANAGER_DEPLOYMENTS=(
 normalize_service_key() {
   case "$1" in
     openclaw|nextcloud|gitea|vaultwarden) echo "$1" ;;
+    argo-cd|argocd|argoCd) echo "argoCd" ;;
     paperless-ngx|paperlessNgx) echo "paperlessNgx" ;;
     *) return 1 ;;
   esac
@@ -56,7 +57,7 @@ Options:
   --profile <k3d|k3s>         Deployment profile (required)
   --release-name <name>       Helm release name (default: ${RELEASE_NAME})
   --namespace <name>          Kubernetes namespace (default: ${NAMESPACE})
-  --values-file <path>        Values file path (repeatable)
+  --values-file <path>        Extra values file path layered after the profile defaults (repeatable)
   --bootstrap-config <path>   Optional bootstrap config file used to render an extra values layer
   --enable-service <name>     Enable a service (repeatable)
   --disable-service <name>    Disable a service (repeatable)
@@ -64,7 +65,7 @@ Options:
   --kubeconfig <path>         Optional kubeconfig path
   -h, --help                  Show this help message
 
-Supported services: openclaw, nextcloud, gitea, vaultwarden, paperless-ngx
+Supported services: openclaw, nextcloud, gitea, argo-cd, vaultwarden, paperless-ngx
 USAGE
 }
 
@@ -133,12 +134,12 @@ if [[ -z "$PROFILE" ]]; then
   exit 1
 fi
 
-if [[ ${#VALUES_FILES[@]} -eq 0 ]]; then
-  mapfile -t VALUES_FILES < <(default_values_files_for_profile "$PROFILE") || {
-    echo "Unsupported profile: $PROFILE (supported: k3d, k3s)" >&2
-    exit 1
-  }
-fi
+PROFILE_VALUES_FILES=()
+mapfile -t PROFILE_VALUES_FILES < <(default_values_files_for_profile "$PROFILE") || {
+  echo "Unsupported profile: $PROFILE (supported: k3d, k3s)" >&2
+  exit 1
+}
+VALUES_FILES=("${PROFILE_VALUES_FILES[@]}" "${VALUES_FILES[@]}")
 
 if [[ -z "$BOOTSTRAP_CONFIG_PATH" && -f bootstrap.local.toml ]]; then
   BOOTSTRAP_CONFIG_PATH="bootstrap.local.toml"

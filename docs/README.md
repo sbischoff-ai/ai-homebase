@@ -18,6 +18,7 @@ Use this index as the map for the repository after the top-level [README.md](../
 
 - [`security.md`](./security.md): secrets, trust boundaries, internal CA, Vaultwarden admin access, and remote Docker SSH posture
 - [`networking.md`](./networking.md): ingress model, hostname strategy, TLS posture, and local host access
+- [`gitops.md`](./gitops.md): second-stage Argo CD bootstrap, Gitea repo handoff, and GitOps operating model
 - [`storage.md`](./storage.md): persistence and backup expectations
 - [`charts.md`](./charts.md): chart composition and packaging notes
 

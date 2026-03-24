@@ -15,7 +15,8 @@ gitea:
   ingress:
     enabled: true
     className: ""
-    annotations: {}
+    annotations:
+      nginx.ingress.kubernetes.io/proxy-body-size: "32m"
     hosts:
       - host: ""
         paths:

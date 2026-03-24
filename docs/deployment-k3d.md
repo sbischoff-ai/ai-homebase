@@ -61,9 +61,18 @@ kubectl --kubeconfig ~/.kube/k3d-ai-homebase-dev.yaml -n ai-homebase exec -it de
 ./scripts/k3d-local-teardown.sh --cluster-name ai-homebase-dev --vm-name openclaw-sandbox
 ```
 
+## 6. Optional GitOps Handoff
+
+After the normal local bootstrap succeeds, you can add Argo CD and hand the cluster over to GitOps:
+
+```bash
+./scripts/bootstrap-gitops.sh --profile k3d --bootstrap-config bootstrap.local.toml
+```
+
 ## See Also
 
 - Commands: [commands.md](./commands.md)
 - Networking and local host access: [networking.md](./networking.md)
+- GitOps flow: [gitops.md](./gitops.md)
 - Deep troubleshooting: [k3d-troubleshooting.md](./k3d-troubleshooting.md)
 - Configuration details: [configuration.md](./configuration.md)

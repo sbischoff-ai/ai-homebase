@@ -28,6 +28,7 @@ brave_api_key = "test-brave-key"
 openclaw = "openclaw.test.internal"
 nextcloud = "nextcloud.test.internal"
 gitea = "gitea.test.internal"
+argocd = "argocd.test.internal"
 vaultwarden = "vaultwarden.test.internal"
 paperless = "paperless.test.internal"
 
@@ -40,8 +41,20 @@ password = "shared-admin-password"
 [services.gitea.admin]
 email = "git@example.invalid"
 
+[services.argocd.admin]
+user = "admin"
+password = "argocd-admin-password"
+
 [secrets]
 vaultwarden_admin_token = "vaultwarden-admin-token"
+
+[gitops]
+cluster_name = "lab-cluster"
+repo_name = "cluster-gitops"
+repo_branch = "main"
+repo_private = true
+project = "platform-stack"
+robot_username = "gitops-bot"
 """
 )
 
@@ -66,8 +79,14 @@ assert "GITEA_ADMIN_EMAIL=git@example.invalid" in shell_vars
 assert "NEXTCLOUD_ADMIN_USER=test-admin" in shell_vars
 assert "PAPERLESS_ADMIN_MAIL=admin@example.invalid" in shell_vars
 assert "OPENCLAW_HOST=openclaw.test.internal" in shell_vars
+assert "ARGOCD_HOST=argocd.test.internal" in shell_vars
 assert "PAPERLESS_HOST=paperless.test.internal" in shell_vars
 assert "VAULTWARDEN_ADMIN_TOKEN=vaultwarden-admin-token" in shell_vars
+assert "ARGOCD_ADMIN_USER=admin" in shell_vars
+assert "ARGOCD_ADMIN_PASSWORD=argocd-admin-password" in shell_vars
+assert "GITOPS_CLUSTER_NAME=lab-cluster" in shell_vars
+assert "GITOPS_ROBOT_USERNAME=gitops-bot" in shell_vars
+assert "GITOPS_REPO_PRIVATE=true" in shell_vars
 
 rendered_values = json.loads(
     subprocess.run(
@@ -83,6 +102,7 @@ assert rendered_values["openclaw"]["openclaw"]["agents"]["defaults"]["model"]["p
 assert rendered_values["openclaw"]["ingress"]["hosts"][0]["host"] == "openclaw.test.internal"
 assert rendered_values["gitea"]["gitea"]["gitea"]["admin"]["existingSecret"] == "gitea-admin-secret"
 assert rendered_values["gitea"]["gitea"]["ingress"]["hosts"][0]["host"] == "gitea.test.internal"
+assert rendered_values["argoCd"]["argocd"]["server"]["ingress"]["hostname"] == "argocd.test.internal"
 assert rendered_values["nextcloud"]["admin"]["user"] == "test-admin"
 assert rendered_values["nextcloud"]["ingress"]["hosts"][0]["host"] == "nextcloud.test.internal"
 assert rendered_values["vaultwarden"]["existingSecret"] == "vaultwarden-config-secrets"
@@ -106,5 +126,47 @@ failed = subprocess.run(
 )
 assert failed.returncode != 0
 assert "At least one supported OpenClaw provider/search key is required" in failed.stderr
+
+invalid_argocd_user_config = write_config(
+    """
+[providers]
+openai_api_key = "test-openai-key"
+
+[services.argocd.admin]
+user = "operator with spaces"
+password = "secret"
+"""
+)
+
+failed = subprocess.run(
+    ["python3", str(SCRIPT), "validate", "--config", str(invalid_argocd_user_config)],
+    check=False,
+    capture_output=True,
+    text=True,
+)
+assert failed.returncode != 0
+assert "services.argocd.admin.user must match" in failed.stderr
+
+custom_argocd_user_config = write_config(
+    """
+[providers]
+openai_api_key = "test-openai-key"
+
+[services.argocd.admin]
+user = "operator-admin"
+password = "secret"
+"""
+)
+
+rendered_values = json.loads(
+    subprocess.run(
+        ["python3", str(SCRIPT), "render-values", "--config", str(custom_argocd_user_config)],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+)
+assert rendered_values["argoCd"]["argocd"]["configs"]["cm"]["accounts.operator-admin"] == "apiKey, login"
+assert rendered_values["argoCd"]["argocd"]["configs"]["rbac"]["policy.csv"] == "g, operator-admin, role:admin"
 
 print("bootstrap config tests passed")

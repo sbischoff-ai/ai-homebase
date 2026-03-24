@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import re
 import json
 import shlex
 import sys
@@ -50,6 +51,7 @@ HOST_KEYS = {
     "openclaw": ("hosts", "openclaw"),
     "nextcloud": ("hosts", "nextcloud"),
     "gitea": ("hosts", "gitea"),
+    "argocd": ("hosts", "argocd"),
     "vaultwarden": ("hosts", "vaultwarden"),
     "paperless": ("hosts", "paperless"),
 }
@@ -114,6 +116,15 @@ def resolved_values(data: dict[str, object]) -> dict[str, str]:
     admin_username = nested_string(data, ("admin", "username"), "homebase-admin")
     admin_email = nested_string(data, ("admin", "email"), "admin@example.invalid")
     admin_password = nested_string(data, ("admin", "password"))
+    argocd_admin_user = nested_string(data, ("services", "argocd", "admin", "user"), "admin")
+    argocd_admin_password = nested_string(data, ("services", "argocd", "admin", "password"))
+
+    if argocd_admin_user and not re.fullmatch(r"[A-Za-z0-9._-]+", argocd_admin_user):
+        raise SystemExit(
+            "services.argocd.admin.user must match [A-Za-z0-9._-]+ so it can be rendered safely into Argo CD account and RBAC config."
+        )
+    if argocd_admin_password and not argocd_admin_user:
+        raise SystemExit("services.argocd.admin.user is required when services.argocd.admin.password is set")
 
     values = {
         **providers,
@@ -138,12 +149,30 @@ def resolved_values(data: dict[str, object]) -> dict[str, str]:
         "PAPERLESS_ADMIN_USER": nested_string(data, ("services", "paperless", "admin", "user"), admin_username),
         "PAPERLESS_ADMIN_MAIL": nested_string(data, ("services", "paperless", "admin", "mail"), admin_email),
         "PAPERLESS_ADMIN_PASSWORD": nested_string(data, ("services", "paperless", "admin", "password"), admin_password),
+        "ARGOCD_ADMIN_USER": argocd_admin_user,
+        "ARGOCD_ADMIN_PASSWORD": argocd_admin_password,
         "OPENCLAW_HOST": nested_string(data, HOST_KEYS["openclaw"]),
         "NEXTCLOUD_HOST": nested_string(data, HOST_KEYS["nextcloud"]),
         "GITEA_HOST": nested_string(data, HOST_KEYS["gitea"]),
+        "ARGOCD_HOST": nested_string(data, HOST_KEYS["argocd"]),
         "VAULTWARDEN_HOST": nested_string(data, HOST_KEYS["vaultwarden"]),
         "PAPERLESS_HOST": nested_string(data, HOST_KEYS["paperless"]),
+        "GITOPS_CLUSTER_NAME": nested_string(data, ("gitops", "cluster_name")),
+        "GITOPS_REPO_NAME": nested_string(data, ("gitops", "repo_name"), "cluster-gitops"),
+        "GITOPS_REPO_BRANCH": nested_string(data, ("gitops", "repo_branch"), "main"),
+        "GITOPS_REPO_PRIVATE": "true",
+        "GITOPS_PROJECT": nested_string(data, ("gitops", "project"), "platform-stack"),
+        "GITOPS_ROBOT_USERNAME": nested_string(data, ("gitops", "robot_username"), "gitops-bot"),
+        "GITOPS_ROBOT_EMAIL": nested_string(data, ("gitops", "robot_email")),
+        "GITOPS_ROBOT_PASSWORD": nested_string(data, ("gitops", "robot_password")),
     }
+    gitops_table = data.get("gitops")
+    if isinstance(gitops_table, dict) and "repo_private" in gitops_table:
+        if not isinstance(gitops_table["repo_private"], bool):
+            raise SystemExit("gitops.repo_private must be a boolean")
+        values["GITOPS_REPO_PRIVATE"] = "true" if gitops_table["repo_private"] else "false"
+    if not values["GITOPS_ROBOT_EMAIL"]:
+        values["GITOPS_ROBOT_EMAIL"] = f"{values['GITOPS_ROBOT_USERNAME']}@example.invalid"
 
     default_model = ""
     for env_var in MODEL_PRIORITY:
@@ -182,6 +211,7 @@ def command_render_values(args: argparse.Namespace) -> int:
         "openclaw": values["OPENCLAW_HOST"],
         "nextcloud": values["NEXTCLOUD_HOST"],
         "gitea": values["GITEA_HOST"],
+        "argocd": values["ARGOCD_HOST"],
         "vaultwarden": values["VAULTWARDEN_HOST"],
         "paperlessNgx": values["PAPERLESS_HOST"],
     }
@@ -241,6 +271,21 @@ def command_render_values(args: argparse.Namespace) -> int:
                 }
             }
         },
+        "argoCd": {
+            "argocd": {
+                "server": {
+                    "ingress": (
+                        {
+                            "enabled": True,
+                            "hostname": values["ARGOCD_HOST"],
+                            "tls": False,
+                        }
+                        if values["ARGOCD_HOST"]
+                        else {}
+                    )
+                }
+            }
+        },
         "nextcloud": {
             "ingress": (
                 {
@@ -294,6 +339,13 @@ def command_render_values(args: argparse.Namespace) -> int:
             }
         },
     }
+    if values["ARGOCD_ADMIN_USER"] and values["ARGOCD_ADMIN_USER"] != "admin":
+        rendered["argoCd"]["argocd"].setdefault("configs", {}).setdefault("cm", {})[
+            f"accounts.{values['ARGOCD_ADMIN_USER']}"
+        ] = "apiKey, login"
+        rendered["argoCd"]["argocd"].setdefault("configs", {}).setdefault("rbac", {})[
+            "policy.csv"
+        ] = f"g, {values['ARGOCD_ADMIN_USER']}, role:admin"
 
     json.dump(rendered, sys.stdout, indent=2)
     sys.stdout.write("\n")

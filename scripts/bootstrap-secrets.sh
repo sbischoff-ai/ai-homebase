@@ -101,8 +101,6 @@ done
 BOOTSTRAP_SHELL_VARS="$(python3 ./scripts/bootstrap-config.py shell-vars --config "$BOOTSTRAP_CONFIG_PATH")" || exit 1
 eval "$BOOTSTRAP_SHELL_VARS"
 
-POSTGRES_ADMIN_PASSWORD="${POSTGRES_ADMIN_PASSWORD:-postgres-local-dev}"
-REDIS_PASSWORD="${REDIS_PASSWORD:-redis-local-dev}"
 OPENCLAW_GATEWAY_TOKEN="${OPENCLAW_GATEWAY_TOKEN:-local-dev-token}"
 
 KUBECTL_ARGS=()
@@ -149,6 +147,22 @@ remote_docker_secret_contract_hint() {
   printf 'Secret %s must provide non-empty id_ed25519 and known_hosts keys. OpenClaw init will fail if those keys are absent.' "$secret_name"
 }
 
+existing_remote_docker_secret_is_usable() {
+  local secret_name="$1"
+  local key_b64 known_hosts_b64
+
+  key_b64="$(
+    kubectl "${KUBECTL_ARGS[@]}" -n "$NAMESPACE" get secret "$secret_name" \
+      -o 'jsonpath={.data.id_ed25519}' 2>>"$BOOTSTRAP_LOG_FILE" || true
+  )"
+  known_hosts_b64="$(
+    kubectl "${KUBECTL_ARGS[@]}" -n "$NAMESPACE" get secret "$secret_name" \
+      -o 'jsonpath={.data.known_hosts}' 2>>"$BOOTSTRAP_LOG_FILE" || true
+  )"
+
+  [[ -n "$key_b64" && -n "$known_hosts_b64" ]]
+}
+
 create_remote_docker_secret() {
   local secret_name="$1"
   local remote_host="$2"
@@ -162,10 +176,14 @@ create_remote_docker_secret() {
   fi
 
   known_hosts_file="$(mktemp)"
-  ssh-keyscan -p "$remote_port" "$remote_host" >"$known_hosts_file" 2>>"$BOOTSTRAP_LOG_FILE"
+  ssh-keyscan -p "$remote_port" "$remote_host" >"$known_hosts_file" 2>>"$BOOTSTRAP_LOG_FILE" || true
 
   if [[ ! -s "$known_hosts_file" ]]; then
     rm -f "$known_hosts_file"
+    if existing_remote_docker_secret_is_usable "$secret_name"; then
+      warn "ssh-keyscan did not resolve ${remote_host}:${remote_port}; preserving existing ${secret_name}."
+      return 0
+    fi
     fail "ssh-keyscan did not write known_hosts data for ${remote_host}:${remote_port}. $(remote_docker_secret_contract_hint "$secret_name")"
     return 1
   fi
@@ -254,6 +272,8 @@ metadata:
 MANIFEST
 
 step "Applying bootstrap secrets from ${BOOTSTRAP_CONFIG_PATH}"
+POSTGRES_ADMIN_PASSWORD="$(resolve_from_existing_secret_or_generate "$POSTGRES_ADMIN_PASSWORD" shared-postgresql-auth '{.data.postgres-password}')"
+REDIS_PASSWORD="$(resolve_from_existing_secret_or_generate "$REDIS_PASSWORD" shared-redis-auth '{.data.redis-password}')"
 create_and_apply_secret shared-postgresql-auth \
   --from-literal=postgres-password="$POSTGRES_ADMIN_PASSWORD" \
   --from-literal=password="$POSTGRES_ADMIN_PASSWORD"

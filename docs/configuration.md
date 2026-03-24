@@ -20,7 +20,7 @@ Local bootstrap operator input also lives outside the Helm values hierarchy:
 - Use `python3 scripts/bootstrap-config.py render-values --config bootstrap.local.toml` only as a generated bridge into Helm values for bootstrap-managed identities and optional OpenClaw defaults.
 - Use the same `bootstrap.local.toml` for both `k3d` and `k3s`; cluster setup differs by target, but the stack bootstrap values and secret inputs stay shared.
 
-Canonical global host keys include `global.hosts.paperlessNgx` for Paperless and `global.hosts.vaultwarden` for Vaultwarden.
+Canonical global host keys include `global.hosts.paperlessNgx` for Paperless, `global.hosts.vaultwarden` for Vaultwarden, and `global.hosts.argocd` for Argo CD.
 
 ## Layering model
 
@@ -122,8 +122,11 @@ For local or operator-managed bootstrap, treat `bootstrap.local.toml` as the can
 - user-provided gateway/bootstrap secrets
 - shared admin identity defaults
 - per-service admin overrides
+- GitOps handoff defaults such as the Argo CD hostname, GitOps repo name, branch, project, and robot user
 
 Vaultwarden uses the bootstrap config for `ADMIN_TOKEN` rather than for first-user creation. That token enables the Vaultwarden admin panel so operators can create users manually after bootstrap.
+
+The optional second-stage GitOps bootstrap reads the `[gitops]` section from `bootstrap.local.toml` and uses it to create an in-cluster Gitea repo plus the Argo CD project/application objects that point at that repo.
 
 If a password/secret field is left empty in the config, the bootstrap secret scripts keep the existing in-cluster value when present or generate a new one.
 

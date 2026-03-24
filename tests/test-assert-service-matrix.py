@@ -199,10 +199,11 @@ finally:
     module.subprocess.run = real_run
 
 assert calls[:3] == [
+    ["helm", "dependency", "update", "charts/argo-cd"],
     ["helm", "dependency", "update", "charts/gitea"],
     ["helm", "dependency", "update", "charts/platform-stack"],
-    ["helm", "template", "platform-stack", "charts/platform-stack", "-f", module.BASE_VALUES, "-f", module.K3D_VALUES],
 ]
+assert calls[3] == ["helm", "template", "platform-stack", "charts/platform-stack", "-f", module.BASE_VALUES, "-f", module.K3D_VALUES]
 
 
 def fake_run_failure(cmd: list[str], check: bool, capture_output: bool, text: bool) -> SimpleNamespace:

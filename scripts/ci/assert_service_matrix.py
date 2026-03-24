@@ -26,6 +26,7 @@ LEGACY_GITEA_WRAPPER_SOURCES = {
 }
 
 DEPENDENCY_UPDATE_PATHS = (
+    "charts/argo-cd",
     "charts/gitea",
     "charts/platform-stack",
 )

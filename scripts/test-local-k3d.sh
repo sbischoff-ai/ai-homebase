@@ -19,6 +19,8 @@ NEXTCLOUD_WAIT_TIMEOUT="${NEXTCLOUD_WAIT_TIMEOUT:-1200s}"
 GITEA_WAIT_TIMEOUT="${GITEA_WAIT_TIMEOUT:-1200s}"
 VAULTWARDEN_WAIT_TIMEOUT="${VAULTWARDEN_WAIT_TIMEOUT:-900s}"
 PAPERLESS_WAIT_TIMEOUT="${PAPERLESS_WAIT_TIMEOUT:-1200s}"
+INGRESS_ENDPOINT_RETRIES="${INGRESS_ENDPOINT_RETRIES:-60}"
+INGRESS_ENDPOINT_RETRY_DELAY_SECONDS="${INGRESS_ENDPOINT_RETRY_DELAY_SECONDS:-2}"
 
 usage() {
   cat <<USAGE
@@ -39,6 +41,7 @@ Options:
   --remote-docker-key <path>  Override OpenClaw remote Docker SSH private key during bootstrap
   --skip-install              Skip the shared bootstrap/install phase and run smoke checks only
   Env timeouts                OPENCLAW_WAIT_TIMEOUT=${OPENCLAW_WAIT_TIMEOUT}, NEXTCLOUD_WAIT_TIMEOUT=${NEXTCLOUD_WAIT_TIMEOUT}, GITEA_WAIT_TIMEOUT=${GITEA_WAIT_TIMEOUT}, VAULTWARDEN_WAIT_TIMEOUT=${VAULTWARDEN_WAIT_TIMEOUT}, PAPERLESS_WAIT_TIMEOUT=${PAPERLESS_WAIT_TIMEOUT}
+  Ingress retry tuning        INGRESS_ENDPOINT_RETRIES=${INGRESS_ENDPOINT_RETRIES}, INGRESS_ENDPOINT_RETRY_DELAY_SECONDS=${INGRESS_ENDPOINT_RETRY_DELAY_SECONDS}
   --verbose                   Stream full command output
   -h, --help                  Show this help message
 USAGE
@@ -412,6 +415,27 @@ wait_for_statefulset() {
   run_checked kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" rollout status "statefulset/${statefulset_name}" --timeout="$wait_timeout"
 }
 
+wait_for_http_endpoint() {
+  local host="$1"
+  local url="$2"
+  local endpoint_label="$3"
+  local attempt=1
+
+  while (( attempt <= INGRESS_ENDPOINT_RETRIES )); do
+    if curl --silent --show-error --fail -H "Host: ${host}" "$url" >>"$BOOTSTRAP_LOG_FILE" 2>&1; then
+      return 0
+    fi
+    if (( attempt == INGRESS_ENDPOINT_RETRIES )); then
+      break
+    fi
+    sleep "$INGRESS_ENDPOINT_RETRY_DELAY_SECONDS"
+    attempt=$((attempt + 1))
+  done
+
+  fail "${endpoint_label} ingress endpoint did not become healthy after ${INGRESS_ENDPOINT_RETRIES} attempts"
+  return 1
+}
+
 wait_for_gitea_workloads() {
   local wait_timeout="${1:-1200s}"
   local workload_entries=()
@@ -524,9 +548,8 @@ if [[ "$(is_nextcloud_enabled)" == "true" ]]; then
   wait_for_statefulset nextcloud "$NEXTCLOUD_WAIT_TIMEOUT"
   verify_labeled_service nextcloud
   step "Checking nextcloud ingress endpoint"
-  run_checked curl --silent --show-error --fail \
-    -H "Host: ${NEXTCLOUD_INGRESS_HOST}" \
-    http://127.0.0.1/status.php
+  CURRENT_COMMAND="curl --silent --show-error --fail -H Host: ${NEXTCLOUD_INGRESS_HOST} http://127.0.0.1/status.php"
+  wait_for_http_endpoint "${NEXTCLOUD_INGRESS_HOST}" "http://127.0.0.1/status.php" "Nextcloud"
 else
   warn "Skipping Nextcloud workload/service/ingress checks because nextcloud.enabled=false in effective values"
 fi
@@ -542,9 +565,8 @@ if [[ "$(is_vaultwarden_enabled)" == "true" ]]; then
   wait_for_workload vaultwarden "$VAULTWARDEN_WAIT_TIMEOUT"
   verify_labeled_service vaultwarden
   step "Checking vaultwarden ingress endpoint"
-  run_checked curl --silent --show-error --fail \
-    -H "Host: ${VAULTWARDEN_INGRESS_HOST}" \
-    http://127.0.0.1/
+  CURRENT_COMMAND="curl --silent --show-error --fail -H Host: ${VAULTWARDEN_INGRESS_HOST} http://127.0.0.1/"
+  wait_for_http_endpoint "${VAULTWARDEN_INGRESS_HOST}" "http://127.0.0.1/" "Vaultwarden"
 else
   warn "Skipping Vaultwarden workload/service/ingress checks because vaultwarden.enabled=false in effective values"
 fi
@@ -553,18 +575,16 @@ if [[ "$(is_paperless_enabled)" == "true" ]]; then
   wait_for_statefulset paperless-ngx "$PAPERLESS_WAIT_TIMEOUT"
   verify_labeled_service paperless-ngx
   step "Checking paperless ingress endpoint"
-  run_checked curl --silent --show-error --fail \
-    -H "Host: ${PAPERLESS_INGRESS_HOST}" \
-    http://127.0.0.1/api/health/
+  CURRENT_COMMAND="curl --silent --show-error --fail -H Host: ${PAPERLESS_INGRESS_HOST} http://127.0.0.1/api/health/"
+  wait_for_http_endpoint "${PAPERLESS_INGRESS_HOST}" "http://127.0.0.1/api/health/" "Paperless"
 else
   warn "Skipping Paperless workload/service/ingress checks because paperlessNgx.enabled=false in effective values"
 fi
 
 if [[ "$(is_openclaw_ingress_enabled)" == "true" ]]; then
   step "Checking openclaw ingress endpoint"
-  run_checked curl --silent --show-error --fail \
-    -H "Host: ${OPENCLAW_INGRESS_HOST}" \
-    http://127.0.0.1/
+  CURRENT_COMMAND="curl --silent --show-error --fail -H Host: ${OPENCLAW_INGRESS_HOST} http://127.0.0.1/"
+  wait_for_http_endpoint "${OPENCLAW_INGRESS_HOST}" "http://127.0.0.1/" "OpenClaw"
 else
   warn "Skipping OpenClaw ingress endpoint check because openclaw.ingress.enabled=false in effective values"
 fi
