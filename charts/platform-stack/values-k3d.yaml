@@ -62,9 +62,21 @@ openclaw:
 
 
 nextcloud:
-  enabled: false
+  enabled: true
+  ingress:
+    enabled: true
+    className: nginx
+    hosts:
+      - host: nextcloud.localtest.me
+        paths:
+          - path: /
+            pathType: Prefix
+  trustedDomains:
+    - nextcloud.localtest.me
   persistence:
-    enabled: false
+    enabled: true
+    size: 10Gi
+    storageClass: local-path
 
 gitea:
   enabled: true

@@ -19,6 +19,12 @@ openclaw:
 #       enabled: true
 #       size: 20Gi
 
+# Example: tune local Nextcloud storage or disable the service for a lighter one-off run.
+# nextcloud:
+#   enabled: true
+#   persistence:
+#     size: 20Gi
+
 # Example: override the standard OpenClaw remote Docker sandbox endpoint or images.
 # Layer examples/openclaw.remote-docker.values.yaml after the target overlay when the default
 # host.k3d.internal:2222 / SSH Secret / browser.cdpSourceRange values need adjustment.

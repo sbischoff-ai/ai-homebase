@@ -9,6 +9,7 @@ VALUES_FILES=()
 KUBE_CONTEXT="${KUBE_CONTEXT:-}"
 KUBECONFIG_PATH="${KUBECONFIG_PATH:-${KUBECONFIG:-}}"
 OPENCLAW_WAIT_TIMEOUT="${OPENCLAW_WAIT_TIMEOUT:-600s}"
+NEXTCLOUD_WAIT_TIMEOUT="${NEXTCLOUD_WAIT_TIMEOUT:-1200s}"
 GITEA_WAIT_TIMEOUT="${GITEA_WAIT_TIMEOUT:-1200s}"
 VAULTWARDEN_WAIT_TIMEOUT="${VAULTWARDEN_WAIT_TIMEOUT:-900s}"
 
@@ -24,7 +25,7 @@ Options:
   --values-file <path>        Values file path (repeatable)
   --kube-context <context>    Optional kube context
   --kubeconfig <path>         Optional kubeconfig path (overrides KUBECONFIG env)
-  Env timeouts                OPENCLAW_WAIT_TIMEOUT=${OPENCLAW_WAIT_TIMEOUT}, GITEA_WAIT_TIMEOUT=${GITEA_WAIT_TIMEOUT}, VAULTWARDEN_WAIT_TIMEOUT=${VAULTWARDEN_WAIT_TIMEOUT}
+  Env timeouts                OPENCLAW_WAIT_TIMEOUT=${OPENCLAW_WAIT_TIMEOUT}, NEXTCLOUD_WAIT_TIMEOUT=${NEXTCLOUD_WAIT_TIMEOUT}, GITEA_WAIT_TIMEOUT=${GITEA_WAIT_TIMEOUT}, VAULTWARDEN_WAIT_TIMEOUT=${VAULTWARDEN_WAIT_TIMEOUT}
   --verbose                   Stream full command output
   -h, --help                  Show this help message
 USAGE
@@ -278,6 +279,10 @@ is_gitea_enabled() {
   effective_bool_value "gitea.enabled"
 }
 
+is_nextcloud_enabled() {
+  effective_bool_value "nextcloud.enabled"
+}
+
 is_vaultwarden_enabled() {
   effective_bool_value "vaultwarden.enabled"
 }
@@ -336,6 +341,33 @@ wait_for_named_resource() {
 
   fail "Timed out waiting for ${kind,,}/${resource_name} to exist in namespace=${NAMESPACE}"
   return 1
+}
+
+wait_for_statefulset() {
+  local app_name="$1"
+  local wait_timeout="${2:-600s}"
+  local statefulset_name
+
+  statefulset_name="$(kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" get statefulset \
+    -l "app.kubernetes.io/instance=${RELEASE_NAME},app.kubernetes.io/name=${app_name}" \
+    -o jsonpath='{.items[0].metadata.name}')"
+
+  if [[ -z "$statefulset_name" ]]; then
+    fail "Unable to find statefulset for app=${app_name}, release=${RELEASE_NAME} in namespace=${NAMESPACE}"
+    return 1
+  fi
+
+  wait_for_named_resource StatefulSet "$statefulset_name"
+
+  step "Waiting for statefulset/${statefulset_name} rollout"
+  run_checked kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" rollout status "statefulset/${statefulset_name}" --timeout="$wait_timeout"
+
+  step "Waiting for pods to become Ready (app=${app_name})"
+  run_checked kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" wait \
+    --for=condition=Ready \
+    pod \
+    -l "app.kubernetes.io/instance=${RELEASE_NAME},app.kubernetes.io/name=${app_name}" \
+    --timeout="$wait_timeout"
 }
 
 wait_for_gitea_workloads() {
@@ -418,6 +450,17 @@ run_checked helm upgrade --install "$RELEASE_NAME" charts/platform-stack \
   "${VALUES_ARGS[@]}"
 
 wait_for_workload openclaw "$OPENCLAW_WAIT_TIMEOUT"
+
+if [[ "$(is_nextcloud_enabled)" == "true" ]]; then
+  wait_for_statefulset nextcloud "$NEXTCLOUD_WAIT_TIMEOUT"
+  verify_labeled_service nextcloud
+  step "Checking nextcloud ingress endpoint"
+  run_checked curl --silent --show-error --fail \
+    -H 'Host: nextcloud.localtest.me' \
+    http://127.0.0.1/status.php
+else
+  warn "Skipping Nextcloud workload/service/ingress checks because nextcloud.enabled=false in effective values"
+fi
 
 if [[ "$(is_gitea_enabled)" == "true" ]]; then
   wait_for_gitea_workloads "$GITEA_WAIT_TIMEOUT"

@@ -190,6 +190,11 @@ nextcloud:
     storageClass: ""
     annotations: {}
   resources: {}
+  bootstrapWait:
+    image:
+      repository: docker.io/postgres
+      tag: "17.5-alpine"
+      pullPolicy: IfNotPresent
   probes:
     liveness:
       enabled: true
@@ -205,6 +210,27 @@ nextcloud:
     annotations: {}
   existingSecret: ""
   secretRefs: []
+  admin:
+    user: nextcloud-admin
+    passwordSecret:
+      name: nextcloud-config-secrets
+      key: NEXTCLOUD_ADMIN_PASSWORD
+  trustedDomains:
+    - cloud.homebase.local
+  externalDatabase:
+    host: platform-stack-shared-postgresql
+    port: 5432
+    database: nextcloud
+    user: nextcloud
+    passwordSecret:
+      name: nextcloud-config-secrets
+      key: POSTGRES_PASSWORD
+  externalRedis:
+    host: platform-stack-shared-redis
+    port: 6379
+    passwordSecret:
+      name: nextcloud-config-secrets
+      key: REDIS_HOST_PASSWORD
 
 gitea:
   enabled: false

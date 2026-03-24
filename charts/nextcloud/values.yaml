@@ -85,12 +85,9 @@ podSecurityContext:
     type: RuntimeDefault
 
 securityContext:
-  runAsNonRoot: true
+  runAsNonRoot: false
   allowPrivilegeEscalation: false
   readOnlyRootFilesystem: false
-  capabilities:
-    drop:
-      - "ALL"
 
 backup:
   annotations: {}
@@ -99,6 +96,24 @@ resources: {}
 nodeSelector: {}
 tolerations: []
 affinity: {}
+
+bootstrapWait:
+  image:
+    repository: docker.io/postgres
+    tag: "17.5-alpine"
+    pullPolicy: IfNotPresent
+
+probes:
+  liveness:
+    enabled: true
+    path: /status.php
+    initialDelaySeconds: 30
+    periodSeconds: 10
+  readiness:
+    enabled: true
+    path: /status.php
+    initialDelaySeconds: 10
+    periodSeconds: 10
 
 # Secret injection conventions:
 # - Secret names: kebab-case (example: nextcloud-app-secrets)
@@ -164,3 +179,9 @@ cron:
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 1
   resources: {}
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 33
+    runAsGroup: 33
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false

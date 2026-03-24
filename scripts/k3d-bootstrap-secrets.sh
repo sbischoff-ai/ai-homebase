@@ -16,6 +16,8 @@ XAI_API_KEY="${XAI_API_KEY:-}"
 MOONSHOT_API_KEY="${MOONSHOT_API_KEY:-}"
 GITEA_DB_PASSWORD="${GITEA_DB_PASSWORD:-}"
 VAULTWARDEN_DB_PASSWORD="${VAULTWARDEN_DB_PASSWORD:-}"
+NEXTCLOUD_DB_PASSWORD="${NEXTCLOUD_DB_PASSWORD:-}"
+NEXTCLOUD_ADMIN_PASSWORD="${NEXTCLOUD_ADMIN_PASSWORD:-}"
 REMOTE_DOCKER_SECRET_NAME="${REMOTE_DOCKER_SECRET_NAME:-openclaw-remote-docker-ssh}"
 REMOTE_DOCKER_HOST="${REMOTE_DOCKER_HOST:-host.k3d.internal}"
 REMOTE_DOCKER_PORT="${REMOTE_DOCKER_PORT:-2222}"
@@ -52,6 +54,8 @@ Options:
   --redis-password <v>           shared Redis password (default: generated local value)
   --gitea-db-password <v>        Gitea database password (default: reuse existing secret value or generate)
   --vaultwarden-db-password <v>  Vaultwarden database password (default: reuse existing secret value or generate)
+  --nextcloud-db-password <v>    Nextcloud database password (default: reuse existing secret value or generate)
+  --nextcloud-admin-password <v> Nextcloud admin password (default: reuse existing secret value or generate)
   --verbose                      Stream full command output
   -h, --help                     Show this help message
 USAGE
@@ -71,6 +75,8 @@ while [[ $# -gt 0 ]]; do
     --redis-password) REDIS_PASSWORD="$2"; shift 2 ;;
     --gitea-db-password) GITEA_DB_PASSWORD="$2"; shift 2 ;;
     --vaultwarden-db-password) VAULTWARDEN_DB_PASSWORD="$2"; shift 2 ;;
+    --nextcloud-db-password) NEXTCLOUD_DB_PASSWORD="$2"; shift 2 ;;
+    --nextcloud-admin-password) NEXTCLOUD_ADMIN_PASSWORD="$2"; shift 2 ;;
     --verbose) BOOTSTRAP_VERBOSE=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
@@ -212,6 +218,46 @@ resolve_vaultwarden_db_password() {
   openssl rand -hex 24
 }
 
+resolve_nextcloud_db_password() {
+  local existing_password_b64=""
+
+  if [[ -n "$NEXTCLOUD_DB_PASSWORD" ]]; then
+    printf '%s' "$NEXTCLOUD_DB_PASSWORD"
+    return 0
+  fi
+
+  existing_password_b64="$(
+    kubectl "${KUBECTL_ARGS[@]}" -n "$NAMESPACE" get secret nextcloud-config-secrets \
+      -o jsonpath='{.data.POSTGRES_PASSWORD}' 2>>"$BOOTSTRAP_LOG_FILE" || true
+  )"
+  if [[ -n "$existing_password_b64" ]]; then
+    printf '%s' "$existing_password_b64" | base64 --decode
+    return 0
+  fi
+
+  openssl rand -hex 24
+}
+
+resolve_nextcloud_admin_password() {
+  local existing_password_b64=""
+
+  if [[ -n "$NEXTCLOUD_ADMIN_PASSWORD" ]]; then
+    printf '%s' "$NEXTCLOUD_ADMIN_PASSWORD"
+    return 0
+  fi
+
+  existing_password_b64="$(
+    kubectl "${KUBECTL_ARGS[@]}" -n "$NAMESPACE" get secret nextcloud-config-secrets \
+      -o jsonpath='{.data.NEXTCLOUD_ADMIN_PASSWORD}' 2>>"$BOOTSTRAP_LOG_FILE" || true
+  )"
+  if [[ -n "$existing_password_b64" ]]; then
+    printf '%s' "$existing_password_b64" | base64 --decode
+    return 0
+  fi
+
+  openssl rand -hex 24
+}
+
 step "Ensuring namespace ${NAMESPACE} exists"
 apply_manifest <<MANIFEST
 apiVersion: v1
@@ -230,6 +276,8 @@ create_and_apply_secret shared-redis-auth \
 
 GITEA_DB_PASSWORD="$(resolve_gitea_db_password)"
 VAULTWARDEN_DB_PASSWORD="$(resolve_vaultwarden_db_password)"
+NEXTCLOUD_DB_PASSWORD="$(resolve_nextcloud_db_password)"
+NEXTCLOUD_ADMIN_PASSWORD="$(resolve_nextcloud_admin_password)"
 GITEA_REDIS_URI="redis://:${REDIS_PASSWORD}@platform-stack-shared-redis:6379/0?pool_size=100&idle_timeout=180s"
 
 create_and_apply_secret gitea-config-secrets \
@@ -242,6 +290,11 @@ create_and_apply_secret gitea-config-secrets \
 create_and_apply_secret vaultwarden-config-secrets \
   --from-literal=DATABASE_URL="postgresql://vaultwarden:${VAULTWARDEN_DB_PASSWORD}@platform-stack-shared-postgresql:5432/vaultwarden" \
   --from-literal=VAULTWARDEN_DB_PASSWORD="${VAULTWARDEN_DB_PASSWORD}"
+
+create_and_apply_secret nextcloud-config-secrets \
+  --from-literal=NEXTCLOUD_ADMIN_PASSWORD="${NEXTCLOUD_ADMIN_PASSWORD}" \
+  --from-literal=POSTGRES_PASSWORD="${NEXTCLOUD_DB_PASSWORD}" \
+  --from-literal=REDIS_HOST_PASSWORD="${REDIS_PASSWORD}"
 
 OPENCLAW_SECRET_ARGS=(
   --from-literal=OPENCLAW_GATEWAY_TOKEN="$OPENCLAW_GATEWAY_TOKEN"
