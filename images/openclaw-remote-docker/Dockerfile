@@ -1,4 +1,4 @@
-FROM ghcr.io/openclaw/openclaw:2026.3.13-1
+FROM ghcr.io/openclaw/openclaw:2026.3.23-2
 
 USER root
 RUN apt-get update && \

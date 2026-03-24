@@ -176,6 +176,43 @@
         }
       }
     },
+    "smtp": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "host": {
+          "type": "string"
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "from": {
+          "type": "string"
+        },
+        "fromName": {
+          "type": "string"
+        },
+        "security": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string"
+        },
+        "passwordSecret": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "key": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
     "bootstrapWait": {
       "type": "object",
       "additionalProperties": true,

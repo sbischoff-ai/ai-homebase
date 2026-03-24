@@ -28,13 +28,17 @@ service:
 ingress:
   enabled: true
   className: ""
-  annotations: {}
+  annotations:
+    cert-manager.io/cluster-issuer: platform-stack-root-ca
   hosts:
     - host: ""
       paths:
         - path: /
           pathType: Prefix
-  tls: []
+  tls:
+    - secretName: vaultwarden-tls
+      hosts:
+        - ""
 
 persistence:
   enabled: true
@@ -93,3 +97,14 @@ appConfig:
   signupsAllowed: false
   invitationsAllowed: true
   websocketEnabled: true
+
+smtp:
+  host: ""
+  port: 587
+  from: ""
+  fromName: ""
+  security: "off"
+  username: ""
+  passwordSecret:
+    name: ""
+    key: ""

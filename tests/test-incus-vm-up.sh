@@ -313,7 +313,7 @@ SH
   grep -F -- '-o StrictHostKeyChecking=no' "${ssh_log_file}" >/dev/null
   grep -F -- '-o UserKnownHostsFile=/dev/null' "${ssh_log_file}" >/dev/null
   grep -F -- '-p 2222' "${ssh_log_file}" >/dev/null
-  grep -F -- "docker-remote@${expected_host_listen_address} true" "${ssh_log_file}" >/dev/null
+  grep -F -- "docker-remote@${expected_host_listen_address} docker ps" "${ssh_log_file}" >/dev/null
 
   case "${proxy_exists}" in
     0)
@@ -389,7 +389,7 @@ SH
       ;;
     *)
       grep -F 'Guest booted but cloud-init completion has not been observed yet; waiting for SSH endpoint 10.10.10.1:2222' "${output_log}" >/dev/null
-      grep -F 'SSH endpoint confirmed reachable at 10.10.10.1:2222' "${output_log}" >/dev/null
+      grep -F 'SSH-backed Docker endpoint confirmed reachable at 10.10.10.1:2222' "${output_log}" >/dev/null
       grep -F 'attempt=1 ' "${ssh_log_file}" >/dev/null
       grep -F "attempt=${ssh_success_after} " "${ssh_log_file}" >/dev/null
       if [[ "$(wc -l < "${sleep_log_file}")" -ne $((ssh_success_after - 1)) ]]; then

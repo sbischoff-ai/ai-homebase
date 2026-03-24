@@ -29,6 +29,7 @@ CERT_MANAGER_DEPLOYMENTS=(
 normalize_service_key() {
   case "$1" in
     openclaw|nextcloud|gitea|vaultwarden) echo "$1" ;;
+    postfix-relay|postfixRelay) echo "postfixRelay" ;;
     argo-cd|argocd|argoCd) echo "argoCd" ;;
     paperless-ngx|paperlessNgx) echo "paperlessNgx" ;;
     *) return 1 ;;
@@ -65,7 +66,7 @@ Options:
   --kubeconfig <path>         Optional kubeconfig path
   -h, --help                  Show this help message
 
-Supported services: openclaw, nextcloud, gitea, argo-cd, vaultwarden, paperless-ngx
+Supported services: openclaw, nextcloud, gitea, argo-cd, vaultwarden, postfix-relay, paperless-ngx
 USAGE
 }
 

@@ -22,6 +22,7 @@ python3 scripts/bootstrap-config.py validate --config bootstrap.local.toml
 Fill in:
 
 - service hostnames
+- outbound mail settings under `[mail]` for your owned domain
 - provider/search API keys
 - shared admin identity
 - user-provided tokens such as the OpenClaw gateway token and Vaultwarden admin token
@@ -38,6 +39,8 @@ This runs the shared secret/bootstrap/install path:
 1. create or refresh bootstrap-managed Secrets
 2. render the bootstrap-generated values layer from `bootstrap.local.toml`
 3. install or upgrade the Helm release
+
+Before expecting mail delivery from Nextcloud or Vaultwarden on `k3s`, complete the DNS and reverse-DNS steps in [networking.md](./networking.md) for the `[mail]` domain and SMTP hostname.
 
 ## 4. Verify the Cluster
 

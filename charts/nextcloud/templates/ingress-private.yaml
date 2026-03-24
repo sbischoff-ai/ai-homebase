@@ -1,0 +1,32 @@
+{{- $privateHost := default .Values.global.hosts.nextcloud .Values.ingress.private.host }}
+{{- if and .Values.ingress.private.enabled $privateHost }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "nextcloud.fullname" . }}-private
+  labels:
+    {{- include "nextcloud.labels" . | nindent 4 }}
+  {{- with .Values.ingress.private.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.ingress.private.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  rules:
+    - host: {{ $privateHost | quote }}
+      http:
+        paths:
+          - path: {{ .Values.ingress.path }}
+            pathType: {{ .Values.ingress.pathType }}
+            backend:
+              service:
+                name: {{ include "nextcloud.fullname" . }}
+                port:
+                  number: {{ .Values.service.port }}
+  tls:
+    - secretName: {{ .Values.ingress.private.tls.secretName }}
+      hosts:
+        - {{ $privateHost | quote }}
+{{- end }}

@@ -259,6 +259,10 @@ gemini_api_key = "${gemini_api_key}"
 xai_api_key = ""
 moonshot_api_key = ""
 
+[mail]
+domain = "example.com"
+smtp_host = "smtp.example.com"
+
 [admin]
 name = "Test Admin"
 username = "test-admin"

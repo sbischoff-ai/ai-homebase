@@ -5,7 +5,7 @@ replicaCount: 1
 
 image:
   repository: nextcloud
-  tag: "29.0.0-apache"
+  tag: "33.0.0-apache"
   pullPolicy: IfNotPresent
 
 imagePullSecrets: []
@@ -24,15 +24,24 @@ service:
   annotations: {}
 
 ingress:
-  enabled: true
-  className: ""
-  annotations: {}
-  hosts:
-    - host: ""
-      paths:
-        - path: /
-          pathType: Prefix
-  tls: []
+  path: /
+  pathType: Prefix
+  private:
+    enabled: true
+    className: ""
+    annotations:
+      cert-manager.io/cluster-issuer: platform-stack-root-ca
+    host: ""
+    tls:
+      secretName: nextcloud-private-tls
+  public:
+    enabled: false
+    className: ""
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-production
+    host: ""
+    tls:
+      secretName: nextcloud-public-tls
 
 networkPolicy:
   enabled: false
@@ -133,7 +142,10 @@ admin:
 
 # Supports either a YAML list of domains or a comma/space-delimited string.
 trustedDomains: []
+trustedProxies: []
 overwriteProtocol: https
+overwriteHost: ""
+apacheDisableRewriteIp: true
 
 php:
   memoryLimit: 512M
@@ -145,6 +157,8 @@ smtp:
   host: ""
   port: 587
   user: ""
+  secure: ""
+  authType: ""
   passwordSecret:
     name: ""
     key: ""

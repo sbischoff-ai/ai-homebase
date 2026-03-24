@@ -20,7 +20,8 @@ Local bootstrap operator input also lives outside the Helm values hierarchy:
 - Use `python3 scripts/bootstrap-config.py render-values --config bootstrap.local.toml` only as a generated bridge into Helm values for bootstrap-managed identities and optional OpenClaw defaults.
 - Use the same `bootstrap.local.toml` for both `k3d` and `k3s`; cluster setup differs by target, but the stack bootstrap values and secret inputs stay shared.
 
-Canonical global host keys include `global.hosts.paperlessNgx` for Paperless, `global.hosts.vaultwarden` for Vaultwarden, and `global.hosts.argocd` for Argo CD.
+Canonical global host keys include `global.hosts.paperlessNgx` for Paperless, `global.hosts.vaultwarden` for Vaultwarden, and `global.hosts.argocd` for Argo CD. Nextcloud also supports a second bootstrap-only hostname key, `hosts.nextcloud_public`, which feeds the public ingress host when the `k3s` overlay enables it.
+Mail delivery is also bootstrap-driven: `[mail]` in `bootstrap.local.toml` feeds `global.mail.*`, the Postfix relay hostname, and the default sender addresses used by Nextcloud and Vaultwarden.
 
 ## Layering model
 
@@ -59,10 +60,10 @@ Cloud-provider-specific deployment profiles and conditionals have been removed.
 
 The supported targets split runtime posture by service:
 
-- `openclaw.openclaw.agents.defaults.sandbox.*` renders the OpenClaw sandbox configuration directly into `openclaw.json`; the shipped defaults rely on OpenClaw's implicit Docker sandbox backend instead of emitting an explicit `backend` key.
+- `openclaw.openclaw.agents.defaults.sandbox.*` renders the OpenClaw sandbox configuration directly into `openclaw.json`; the shipped defaults now emit an explicit `backend: docker` plus the `docker.*` runtime block.
 - `openclaw.remoteDocker.*` is part of the standard OpenClaw posture for every supported target: keep it enabled and use overlays only to change the SSH endpoint, Secret name, or image details for a concrete environment.
 
-OpenClaw now renders its Docker/browser sandbox JSON directly from chart values, and the standard `openclaw.remoteDocker.*` block wires `DOCKER_HOST`, `HOME`, and SSH material into the pod so Docker commands execute against the supported remote daemon over SSH.
+OpenClaw now renders its Docker/browser sandbox JSON directly from chart values, and the standard `openclaw.remoteDocker.*` block wires `DOCKER_HOST`, `HOME`, injected Docker CLI tooling, and SSH material into the pod so Docker commands execute against the supported remote daemon over SSH.
 The shared OpenClaw defaults also pin `openclaw.openclaw.agents.defaults.workspace` to `/home/node/.openclaw/workspace` so the persisted path stays inside the PVC without duplicating `.openclaw`, while the `k3d` overlay keeps provider/search secret key mappings optional and local bootstrap fills in only the exported keys it forwards into `openclaw-app-secrets`.
 
 ## Values schema validation
@@ -118,6 +119,7 @@ Commit only secret **references** in versioned overlays and generate the actual 
 For local or operator-managed bootstrap, treat `bootstrap.local.toml` as the canonical source for:
 
 - service hostnames
+- outbound mail domain and SMTP hostname
 - OpenClaw/search provider keys
 - user-provided gateway/bootstrap secrets
 - shared admin identity defaults
@@ -129,6 +131,13 @@ Vaultwarden uses the bootstrap config for `ADMIN_TOKEN` rather than for first-us
 The optional second-stage GitOps bootstrap reads the `[gitops]` section from `bootstrap.local.toml` and uses it to create an in-cluster Gitea repo plus the Argo CD project/application objects that point at that repo.
 
 If a password/secret field is left empty in the config, the bootstrap secret scripts keep the existing in-cluster value when present or generate a new one.
+
+The mail section currently expects:
+
+- `mail.domain`: sender domain used by the Postfix relay and application mail config
+- `mail.smtp_host`: public SMTP hostname the relay identifies as, for example `smtp.example.com`
+- `mail.from_localpart`: sender local-part used for app mail, default `noreply`
+- `mail.from_name`: display name used by Vaultwarden mail, default `ai-homebase`
 
 ## Example deployment command pattern
 

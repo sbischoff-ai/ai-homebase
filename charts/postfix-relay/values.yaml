@@ -1,0 +1,70 @@
+enabled: false
+
+nameOverride: ""
+fullnameOverride: ""
+
+replicaCount: 1
+
+image:
+  repository: boky/postfix
+  tag: "v4.4.0"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+global:
+  imagePullSecrets: []
+  storageClass: ""
+  commonLabels: {}
+  mail:
+    domain: ""
+    smtpHost: ""
+    fromLocalpart: noreply
+    fromName: ai-homebase
+    fromAddress: ""
+
+service:
+  type: ClusterIP
+  port: 587
+  targetPort: 587
+  annotations: {}
+
+podAnnotations: {}
+
+podSecurityContext:
+  fsGroup: 1000
+  fsGroupChangePolicy: OnRootMismatch
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
+
+config:
+  allowedSenderDomains: ""
+  hostname: ""
+  mynetworks:
+    - 127.0.0.0/8
+    - 10.42.0.0/16
+    - 10.43.0.0/16
+  inboundDebugging: false
+  logFormat: plain
+
+probes:
+  liveness:
+    enabled: true
+    initialDelaySeconds: 30
+    periodSeconds: 10
+  readiness:
+    enabled: true
+    initialDelaySeconds: 10
+    periodSeconds: 10
+
+resources: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}

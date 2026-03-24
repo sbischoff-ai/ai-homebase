@@ -2,6 +2,12 @@ global:
   imagePullSecrets: []
   storageClass: ""
   domain: homebase.local
+  mail:
+    domain: example.com
+    smtpHost: smtp.example.com
+    fromLocalpart: noreply
+    fromName: ai-homebase
+    fromAddress: noreply@example.com
   hosts:
     openclaw: openclaw.homebase.local
     nextcloud: cloud.homebase.local
@@ -87,6 +93,13 @@ openclaw:
     enabled: true
     dockerHost: "ssh://docker-remote@openclaw-sandbox:2222"
     home: /home/node
+    cli:
+      enabled: true
+      image:
+        repository: docker
+        tag: "28.0.4-cli"
+        pullPolicy: IfNotPresent
+      installPath: /opt/openclaw-tools/bin
     ssh:
       secretName: openclaw-remote-docker-ssh
       mountPath: /home/node/.ssh
@@ -100,6 +113,7 @@ openclaw:
       defaults:
         workspace: /home/node/.openclaw/workspace
         sandbox:
+          backend: docker
           mode: non-main
           scope: agent
           docker:
@@ -176,7 +190,7 @@ nextcloud:
   enabled: true
   image:
     repository: nextcloud
-    tag: "29.0.0-apache"
+    tag: "33.0.0-apache"
     pullPolicy: IfNotPresent
   service:
     type: ClusterIP
@@ -184,18 +198,24 @@ nextcloud:
     targetPort: 80
     annotations: {}
   ingress:
-    enabled: true
-    className: ""
-    annotations: {}
-    hosts:
-      - host: cloud.homebase.local
-        paths:
-          - path: /
-            pathType: Prefix
-    tls:
-      - secretName: nextcloud-tls
-        hosts:
-          - cloud.homebase.local
+    path: /
+    pathType: Prefix
+    private:
+      enabled: true
+      className: internal-nginx
+      annotations:
+        cert-manager.io/cluster-issuer: platform-stack-root-ca
+      host: cloud.homebase.local
+      tls:
+        secretName: nextcloud-private-tls
+    public:
+      enabled: false
+      className: nginx
+      annotations:
+        cert-manager.io/cluster-issuer: letsencrypt-production
+      host: ""
+      tls:
+        secretName: nextcloud-public-tls
   persistence:
     enabled: true
     existingClaim: ""
@@ -232,6 +252,7 @@ nextcloud:
       key: NEXTCLOUD_ADMIN_PASSWORD
   trustedDomains:
     - cloud.homebase.local
+  trustedProxies: []
   externalDatabase:
     host: platform-stack-shared-postgresql
     port: 5432
@@ -246,6 +267,17 @@ nextcloud:
     passwordSecret:
       name: nextcloud-config-secrets
       key: REDIS_HOST_PASSWORD
+  smtp:
+    host: platform-stack-postfix-relay
+    port: 587
+    user: ""
+    secure: ""
+    authType: ""
+    fromAddress: noreply
+    domain: example.com
+    passwordSecret:
+      name: ""
+      key: ""
 
 gitea:
   enabled: false
@@ -376,13 +408,17 @@ vaultwarden:
   ingress:
     enabled: true
     className: ""
-    annotations: {}
+    annotations:
+      cert-manager.io/cluster-issuer: platform-stack-root-ca
     hosts:
       - host: vaultwarden.homebase.local
         paths:
           - path: /
             pathType: Prefix
-    tls: []
+    tls:
+      - secretName: vaultwarden-tls
+        hosts:
+          - vaultwarden.homebase.local
   persistence:
     enabled: true
     existingClaim: ""
@@ -407,6 +443,54 @@ vaultwarden:
     signupsAllowed: false
     invitationsAllowed: true
     websocketEnabled: true
+  smtp:
+    host: platform-stack-postfix-relay
+    port: 587
+    from: noreply@example.com
+    fromName: ai-homebase
+    security: "off"
+    username: ""
+    passwordSecret:
+      name: ""
+      key: ""
+
+postfixRelay:
+  enabled: false
+  image:
+    repository: boky/postfix
+    tag: "v4.4.0"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 587
+    targetPort: 587
+    annotations: {}
+  replicaCount: 1
+  podAnnotations: {}
+  podSecurityContext:
+    fsGroup: 1000
+    fsGroupChangePolicy: OnRootMismatch
+    seccompProfile:
+      type: RuntimeDefault
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
+    capabilities:
+      drop:
+        - ALL
+  config:
+    allowedSenderDomains: ""
+    hostname: ""
+    mynetworks:
+      - 127.0.0.0/8
+      - 10.42.0.0/16
+      - 10.43.0.0/16
+    inboundDebugging: false
+    logFormat: plain
+  resources: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
 
 # Compatibility bridge for paperless-ngx subchart-local gating:
 # keep this true so umbrella toggle paperlessNgx.enabled remains the single operator switch.

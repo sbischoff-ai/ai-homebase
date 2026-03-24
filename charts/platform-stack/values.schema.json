@@ -87,6 +87,31 @@
           "default": "homebase.local",
           "description": "Base domain used by host-based values and overlays."
         },
+        "mail": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "domain": {
+              "type": "string",
+              "minLength": 1
+            },
+            "smtpHost": {
+              "type": "string",
+              "minLength": 1
+            },
+            "fromLocalpart": {
+              "type": "string",
+              "minLength": 1
+            },
+            "fromName": {
+              "type": "string"
+            },
+            "fromAddress": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
         "hosts": {
           "type": "object",
           "description": "Default hostnames by service.",
@@ -153,6 +178,39 @@
               "type": "string",
               "default": "/home/node"
             },
+            "cli": {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "default": true
+                },
+                "installPath": {
+                  "type": "string",
+                  "default": "/opt/openclaw-tools/bin"
+                },
+                "image": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "properties": {
+                    "repository": {
+                      "type": "string",
+                      "default": "docker"
+                    },
+                    "tag": {
+                      "type": "string",
+                      "default": "28.0.4-cli"
+                    },
+                    "pullPolicy": {
+                      "type": "string",
+                      "enum": ["Always", "IfNotPresent", "Never"],
+                      "default": "IfNotPresent"
+                    }
+                  }
+                }
+              }
+            },
             "ssh": {
               "type": "object",
               "additionalProperties": true,
@@ -199,6 +257,9 @@
       "$ref": "#/definitions/optionalServiceToggle"
     },
     "vaultwarden": {
+      "$ref": "#/definitions/optionalServiceToggle"
+    },
+    "postfixRelay": {
       "$ref": "#/definitions/optionalServiceToggle"
     },
     "infisical": {

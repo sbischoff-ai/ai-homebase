@@ -17,6 +17,9 @@ dependencies:
 - name: vaultwarden
   repository: file://../vaultwarden
   version: 0.1.0
+- name: postfix-relay
+  repository: file://../postfix-relay
+  version: 0.1.0
 - name: paperless-ngx
   repository: file://../paperless-ngx
   version: 0.1.0
@@ -26,5 +29,5 @@ dependencies:
 - name: shared-redis
   repository: file://../shared-redis
   version: 0.1.0
-digest: sha256:0b7e5c91c7f19ac43fd9ec50e61e1368125e942d81c36e22f6066de5926b0387
-generated: "2026-03-24T15:17:16.591360178+01:00"
+digest: sha256:ff18ca4168af0c0e71731bee6163e13f431808c6d34b3090bff3ee9f3466cbbb
+generated: "2026-03-24T22:03:49.133983015+01:00"

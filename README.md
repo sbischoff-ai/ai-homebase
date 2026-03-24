@@ -1,6 +1,6 @@
 # ai-homebase
 
-`ai-homebase` is a Helm-based homelab stack for running OpenClaw as the center of a personal AI control plane, with supporting services such as Nextcloud, Gitea, Paperless-ngx, and Vaultwarden.
+`ai-homebase` is a Helm-based homelab stack for running OpenClaw as the center of a personal AI control plane, with supporting services such as Nextcloud, Gitea, Paperless-ngx, Vaultwarden, and an in-cluster Postfix relay for application email.
 
 The point of the repo is not just “a pile of charts.” It gives you one opinionated platform shape that works in two places: `k3d` for fast local iteration and `k3s` for the long-running homelab deployment. The bootstrap flow, secrets model, hostnames, and service posture stay aligned between those targets so local validation is actually useful before you touch the real server.
 
@@ -33,6 +33,8 @@ cp bootstrap.example.toml bootstrap.local.toml
 ```
 
 Use [docs/runbook-homelab.md](./docs/runbook-homelab.md) for the full host-prep, bootstrap, and post-install path.
+
+In both cases, fill in the new `[mail]` section in `bootstrap.local.toml` before bootstrapping so Nextcloud and Vaultwarden can send mail through the bundled Postfix relay.
 
 ## Documentation Map
 

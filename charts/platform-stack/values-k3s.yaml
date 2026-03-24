@@ -54,17 +54,19 @@ openclaw:
 nextcloud:
   enabled: true
   ingress:
-    enabled: true
-    className: nginx
-    hosts:
-      - host: cloud.homebase.internal
-        paths:
-          - path: /
-            pathType: Prefix
+    private:
+      enabled: true
+      className: nginx
+      host: cloud.homebase.internal
+    public:
+      enabled: true
+      className: nginx
   persistence:
     enabled: true
     size: 250Gi
     storageClass: local-path
+  trustedProxies:
+    - 10.42.0.0/16
 
 argoCd:
   enabled: false
@@ -100,15 +102,24 @@ vaultwarden:
   ingress:
     enabled: true
     className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: platform-stack-root-ca
     hosts:
       - host: vaultwarden.vpn.homebase.internal
         paths:
           - path: /
             pathType: Prefix
+    tls:
+      - secretName: vaultwarden-tls
+        hosts:
+          - vaultwarden.vpn.homebase.internal
   persistence:
     enabled: true
     size: 20Gi
     storageClass: local-path
+
+postfixRelay:
+  enabled: true
 
 paperlessNgx:
   enabled: true
