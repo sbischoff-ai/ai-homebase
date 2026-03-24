@@ -10,6 +10,7 @@ Use this page when the concise workflow in [`docs/deployment-k3d.md`](./deployme
 - The local bootstrap disables the default k3s Traefik add-on during cluster creation so Helm-managed `ingress-nginx` is the single intended HTTP/HTTPS ingress controller.
 - `scripts/k3d-up.sh` pins `rancher/k3s:v1.32.11-k3s1` by default so the local cluster is new enough for the repository's current cert-manager CRDs.
 - `k3d` still uses Docker to run the local cluster node containers.
+- After the cluster and Incus VM are ready, the local workflow hands off to the same `./scripts/bootstrap-stack.sh --profile k3d` secret/bootstrap install path that mirrors the `k3s` bootstrap flow.
 
 ### OpenClaw sandbox behavior
 
@@ -37,10 +38,10 @@ Use this page when the concise workflow in [`docs/deployment-k3d.md`](./deployme
 
 ### Remote Docker Secret generation
 
-- `./scripts/k3d-bootstrap-secrets.sh` fails early if the remote Docker private key is missing or empty.
+- `./scripts/bootstrap-secrets.sh --profile k3d --bootstrap-config bootstrap.local.toml` fails early if the remote Docker private key is missing or empty.
 - The same helper also fails when `ssh-keyscan` does not produce a non-empty `known_hosts` file for the target host and port.
 - Those checks keep the generated `openclaw-remote-docker-ssh` Secret aligned with the OpenClaw chart contract before Helm deploys resources.
-- The same helper now forwards any non-empty supported provider/search keys into `openclaw-app-secrets` so the first bootstrap can immediately expose those integrations inside the pod.
+- The same helper now forwards any non-empty supported provider/search keys from `bootstrap.local.toml` into `openclaw-app-secrets` so the first bootstrap can immediately expose those integrations inside the pod.
 
 ### Local ingress and hostname access
 

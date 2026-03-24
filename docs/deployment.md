@@ -1,35 +1,32 @@
-# Deployment guide chooser
+# Deployment Guide
 
-Choose the workflow that matches your target, then follow the linked guide.
+Choose the target first, then stay on that path.
 
-## Local `k3d`
+## `k3d`: Local Validation
 
-Use this path for smoke tests and local iteration.
-
-- Primary guide: [`deployment-k3d.md`](./deployment-k3d.md)
-- Deep troubleshooting: [`k3d-troubleshooting.md`](./k3d-troubleshooting.md)
+Use this target when you want the full stack locally for development, smoke testing, and bootstrap validation.
 
 ```bash
-export OPENAI_API_KEY="<your-openai-api-key>"
-# or ANTHROPIC_API_KEY / GEMINI_API_KEY / XAI_API_KEY / MOONSHOT_API_KEY
-# optionally add BRAVE_API_KEY / PERPLEXITY_API_KEY for built-in web search
-./scripts/k3d-local-bootstrap.sh --cluster-name ai-homebase-dev
+cp bootstrap.example.toml bootstrap.local.toml
+./scripts/k3d-local-bootstrap.sh --cluster-name ai-homebase-dev --bootstrap-config bootstrap.local.toml
 ```
 
-## Homelab `k3s`
+Continue with [deployment-k3d.md](./deployment-k3d.md).
 
-Use this path for the long-running supported homelab deployment.
+## `k3s`: Homelab Deployment
 
-- Primary guide: [`runbook-homelab.md`](./runbook-homelab.md)
-- Command catalog: [`commands.md`](./commands.md)
+Use this target for the long-running server install.
 
 ```bash
-./scripts/install.sh --profile k3s
+sudo ./scripts/install-k3s-ubuntu-2404.sh
+cp bootstrap.example.toml bootstrap.local.toml
+./scripts/bootstrap-stack.sh --profile k3s --bootstrap-config bootstrap.local.toml
 ```
 
-## Before either path
+Continue with [runbook-homelab.md](./runbook-homelab.md).
 
-- Confirm Helm and Kubernetes tooling are installed.
-- Prepare the right values overlays and Secret references.
-- For local `k3d`, make sure `k3d`, Docker, and the OpenClaw remote Docker prerequisites are ready.
-- For homelab `k3s`, make sure the cluster, storage class, and remote Docker or Incus endpoint are reachable.
+## Shared Assumptions
+
+- `bootstrap.local.toml` is the operator input for both targets
+- `k3d` and `k3s` share the same secret/bootstrap/install path after cluster setup
+- detailed command catalogs and troubleshooting live outside this page

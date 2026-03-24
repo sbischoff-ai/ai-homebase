@@ -95,8 +95,10 @@ scripts/ci/check_golden.sh
 ## Install wrappers
 
 ```bash
-./scripts/install.sh --profile k3d
-./scripts/install.sh --profile k3s
+python3 scripts/bootstrap-config.py validate --config bootstrap.local.toml
+./scripts/bootstrap-stack.sh --profile k3d --bootstrap-config bootstrap.local.toml
+sudo ./scripts/install-k3s-ubuntu-2404.sh
+./scripts/bootstrap-stack.sh --profile k3s --bootstrap-config bootstrap.local.toml
 ./scripts/install-k3d.sh
 ./scripts/install-k3s.sh
 ```
@@ -104,9 +106,9 @@ scripts/ci/check_golden.sh
 ## Local bootstrap and Incus sandbox helpers
 
 ```bash
-OPENAI_API_KEY="<your-openai-api-key>" ./scripts/k3d-local-bootstrap.sh --cluster-name ai-homebase-dev
-# or substitute ANTHROPIC_API_KEY / GEMINI_API_KEY / XAI_API_KEY / MOONSHOT_API_KEY
-# optionally add BRAVE_API_KEY / PERPLEXITY_API_KEY for built-in web search
+cp bootstrap.example.toml bootstrap.local.toml
+python3 scripts/bootstrap-config.py validate --config bootstrap.local.toml
+./scripts/k3d-local-bootstrap.sh --cluster-name ai-homebase-dev --bootstrap-config bootstrap.local.toml
 ./scripts/incus-vm-up.sh --vm-name openclaw-sandbox
 # First boot may take several minutes while cloud-init installs Docker Engine and SSH.
 # The helper seeds explicit NoCloud user-data + network-config before the VM starts,
@@ -114,23 +116,26 @@ OPENAI_API_KEY="<your-openai-api-key>" ./scripts/k3d-local-bootstrap.sh --cluste
 # Override the default 600-second readiness deadline if your host is slower:
 SSH_READY_TIMEOUT_SECONDS=900 ./scripts/incus-vm-up.sh --vm-name openclaw-sandbox
 source ~/.local/state/ai-homebase/incus/openclaw-sandbox.env
-./scripts/k3d-bootstrap-secrets.sh \
+./scripts/bootstrap-stack.sh \
+  --profile k3d \
   --namespace ai-homebase \
   --release-name platform-stack \
+  --bootstrap-config bootstrap.local.toml \
   --remote-docker-host "$HOST_LISTEN_ADDRESS" \
   --remote-docker-port "$SSH_HOST_PORT" \
   --remote-docker-key ~/.local/state/ai-homebase/incus/openclaw-sandbox-id_ed25519
-# Re-running local bootstrap refreshes the app secrets, while the chart-managed
-# shared PostgreSQL bootstrap Job reconciles live gitea/vaultwarden/nextcloud/paperless roles+databases.
-# Optional explicit overrides when you intentionally need new DB passwords:
-GITEA_DB_PASSWORD="<new-password>" ./scripts/k3d-bootstrap-secrets.sh --namespace ai-homebase
-VAULTWARDEN_DB_PASSWORD="<new-password>" ./scripts/k3d-bootstrap-secrets.sh --namespace ai-homebase
-NEXTCLOUD_DB_PASSWORD="<new-password>" ./scripts/k3d-bootstrap-secrets.sh --namespace ai-homebase
-PAPERLESS_DB_PASSWORD="<new-password>" ./scripts/k3d-bootstrap-secrets.sh --namespace ai-homebase
+# Re-running bootstrap-stack refreshes the app secrets and then reapplies the chart-managed install flow.
+# Change bootstrap.local.toml when you intentionally need new hostnames, DB passwords, or admin passwords.
 ./scripts/incus-vm-down.sh --vm-name openclaw-sandbox
 ./scripts/k3d-local-teardown.sh --cluster-name ai-homebase-dev --vm-name openclaw-sandbox
 ./scripts/openclaw-remote-docker-load-images.sh \
   --docker-host "ssh://docker-remote@${HOST_LISTEN_ADDRESS}:${SSH_HOST_PORT}" \
   --image openclaw-sandbox:bookworm-slim \
   --image openclaw-sandbox-browser:bookworm-slim
+```
+
+## Fresh Ubuntu 24.04 `k3s` host prep
+
+```bash
+sudo ./scripts/install-k3s-ubuntu-2404.sh
 ```

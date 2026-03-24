@@ -13,6 +13,13 @@ Prefer files over `--set` for anything long-lived or shared.
 
 Incus sandbox VM assets intentionally live outside the Helm values hierarchy in `incus/` and `scripts/incus-vm-*.sh`. They are companion host/bootstrap resources rather than chart-managed Kubernetes objects, so keep their sizing, image, and access settings in those dedicated files/scripts instead of trying to encode them in chart values.
 
+Local bootstrap operator input also lives outside the Helm values hierarchy:
+
+- Commit `bootstrap.example.toml` as the template.
+- Keep the real `bootstrap.local.toml` untracked in `.gitignore`.
+- Use `python3 scripts/bootstrap-config.py render-values --config bootstrap.local.toml` only as a generated bridge into Helm values for bootstrap-managed identities and optional OpenClaw defaults.
+- Use the same `bootstrap.local.toml` for both `k3d` and `k3s`; cluster setup differs by target, but the stack bootstrap values and secret inputs stay shared.
+
 Canonical global host keys include `global.hosts.paperlessNgx` for Paperless and `global.hosts.vaultwarden` for Vaultwarden.
 
 ## Layering model
@@ -107,6 +114,18 @@ Do not rely on ad-hoc CLI toggles for persistent environments.
 
 Keep provider/bootstrap details out of shared target files when possible.
 Commit only secret **references** in versioned overlays and generate the actual Kubernetes Secrets through your secret-management workflow.
+
+For local or operator-managed bootstrap, treat `bootstrap.local.toml` as the canonical source for:
+
+- service hostnames
+- OpenClaw/search provider keys
+- user-provided gateway/bootstrap secrets
+- shared admin identity defaults
+- per-service admin overrides
+
+Vaultwarden uses the bootstrap config for `ADMIN_TOKEN` rather than for first-user creation. That token enables the Vaultwarden admin panel so operators can create users manually after bootstrap.
+
+If a password/secret field is left empty in the config, the bootstrap secret scripts keep the existing in-cluster value when present or generate a new one.
 
 ## Example deployment command pattern
 

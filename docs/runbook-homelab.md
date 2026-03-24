@@ -1,22 +1,45 @@
-# Homelab operations runbook
+# `k3s` Runbook
 
-Use this runbook after initial install to operate `ai-homebase` on the supported k3s homelab target.
+Use this guide for the long-running homelab deployment.
 
-## 1) Validate before apply
+## 1. Prepare the Host
 
-Run the canonical lint and render commands from [`docs/commands.md`](./commands.md), especially the `k3s` profile entries, before each apply.
-
-## 2) Deploy or upgrade
-
-Use the homelab entry command:
+On a fresh Ubuntu 24.04 machine:
 
 ```bash
-./scripts/install.sh --profile k3s
+sudo ./scripts/install-k3s-ubuntu-2404.sh
 ```
 
-For dependency refresh and alternate install wrappers, use [`docs/commands.md`](./commands.md). When `certManager.enabled=true`, `./scripts/install.sh` automatically does a two-step bootstrap so the first apply installs the cert-manager CRDs/controller stack before the chart renders the internal PKI and OpenClaw certificate resources.
+This script is intended to prepare the host with the baseline tools and services required for the `k3s` bootstrap flow. Review it before use on a real machine.
 
-## 3) Health checks
+## 2. Prepare the Bootstrap Config
+
+```bash
+cp bootstrap.example.toml bootstrap.local.toml
+python3 scripts/bootstrap-config.py validate --config bootstrap.local.toml
+```
+
+Fill in:
+
+- service hostnames
+- provider/search API keys
+- shared admin identity
+- user-provided tokens such as the OpenClaw gateway token and Vaultwarden admin token
+- any remote Docker endpoint details that differ from the default target posture
+
+## 3. Bootstrap or Upgrade the Stack
+
+```bash
+./scripts/bootstrap-stack.sh --profile k3s --bootstrap-config bootstrap.local.toml
+```
+
+This runs the shared secret/bootstrap/install path:
+
+1. create or refresh bootstrap-managed Secrets
+2. render the bootstrap-generated values layer from `bootstrap.local.toml`
+3. install or upgrade the Helm release
+
+## 4. Verify the Cluster
 
 ```bash
 kubectl -n ai-homebase get pods
@@ -25,8 +48,10 @@ kubectl -n ai-homebase get pvc
 kubectl -n ai-homebase describe ingress
 ```
 
-## 4) Sandbox posture
+## See Also
 
-OpenClaw ships with a Docker sandbox configuration that is standardized on a remote Docker daemon reached through Docker's SSH transport. The chart exposes structured values for the sandbox images, browser/CDP network policy, and the required remote-Docker SSH wiring inside the OpenClaw pod.
-
-The shared OpenClaw defaults now render Docker/browser sandbox settings directly in `openclaw.json`. Keep `openclaw.remoteDocker.*` enabled, provide an SSH Secret plus an OpenClaw image with Docker CLI/OpenSSH, and set `openclaw.agents.defaults.sandbox.browser.cdpSourceRange` for the network range seen by the remote Docker host. The shipped k3s overlay assumes the remote Incus VM is reachable at `ssh://docker-remote@openclaw-sandbox.homebase.internal:2222`; override that host if your homelab uses a different DNS name or routed IP.
+- Commands: [commands.md](./commands.md)
+- Configuration: [configuration.md](./configuration.md)
+- Service contracts: [services.md](./services.md)
+- Security model: [security.md](./security.md)
+- Networking model: [networking.md](./networking.md)

@@ -152,8 +152,9 @@ for values_path in (
     assert "key: GITEA__database__PASSWD" in values_text
     assert "- GITEA__database__PASSWD" not in values_text
 
-bootstrap_secret_script = (REPO_ROOT / "scripts" / "k3d-bootstrap-secrets.sh").read_text()
+bootstrap_secret_script = (REPO_ROOT / "scripts" / "bootstrap-secrets.sh").read_text()
 assert "create_and_apply_secret gitea-config-secrets" in bootstrap_secret_script
+assert "create_and_apply_secret gitea-admin-secret" in bootstrap_secret_script
 assert "create_and_apply_secret shared-postgresql-initdb" not in bootstrap_secret_script
 assert "VAULTWARDEN_DB_PASSWORD" in bootstrap_secret_script
 

@@ -8,6 +8,7 @@ helm-template-output/
 .env
 .env.*
 *.local
+bootstrap.local.toml
 
 # Editor and OS files
 .DS_Store

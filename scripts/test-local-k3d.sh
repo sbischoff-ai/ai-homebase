@@ -8,6 +8,12 @@ NAMESPACE="${NAMESPACE:-ai-homebase}"
 VALUES_FILES=()
 KUBE_CONTEXT="${KUBE_CONTEXT:-}"
 KUBECONFIG_PATH="${KUBECONFIG_PATH:-${KUBECONFIG:-}}"
+BOOTSTRAP_CONFIG_PATH="${BOOTSTRAP_CONFIG_PATH:-bootstrap.local.toml}"
+REMOTE_DOCKER_SECRET_NAME="${REMOTE_DOCKER_SECRET_NAME:-}"
+REMOTE_DOCKER_HOST="${REMOTE_DOCKER_HOST:-}"
+REMOTE_DOCKER_PORT="${REMOTE_DOCKER_PORT:-}"
+REMOTE_DOCKER_KEY_PATH="${REMOTE_DOCKER_KEY_PATH:-}"
+SKIP_INSTALL=0
 OPENCLAW_WAIT_TIMEOUT="${OPENCLAW_WAIT_TIMEOUT:-600s}"
 NEXTCLOUD_WAIT_TIMEOUT="${NEXTCLOUD_WAIT_TIMEOUT:-1200s}"
 GITEA_WAIT_TIMEOUT="${GITEA_WAIT_TIMEOUT:-1200s}"
@@ -23,9 +29,15 @@ Deploy the k3d profile and run local smoke checks.
 Options:
   --release-name <name>       Helm release name (default: ${RELEASE_NAME})
   --namespace <name>          Kubernetes namespace (default: ${NAMESPACE})
+  --bootstrap-config <path>   Bootstrap config file (default: ${BOOTSTRAP_CONFIG_PATH})
   --values-file <path>        Values file path (repeatable)
   --kube-context <context>    Optional kube context
   --kubeconfig <path>         Optional kubeconfig path (overrides KUBECONFIG env)
+  --remote-docker-secret <n>  Override SSH secret name for OpenClaw remote Docker bootstrap
+  --remote-docker-host <host> Override OpenClaw remote Docker SSH host during bootstrap
+  --remote-docker-port <port> Override OpenClaw remote Docker SSH port during bootstrap
+  --remote-docker-key <path>  Override OpenClaw remote Docker SSH private key during bootstrap
+  --skip-install              Skip the shared bootstrap/install phase and run smoke checks only
   Env timeouts                OPENCLAW_WAIT_TIMEOUT=${OPENCLAW_WAIT_TIMEOUT}, NEXTCLOUD_WAIT_TIMEOUT=${NEXTCLOUD_WAIT_TIMEOUT}, GITEA_WAIT_TIMEOUT=${GITEA_WAIT_TIMEOUT}, VAULTWARDEN_WAIT_TIMEOUT=${VAULTWARDEN_WAIT_TIMEOUT}, PAPERLESS_WAIT_TIMEOUT=${PAPERLESS_WAIT_TIMEOUT}
   --verbose                   Stream full command output
   -h, --help                  Show this help message
@@ -36,9 +48,15 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --release-name) RELEASE_NAME="$2"; shift 2 ;;
     --namespace) NAMESPACE="$2"; shift 2 ;;
+    --bootstrap-config) BOOTSTRAP_CONFIG_PATH="$2"; shift 2 ;;
     --values-file) VALUES_FILES+=("$2"); shift 2 ;;
     --kube-context) KUBE_CONTEXT="$2"; shift 2 ;;
     --kubeconfig) KUBECONFIG_PATH="$2"; shift 2 ;;
+    --remote-docker-secret) REMOTE_DOCKER_SECRET_NAME="$2"; shift 2 ;;
+    --remote-docker-host) REMOTE_DOCKER_HOST="$2"; shift 2 ;;
+    --remote-docker-port) REMOTE_DOCKER_PORT="$2"; shift 2 ;;
+    --remote-docker-key) REMOTE_DOCKER_KEY_PATH="$2"; shift 2 ;;
+    --skip-install) SKIP_INSTALL=1; shift ;;
     --verbose) BOOTSTRAP_VERBOSE=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
@@ -250,7 +268,7 @@ wait_for_workload() {
     --timeout="$wait_timeout"
 }
 
-effective_bool_value() {
+effective_value() {
   local path="$1"
   helm get values "$RELEASE_NAME" \
     "${HELM_KUBECONFIG_ARGS[@]}" \
@@ -261,15 +279,41 @@ effective_bool_value() {
 import json
 import sys
 
-path = sys.argv[1].split(".")
+def parse_path(raw: str):
+    segments = []
+    for part in raw.split("."):
+        if part.isdigit():
+            segments.append(int(part))
+        else:
+            segments.append(part)
+    return segments
+
+path = parse_path(sys.argv[1])
 value = json.load(sys.stdin)
 for key in path:
+    if isinstance(key, int):
+        if not isinstance(value, list) or key >= len(value):
+            value = ""
+            break
+        value = value[key]
+        continue
     if not isinstance(value, dict):
-        value = False
+        value = ""
         break
-    value = value.get(key, False)
-print("true" if bool(value) else "false")
+    value = value.get(key, "")
+
+if isinstance(value, bool):
+    print("true" if value else "false")
+elif isinstance(value, (str, int, float)):
+    print(value)
+else:
+    print("")
 ' "$path"
+}
+
+effective_bool_value() {
+  local path="$1"
+  [[ "$(effective_value "$path")" == "true" ]] && echo "true" || echo "false"
 }
 
 is_openclaw_ingress_enabled() {
@@ -432,20 +476,47 @@ verify_labeled_service() {
   wait_for_named_resource Service "$service_name"
 }
 
-step "Updating Gitea chart dependencies"
-run_checked helm dependency update charts/gitea
+if [[ "$SKIP_INSTALL" -eq 0 ]]; then
+  BOOTSTRAP_STACK_CMD=(
+    ./scripts/bootstrap-stack.sh
+    --profile k3d
+    --bootstrap-config "$BOOTSTRAP_CONFIG_PATH"
+    --release-name "$RELEASE_NAME"
+    --namespace "$NAMESPACE"
+  )
+  if [[ -n "$KUBECONFIG_PATH" ]]; then
+    BOOTSTRAP_STACK_CMD+=(--kubeconfig "$KUBECONFIG_PATH")
+  fi
+  if [[ -n "$KUBE_CONTEXT" ]]; then
+    BOOTSTRAP_STACK_CMD+=(--kube-context "$KUBE_CONTEXT")
+  fi
+  if [[ -n "$REMOTE_DOCKER_SECRET_NAME" ]]; then
+    BOOTSTRAP_STACK_CMD+=(--remote-docker-secret "$REMOTE_DOCKER_SECRET_NAME")
+  fi
+  if [[ -n "$REMOTE_DOCKER_HOST" ]]; then
+    BOOTSTRAP_STACK_CMD+=(--remote-docker-host "$REMOTE_DOCKER_HOST")
+  fi
+  if [[ -n "$REMOTE_DOCKER_PORT" ]]; then
+    BOOTSTRAP_STACK_CMD+=(--remote-docker-port "$REMOTE_DOCKER_PORT")
+  fi
+  if [[ -n "$REMOTE_DOCKER_KEY_PATH" ]]; then
+    BOOTSTRAP_STACK_CMD+=(--remote-docker-key "$REMOTE_DOCKER_KEY_PATH")
+  fi
+  for values_file in "${VALUES_FILES[@]}"; do
+    BOOTSTRAP_STACK_CMD+=(--values-file "$values_file")
+  done
+  if [[ "${BOOTSTRAP_VERBOSE:-0}" == "1" ]]; then
+    BOOTSTRAP_STACK_CMD+=(--verbose)
+  fi
 
-step "Updating platform-stack dependencies"
-run_checked helm dependency update charts/platform-stack
+  step "Running shared bootstrap/install flow for k3d"
+  run_checked "${BOOTSTRAP_STACK_CMD[@]}"
+fi
 
-step "Installing/upgrading release ${RELEASE_NAME}"
-run_checked helm upgrade --install "$RELEASE_NAME" charts/platform-stack \
-  "${HELM_KUBECONFIG_ARGS[@]}" \
-  "${HELM_CONTEXT_ARGS[@]}" \
-  --namespace "$NAMESPACE" \
-  --create-namespace \
-  --hide-notes \
-  "${VALUES_ARGS[@]}"
+NEXTCLOUD_INGRESS_HOST="$(effective_value "nextcloud.ingress.hosts.0.host")"
+VAULTWARDEN_INGRESS_HOST="$(effective_value "vaultwarden.ingress.hosts.0.host")"
+PAPERLESS_INGRESS_HOST="$(effective_value "paperlessNgx.ingress.hosts.0.host")"
+OPENCLAW_INGRESS_HOST="$(effective_value "openclaw.ingress.hosts.0.host")"
 
 wait_for_workload openclaw "$OPENCLAW_WAIT_TIMEOUT"
 
@@ -454,7 +525,7 @@ if [[ "$(is_nextcloud_enabled)" == "true" ]]; then
   verify_labeled_service nextcloud
   step "Checking nextcloud ingress endpoint"
   run_checked curl --silent --show-error --fail \
-    -H 'Host: nextcloud.localtest.me' \
+    -H "Host: ${NEXTCLOUD_INGRESS_HOST}" \
     http://127.0.0.1/status.php
 else
   warn "Skipping Nextcloud workload/service/ingress checks because nextcloud.enabled=false in effective values"
@@ -472,7 +543,7 @@ if [[ "$(is_vaultwarden_enabled)" == "true" ]]; then
   verify_labeled_service vaultwarden
   step "Checking vaultwarden ingress endpoint"
   run_checked curl --silent --show-error --fail \
-    -H 'Host: vaultwarden.localtest.me' \
+    -H "Host: ${VAULTWARDEN_INGRESS_HOST}" \
     http://127.0.0.1/
 else
   warn "Skipping Vaultwarden workload/service/ingress checks because vaultwarden.enabled=false in effective values"
@@ -483,7 +554,7 @@ if [[ "$(is_paperless_enabled)" == "true" ]]; then
   verify_labeled_service paperless-ngx
   step "Checking paperless ingress endpoint"
   run_checked curl --silent --show-error --fail \
-    -H 'Host: paperless.localtest.me' \
+    -H "Host: ${PAPERLESS_INGRESS_HOST}" \
     http://127.0.0.1/api/health/
 else
   warn "Skipping Paperless workload/service/ingress checks because paperlessNgx.enabled=false in effective values"
@@ -492,7 +563,7 @@ fi
 if [[ "$(is_openclaw_ingress_enabled)" == "true" ]]; then
   step "Checking openclaw ingress endpoint"
   run_checked curl --silent --show-error --fail \
-    -H 'Host: openclaw.localtest.me' \
+    -H "Host: ${OPENCLAW_INGRESS_HOST}" \
     http://127.0.0.1/
 else
   warn "Skipping OpenClaw ingress endpoint check because openclaw.ingress.enabled=false in effective values"

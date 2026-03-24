@@ -1,0 +1,327 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+source "$(dirname "$0")/lib/logging.sh"
+
+PROFILE="${PROFILE:-}"
+BOOTSTRAP_CONFIG_PATH="${BOOTSTRAP_CONFIG_PATH:-bootstrap.local.toml}"
+NAMESPACE="${NAMESPACE:-ai-homebase}"
+RELEASE_NAME="${RELEASE_NAME:-platform-stack}"
+KUBECONFIG_PATH="${KUBECONFIG_PATH:-${KUBECONFIG:-}}"
+OPENCLAW_GATEWAY_TOKEN=""
+OPENAI_API_KEY=""
+ANTHROPIC_API_KEY=""
+BRAVE_API_KEY=""
+PERPLEXITY_API_KEY=""
+GEMINI_API_KEY=""
+XAI_API_KEY=""
+MOONSHOT_API_KEY=""
+GITEA_DB_PASSWORD=""
+GITEA_ADMIN_USERNAME=""
+GITEA_ADMIN_EMAIL=""
+GITEA_ADMIN_PASSWORD=""
+VAULTWARDEN_DB_PASSWORD=""
+VAULTWARDEN_ADMIN_TOKEN=""
+NEXTCLOUD_DB_PASSWORD=""
+NEXTCLOUD_ADMIN_PASSWORD=""
+PAPERLESS_DB_PASSWORD=""
+PAPERLESS_ADMIN_PASSWORD=""
+PAPERLESS_ADMIN_USER=""
+PAPERLESS_ADMIN_MAIL=""
+PAPERLESS_SECRET_KEY=""
+REMOTE_DOCKER_SECRET_NAME="${REMOTE_DOCKER_SECRET_NAME:-openclaw-remote-docker-ssh}"
+REMOTE_DOCKER_HOST="${REMOTE_DOCKER_HOST:-host.k3d.internal}"
+REMOTE_DOCKER_PORT="${REMOTE_DOCKER_PORT:-2222}"
+REMOTE_DOCKER_KEY_PATH="${REMOTE_DOCKER_KEY_PATH:-${HOME}/.local/state/ai-homebase/incus/openclaw-sandbox-id_ed25519}"
+POSTGRES_ADMIN_PASSWORD=""
+REDIS_PASSWORD=""
+OPENCLAW_PROVIDER_ENV_VARS=(
+  OPENAI_API_KEY
+  ANTHROPIC_API_KEY
+  BRAVE_API_KEY
+  PERPLEXITY_API_KEY
+  GEMINI_API_KEY
+  XAI_API_KEY
+  MOONSHOT_API_KEY
+)
+
+usage() {
+  cat <<USAGE
+Usage: $0 --profile <k3d|k3s> [options]
+
+Create or refresh bootstrap Secrets from a local bootstrap config file.
+
+Options:
+  --profile <k3d|k3s>          Supported target profile
+  --bootstrap-config <path>    Bootstrap config file (default: ${BOOTSTRAP_CONFIG_PATH})
+  --namespace <name>           Target namespace (default: ${NAMESPACE})
+  --release-name <name>        Helm release name (default: ${RELEASE_NAME})
+  --kubeconfig <path>          Optional kubeconfig path
+  --remote-docker-secret <n>   Secret for OpenClaw remote Docker SSH data (default: ${REMOTE_DOCKER_SECRET_NAME})
+  --remote-docker-host <host>  Hostname OpenClaw should use for the SSH-backed Docker endpoint (default: ${REMOTE_DOCKER_HOST})
+  --remote-docker-port <port>  SSH port for the remote Docker endpoint (default: ${REMOTE_DOCKER_PORT})
+  --remote-docker-key <path>   Private key path for the remote Docker Secret (default: ${REMOTE_DOCKER_KEY_PATH})
+  --verbose                    Stream full command output
+  -h, --help                   Show this help message
+USAGE
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --profile) PROFILE="$2"; shift 2 ;;
+    --bootstrap-config) BOOTSTRAP_CONFIG_PATH="$2"; shift 2 ;;
+    --namespace) NAMESPACE="$2"; shift 2 ;;
+    --release-name) RELEASE_NAME="$2"; shift 2 ;;
+    --kubeconfig) KUBECONFIG_PATH="$2"; shift 2 ;;
+    --remote-docker-secret) REMOTE_DOCKER_SECRET_NAME="$2"; shift 2 ;;
+    --remote-docker-host) REMOTE_DOCKER_HOST="$2"; shift 2 ;;
+    --remote-docker-port) REMOTE_DOCKER_PORT="$2"; shift 2 ;;
+    --remote-docker-key) REMOTE_DOCKER_KEY_PATH="$2"; shift 2 ;;
+    --verbose) BOOTSTRAP_VERBOSE=1; shift ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
+  esac
+done
+
+case "$PROFILE" in
+  k3d|k3s) ;;
+  *) echo "Missing or unsupported --profile. Use k3d or k3s." >&2; usage; exit 1 ;;
+esac
+
+bootstrap_init_logging
+trap 'fail "Bootstrap secrets generation failed. Log: ${BOOTSTRAP_LOG_FILE}"' ERR
+
+for cmd in base64 kubectl openssl python3 ssh-keyscan; do
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    fail "Missing required dependency: $cmd"
+    exit 1
+  fi
+done
+
+BOOTSTRAP_SHELL_VARS="$(python3 ./scripts/bootstrap-config.py shell-vars --config "$BOOTSTRAP_CONFIG_PATH")" || exit 1
+eval "$BOOTSTRAP_SHELL_VARS"
+
+POSTGRES_ADMIN_PASSWORD="${POSTGRES_ADMIN_PASSWORD:-postgres-local-dev}"
+REDIS_PASSWORD="${REDIS_PASSWORD:-redis-local-dev}"
+OPENCLAW_GATEWAY_TOKEN="${OPENCLAW_GATEWAY_TOKEN:-local-dev-token}"
+
+KUBECTL_ARGS=()
+if [[ -n "$KUBECONFIG_PATH" ]]; then
+  KUBECTL_ARGS=(--kubeconfig "$KUBECONFIG_PATH")
+fi
+
+apply_manifest() {
+  local tmp_file
+  tmp_file="$(mktemp)"
+  cat > "$tmp_file"
+  run_quiet kubectl "${KUBECTL_ARGS[@]}" apply -f "$tmp_file"
+  rm -f "$tmp_file"
+}
+
+create_and_apply_secret() {
+  local secret_name="$1"
+  shift
+  local tmp_file
+  local apply_output
+  local action_label
+  tmp_file="$(mktemp)"
+  kubectl "${KUBECTL_ARGS[@]}" -n "$NAMESPACE" create secret generic "$secret_name" "$@" --dry-run=client -o yaml > "$tmp_file" 2>>"$BOOTSTRAP_LOG_FILE"
+
+  if [[ "${BOOTSTRAP_VERBOSE:-0}" == "1" ]]; then
+    run_verbose kubectl "${KUBECTL_ARGS[@]}" apply -f "$tmp_file"
+  else
+    apply_output="$(kubectl "${KUBECTL_ARGS[@]}" apply -f "$tmp_file" 2>>"$BOOTSTRAP_LOG_FILE")"
+    printf '%s\n' "$apply_output" >>"$BOOTSTRAP_LOG_FILE"
+
+    action_label="updated"
+    if [[ "$apply_output" == *" created"* ]]; then
+      action_label="created"
+    fi
+
+    echo "${action_label} secret ${secret_name}"
+  fi
+
+  rm -f "$tmp_file"
+}
+
+remote_docker_secret_contract_hint() {
+  local secret_name="$1"
+  printf 'Secret %s must provide non-empty id_ed25519 and known_hosts keys. OpenClaw init will fail if those keys are absent.' "$secret_name"
+}
+
+create_remote_docker_secret() {
+  local secret_name="$1"
+  local remote_host="$2"
+  local remote_port="$3"
+  local key_path="$4"
+  local known_hosts_file
+
+  if [[ ! -s "$key_path" ]]; then
+    fail "Remote Docker private key missing or empty at ${key_path}. Run ./scripts/incus-vm-up.sh first or pass --remote-docker-key. $(remote_docker_secret_contract_hint "$secret_name")"
+    return 1
+  fi
+
+  known_hosts_file="$(mktemp)"
+  ssh-keyscan -p "$remote_port" "$remote_host" >"$known_hosts_file" 2>>"$BOOTSTRAP_LOG_FILE"
+
+  if [[ ! -s "$known_hosts_file" ]]; then
+    rm -f "$known_hosts_file"
+    fail "ssh-keyscan did not write known_hosts data for ${remote_host}:${remote_port}. $(remote_docker_secret_contract_hint "$secret_name")"
+    return 1
+  fi
+
+  create_and_apply_secret "$secret_name" \
+    --from-file=id_ed25519="$key_path" \
+    --from-file=known_hosts="$known_hosts_file"
+
+  rm -f "$known_hosts_file"
+}
+
+resolve_from_existing_secret_or_generate() {
+  local explicit_value="$1"
+  local secret_name="$2"
+  local jsonpath="$3"
+
+  local existing_value_b64=""
+
+  if [[ -n "$explicit_value" ]]; then
+    printf '%s' "$explicit_value"
+    return 0
+  fi
+
+  existing_value_b64="$(
+    kubectl "${KUBECTL_ARGS[@]}" -n "$NAMESPACE" get secret "$secret_name" \
+      -o "jsonpath=${jsonpath}" 2>>"$BOOTSTRAP_LOG_FILE" || true
+  )"
+  if [[ -n "$existing_value_b64" ]]; then
+    printf '%s' "$existing_value_b64" | base64 --decode
+    return 0
+  fi
+
+  openssl rand -hex 24
+}
+
+resolve_paperless_secret_key() {
+  local existing_secret_key_b64=""
+
+  if [[ -n "$PAPERLESS_SECRET_KEY" ]]; then
+    printf '%s' "$PAPERLESS_SECRET_KEY"
+    return 0
+  fi
+
+  existing_secret_key_b64="$(
+    kubectl "${KUBECTL_ARGS[@]}" -n "$NAMESPACE" get secret paperless-config-secrets \
+      -o jsonpath='{.data.PAPERLESS_SECRET_KEY}' 2>>"$BOOTSTRAP_LOG_FILE" || true
+  )"
+  if [[ -n "$existing_secret_key_b64" ]]; then
+    printf '%s' "$existing_secret_key_b64" | base64 --decode
+    return 0
+  fi
+
+  openssl rand -hex 32
+}
+
+resolve_from_existing_secret_or_empty() {
+  local explicit_value="$1"
+  local secret_name="$2"
+  local jsonpath="$3"
+
+  local existing_value_b64=""
+
+  if [[ -n "$explicit_value" ]]; then
+    printf '%s' "$explicit_value"
+    return 0
+  fi
+
+  existing_value_b64="$(
+    kubectl "${KUBECTL_ARGS[@]}" -n "$NAMESPACE" get secret "$secret_name" \
+      -o "jsonpath=${jsonpath}" 2>>"$BOOTSTRAP_LOG_FILE" || true
+  )"
+  if [[ -n "$existing_value_b64" ]]; then
+    printf '%s' "$existing_value_b64" | base64 --decode
+    return 0
+  fi
+
+  printf ''
+}
+
+step "Ensuring namespace ${NAMESPACE} exists"
+apply_manifest <<MANIFEST
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ${NAMESPACE}
+MANIFEST
+
+step "Applying bootstrap secrets from ${BOOTSTRAP_CONFIG_PATH}"
+create_and_apply_secret shared-postgresql-auth \
+  --from-literal=postgres-password="$POSTGRES_ADMIN_PASSWORD" \
+  --from-literal=password="$POSTGRES_ADMIN_PASSWORD"
+
+create_and_apply_secret shared-redis-auth \
+  --from-literal=redis-password="$REDIS_PASSWORD"
+
+GITEA_DB_PASSWORD="$(resolve_from_existing_secret_or_generate "$GITEA_DB_PASSWORD" gitea-config-secrets '{.data.GITEA__database__PASSWD}')"
+GITEA_ADMIN_PASSWORD="$(resolve_from_existing_secret_or_generate "$GITEA_ADMIN_PASSWORD" gitea-admin-secret '{.data.password}')"
+VAULTWARDEN_DB_PASSWORD="$(resolve_from_existing_secret_or_generate "$VAULTWARDEN_DB_PASSWORD" vaultwarden-config-secrets '{.data.VAULTWARDEN_DB_PASSWORD}')"
+VAULTWARDEN_ADMIN_TOKEN="$(resolve_from_existing_secret_or_empty "$VAULTWARDEN_ADMIN_TOKEN" vaultwarden-config-secrets '{.data.ADMIN_TOKEN}')"
+NEXTCLOUD_DB_PASSWORD="$(resolve_from_existing_secret_or_generate "$NEXTCLOUD_DB_PASSWORD" nextcloud-config-secrets '{.data.POSTGRES_PASSWORD}')"
+NEXTCLOUD_ADMIN_PASSWORD="$(resolve_from_existing_secret_or_generate "$NEXTCLOUD_ADMIN_PASSWORD" nextcloud-config-secrets '{.data.NEXTCLOUD_ADMIN_PASSWORD}')"
+PAPERLESS_DB_PASSWORD="$(resolve_from_existing_secret_or_generate "$PAPERLESS_DB_PASSWORD" paperless-config-secrets '{.data.PAPERLESS_DB_PASSWORD}')"
+PAPERLESS_ADMIN_PASSWORD="$(resolve_from_existing_secret_or_generate "$PAPERLESS_ADMIN_PASSWORD" paperless-config-secrets '{.data.PAPERLESS_ADMIN_PASSWORD}')"
+PAPERLESS_SECRET_KEY="$(resolve_paperless_secret_key)"
+GITEA_REDIS_URI="redis://:${REDIS_PASSWORD}@platform-stack-shared-redis:6379/0?pool_size=100&idle_timeout=180s"
+PAPERLESS_REDIS_URI="redis://:${REDIS_PASSWORD}@platform-stack-shared-redis:6379/0"
+
+create_and_apply_secret gitea-config-secrets \
+  --from-literal=GITEA__database__PASSWD="${GITEA_DB_PASSWORD}" \
+  --from-literal=GITEA__session__PROVIDER_CONFIG="${GITEA_REDIS_URI}" \
+  --from-literal=GITEA__cache__HOST="${GITEA_REDIS_URI}" \
+  --from-literal=GITEA__queue__CONN_STR="${GITEA_REDIS_URI}" \
+  --from-literal=GITEA__global_lock__SERVICE_CONN_STR="${GITEA_REDIS_URI}"
+
+create_and_apply_secret gitea-admin-secret \
+  --from-literal=username="${GITEA_ADMIN_USERNAME}" \
+  --from-literal=password="${GITEA_ADMIN_PASSWORD}" \
+  --from-literal=email="${GITEA_ADMIN_EMAIL}"
+
+VAULTWARDEN_SECRET_ARGS=(
+  --from-literal=DATABASE_URL="postgresql://vaultwarden:${VAULTWARDEN_DB_PASSWORD}@platform-stack-shared-postgresql:5432/vaultwarden"
+  --from-literal=VAULTWARDEN_DB_PASSWORD="${VAULTWARDEN_DB_PASSWORD}"
+)
+if [[ -n "$VAULTWARDEN_ADMIN_TOKEN" ]]; then
+  VAULTWARDEN_SECRET_ARGS+=(--from-literal=ADMIN_TOKEN="${VAULTWARDEN_ADMIN_TOKEN}")
+fi
+create_and_apply_secret vaultwarden-config-secrets \
+  "${VAULTWARDEN_SECRET_ARGS[@]}"
+
+create_and_apply_secret nextcloud-config-secrets \
+  --from-literal=NEXTCLOUD_ADMIN_PASSWORD="${NEXTCLOUD_ADMIN_PASSWORD}" \
+  --from-literal=POSTGRES_PASSWORD="${NEXTCLOUD_DB_PASSWORD}" \
+  --from-literal=REDIS_HOST_PASSWORD="${REDIS_PASSWORD}"
+
+create_and_apply_secret paperless-config-secrets \
+  --from-literal=PAPERLESS_SECRET_KEY="${PAPERLESS_SECRET_KEY}" \
+  --from-literal=PAPERLESS_ADMIN_PASSWORD="${PAPERLESS_ADMIN_PASSWORD}" \
+  --from-literal=PAPERLESS_DB_PASSWORD="${PAPERLESS_DB_PASSWORD}" \
+  --from-literal=PAPERLESS_REDIS="${PAPERLESS_REDIS_URI}"
+
+OPENCLAW_SECRET_ARGS=(
+  --from-literal=OPENCLAW_GATEWAY_TOKEN="$OPENCLAW_GATEWAY_TOKEN"
+)
+for env_var in "${OPENCLAW_PROVIDER_ENV_VARS[@]}"; do
+  if [[ -n "${!env_var:-}" ]]; then
+    OPENCLAW_SECRET_ARGS+=(--from-literal="${env_var}=${!env_var}")
+  fi
+done
+create_and_apply_secret openclaw-app-secrets \
+  "${OPENCLAW_SECRET_ARGS[@]}"
+
+create_remote_docker_secret \
+  "$REMOTE_DOCKER_SECRET_NAME" \
+  "$REMOTE_DOCKER_HOST" \
+  "$REMOTE_DOCKER_PORT" \
+  "$REMOTE_DOCKER_KEY_PATH"
+
+echo "Bootstrap secrets applied in namespace ${NAMESPACE}."
+echo "Bootstrap log: ${BOOTSTRAP_LOG_FILE}"

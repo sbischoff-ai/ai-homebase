@@ -51,15 +51,9 @@ run_case() {
 set -euo pipefail
 printf '%s\n' "$*" >>"${FAKE_HELM_LOG:?}"
 case "$1 $2" in
-  "dependency update")
-    exit 0
-    ;;
-  "upgrade --install")
-    exit 0
-    ;;
   "get values")
     cat <<JSON
-{"openclaw":{"ingress":{"enabled":true}},"gitea":{"enabled":${FAKE_GITEA_ENABLED:-true}}}
+{"openclaw":{"ingress":{"enabled":true,"hosts":[{"host":"openclaw.test.internal"}]}},"nextcloud":{"enabled":false,"ingress":{"hosts":[{"host":"nextcloud.test.internal"}]}},"gitea":{"enabled":${FAKE_GITEA_ENABLED:-true}},"vaultwarden":{"enabled":false,"ingress":{"hosts":[{"host":"vaultwarden.test.internal"}]}},"paperlessNgx":{"enabled":false,"ingress":{"hosts":[{"host":"paperless.test.internal"}]}}}
 JSON
     exit 0
     ;;
@@ -137,7 +131,8 @@ FAKECURL
     ./scripts/test-local-k3d.sh \
       --release-name platform-stack \
       --namespace ai-homebase \
-      --kubeconfig "${sandbox_dir}/kubeconfig.yaml"
+      --kubeconfig "${sandbox_dir}/kubeconfig.yaml" \
+      --skip-install
   ) >"${output_file}" 2>&1
 
   local output helm_output kubectl_output curl_output
@@ -147,13 +142,11 @@ FAKECURL
   curl_output="$(cat "${curl_log}")"
 
   assert_contains "${output}" "Local k3d smoke checks passed"
-  assert_contains "${helm_output}" "dependency update charts/gitea"
-  assert_contains "${helm_output}" "dependency update charts/platform-stack"
-  assert_contains "${curl_output}" "-H Host: openclaw.localtest.me http://127.0.0.1/"
+  assert_contains "${curl_output}" "-H Host: openclaw.test.internal http://127.0.0.1/"
 
   case "${case_name}" in
     gitea-enabled)
-      assert_contains "${kubectl_output}" "rollout status statefulset/platform-stack-gitea --timeout=600s"
+      assert_contains "${kubectl_output}" "rollout status statefulset/platform-stack-gitea --timeout=1200s"
       assert_contains "${kubectl_output}" "get service/platform-stack-gitea-http"
       assert_contains "${kubectl_output}" "get service/platform-stack-gitea-ssh"
       ;;
