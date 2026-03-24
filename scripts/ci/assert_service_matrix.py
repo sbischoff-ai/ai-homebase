@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import re
 import subprocess
+from pathlib import Path
 
 LEGACY_CERT_MANAGER_PATTERN = re.compile(r"certManager[A-Z]")
 
@@ -54,11 +55,14 @@ MATRIX = [
             "gitea.enabled": "true",
             "vaultwarden.enabled": "false",
             "paperlessNgx.enabled": "true",
+            "postfixRelay.enabled": "true",
         },
         "expect_present": {
             ("Ingress", "platform-stack-openclaw"),
+            ("Deployment", "platform-stack-postfix-relay"),
+            ("Service", "platform-stack-postfix-relay"),
             ("StatefulSet", "platform-stack-nextcloud"),
-            ("Ingress", "platform-stack-nextcloud"),
+            ("Ingress", "platform-stack-nextcloud-private"),
             ("StatefulSet", "platform-stack-paperless-ngx"),
             ("Ingress", "platform-stack-paperless-ngx"),
         },
@@ -70,13 +74,16 @@ MATRIX = [
             "gitea.enabled": "true",
             "vaultwarden.enabled": "true",
             "paperlessNgx.enabled": "true",
+            "postfixRelay.enabled": "true",
         },
         "expect_present": {
             ("Ingress", "platform-stack-openclaw"),
+            ("Deployment", "platform-stack-postfix-relay"),
+            ("Service", "platform-stack-postfix-relay"),
             ("Deployment", "platform-stack-vaultwarden"),
             ("Ingress", "platform-stack-vaultwarden"),
             ("StatefulSet", "platform-stack-nextcloud"),
-            ("Ingress", "platform-stack-nextcloud"),
+            ("Ingress", "platform-stack-nextcloud-private"),
             ("StatefulSet", "platform-stack-paperless-ngx"),
             ("Ingress", "platform-stack-paperless-ngx"),
         },
@@ -106,6 +113,9 @@ def ensure_chart_dependencies() -> None:
         return
 
     for chart_path in DEPENDENCY_UPDATE_PATHS:
+        charts_dir = Path(chart_path) / "charts"
+        if charts_dir.is_dir() and any(charts_dir.iterdir()):
+            continue
         run_command(
             ["helm", "dependency", "update", chart_path],
             context=f"failed to update Helm dependencies for {chart_path}",

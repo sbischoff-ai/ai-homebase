@@ -79,6 +79,31 @@ spec:
               value: {{ .Values.appConfig.invitationsAllowed | toString | quote }}
             - name: WEBSOCKET_ENABLED
               value: {{ .Values.appConfig.websocketEnabled | toString | quote }}
+            {{- if .Values.smtp.host }}
+            - name: SMTP_HOST
+              value: {{ .Values.smtp.host | quote }}
+            - name: SMTP_PORT
+              value: {{ .Values.smtp.port | toString | quote }}
+            - name: SMTP_FROM
+              value: {{ .Values.smtp.from | quote }}
+            {{- if .Values.smtp.fromName }}
+            - name: SMTP_FROM_NAME
+              value: {{ .Values.smtp.fromName | quote }}
+            {{- end }}
+            - name: SMTP_SECURITY
+              value: {{ .Values.smtp.security | quote }}
+            {{- if .Values.smtp.username }}
+            - name: SMTP_USERNAME
+              value: {{ .Values.smtp.username | quote }}
+            {{- end }}
+            {{- if and .Values.smtp.passwordSecret.name .Values.smtp.passwordSecret.key }}
+            - name: SMTP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.smtp.passwordSecret.name }}
+                  key: {{ .Values.smtp.passwordSecret.key }}
+            {{- end }}
+            {{- end }}
             {{- range .Values.secretRefs }}
             - name: {{ .envVar }}
               valueFrom:

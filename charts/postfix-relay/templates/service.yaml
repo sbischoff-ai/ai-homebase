@@ -1,0 +1,21 @@
+{{- if .Values.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "postfix-relay.fullname" . }}
+  labels:
+    {{- include "postfix-relay.labels" . | nindent 4 }}
+  {{- with .Values.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    {{- include "postfix-relay.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: smtp-submission
+      port: {{ .Values.service.port }}
+      targetPort: smtp-submission
+      protocol: TCP
+{{- end }}

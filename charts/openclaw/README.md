@@ -85,14 +85,13 @@ It is **not intended to be a hostile multi-tenant shared service**.
 
 ## Sandbox configuration
 
-The chart renders `agents.defaults.sandbox.*` plus `plugins.*` into `openclaw.json`. The shipped defaults set up Docker sandboxing with explicit `docker.*` and `browser.*` fields, including `browser.cdpSourceRange` for remote browser access control, and keep `remoteDocker.enabled=true` so the Deployment exports `DOCKER_HOST`/`HOME`, prepares an SSH directory at `remoteDocker.ssh.mountPath`, and mounts the referenced Secret for the standard remote Docker path while OpenClaw relies on its implicit default Docker backend instead of an explicit `backend` key.
+The chart renders `agents.defaults.sandbox.*` plus `plugins.*` into `openclaw.json`. The shipped defaults set up Docker sandboxing with explicit `backend: "docker"` plus `docker.*` and `browser.*` fields, including `browser.cdpSourceRange` for remote browser access control, and keep `remoteDocker.enabled=true` so the Deployment exports `DOCKER_HOST`/`HOME`, prepares an SSH directory at `remoteDocker.ssh.mountPath`, and mounts the referenced Secret for the standard remote Docker path.
 
-Remote Docker mode assumes the OpenClaw container image already includes both:
+Remote Docker mode now installs the Docker CLI into the pod via the `remoteDocker.cli.*` init-container flow. The main OpenClaw image still needs an SSH client because Docker's `ssh://` transport shells out to `ssh`.
 
-- Docker CLI
-- OpenSSH client
+If the OpenClaw image does not include `ssh`, the Deployment now fails early in init with an explicit error instead of starting a pod that cannot reach the remote Docker daemon.
 
-This repo includes an example Dockerfile at `images/openclaw-remote-docker/Dockerfile` that extends `ghcr.io/openclaw/openclaw:2026.3.13-1` with those packages.
+This repo includes an example Dockerfile at `images/openclaw-remote-docker/Dockerfile` that extends `ghcr.io/openclaw/openclaw:2026.3.23-2` with both `docker.io` and `openssh-client` when you prefer a single combined image instead of the default injected-CLI path.
 
 The SSH Secret referenced by `remoteDocker.ssh.secretName` must include these exact keys:
 

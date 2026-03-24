@@ -1,10 +1,17 @@
 [hosts]
 openclaw = "openclaw.localtest.me"
 nextcloud = "nextcloud.localtest.me"
+nextcloud_public = ""
 gitea = "gitea.localtest.me"
 argocd = "argocd.localtest.me"
 vaultwarden = "vaultwarden.localtest.me"
 paperless = "paperless.localtest.me"
+
+[mail]
+domain = "example.com"
+smtp_host = "smtp.example.com"
+from_localpart = "noreply"
+from_name = "ai-homebase"
 
 [providers]
 openai_api_key = ""

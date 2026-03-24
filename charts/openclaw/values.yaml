@@ -5,7 +5,7 @@ replicaCount: 1
 
 image:
   repository: ghcr.io/openclaw/openclaw
-  tag: "2026.3.13-1"
+  tag: "2026.3.23-2"
   pullPolicy: IfNotPresent
 
 imagePullSecrets: []
@@ -69,6 +69,13 @@ remoteDocker:
   enabled: true
   dockerHost: "ssh://docker-remote@openclaw-sandbox:2222"
   home: /home/node
+  cli:
+    enabled: true
+    image:
+      repository: docker
+      tag: "28.0.4-cli"
+      pullPolicy: IfNotPresent
+    installPath: /opt/openclaw-tools/bin
   ssh:
     secretName: openclaw-remote-docker-ssh
     mountPath: /home/node/.ssh
@@ -89,6 +96,7 @@ openclaw:
     defaults:
       workspace: /home/node/.openclaw/workspace
       sandbox:
+        backend: docker
         mode: non-main
         scope: agent
         docker:

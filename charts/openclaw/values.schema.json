@@ -101,6 +101,35 @@
           "default": "/home/node",
           "description": "Value exported as HOME so the Docker SSH transport can find mounted keys."
         },
+        "cli": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true,
+              "description": "Install a Docker CLI into the OpenClaw pod via init container instead of assuming the app image includes it."
+            },
+            "installPath": {
+              "type": "string",
+              "default": "/opt/openclaw-tools/bin",
+              "description": "Directory added to PATH for the injected Docker CLI binary."
+            },
+            "image": {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "repository": { "type": "string", "default": "docker" },
+                "tag": { "type": "string", "default": "28.0.4-cli" },
+                "pullPolicy": {
+                  "type": "string",
+                  "enum": ["Always", "IfNotPresent", "Never"],
+                  "default": "IfNotPresent"
+                }
+              }
+            }
+          }
+        },
         "ssh": {
           "type": "object",
           "additionalProperties": true,
@@ -168,6 +197,7 @@
                   "type": "object",
                   "additionalProperties": true,
                   "properties": {
+                    "backend": { "type": "string", "default": "docker" },
                     "mode": { "type": "string", "default": "non-main" },
                     "scope": { "type": "string", "default": "agent" },
                     "docker": {

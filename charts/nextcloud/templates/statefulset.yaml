@@ -69,6 +69,7 @@ spec:
           {{- else if $trustedDomains }}
           {{- $trustedDomainsValue = $trustedDomains | toString }}
           {{- end }}
+          {{- $trustedProxiesValue := join " " (.Values.trustedProxies | default (list)) }}
           env:
             - name: NEXTCLOUD_ADMIN_USER
               value: {{ .Values.admin.user | quote }}
@@ -81,8 +82,20 @@ spec:
             {{- end }}
             - name: NEXTCLOUD_TRUSTED_DOMAINS
               value: {{ $trustedDomainsValue | quote }}
+            {{- if $trustedProxiesValue }}
+            - name: TRUSTED_PROXIES
+              value: {{ $trustedProxiesValue | quote }}
+            {{- end }}
+            {{- if .Values.apacheDisableRewriteIp }}
+            - name: APACHE_DISABLE_REWRITE_IP
+              value: "1"
+            {{- end }}
             - name: OVERWRITEPROTOCOL
               value: {{ .Values.overwriteProtocol | quote }}
+            {{- if .Values.overwriteHost }}
+            - name: OVERWRITEHOST
+              value: {{ .Values.overwriteHost | quote }}
+            {{- end }}
             - name: PHP_MEMORY_LIMIT
               value: {{ .Values.php.memoryLimit | quote }}
             - name: PHP_UPLOAD_LIMIT
@@ -95,10 +108,14 @@ spec:
               value: {{ .Values.smtp.port | toString | quote }}
             - name: SMTP_NAME
               value: {{ .Values.smtp.user | quote }}
+            - name: SMTP_SECURE
+              value: {{ .Values.smtp.secure | quote }}
+            - name: SMTP_AUTHTYPE
+              value: {{ .Values.smtp.authType | quote }}
             {{- if and .Values.smtp.passwordSecret.name .Values.smtp.passwordSecret.key }}
             - name: SMTP_PASSWORD
               valueFrom:
-                secretKeyRef:
+                  secretKeyRef:
                   name: {{ .Values.smtp.passwordSecret.name }}
                   key: {{ .Values.smtp.passwordSecret.key }}
             {{- end }}

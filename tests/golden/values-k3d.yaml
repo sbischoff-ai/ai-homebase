@@ -6,14 +6,15 @@ data:
     \      \"enabled\": true,\n      \"allowedOrigins\": [\"https://openclaw.localtest.me\"\
     ]\n    },\n    \"trustedProxies\": [\"10.42.0.0/16\"]\n  },\n  \"agents\": {\n\
     \    \"defaults\": {\n      \"workspace\": \"/home/node/.openclaw/workspace\"\
-    ,\n      \"sandbox\": {\"browser\":{\"cdpPort\":9222,\"cdpSourceRange\":\"\",\"\
-    enableNoVnc\":true,\"enabled\":true,\"headless\":false,\"image\":\"openclaw-sandbox-browser:bookworm-slim\"\
-    ,\"network\":\"bridge\",\"noVncPort\":6080,\"vncPort\":5900},\"docker\":{\"capDrop\"\
-    :[\"ALL\"],\"cpus\":1,\"image\":\"openclaw-sandbox:bookworm-slim\",\"memory\"\
-    :\"1g\",\"memorySwap\":\"2g\",\"network\":\"bridge\",\"pidsLimit\":256,\"readOnlyRoot\"\
-    :true,\"tmpfs\":[\"/tmp\",\"/var/tmp\",\"/run\"],\"user\":\"1000:1000\",\"workdir\"\
-    :\"/workspace\"},\"mode\":\"non-main\",\"scope\":\"agent\"}\n    },\n    \"list\"\
-    : [{\"id\":\"default\",\"name\":\"OpenClaw Assistant\",\"workspace\":\"/home/node/.openclaw/workspace\"\
+    ,\n      \"sandbox\": {\"backend\":\"docker\",\"browser\":{\"cdpPort\":9222,\"\
+    cdpSourceRange\":\"\",\"enableNoVnc\":true,\"enabled\":true,\"headless\":false,\"\
+    image\":\"openclaw-sandbox-browser:bookworm-slim\",\"network\":\"bridge\",\"noVncPort\"\
+    :6080,\"vncPort\":5900},\"docker\":{\"capDrop\":[\"ALL\"],\"cpus\":1,\"image\"\
+    :\"openclaw-sandbox:bookworm-slim\",\"memory\":\"1g\",\"memorySwap\":\"2g\",\"\
+    network\":\"bridge\",\"pidsLimit\":256,\"readOnlyRoot\":true,\"tmpfs\":[\"/tmp\"\
+    ,\"/var/tmp\",\"/run\"],\"user\":\"1000:1000\",\"workdir\":\"/workspace\"},\"\
+    mode\":\"non-main\",\"scope\":\"agent\"}\n    },\n    \"list\": [{\"id\":\"default\"\
+    ,\"name\":\"OpenClaw Assistant\",\"workspace\":\"/home/node/.openclaw/workspace\"\
     }]\n  },\n  \"plugins\": {\"entries\":{}}\n}\n"
 kind: ConfigMap
 metadata:
@@ -22,6 +23,88 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: openclaw
   name: platform-stack-openclaw
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nextcloud
+  name: platform-stack-nextcloud-cron
+spec:
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/instance: platform-stack
+            app.kubernetes.io/name: nextcloud
+        spec:
+          containers:
+          - command:
+            - /bin/sh
+            - -c
+            - php -f /var/www/html/cron.php
+            env:
+            - name: POSTGRES_HOST
+              value: platform-stack-shared-postgresql
+            - name: POSTGRES_PORT
+              value: '5432'
+            - name: POSTGRES_DB
+              value: nextcloud
+            - name: POSTGRES_USER
+              value: nextcloud
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: POSTGRES_PASSWORD
+                  name: nextcloud-config-secrets
+            - name: REDIS_HOST
+              value: platform-stack-shared-redis
+            - name: REDIS_HOST_PORT
+              value: '6379'
+            - name: REDIS_HOST_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: REDIS_HOST_PASSWORD
+                  name: nextcloud-config-secrets
+            - name: SMTP_HOST
+              value: ''
+            - name: SMTP_PORT
+              value: '587'
+            - name: SMTP_NAME
+              value: ''
+            - name: MAIL_FROM_ADDRESS
+              value: ''
+            - name: MAIL_DOMAIN
+              value: ''
+            image: nextcloud:33.0.0-apache
+            imagePullPolicy: IfNotPresent
+            name: nextcloud-cron
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: false
+              runAsGroup: 33
+              runAsNonRoot: true
+              runAsUser: 33
+            volumeMounts:
+            - mountPath: /var/www/html
+              name: data
+          restartPolicy: OnFailure
+          securityContext:
+            fsGroup: 33
+            fsGroupChangePolicy: OnRootMismatch
+            seccompProfile:
+              type: RuntimeDefault
+          volumes:
+          - name: data
+            persistentVolumeClaim:
+              claimName: data
+  schedule: '*/5 * * * *'
+  successfulJobsHistoryLimit: 3
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -66,12 +149,16 @@ spec:
           value: ssh://docker-remote@host.k3d.internal:2222
         - name: HOME
           value: /home/node
+        - name: PATH
+          value: /opt/openclaw-tools/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+        - name: NODE_OPTIONS
+          value: --max-old-space-size=2048
         - name: OPENCLAW_GATEWAY_TOKEN
           valueFrom:
             secretKeyRef:
               key: OPENCLAW_GATEWAY_TOKEN
               name: openclaw-app-secrets
-        image: ghcr.io/openclaw/openclaw:2026.3.13-1
+        image: ghcr.io/openclaw/openclaw:2026.3.23-2
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 3
@@ -123,6 +210,9 @@ spec:
           name: tmp
         - mountPath: /home/node/.openclaw
           name: data
+        - mountPath: /opt/openclaw-tools/bin
+          name: remote-docker-cli
+          readOnly: true
         - mountPath: /home/node/.ssh
           name: remote-docker-ssh
           readOnly: true
@@ -146,7 +236,7 @@ spec:
           \ the rendered config.\"\n  exit 1\n}\nchown -R 1000:1000 \"${target_dir}\"\
           \ || {\n  echo >&2 \"Failed to hand ${target_dir} to UID/GID 1000 after\
           \ bootstrapping the rendered config.\"\n  exit 1\n}\n"
-        image: ghcr.io/openclaw/openclaw:2026.3.13-1
+        image: ghcr.io/openclaw/openclaw:2026.3.23-2
         imagePullPolicy: IfNotPresent
         name: config-permissions
         securityContext:
@@ -166,6 +256,64 @@ spec:
           readOnly: true
         - mountPath: /config-target-root
           name: data
+      - command:
+        - /bin/sh
+        - -c
+        - "set -eu\nmkdir -p /tools-target\ndocker_path=\"$(command -v docker || true)\"\
+          \nif [ -z \"${docker_path}\" ]; then\n  echo >&2 \"remoteDocker.cli.image\
+          \ must contain a working docker CLI on PATH so OpenClaw can use the Docker\
+          \ sandbox backend.\"\n  exit 1\nfi\ncp -f \"${docker_path}\" /tools-target/docker\
+          \ || {\n  echo >&2 \"Failed to copy ${docker_path} into /tools-target/docker\
+          \ for OpenClaw remote Docker support.\"\n  exit 1\n}\nchmod 0755 /tools-target\
+          \ /tools-target/docker || {\n  echo >&2 \"Failed to lock permissions on\
+          \ /tools-target/docker for OpenClaw remote Docker support.\"\n  exit 1\n\
+          }\nchown -R 1000:1000 /tools-target || {\n  echo >&2 \"Failed to hand /tools-target\
+          \ to UID/GID 1000 after copying the docker CLI.\"\n  exit 1\n}\n"
+        image: docker:28.0.4-cli
+        imagePullPolicy: IfNotPresent
+        name: remote-docker-cli
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            add:
+            - CHOWN
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 0
+          runAsNonRoot: false
+          runAsUser: 0
+        volumeMounts:
+        - mountPath: /tools-target
+          name: remote-docker-cli
+      - command:
+        - /bin/sh
+        - -c
+        - "set -eu\nexport PATH=\"/opt/openclaw-tools/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\"\
+          \ndocker_path=\"$(command -v docker || true)\"\nif [ -z \"${docker_path}\"\
+          \ ]; then\n  echo >&2 \"Docker sandbox backend requested, but no docker\
+          \ CLI is available after the remoteDocker.cli init step.\"\n  exit 1\nfi\n\
+          ssh_path=\"$(command -v ssh || true)\"\nif [ -z \"${ssh_path}\" ]; then\n\
+          \  echo >&2 \"OpenClaw remote Docker over ssh:// requires an ssh client\
+          \ in the OpenClaw image. Build from images/openclaw-remote-docker/Dockerfile\
+          \ or use an equivalent image.\"\n  exit 1\nfi\necho \"docker CLI available\
+          \ at ${docker_path}\"\necho \"ssh client available at ${ssh_path}\"\n"
+        image: ghcr.io/openclaw/openclaw:2026.3.23-2
+        imagePullPolicy: IfNotPresent
+        name: remote-docker-runtime-check
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 1000
+          runAsNonRoot: true
+          runAsUser: 1000
+        volumeMounts:
+        - mountPath: /opt/openclaw-tools/bin
+          name: remote-docker-cli
+          readOnly: true
       - command:
         - /bin/sh
         - -c
@@ -199,7 +347,7 @@ spec:
           \  echo >&2 \"Failed to hand /ssh-target to UID/GID 1000 after permissions\
           \ were locked down; verify the init container still runs as UID/GID 0 with\
           \ the CHOWN capability required by the security context.\"\n  exit 1\n}\n"
-        image: ghcr.io/openclaw/openclaw:2026.3.13-1
+        image: ghcr.io/openclaw/openclaw:2026.3.23-2
         imagePullPolicy: IfNotPresent
         name: remote-docker-ssh-permissions
         securityContext:
@@ -235,6 +383,7 @@ spec:
             path: openclaw.json
           name: platform-stack-openclaw
         name: config-source
+      - name: remote-docker-cli
       - name: remote-docker-ssh-secret
         secret:
           secretName: openclaw-remote-docker-ssh
@@ -306,12 +455,11 @@ spec:
       - command:
         - /bin/sh
         - -ceu
-        - "until PGPASSWORD=\"$VAULTWARDEN_DB_PASSWORD\" psql                 --host\
-          \ platform-stack-shared-postgresql                 --port 5432         \
-          \        --username vaultwarden                 --dbname vaultwarden   \
-          \              -tAc \"SELECT current_database(), current_user;\" | grep\
-          \ -qx 'vaultwarden|vaultwarden'; do\n  echo \"waiting for live PostgreSQL\
-          \ bootstrap of vaultwarden\"\n  sleep 2\ndone\n"
+        - "until PGPASSWORD=\"$VAULTWARDEN_DB_PASSWORD\" psql \\\n  --host platform-stack-shared-postgresql\
+          \ \\\n  --port 5432 \\\n  --username vaultwarden \\\n  --dbname vaultwarden\
+          \ \\\n  -tAc \"SELECT current_database(), current_user;\" | grep -qx 'vaultwarden|vaultwarden';\
+          \ do\n  echo \"waiting for live PostgreSQL bootstrap of vaultwarden\"\n\
+          \  sleep 2\ndone\n"
         env:
         - name: VAULTWARDEN_DB_PASSWORD
           valueFrom:
@@ -833,6 +981,34 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: platform-stack-root-ca
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nextcloud
+  name: platform-stack-nextcloud-private
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: nextcloud.localtest.me
+    http:
+      paths:
+      - backend:
+          service:
+            name: platform-stack-nextcloud
+            port:
+              number: 80
+        path: /
+        pathType: Prefix
+  tls:
+  - hosts:
+    - nextcloud.localtest.me
+    secretName: nextcloud-private-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
   labels:
     app.kubernetes.io/instance: platform-stack
     app.kubernetes.io/managed-by: Helm
@@ -862,6 +1038,28 @@ metadata:
   labels:
     app.kubernetes.io/instance: platform-stack
     app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: paperless-ngx
+  name: platform-stack-paperless-ngx
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: paperless.localtest.me
+    http:
+      paths:
+      - backend:
+          service:
+            name: platform-stack-paperless-ngx
+            port:
+              number: 8000
+        path: /
+        pathType: Prefix
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: vaultwarden
   name: platform-stack-vaultwarden
 spec:
@@ -881,6 +1079,8 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: 32m
   labels:
     app.kubernetes.io/instance: platform-stack
     app.kubernetes.io/managed-by: Helm
@@ -930,21 +1130,37 @@ spec:
         - "until pg_isready -h \"$PGHOST\" -p \"$PGPORT\" -U \"$PGUSER\" --dbname\
           \ postgres; do\n  echo \"waiting for ${PGHOST}:${PGPORT}\"\n  sleep 2\n\
           done\npsql -v ON_ERROR_STOP=1 --dbname postgres --set=gitea_db_password=\"\
-          $GITEA_DB_PASSWORD\" <<'SQL'\nDO $$\nBEGIN\n  IF NOT EXISTS (SELECT FROM\
-          \ pg_catalog.pg_roles WHERE rolname = 'gitea') THEN\n    EXECUTE format('CREATE\
-          \ ROLE gitea LOGIN PASSWORD %L', :'gitea_db_password');\n  ELSE\n    EXECUTE\
-          \ format('ALTER ROLE gitea WITH LOGIN PASSWORD %L', :'gitea_db_password');\n\
-          \  END IF;\nEND\n$$;\nSELECT 'CREATE DATABASE gitea OWNER gitea'\nWHERE\
-          \ NOT EXISTS (SELECT FROM pg_database WHERE datname = 'gitea')\\gexec\n\
+          $GITEA_DB_PASSWORD\" <<'SQL'\nSELECT format('CREATE ROLE gitea LOGIN PASSWORD\
+          \ %L', :'gitea_db_password')\nWHERE NOT EXISTS (SELECT FROM pg_catalog.pg_roles\
+          \ WHERE rolname = 'gitea')\\gexec\nSELECT format('ALTER ROLE gitea WITH\
+          \ LOGIN PASSWORD %L', :'gitea_db_password')\nWHERE EXISTS (SELECT FROM pg_catalog.pg_roles\
+          \ WHERE rolname = 'gitea')\\gexec\nSELECT 'CREATE DATABASE gitea OWNER gitea'\n\
+          WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'gitea')\\gexec\n\
           ALTER DATABASE gitea OWNER TO gitea;\nSQL\npsql -v ON_ERROR_STOP=1 --dbname\
           \ postgres --set=vaultwarden_db_password=\"$VAULTWARDEN_DB_PASSWORD\" <<'SQL'\n\
-          DO $$\nBEGIN\n  IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname\
-          \ = 'vaultwarden') THEN\n    EXECUTE format('CREATE ROLE vaultwarden LOGIN\
-          \ PASSWORD %L', :'vaultwarden_db_password');\n  ELSE\n    EXECUTE format('ALTER\
-          \ ROLE vaultwarden WITH LOGIN PASSWORD %L', :'vaultwarden_db_password');\n\
-          \  END IF;\nEND\n$$;\nSELECT 'CREATE DATABASE vaultwarden OWNER vaultwarden'\n\
-          WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'vaultwarden')\\\
-          gexec\nALTER DATABASE vaultwarden OWNER TO vaultwarden;\nSQL\n"
+          SELECT format('CREATE ROLE vaultwarden LOGIN PASSWORD %L', :'vaultwarden_db_password')\n\
+          WHERE NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'vaultwarden')\\\
+          gexec\nSELECT format('ALTER ROLE vaultwarden WITH LOGIN PASSWORD %L', :'vaultwarden_db_password')\n\
+          WHERE EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'vaultwarden')\\\
+          gexec\nSELECT 'CREATE DATABASE vaultwarden OWNER vaultwarden'\nWHERE NOT\
+          \ EXISTS (SELECT FROM pg_database WHERE datname = 'vaultwarden')\\gexec\n\
+          ALTER DATABASE vaultwarden OWNER TO vaultwarden;\nSQL\npsql -v ON_ERROR_STOP=1\
+          \ --dbname postgres --set=nextcloud_db_password=\"$NEXTCLOUD_DB_PASSWORD\"\
+          \ <<'SQL'\nSELECT format('CREATE ROLE nextcloud LOGIN PASSWORD %L', :'nextcloud_db_password')\n\
+          WHERE NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'nextcloud')\\\
+          gexec\nSELECT format('ALTER ROLE nextcloud WITH LOGIN PASSWORD %L', :'nextcloud_db_password')\n\
+          WHERE EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'nextcloud')\\\
+          gexec\nSELECT 'CREATE DATABASE nextcloud OWNER nextcloud'\nWHERE NOT EXISTS\
+          \ (SELECT FROM pg_database WHERE datname = 'nextcloud')\\gexec\nALTER DATABASE\
+          \ nextcloud OWNER TO nextcloud;\nSQL\npsql -v ON_ERROR_STOP=1 --dbname postgres\
+          \ --set=paperless_db_password=\"$PAPERLESS_DB_PASSWORD\" <<'SQL'\nSELECT\
+          \ format('CREATE ROLE paperless LOGIN PASSWORD %L', :'paperless_db_password')\n\
+          WHERE NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'paperless')\\\
+          gexec\nSELECT format('ALTER ROLE paperless WITH LOGIN PASSWORD %L', :'paperless_db_password')\n\
+          WHERE EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'paperless')\\\
+          gexec\nSELECT 'CREATE DATABASE paperless OWNER paperless'\nWHERE NOT EXISTS\
+          \ (SELECT FROM pg_database WHERE datname = 'paperless')\\gexec\nALTER DATABASE\
+          \ paperless OWNER TO paperless;\nSQL\n"
         env:
         - name: PGHOST
           value: platform-stack-shared-postgresql
@@ -967,10 +1183,21 @@ spec:
             secretKeyRef:
               key: VAULTWARDEN_DB_PASSWORD
               name: vaultwarden-config-secrets
+        - name: NEXTCLOUD_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: POSTGRES_PASSWORD
+              name: nextcloud-config-secrets
+        - name: PAPERLESS_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: PAPERLESS_DB_PASSWORD
+              name: paperless-config-secrets
         image: docker.io/postgres:17.5-alpine
         imagePullPolicy: IfNotPresent
         name: shared-postgresql-bootstrap
-      restartPolicy: OnFailure
+        terminationMessagePolicy: FallbackToLogsOnError
+      restartPolicy: Never
 ---
 apiVersion: batch/v1
 kind: Job
@@ -1036,6 +1263,22 @@ metadata:
   labels:
     app.kubernetes.io/instance: platform-stack
     app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nextcloud
+  name: data
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: local-path
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: openclaw
   name: platform-stack-openclaw
 spec:
@@ -1044,6 +1287,70 @@ spec:
   resources:
     requests:
       storage: 10Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: paperless-ngx
+  name: platform-stack-paperless-ngx-consume
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+  storageClassName: local-path
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: paperless-ngx
+  name: platform-stack-paperless-ngx-data
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: local-path
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: paperless-ngx
+  name: platform-stack-paperless-ngx-export
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+  storageClassName: local-path
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: paperless-ngx
+  name: platform-stack-paperless-ngx-media
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: local-path
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -1292,6 +1599,25 @@ metadata:
   labels:
     app.kubernetes.io/instance: platform-stack
     app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nextcloud
+  name: platform-stack-nextcloud
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/name: nextcloud
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: openclaw
   name: platform-stack-openclaw
 spec:
@@ -1303,6 +1629,24 @@ spec:
   selector:
     app.kubernetes.io/instance: platform-stack
     app.kubernetes.io/name: openclaw
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: paperless-ngx
+  name: platform-stack-paperless-ngx
+spec:
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+  selector:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/name: paperless-ngx
   type: ClusterIP
 ---
 apiVersion: v1
@@ -1541,6 +1885,267 @@ metadata:
     app.kubernetes.io/version: v1.20.0
   name: platform-stack-cert-manager-webhook
   namespace: ai-homebase
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nextcloud
+  name: platform-stack-nextcloud
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: platform-stack
+      app.kubernetes.io/name: nextcloud
+  serviceName: platform-stack-nextcloud
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: platform-stack
+        app.kubernetes.io/name: nextcloud
+    spec:
+      containers:
+      - env:
+        - name: NEXTCLOUD_ADMIN_USER
+          value: nextcloud-admin
+        - name: NEXTCLOUD_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: NEXTCLOUD_ADMIN_PASSWORD
+              name: nextcloud-config-secrets
+        - name: NEXTCLOUD_TRUSTED_DOMAINS
+          value: nextcloud.localtest.me
+        - name: TRUSTED_PROXIES
+          value: 10.42.0.0/16
+        - name: APACHE_DISABLE_REWRITE_IP
+          value: '1'
+        - name: OVERWRITEPROTOCOL
+          value: https
+        - name: PHP_MEMORY_LIMIT
+          value: 512M
+        - name: PHP_UPLOAD_LIMIT
+          value: 16G
+        - name: NEXTCLOUD_INIT_HTACCESS
+          value: 'true'
+        - name: SMTP_HOST
+          value: ''
+        - name: SMTP_PORT
+          value: '587'
+        - name: SMTP_NAME
+          value: ''
+        - name: MAIL_FROM_ADDRESS
+          value: ''
+        - name: MAIL_DOMAIN
+          value: ''
+        - name: POSTGRES_HOST
+          value: platform-stack-shared-postgresql
+        - name: POSTGRES_PORT
+          value: '5432'
+        - name: POSTGRES_DB
+          value: nextcloud
+        - name: POSTGRES_USER
+          value: nextcloud
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: POSTGRES_PASSWORD
+              name: nextcloud-config-secrets
+        - name: REDIS_HOST
+          value: platform-stack-shared-redis
+        - name: REDIS_HOST_PORT
+          value: '6379'
+        - name: REDIS_HOST_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: REDIS_HOST_PASSWORD
+              name: nextcloud-config-secrets
+        image: nextcloud:33.0.0-apache
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -ec
+            - su -s /bin/sh www-data -c 'cd /var/www/html && php occ status --no-ansi
+              >/dev/null'
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        name: nextcloud
+        ports:
+        - containerPort: 80
+          name: http
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -ec
+            - su -s /bin/sh www-data -c 'cd /var/www/html && php occ status --no-ansi
+              >/dev/null'
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          runAsNonRoot: false
+        volumeMounts:
+        - mountPath: /var/www/html
+          name: data
+      securityContext:
+        fsGroup: 33
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: data
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: paperless-ngx
+  name: platform-stack-paperless-ngx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: platform-stack
+      app.kubernetes.io/name: paperless-ngx
+  serviceName: platform-stack-paperless-ngx
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: platform-stack
+        app.kubernetes.io/name: paperless-ngx
+    spec:
+      containers:
+      - env:
+        - name: PAPERLESS_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              key: PAPERLESS_SECRET_KEY
+              name: paperless-config-secrets
+        - name: PAPERLESS_ADMIN_USER
+          value: paperless-admin
+        - name: PAPERLESS_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: PAPERLESS_ADMIN_PASSWORD
+              name: paperless-config-secrets
+        - name: PAPERLESS_DBENGINE
+          value: postgresql
+        - name: PAPERLESS_DBHOST
+          value: platform-stack-shared-postgresql
+        - name: PAPERLESS_DBPORT
+          value: '5432'
+        - name: PAPERLESS_DBNAME
+          value: paperless
+        - name: PAPERLESS_DBUSER
+          value: paperless
+        - name: PAPERLESS_DBPASS
+          valueFrom:
+            secretKeyRef:
+              key: PAPERLESS_DB_PASSWORD
+              name: paperless-config-secrets
+        - name: PAPERLESS_REDIS
+          valueFrom:
+            secretKeyRef:
+              key: PAPERLESS_REDIS
+              name: paperless-config-secrets
+        - name: PAPERLESS_REDIS_PREFIX
+          value: paperless
+        - name: PAPERLESS_URL
+          value: http://paperless.localtest.me
+        - name: PAPERLESS_ALLOWED_HOSTS
+          value: paperless.localtest.me
+        - name: PAPERLESS_CSRF_TRUSTED_ORIGINS
+          value: http://paperless.localtest.me
+        - name: PAPERLESS_CORS_ALLOWED_HOSTS
+          value: ''
+        - name: PAPERLESS_TIME_ZONE
+          value: Europe/Berlin
+        - name: PAPERLESS_OCR_LANGUAGE
+          value: deu+eng
+        image: paperlessngx/paperless-ngx:2.20
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          tcpSocket:
+            port: http
+        name: paperless-ngx
+        ports:
+        - containerPort: 8000
+          name: http
+        readinessProbe:
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          tcpSocket:
+            port: http
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            add:
+            - CHOWN
+            - SETGID
+            - SETUID
+            drop:
+            - ALL
+          readOnlyRootFilesystem: false
+          runAsGroup: 0
+          runAsNonRoot: false
+          runAsUser: 0
+        volumeMounts:
+        - mountPath: /usr/src/paperless/data
+          name: data
+        - mountPath: /usr/src/paperless/media
+          name: media
+        - mountPath: /usr/src/paperless/consume
+          name: consume
+        - mountPath: /usr/src/paperless/export
+          name: export
+      initContainers:
+      - command:
+        - /bin/sh
+        - -ceu
+        - "until PGPASSWORD=\"$PAPERLESS_DB_PASSWORD\" psql \\\n  --host \"platform-stack-shared-postgresql\"\
+          \ \\\n  --port \"5432\" \\\n  --username \"paperless\" \\\n  --dbname \"\
+          paperless\" \\\n  -tAc \"SELECT current_database(), current_user;\" | grep\
+          \ -qx 'paperless|paperless'; do\n  echo \"waiting for live PostgreSQL bootstrap\
+          \ of paperless\"\n  sleep 2\ndone\n"
+        env:
+        - name: PAPERLESS_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: PAPERLESS_DB_PASSWORD
+              name: paperless-config-secrets
+        image: docker.io/postgres:17.5-alpine
+        imagePullPolicy: IfNotPresent
+        name: wait-for-shared-postgresql-bootstrap
+      securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: platform-stack-paperless-ngx-data
+      - name: media
+        persistentVolumeClaim:
+          claimName: platform-stack-paperless-ngx-media
+      - name: consume
+        persistentVolumeClaim:
+          claimName: platform-stack-paperless-ngx-consume
+      - name: export
+        persistentVolumeClaim:
+          claimName: platform-stack-paperless-ngx-export
 ---
 apiVersion: apps/v1
 kind: StatefulSet

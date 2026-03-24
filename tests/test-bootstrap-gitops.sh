@@ -40,6 +40,10 @@ argocd = "argocd.test.internal"
 vaultwarden = "vaultwarden.test.internal"
 paperless = "paperless.test.internal"
 
+[mail]
+domain = "example.com"
+smtp_host = "smtp.example.com"
+
 [admin]
 name = "Test Admin"
 username = "test-admin"

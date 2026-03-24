@@ -355,8 +355,8 @@ wait_for_vm_readiness() {
       -o UserKnownHostsFile=/dev/null \
       -p "$SSH_HOST_PORT" \
       "${REMOTE_USER}@${HOST_LISTEN_ADDRESS}" \
-      true >/dev/null 2>&1; then
-      ok "SSH endpoint confirmed reachable at ${HOST_LISTEN_ADDRESS}:${SSH_HOST_PORT}"
+      docker ps >/dev/null 2>&1; then
+      ok "SSH-backed Docker endpoint confirmed reachable at ${HOST_LISTEN_ADDRESS}:${SSH_HOST_PORT}"
       return 0
     fi
 

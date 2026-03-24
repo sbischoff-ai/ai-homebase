@@ -1,0 +1,6 @@
+apiVersion: v2
+name: postfix-relay
+description: Internal Postfix relay for application email delivery
+type: application
+version: 0.1.0
+appVersion: "4.4.0"

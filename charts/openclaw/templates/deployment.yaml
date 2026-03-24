@@ -5,8 +5,10 @@
 {{- $allowedOriginsIncludesWildcard := has "*" $allowedOrigins }}
 {{- $nonLoopbackBind := not (or (eq $gatewayBind "") (eq $gatewayBind "localhost") (eq $gatewayBind "127.0.0.1") (eq $gatewayBind "::1") (eq $gatewayBind "loopback") (eq $gatewayBind "local")) }}
 {{- $remoteDockerEnabled := .Values.remoteDocker.enabled | default false }}
+{{- $remoteDockerCliEnabled := and $remoteDockerEnabled (.Values.remoteDocker.cli.enabled | default true) }}
 {{- $persistentConfigEnabled := and .Values.config.enabled .Values.persistence.enabled }}
 {{- $configPath := ternary (printf "%s/openclaw.json" (trimSuffix "/" .Values.persistence.mountPath)) "/etc/openclaw/openclaw.json" $persistentConfigEnabled }}
+{{- $remoteDockerCliInstallPath := .Values.remoteDocker.cli.installPath | default "/opt/openclaw-tools/bin" }}
 {{- if and (eq $gatewayAuthMode "token") (not .Values.existingSecret) }}
 {{- fail "openclaw.existingSecret is required when openclaw.gateway.auth.mode=token" }}
 {{- end }}
@@ -21,6 +23,9 @@
 {{- end }}
 {{- if and $remoteDockerEnabled (not .Values.remoteDocker.ssh.mountPath) }}
 {{- fail "remoteDocker.ssh.mountPath is required when remoteDocker.enabled=true" }}
+{{- end }}
+{{- if and $remoteDockerCliEnabled (not $remoteDockerCliInstallPath) }}
+{{- fail "remoteDocker.cli.installPath is required when remoteDocker.cli.enabled=true" }}
 {{- end }}
 {{- $sandboxMode := .Values.openclaw.agents.defaults.sandbox.mode | default "off" }}
 {{- if and $nonLoopbackBind $controlUiEnabled (eq (len $allowedOrigins) 0) }}
@@ -135,6 +140,82 @@ spec:
             {{- end }}
         {{- end }}
         {{- if $remoteDockerEnabled }}
+        {{- if $remoteDockerCliEnabled }}
+        - name: remote-docker-cli
+          image: "{{ .Values.remoteDocker.cli.image.repository }}:{{ .Values.remoteDocker.cli.image.tag }}"
+          imagePullPolicy: {{ .Values.remoteDocker.cli.image.pullPolicy }}
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -eu
+              mkdir -p /tools-target
+              docker_path="$(command -v docker || true)"
+              if [ -z "${docker_path}" ]; then
+                echo >&2 "remoteDocker.cli.image must contain a working docker CLI on PATH so OpenClaw can use the Docker sandbox backend."
+                exit 1
+              fi
+              cp -f "${docker_path}" /tools-target/docker || {
+                echo >&2 "Failed to copy ${docker_path} into /tools-target/docker for OpenClaw remote Docker support."
+                exit 1
+              }
+              chmod 0755 /tools-target /tools-target/docker || {
+                echo >&2 "Failed to lock permissions on /tools-target/docker for OpenClaw remote Docker support."
+                exit 1
+              }
+              chown -R 1000:1000 /tools-target || {
+                echo >&2 "Failed to hand /tools-target to UID/GID 1000 after copying the docker CLI."
+                exit 1
+              }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: false
+            runAsUser: 0
+            runAsGroup: 0
+            capabilities:
+              drop:
+                - ALL
+              add:
+                - CHOWN
+          volumeMounts:
+            - name: remote-docker-cli
+              mountPath: /tools-target
+        - name: remote-docker-runtime-check
+          image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -eu
+              export PATH={{ printf "%s:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" $remoteDockerCliInstallPath | quote }}
+              docker_path="$(command -v docker || true)"
+              if [ -z "${docker_path}" ]; then
+                echo >&2 "Docker sandbox backend requested, but no docker CLI is available after the remoteDocker.cli init step."
+                exit 1
+              fi
+              ssh_path="$(command -v ssh || true)"
+              if [ -z "${ssh_path}" ]; then
+                echo >&2 "OpenClaw remote Docker over ssh:// requires an ssh client in the OpenClaw image. Build from images/openclaw-remote-docker/Dockerfile or use an equivalent image."
+                exit 1
+              fi
+              echo "docker CLI available at ${docker_path}"
+              echo "ssh client available at ${ssh_path}"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: remote-docker-cli
+              mountPath: {{ $remoteDockerCliInstallPath }}
+              readOnly: true
+        {{- end }}
         - name: remote-docker-ssh-permissions
           image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
@@ -231,6 +312,10 @@ spec:
               value: {{ .Values.remoteDocker.dockerHost | quote }}
             - name: HOME
               value: {{ .Values.remoteDocker.home | quote }}
+            {{- if $remoteDockerCliEnabled }}
+            - name: PATH
+              value: {{ printf "%s:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" $remoteDockerCliInstallPath | quote }}
+            {{- end }}
             {{- end }}
             {{- with .Values.global.env }}
             {{- toYaml . | nindent 12 }}
@@ -382,6 +467,11 @@ spec:
               mountPath: /etc/openclaw
             {{- end }}
             {{- if $remoteDockerEnabled }}
+            {{- if $remoteDockerCliEnabled }}
+            - name: remote-docker-cli
+              mountPath: {{ $remoteDockerCliInstallPath }}
+              readOnly: true
+            {{- end }}
             - name: remote-docker-ssh
               mountPath: {{ .Values.remoteDocker.ssh.mountPath }}
               readOnly: true
@@ -411,6 +501,10 @@ spec:
         {{- end }}
         {{- end }}
         {{- if $remoteDockerEnabled }}
+        {{- if $remoteDockerCliEnabled }}
+        - name: remote-docker-cli
+          emptyDir: {}
+        {{- end }}
         - name: remote-docker-ssh-secret
           secret:
             secretName: {{ .Values.remoteDocker.ssh.secretName }}

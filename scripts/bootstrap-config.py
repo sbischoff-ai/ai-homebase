@@ -50,6 +50,7 @@ SECRET_KEY_VALUE_NAMES = {
 HOST_KEYS = {
     "openclaw": ("hosts", "openclaw"),
     "nextcloud": ("hosts", "nextcloud"),
+    "nextcloud_public": ("hosts", "nextcloud_public"),
     "gitea": ("hosts", "gitea"),
     "argocd": ("hosts", "argocd"),
     "vaultwarden": ("hosts", "vaultwarden"),
@@ -118,6 +119,10 @@ def resolved_values(data: dict[str, object]) -> dict[str, str]:
     admin_password = nested_string(data, ("admin", "password"))
     argocd_admin_user = nested_string(data, ("services", "argocd", "admin", "user"), "admin")
     argocd_admin_password = nested_string(data, ("services", "argocd", "admin", "password"))
+    mail_domain = nested_string(data, ("mail", "domain"))
+    mail_smtp_host = nested_string(data, ("mail", "smtp_host"))
+    mail_from_localpart = nested_string(data, ("mail", "from_localpart"), "noreply")
+    mail_from_name = nested_string(data, ("mail", "from_name"), "ai-homebase")
 
     if argocd_admin_user and not re.fullmatch(r"[A-Za-z0-9._-]+", argocd_admin_user):
         raise SystemExit(
@@ -125,6 +130,10 @@ def resolved_values(data: dict[str, object]) -> dict[str, str]:
         )
     if argocd_admin_password and not argocd_admin_user:
         raise SystemExit("services.argocd.admin.user is required when services.argocd.admin.password is set")
+    if not mail_domain:
+        raise SystemExit("mail.domain is required so the Postfix relay and application sender addresses can be rendered.")
+    if not mail_smtp_host:
+        raise SystemExit("mail.smtp_host is required so the Postfix relay can present a stable SMTP hostname.")
 
     values = {
         **providers,
@@ -153,10 +162,15 @@ def resolved_values(data: dict[str, object]) -> dict[str, str]:
         "ARGOCD_ADMIN_PASSWORD": argocd_admin_password,
         "OPENCLAW_HOST": nested_string(data, HOST_KEYS["openclaw"]),
         "NEXTCLOUD_HOST": nested_string(data, HOST_KEYS["nextcloud"]),
+        "NEXTCLOUD_PUBLIC_HOST": nested_string(data, HOST_KEYS["nextcloud_public"]),
         "GITEA_HOST": nested_string(data, HOST_KEYS["gitea"]),
         "ARGOCD_HOST": nested_string(data, HOST_KEYS["argocd"]),
         "VAULTWARDEN_HOST": nested_string(data, HOST_KEYS["vaultwarden"]),
         "PAPERLESS_HOST": nested_string(data, HOST_KEYS["paperless"]),
+        "MAIL_DOMAIN": mail_domain,
+        "MAIL_SMTP_HOST": mail_smtp_host,
+        "MAIL_FROM_LOCALPART": mail_from_localpart,
+        "MAIL_FROM_NAME": mail_from_name,
         "GITOPS_CLUSTER_NAME": nested_string(data, ("gitops", "cluster_name")),
         "GITOPS_REPO_NAME": nested_string(data, ("gitops", "repo_name"), "cluster-gitops"),
         "GITOPS_REPO_BRANCH": nested_string(data, ("gitops", "repo_branch"), "main"),
@@ -215,6 +229,7 @@ def command_render_values(args: argparse.Namespace) -> int:
         "vaultwarden": values["VAULTWARDEN_HOST"],
         "paperlessNgx": values["PAPERLESS_HOST"],
     }
+    full_mail_from = f"{values['MAIL_FROM_LOCALPART']}@{values['MAIL_DOMAIN']}"
     if values["OPENCLAW_DEFAULT_MODEL"]:
         openclaw["openclaw"] = {
             "agents": {
@@ -246,6 +261,13 @@ def command_render_values(args: argparse.Namespace) -> int:
     rendered: dict[str, object] = {
         "global": {
             "hosts": {key: value for key, value in global_hosts.items() if value},
+            "mail": {
+                "domain": values["MAIL_DOMAIN"],
+                "smtpHost": values["MAIL_SMTP_HOST"],
+                "fromLocalpart": values["MAIL_FROM_LOCALPART"],
+                "fromName": values["MAIL_FROM_NAME"],
+                "fromAddress": full_mail_from,
+            },
         },
         "openclaw": openclaw,
         "gitea": {
@@ -289,32 +311,52 @@ def command_render_values(args: argparse.Namespace) -> int:
         "nextcloud": {
             "ingress": (
                 {
-                    "hosts": [
-                        {
-                            "host": values["NEXTCLOUD_HOST"],
-                            "paths": [{"path": "/", "pathType": "Prefix"}],
-                        }
-                    ],
-                    "tls": [{"secretName": "nextcloud-tls", "hosts": [values["NEXTCLOUD_HOST"]]}],
+                    "private": {"host": values["NEXTCLOUD_HOST"]},
+                    "public": {"host": values["NEXTCLOUD_PUBLIC_HOST"]},
                 }
-                if values["NEXTCLOUD_HOST"]
+                if values["NEXTCLOUD_HOST"] or values["NEXTCLOUD_PUBLIC_HOST"]
                 else {}
             ),
             "admin": {
                 "user": values["NEXTCLOUD_ADMIN_USER"],
             },
-            "trustedDomains": [values["NEXTCLOUD_HOST"]] if values["NEXTCLOUD_HOST"] else [],
+            "smtp": {
+                "host": "platform-stack-postfix-relay",
+                "port": 587,
+                "secure": "",
+                "fromAddress": values["MAIL_FROM_LOCALPART"],
+                "domain": values["MAIL_DOMAIN"],
+            },
+            "trustedDomains": [
+                host for host in (values["NEXTCLOUD_HOST"], values["NEXTCLOUD_PUBLIC_HOST"]) if host
+            ],
         },
         "vaultwarden": {
             "existingSecret": "vaultwarden-config-secrets",
+            "smtp": {
+                "host": "platform-stack-postfix-relay",
+                "port": 587,
+                "from": full_mail_from,
+                "fromName": values["MAIL_FROM_NAME"],
+                "security": "off",
+            },
             "ingress": (
                 {
+                    "annotations": {
+                        "cert-manager.io/cluster-issuer": "platform-stack-root-ca",
+                    },
                     "hosts": [
                         {
                             "host": values["VAULTWARDEN_HOST"],
                             "paths": [{"path": "/", "pathType": "Prefix"}],
                         }
-                    ]
+                    ],
+                    "tls": [
+                        {
+                            "secretName": "vaultwarden-tls",
+                            "hosts": [values["VAULTWARDEN_HOST"]],
+                        }
+                    ],
                 }
                 if values["VAULTWARDEN_HOST"]
                 else {}

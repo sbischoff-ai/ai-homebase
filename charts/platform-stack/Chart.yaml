@@ -30,6 +30,11 @@ dependencies:
     version: 0.1.0
     repository: file://../vaultwarden
     condition: vaultwarden.enabled
+  - name: postfix-relay
+    version: 0.1.0
+    repository: file://../postfix-relay
+    alias: postfixRelay
+    condition: postfixRelay.enabled
   - name: paperless-ngx
     version: 0.1.0
     repository: file://../paperless-ngx

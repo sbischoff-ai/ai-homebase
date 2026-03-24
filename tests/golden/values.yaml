@@ -6,8 +6,8 @@ data:
     \      \"enabled\": true,\n      \"allowedOrigins\": [\"https://openclaw.homebase.local\"\
     ]\n    },\n    \"trustedProxies\": []\n  },\n  \"agents\": {\n    \"defaults\"\
     : {\n      \"workspace\": \"/home/node/.openclaw/workspace\",\n      \"sandbox\"\
-    : {\"browser\":{\"cdpPort\":9222,\"cdpSourceRange\":\"\",\"enableNoVnc\":true,\"\
-    enabled\":true,\"headless\":false,\"image\":\"openclaw-sandbox-browser:bookworm-slim\"\
+    : {\"backend\":\"docker\",\"browser\":{\"cdpPort\":9222,\"cdpSourceRange\":\"\"\
+    ,\"enableNoVnc\":true,\"enabled\":true,\"headless\":false,\"image\":\"openclaw-sandbox-browser:bookworm-slim\"\
     ,\"network\":\"bridge\",\"noVncPort\":6080,\"vncPort\":5900},\"docker\":{\"capDrop\"\
     :[\"ALL\"],\"cpus\":1,\"image\":\"openclaw-sandbox:bookworm-slim\",\"memory\"\
     :\"1g\",\"memorySwap\":\"2g\",\"network\":\"bridge\",\"pidsLimit\":256,\"readOnlyRoot\"\
@@ -49,17 +49,27 @@ spec:
             - php -f /var/www/html/cron.php
             env:
             - name: POSTGRES_HOST
-              value: ''
+              value: platform-stack-shared-postgresql
             - name: POSTGRES_PORT
               value: '5432'
             - name: POSTGRES_DB
-              value: ''
+              value: nextcloud
             - name: POSTGRES_USER
-              value: ''
+              value: nextcloud
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: POSTGRES_PASSWORD
+                  name: nextcloud-config-secrets
             - name: REDIS_HOST
-              value: ''
+              value: platform-stack-shared-redis
             - name: REDIS_HOST_PORT
               value: '6379'
+            - name: REDIS_HOST_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: REDIS_HOST_PASSWORD
+                  name: nextcloud-config-secrets
             - name: SMTP_HOST
               value: ''
             - name: SMTP_PORT
@@ -70,9 +80,15 @@ spec:
               value: ''
             - name: MAIL_DOMAIN
               value: ''
-            image: nextcloud:29.0.0-apache
+            image: nextcloud:33.0.0-apache
             imagePullPolicy: IfNotPresent
             name: nextcloud-cron
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: false
+              runAsGroup: 33
+              runAsNonRoot: true
+              runAsUser: 33
             volumeMounts:
             - mountPath: /var/www/html
               name: data
@@ -82,6 +98,10 @@ spec:
             fsGroupChangePolicy: OnRootMismatch
             seccompProfile:
               type: RuntimeDefault
+          volumes:
+          - name: data
+            persistentVolumeClaim:
+              claimName: data
   schedule: '*/5 * * * *'
   successfulJobsHistoryLimit: 3
 ---
@@ -128,12 +148,14 @@ spec:
           value: ssh://docker-remote@openclaw-sandbox:2222
         - name: HOME
           value: /home/node
+        - name: PATH
+          value: /opt/openclaw-tools/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
         - name: OPENCLAW_GATEWAY_TOKEN
           valueFrom:
             secretKeyRef:
               key: OPENCLAW_GATEWAY_TOKEN
               name: openclaw-app-secrets
-        image: ghcr.io/openclaw/openclaw:2026.3.13-1
+        image: ghcr.io/openclaw/openclaw:2026.3.23-2
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 3
@@ -185,6 +207,9 @@ spec:
           name: tmp
         - mountPath: /home/node/.openclaw
           name: data
+        - mountPath: /opt/openclaw-tools/bin
+          name: remote-docker-cli
+          readOnly: true
         - mountPath: /home/node/.ssh
           name: remote-docker-ssh
           readOnly: true
@@ -208,7 +233,7 @@ spec:
           \ the rendered config.\"\n  exit 1\n}\nchown -R 1000:1000 \"${target_dir}\"\
           \ || {\n  echo >&2 \"Failed to hand ${target_dir} to UID/GID 1000 after\
           \ bootstrapping the rendered config.\"\n  exit 1\n}\n"
-        image: ghcr.io/openclaw/openclaw:2026.3.13-1
+        image: ghcr.io/openclaw/openclaw:2026.3.23-2
         imagePullPolicy: IfNotPresent
         name: config-permissions
         securityContext:
@@ -228,6 +253,64 @@ spec:
           readOnly: true
         - mountPath: /config-target-root
           name: data
+      - command:
+        - /bin/sh
+        - -c
+        - "set -eu\nmkdir -p /tools-target\ndocker_path=\"$(command -v docker || true)\"\
+          \nif [ -z \"${docker_path}\" ]; then\n  echo >&2 \"remoteDocker.cli.image\
+          \ must contain a working docker CLI on PATH so OpenClaw can use the Docker\
+          \ sandbox backend.\"\n  exit 1\nfi\ncp -f \"${docker_path}\" /tools-target/docker\
+          \ || {\n  echo >&2 \"Failed to copy ${docker_path} into /tools-target/docker\
+          \ for OpenClaw remote Docker support.\"\n  exit 1\n}\nchmod 0755 /tools-target\
+          \ /tools-target/docker || {\n  echo >&2 \"Failed to lock permissions on\
+          \ /tools-target/docker for OpenClaw remote Docker support.\"\n  exit 1\n\
+          }\nchown -R 1000:1000 /tools-target || {\n  echo >&2 \"Failed to hand /tools-target\
+          \ to UID/GID 1000 after copying the docker CLI.\"\n  exit 1\n}\n"
+        image: docker:28.0.4-cli
+        imagePullPolicy: IfNotPresent
+        name: remote-docker-cli
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            add:
+            - CHOWN
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 0
+          runAsNonRoot: false
+          runAsUser: 0
+        volumeMounts:
+        - mountPath: /tools-target
+          name: remote-docker-cli
+      - command:
+        - /bin/sh
+        - -c
+        - "set -eu\nexport PATH=\"/opt/openclaw-tools/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\"\
+          \ndocker_path=\"$(command -v docker || true)\"\nif [ -z \"${docker_path}\"\
+          \ ]; then\n  echo >&2 \"Docker sandbox backend requested, but no docker\
+          \ CLI is available after the remoteDocker.cli init step.\"\n  exit 1\nfi\n\
+          ssh_path=\"$(command -v ssh || true)\"\nif [ -z \"${ssh_path}\" ]; then\n\
+          \  echo >&2 \"OpenClaw remote Docker over ssh:// requires an ssh client\
+          \ in the OpenClaw image. Build from images/openclaw-remote-docker/Dockerfile\
+          \ or use an equivalent image.\"\n  exit 1\nfi\necho \"docker CLI available\
+          \ at ${docker_path}\"\necho \"ssh client available at ${ssh_path}\"\n"
+        image: ghcr.io/openclaw/openclaw:2026.3.23-2
+        imagePullPolicy: IfNotPresent
+        name: remote-docker-runtime-check
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 1000
+          runAsNonRoot: true
+          runAsUser: 1000
+        volumeMounts:
+        - mountPath: /opt/openclaw-tools/bin
+          name: remote-docker-cli
+          readOnly: true
       - command:
         - /bin/sh
         - -c
@@ -261,7 +344,7 @@ spec:
           \  echo >&2 \"Failed to hand /ssh-target to UID/GID 1000 after permissions\
           \ were locked down; verify the init container still runs as UID/GID 0 with\
           \ the CHOWN capability required by the security context.\"\n  exit 1\n}\n"
-        image: ghcr.io/openclaw/openclaw:2026.3.13-1
+        image: ghcr.io/openclaw/openclaw:2026.3.23-2
         imagePullPolicy: IfNotPresent
         name: remote-docker-ssh-permissions
         securityContext:
@@ -297,6 +380,7 @@ spec:
             path: openclaw.json
           name: platform-stack-openclaw
         name: config-source
+      - name: remote-docker-cli
       - name: remote-docker-ssh-secret
         secret:
           secretName: openclaw-remote-docker-ssh
@@ -544,12 +628,15 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: platform-stack-root-ca
   labels:
     app.kubernetes.io/instance: platform-stack
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: nextcloud
-  name: platform-stack-nextcloud
+  name: platform-stack-nextcloud-private
 spec:
+  ingressClassName: internal-nginx
   rules:
   - host: cloud.homebase.local
     http:
@@ -564,7 +651,7 @@ spec:
   tls:
   - hosts:
     - cloud.homebase.local
-    secretName: nextcloud-tls
+    secretName: nextcloud-private-tls
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -590,6 +677,66 @@ spec:
   - hosts:
     - openclaw.homebase.local
     secretName: openclaw-tls
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+  labels:
+    app.kubernetes.io/component: shared-postgresql-bootstrap
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: platform-stack
+  name: platform-stack-shared-postgresql-bootstrap
+spec:
+  backoffLimit: 6
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: shared-postgresql-bootstrap
+        app.kubernetes.io/instance: platform-stack
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: platform-stack
+    spec:
+      containers:
+      - command:
+        - /bin/sh
+        - -ceu
+        - "until pg_isready -h \"$PGHOST\" -p \"$PGPORT\" -U \"$PGUSER\" --dbname\
+          \ postgres; do\n  echo \"waiting for ${PGHOST}:${PGPORT}\"\n  sleep 2\n\
+          done\npsql -v ON_ERROR_STOP=1 --dbname postgres --set=nextcloud_db_password=\"\
+          $NEXTCLOUD_DB_PASSWORD\" <<'SQL'\nSELECT format('CREATE ROLE nextcloud LOGIN\
+          \ PASSWORD %L', :'nextcloud_db_password')\nWHERE NOT EXISTS (SELECT FROM\
+          \ pg_catalog.pg_roles WHERE rolname = 'nextcloud')\\gexec\nSELECT format('ALTER\
+          \ ROLE nextcloud WITH LOGIN PASSWORD %L', :'nextcloud_db_password')\nWHERE\
+          \ EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'nextcloud')\\\
+          gexec\nSELECT 'CREATE DATABASE nextcloud OWNER nextcloud'\nWHERE NOT EXISTS\
+          \ (SELECT FROM pg_database WHERE datname = 'nextcloud')\\gexec\nALTER DATABASE\
+          \ nextcloud OWNER TO nextcloud;\nSQL\n"
+        env:
+        - name: PGHOST
+          value: platform-stack-shared-postgresql
+        - name: PGPORT
+          value: '5432'
+        - name: PGUSER
+          value: postgres
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: postgres-password
+              name: shared-postgresql-auth
+        - name: NEXTCLOUD_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: POSTGRES_PASSWORD
+              name: nextcloud-config-secrets
+        image: docker.io/postgres:17.5-alpine
+        imagePullPolicy: IfNotPresent
+        name: shared-postgresql-bootstrap
+        terminationMessagePolicy: FallbackToLogsOnError
+      restartPolicy: Never
 ---
 apiVersion: batch/v1
 kind: Job
@@ -920,9 +1067,16 @@ spec:
       containers:
       - env:
         - name: NEXTCLOUD_ADMIN_USER
-          value: ''
+          value: nextcloud-admin
+        - name: NEXTCLOUD_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: NEXTCLOUD_ADMIN_PASSWORD
+              name: nextcloud-config-secrets
         - name: NEXTCLOUD_TRUSTED_DOMAINS
-          value: ''
+          value: cloud.homebase.local
+        - name: APACHE_DISABLE_REWRITE_IP
+          value: '1'
         - name: OVERWRITEPROTOCOL
           value: https
         - name: PHP_MEMORY_LIMIT
@@ -942,30 +1096,55 @@ spec:
         - name: MAIL_DOMAIN
           value: ''
         - name: POSTGRES_HOST
-          value: ''
+          value: platform-stack-shared-postgresql
         - name: POSTGRES_PORT
           value: '5432'
         - name: POSTGRES_DB
-          value: ''
+          value: nextcloud
         - name: POSTGRES_USER
-          value: ''
+          value: nextcloud
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: POSTGRES_PASSWORD
+              name: nextcloud-config-secrets
         - name: REDIS_HOST
-          value: ''
+          value: platform-stack-shared-redis
         - name: REDIS_HOST_PORT
           value: '6379'
-        image: nextcloud:29.0.0-apache
+        - name: REDIS_HOST_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: REDIS_HOST_PASSWORD
+              name: nextcloud-config-secrets
+        image: nextcloud:33.0.0-apache
         imagePullPolicy: IfNotPresent
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -ec
+            - su -s /bin/sh www-data -c 'cd /var/www/html && php occ status --no-ansi
+              >/dev/null'
+          initialDelaySeconds: 30
+          periodSeconds: 10
         name: nextcloud
         ports:
         - containerPort: 80
           name: http
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -ec
+            - su -s /bin/sh www-data -c 'cd /var/www/html && php occ status --no-ansi
+              >/dev/null'
+          initialDelaySeconds: 10
+          periodSeconds: 10
         securityContext:
           allowPrivilegeEscalation: false
-          capabilities:
-            drop:
-            - ALL
           readOnlyRootFilesystem: false
-          runAsNonRoot: true
+          runAsNonRoot: false
         volumeMounts:
         - mountPath: /var/www/html
           name: data
@@ -974,6 +1153,10 @@ spec:
         fsGroupChangePolicy: OnRootMismatch
         seccompProfile:
           type: RuntimeDefault
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: data
 ---
 apiVersion: apps/v1
 kind: StatefulSet

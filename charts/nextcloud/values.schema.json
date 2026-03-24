@@ -19,18 +19,40 @@
       "type": "object",
       "additionalProperties": true,
       "properties": {
-        "hosts": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "required": ["host"],
-            "properties": {
-              "host": {
-                "type": "string",
-                "description": "Ingress hostname for Nextcloud."
-              }
+        "path": {
+          "type": "string",
+          "default": "/"
+        },
+        "pathType": {
+          "type": "string",
+          "default": "Prefix"
+        },
+        "private": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true
             },
-            "additionalProperties": true
+            "host": {
+              "type": "string",
+              "description": "Private ingress hostname for Nextcloud."
+            }
+          }
+        },
+        "public": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "host": {
+              "type": "string",
+              "description": "Public ingress hostname for Nextcloud."
+            }
           }
         }
       }
@@ -69,6 +91,41 @@
     "securityContext": {
       "type": "object",
       "additionalProperties": true
+    },
+    "trustedProxies": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "smtp": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "host": {
+          "type": "string"
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "user": {
+          "type": "string"
+        },
+        "secure": {
+          "type": "string"
+        },
+        "authType": {
+          "type": "string"
+        },
+        "fromAddress": {
+          "type": "string"
+        },
+        "domain": {
+          "type": "string"
+        }
+      }
     }
   }
 }

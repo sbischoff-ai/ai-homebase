@@ -27,10 +27,17 @@ brave_api_key = "test-brave-key"
 [hosts]
 openclaw = "openclaw.test.internal"
 nextcloud = "nextcloud.test.internal"
+nextcloud_public = "nextcloud.example.com"
 gitea = "gitea.test.internal"
 argocd = "argocd.test.internal"
 vaultwarden = "vaultwarden.test.internal"
 paperless = "paperless.test.internal"
+
+[mail]
+domain = "example.com"
+smtp_host = "smtp.example.com"
+from_localpart = "noreply"
+from_name = "Test Homebase"
 
 [admin]
 name = "Test Admin"
@@ -79,8 +86,12 @@ assert "GITEA_ADMIN_EMAIL=git@example.invalid" in shell_vars
 assert "NEXTCLOUD_ADMIN_USER=test-admin" in shell_vars
 assert "PAPERLESS_ADMIN_MAIL=admin@example.invalid" in shell_vars
 assert "OPENCLAW_HOST=openclaw.test.internal" in shell_vars
+assert "NEXTCLOUD_PUBLIC_HOST=nextcloud.example.com" in shell_vars
 assert "ARGOCD_HOST=argocd.test.internal" in shell_vars
 assert "PAPERLESS_HOST=paperless.test.internal" in shell_vars
+assert "MAIL_DOMAIN=example.com" in shell_vars
+assert "MAIL_SMTP_HOST=smtp.example.com" in shell_vars
+assert "MAIL_FROM_LOCALPART=noreply" in shell_vars
 assert "VAULTWARDEN_ADMIN_TOKEN=vaultwarden-admin-token" in shell_vars
 assert "ARGOCD_ADMIN_USER=admin" in shell_vars
 assert "ARGOCD_ADMIN_PASSWORD=argocd-admin-password" in shell_vars
@@ -104,17 +115,28 @@ assert rendered_values["gitea"]["gitea"]["gitea"]["admin"]["existingSecret"] == 
 assert rendered_values["gitea"]["gitea"]["ingress"]["hosts"][0]["host"] == "gitea.test.internal"
 assert rendered_values["argoCd"]["argocd"]["server"]["ingress"]["hostname"] == "argocd.test.internal"
 assert rendered_values["nextcloud"]["admin"]["user"] == "test-admin"
-assert rendered_values["nextcloud"]["ingress"]["hosts"][0]["host"] == "nextcloud.test.internal"
+assert rendered_values["nextcloud"]["ingress"]["private"]["host"] == "nextcloud.test.internal"
+assert rendered_values["nextcloud"]["ingress"]["public"]["host"] == "nextcloud.example.com"
+assert rendered_values["nextcloud"]["smtp"]["host"] == "platform-stack-postfix-relay"
+assert rendered_values["nextcloud"]["smtp"]["domain"] == "example.com"
+assert rendered_values["nextcloud"]["trustedDomains"] == ["nextcloud.test.internal", "nextcloud.example.com"]
 assert rendered_values["vaultwarden"]["existingSecret"] == "vaultwarden-config-secrets"
 assert rendered_values["vaultwarden"]["ingress"]["hosts"][0]["host"] == "vaultwarden.test.internal"
+assert rendered_values["vaultwarden"]["ingress"]["tls"][0]["secretName"] == "vaultwarden-tls"
+assert rendered_values["vaultwarden"]["smtp"]["from"] == "noreply@example.com"
 assert rendered_values["paperlessNgx"]["admin"]["mail"] == "admin@example.invalid"
 assert rendered_values["paperlessNgx"]["ingress"]["hosts"][0]["host"] == "paperless.test.internal"
+assert rendered_values["global"]["mail"]["smtpHost"] == "smtp.example.com"
 
 invalid_config = write_config(
     """
 [providers]
 openai_api_key = ""
 anthropic_api_key = ""
+
+[mail]
+domain = "example.com"
+smtp_host = "smtp.example.com"
 """
 )
 
@@ -131,6 +153,10 @@ invalid_argocd_user_config = write_config(
     """
 [providers]
 openai_api_key = "test-openai-key"
+
+[mail]
+domain = "example.com"
+smtp_host = "smtp.example.com"
 
 [services.argocd.admin]
 user = "operator with spaces"
@@ -151,6 +177,10 @@ custom_argocd_user_config = write_config(
     """
 [providers]
 openai_api_key = "test-openai-key"
+
+[mail]
+domain = "example.com"
+smtp_host = "smtp.example.com"
 
 [services.argocd.admin]
 user = "operator-admin"

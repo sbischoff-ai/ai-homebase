@@ -42,6 +42,7 @@ The `openclaw` chart renders an `openclaw.json` ConfigMap entry from structured 
 
 Relevant sandbox-related value paths:
 
+- `openclaw.agents.defaults.sandbox.backend`
 - `openclaw.agents.defaults.sandbox.mode`
 - `openclaw.agents.defaults.sandbox.scope`
 - `openclaw.agents.defaults.sandbox.docker.*`
@@ -49,4 +50,4 @@ Relevant sandbox-related value paths:
 - `openclaw.remoteDocker.*`
 - `openclaw.plugins.*`
 
-The supported OpenClaw posture keeps `openclaw.remoteDocker.enabled=true` and points `openclaw.remoteDocker.dockerHost` at the target's Incus-backed remote Docker endpoint, with overlays only adjusting hostnames, Secret names, or image details.
+The supported OpenClaw posture keeps `openclaw.remoteDocker.enabled=true`, points `openclaw.remoteDocker.dockerHost` at the target's Incus-backed remote Docker endpoint, and injects the Docker CLI via `openclaw.remoteDocker.cli.*` so the pod does not depend on the upstream OpenClaw image bundling Docker.

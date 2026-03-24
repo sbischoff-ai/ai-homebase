@@ -35,19 +35,25 @@ If you keep a single secret for Nextcloud, these key names are recommended and a
 
 ## Ingress requirement: dedicated hostname
 
-Use a **dedicated hostname** such as `cloud.<domain>` and route Nextcloud at `/`.
+Use dedicated hostnames and route Nextcloud at `/`.
 
-- Supported/recommended: `https://cloud.example.com/`
+- Private/internal example: `https://nextcloud.localtest.me/`
+- Public example: `https://nextcloud.example.com/`
 - Not recommended: `https://example.com/cloud` (subpath)
 
-Set `trustedDomains` to include the exact public hostname (for example `cloud.example.com`) and keep `overwriteProtocol: https` for TLS-terminated ingress.
+The chart renders two separate ingress resources that point to the same Service:
+
+- `ingress.private.*` for the private/internal hostname and certificate
+- `ingress.public.*` for the public hostname and certificate
+
+Set `trustedDomains` to include every hostname that may reach the instance. Keep `overwriteProtocol: https` for TLS-terminated ingress, prefer `TRUSTED_PROXIES` over fixed overwrite parameters, and only set `overwriteHost` if automatic forwarded-host detection fails behind your proxy.
 
 ## Android and public-link compatibility notes
 
 - The Nextcloud Android app and public share links are most reliable with a dedicated host rooted at `/`.
 - Subpath publishing often breaks WebDAV discovery, redirect handling, and generated public URLs.
 - Keep the canonical host stable across upgrades/migrations and ensure the same host appears in:
-  - ingress `hosts[]`
+  - `ingress.private.host` and, when enabled, `ingress.public.host`
   - `trustedDomains`
   - DNS and TLS certificates
 

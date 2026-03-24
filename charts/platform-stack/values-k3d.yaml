@@ -68,15 +68,16 @@ openclaw:
 nextcloud:
   enabled: true
   ingress:
-    enabled: true
-    className: nginx
-    hosts:
-      - host: nextcloud.localtest.me
-        paths:
-          - path: /
-            pathType: Prefix
+    private:
+      enabled: true
+      className: nginx
+      host: nextcloud.localtest.me
+    public:
+      enabled: false
   trustedDomains:
     - nextcloud.localtest.me
+  trustedProxies:
+    - 10.42.0.0/16
   persistence:
     enabled: true
     size: 10Gi
@@ -120,15 +121,24 @@ vaultwarden:
   ingress:
     enabled: true
     className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: platform-stack-root-ca
     hosts:
       - host: vaultwarden.localtest.me
         paths:
           - path: /
             pathType: Prefix
+    tls:
+      - secretName: vaultwarden-tls
+        hosts:
+          - vaultwarden.localtest.me
   persistence:
     enabled: true
     size: 5Gi
     storageClass: local-path
+
+postfixRelay:
+  enabled: true
 
 paperlessNgx:
   enabled: true

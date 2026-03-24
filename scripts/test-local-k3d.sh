@@ -18,6 +18,7 @@ OPENCLAW_WAIT_TIMEOUT="${OPENCLAW_WAIT_TIMEOUT:-600s}"
 NEXTCLOUD_WAIT_TIMEOUT="${NEXTCLOUD_WAIT_TIMEOUT:-1200s}"
 GITEA_WAIT_TIMEOUT="${GITEA_WAIT_TIMEOUT:-1200s}"
 VAULTWARDEN_WAIT_TIMEOUT="${VAULTWARDEN_WAIT_TIMEOUT:-900s}"
+POSTFIX_RELAY_WAIT_TIMEOUT="${POSTFIX_RELAY_WAIT_TIMEOUT:-600s}"
 PAPERLESS_WAIT_TIMEOUT="${PAPERLESS_WAIT_TIMEOUT:-1200s}"
 INGRESS_ENDPOINT_RETRIES="${INGRESS_ENDPOINT_RETRIES:-60}"
 INGRESS_ENDPOINT_RETRY_DELAY_SECONDS="${INGRESS_ENDPOINT_RETRY_DELAY_SECONDS:-2}"
@@ -40,7 +41,7 @@ Options:
   --remote-docker-port <port> Override OpenClaw remote Docker SSH port during bootstrap
   --remote-docker-key <path>  Override OpenClaw remote Docker SSH private key during bootstrap
   --skip-install              Skip the shared bootstrap/install phase and run smoke checks only
-  Env timeouts                OPENCLAW_WAIT_TIMEOUT=${OPENCLAW_WAIT_TIMEOUT}, NEXTCLOUD_WAIT_TIMEOUT=${NEXTCLOUD_WAIT_TIMEOUT}, GITEA_WAIT_TIMEOUT=${GITEA_WAIT_TIMEOUT}, VAULTWARDEN_WAIT_TIMEOUT=${VAULTWARDEN_WAIT_TIMEOUT}, PAPERLESS_WAIT_TIMEOUT=${PAPERLESS_WAIT_TIMEOUT}
+  Env timeouts                OPENCLAW_WAIT_TIMEOUT=${OPENCLAW_WAIT_TIMEOUT}, NEXTCLOUD_WAIT_TIMEOUT=${NEXTCLOUD_WAIT_TIMEOUT}, GITEA_WAIT_TIMEOUT=${GITEA_WAIT_TIMEOUT}, VAULTWARDEN_WAIT_TIMEOUT=${VAULTWARDEN_WAIT_TIMEOUT}, POSTFIX_RELAY_WAIT_TIMEOUT=${POSTFIX_RELAY_WAIT_TIMEOUT}, PAPERLESS_WAIT_TIMEOUT=${PAPERLESS_WAIT_TIMEOUT}
   Ingress retry tuning        INGRESS_ENDPOINT_RETRIES=${INGRESS_ENDPOINT_RETRIES}, INGRESS_ENDPOINT_RETRY_DELAY_SECONDS=${INGRESS_ENDPOINT_RETRY_DELAY_SECONDS}
   --verbose                   Stream full command output
   -h, --help                  Show this help message
@@ -323,6 +324,10 @@ is_openclaw_ingress_enabled() {
   effective_bool_value "openclaw.ingress.enabled"
 }
 
+is_openclaw_remote_docker_enabled() {
+  effective_bool_value "openclaw.remoteDocker.enabled"
+}
+
 is_gitea_enabled() {
   effective_bool_value "gitea.enabled"
 }
@@ -333,6 +338,10 @@ is_nextcloud_enabled() {
 
 is_vaultwarden_enabled() {
   effective_bool_value "vaultwarden.enabled"
+}
+
+is_postfix_relay_enabled() {
+  effective_bool_value "postfixRelay.enabled"
 }
 
 is_paperless_enabled() {
@@ -500,6 +509,25 @@ verify_labeled_service() {
   wait_for_named_resource Service "$service_name"
 }
 
+verify_openclaw_remote_docker() {
+  local deployment_name="$1"
+  local effective_docker_host
+  effective_docker_host="$(effective_value "openclaw.remoteDocker.dockerHost")"
+
+  step "Checking OpenClaw remote Docker connectivity"
+  CURRENT_COMMAND="kubectl exec deployment/${deployment_name} -- sh -ceu 'command -v docker && command -v ssh && docker info'"
+  run_checked kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" exec "deployment/${deployment_name}" -- sh -ceu "
+    command -v docker >/dev/null
+    command -v ssh >/dev/null
+    [ \"\${DOCKER_HOST:-}\" = \"$effective_docker_host\" ]
+    docker info >/dev/null
+    config_path=\"\${OPENCLAW_CONFIG_PATH:-}\"
+    [ -n \"\$config_path\" ]
+    [ -f \"\$config_path\" ]
+    tr -d '[:space:]' <\"\$config_path\" | grep -F '\"backend\":\"docker\"' >/dev/null
+  "
+}
+
 if [[ "$SKIP_INSTALL" -eq 0 ]]; then
   BOOTSTRAP_STACK_CMD=(
     ./scripts/bootstrap-stack.sh
@@ -537,12 +565,19 @@ if [[ "$SKIP_INSTALL" -eq 0 ]]; then
   run_checked "${BOOTSTRAP_STACK_CMD[@]}"
 fi
 
-NEXTCLOUD_INGRESS_HOST="$(effective_value "nextcloud.ingress.hosts.0.host")"
+NEXTCLOUD_INGRESS_HOST="$(effective_value "nextcloud.ingress.private.host")"
 VAULTWARDEN_INGRESS_HOST="$(effective_value "vaultwarden.ingress.hosts.0.host")"
 PAPERLESS_INGRESS_HOST="$(effective_value "paperlessNgx.ingress.hosts.0.host")"
 OPENCLAW_INGRESS_HOST="$(effective_value "openclaw.ingress.hosts.0.host")"
 
 wait_for_workload openclaw "$OPENCLAW_WAIT_TIMEOUT"
+OPENCLAW_DEPLOYMENT_NAME="$(resolve_deployment_name openclaw)"
+
+if [[ "$(is_openclaw_remote_docker_enabled)" == "true" ]]; then
+  verify_openclaw_remote_docker "$OPENCLAW_DEPLOYMENT_NAME"
+else
+  warn "Skipping OpenClaw remote Docker checks because openclaw.remoteDocker.enabled=false in effective values"
+fi
 
 if [[ "$(is_nextcloud_enabled)" == "true" ]]; then
   wait_for_statefulset nextcloud "$NEXTCLOUD_WAIT_TIMEOUT"
@@ -569,6 +604,13 @@ if [[ "$(is_vaultwarden_enabled)" == "true" ]]; then
   wait_for_http_endpoint "${VAULTWARDEN_INGRESS_HOST}" "http://127.0.0.1/" "Vaultwarden"
 else
   warn "Skipping Vaultwarden workload/service/ingress checks because vaultwarden.enabled=false in effective values"
+fi
+
+if [[ "$(is_postfix_relay_enabled)" == "true" ]]; then
+  wait_for_workload postfix-relay "$POSTFIX_RELAY_WAIT_TIMEOUT"
+  verify_labeled_service postfix-relay
+else
+  warn "Skipping Postfix relay workload/service checks because postfixRelay.enabled=false in effective values"
 fi
 
 if [[ "$(is_paperless_enabled)" == "true" ]]; then

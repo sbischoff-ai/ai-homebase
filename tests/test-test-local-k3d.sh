@@ -53,7 +53,7 @@ printf '%s\n' "$*" >>"${FAKE_HELM_LOG:?}"
 case "$1 $2" in
   "get values")
     cat <<JSON
-{"openclaw":{"ingress":{"enabled":true,"hosts":[{"host":"openclaw.test.internal"}]}},"nextcloud":{"enabled":false,"ingress":{"hosts":[{"host":"nextcloud.test.internal"}]}},"gitea":{"enabled":${FAKE_GITEA_ENABLED:-true}},"vaultwarden":{"enabled":false,"ingress":{"hosts":[{"host":"vaultwarden.test.internal"}]}},"paperlessNgx":{"enabled":true,"ingress":{"hosts":[{"host":"paperless.test.internal"}]}}}
+{"openclaw":{"ingress":{"enabled":true,"hosts":[{"host":"openclaw.test.internal"}]},"remoteDocker":{"enabled":true,"dockerHost":"ssh://docker-remote@host.k3d.internal:2222"}},"nextcloud":{"enabled":false,"ingress":{"private":{"host":"nextcloud.test.internal"}}},"gitea":{"enabled":${FAKE_GITEA_ENABLED:-true}},"vaultwarden":{"enabled":false,"ingress":{"hosts":[{"host":"vaultwarden.test.internal"}]}},"paperlessNgx":{"enabled":true,"ingress":{"hosts":[{"host":"paperless.test.internal"}]}}}
 JSON
     exit 0
     ;;
@@ -117,6 +117,9 @@ for ((i=0; i<${#args[@]}; i++)); do
   if [[ "${args[$i]}" == "wait" ]]; then
     exit 0
   fi
+  if [[ "${args[$i]}" == "exec" ]]; then
+    exit 0
+  fi
 done
 printf 'unexpected kubectl invocation: %s\n' "$*" >&2
 exit 1
@@ -166,6 +169,7 @@ FAKECURL
 
   assert_contains "${output}" "Local k3d smoke checks passed"
   assert_contains "${curl_output}" "-H Host: openclaw.test.internal http://127.0.0.1/"
+  assert_contains "${kubectl_output}" "exec deployment/platform-stack-openclaw -- sh -ceu"
 
   case "${case_name}" in
     gitea-enabled)
