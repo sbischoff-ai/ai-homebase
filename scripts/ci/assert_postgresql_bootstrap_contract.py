@@ -54,8 +54,11 @@ def main() -> None:
     require(bootstrap_template, 'rolname = \'vaultwarden\'', context="charts/platform-stack/templates/shared-postgresql-bootstrap-job.yaml")
     require(bootstrap_template, "CREATE DATABASE gitea OWNER gitea", context="charts/platform-stack/templates/shared-postgresql-bootstrap-job.yaml")
     require(bootstrap_template, "CREATE DATABASE vaultwarden OWNER vaultwarden", context="charts/platform-stack/templates/shared-postgresql-bootstrap-job.yaml")
+    require(bootstrap_template, 'rolname = \'paperless\'', context="charts/platform-stack/templates/shared-postgresql-bootstrap-job.yaml")
+    require(bootstrap_template, "CREATE DATABASE paperless OWNER paperless", context="charts/platform-stack/templates/shared-postgresql-bootstrap-job.yaml")
     require(bootstrap_template, 'key: GITEA__database__PASSWD', context="charts/platform-stack/templates/shared-postgresql-bootstrap-job.yaml")
     require(bootstrap_template, 'key: VAULTWARDEN_DB_PASSWORD', context="charts/platform-stack/templates/shared-postgresql-bootstrap-job.yaml")
+    require(bootstrap_template, 'key: PAPERLESS_DB_PASSWORD', context="charts/platform-stack/templates/shared-postgresql-bootstrap-job.yaml")
     require(bootstrap_template, 'restartPolicy: Never', context="charts/platform-stack/templates/shared-postgresql-bootstrap-job.yaml")
     require(bootstrap_template, 'terminationMessagePolicy: FallbackToLogsOnError', context="charts/platform-stack/templates/shared-postgresql-bootstrap-job.yaml")
 
@@ -63,8 +66,18 @@ def main() -> None:
     forbid(bootstrap_script, "reconcile_gitea_postgres_live", context="scripts/k3d-bootstrap-secrets.sh")
     require(bootstrap_script, 'jsonpath=\'{.data.VAULTWARDEN_DB_PASSWORD}\'', context="scripts/k3d-bootstrap-secrets.sh")
     require(bootstrap_script, '--from-literal=VAULTWARDEN_DB_PASSWORD="${VAULTWARDEN_DB_PASSWORD}"', context="scripts/k3d-bootstrap-secrets.sh")
+    require(bootstrap_script, 'jsonpath=\'{.data.PAPERLESS_DB_PASSWORD}\'', context="scripts/k3d-bootstrap-secrets.sh")
+    require(bootstrap_script, '--from-literal=PAPERLESS_DB_PASSWORD="${PAPERLESS_DB_PASSWORD}"', context="scripts/k3d-bootstrap-secrets.sh")
 
-    rendered_disabled = render(BASE_VALUES, set_values={"gitea.enabled": "false", "vaultwarden.enabled": "false"})
+    rendered_disabled = render(
+        BASE_VALUES,
+        set_values={
+            "gitea.enabled": "false",
+            "vaultwarden.enabled": "false",
+            "nextcloud.enabled": "false",
+            "paperlessNgx.enabled": "false",
+        },
+    )
     if "platform-stack-shared-postgresql-bootstrap" in rendered_disabled:
         raise SystemExit("render unexpectedly included shared PostgreSQL bootstrap Job with both dependent services disabled")
 
@@ -73,6 +86,7 @@ def main() -> None:
     require(rendered_k3d, "name: platform-stack-shared-postgresql-bootstrap", context="rendered k3d manifests")
     require(rendered_k3d, "wait-for-shared-postgresql-bootstrap", context="rendered k3d manifests")
     require(rendered_k3d, "VAULTWARDEN_DB_PASSWORD", context="rendered k3d manifests")
+    require(rendered_k3d, "PAPERLESS_DB_PASSWORD", context="rendered k3d manifests")
     require(rendered_k3d, "restartPolicy: Never", context="rendered k3d manifests")
     require(rendered_k3d, "terminationMessagePolicy: FallbackToLogsOnError", context="rendered k3d manifests")
 

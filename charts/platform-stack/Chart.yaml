@@ -28,6 +28,7 @@ dependencies:
   - name: paperless-ngx
     version: 0.1.0
     repository: file://../paperless-ngx
+    alias: paperlessNgx
     condition: paperlessNgx.enabled
   - name: shared-postgresql
     version: 0.1.0

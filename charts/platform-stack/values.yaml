@@ -460,8 +460,46 @@ paperlessNgx:
       path: /api/health/
       initialDelaySeconds: 10
       periodSeconds: 10
+  bootstrapWait:
+    image:
+      repository: docker.io/postgres
+      tag: "17.5-alpine"
+      pullPolicy: IfNotPresent
+  secretKeySecret:
+    name: paperless-config-secrets
+    key: PAPERLESS_SECRET_KEY
+  admin:
+    user: paperless-admin
+    mail: ""
+    passwordSecret:
+      name: paperless-config-secrets
+      key: PAPERLESS_ADMIN_PASSWORD
   existingSecret: ""
   secretRefs: []
+  externalDatabase:
+    host: platform-stack-shared-postgresql
+    port: 5432
+    name: paperless
+    user: paperless
+    passwordSecret:
+      name: paperless-config-secrets
+      key: PAPERLESS_DB_PASSWORD
+  redis:
+    passwordSecret:
+      name: ""
+      key: ""
+    url: ""
+    urlSecret:
+      name: paperless-config-secrets
+      key: PAPERLESS_REDIS
+    prefix: paperless
+  appConfig:
+    url: ""
+    allowedHosts: ""
+    csrfTrustedOrigins: ""
+    corsAllowedHosts: ""
+    timeZone: Europe/Berlin
+    ocrLanguage: deu+eng
 
 
 sharedPostgresql:
