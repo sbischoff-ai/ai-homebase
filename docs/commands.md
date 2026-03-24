@@ -121,10 +121,12 @@ source ~/.local/state/ai-homebase/incus/openclaw-sandbox.env
   --remote-docker-port "$SSH_HOST_PORT" \
   --remote-docker-key ~/.local/state/ai-homebase/incus/openclaw-sandbox-id_ed25519
 # Re-running local bootstrap refreshes the app secrets, while the chart-managed
-# shared PostgreSQL bootstrap Job reconciles live gitea/vaultwarden roles+databases.
+# shared PostgreSQL bootstrap Job reconciles live gitea/vaultwarden/nextcloud/paperless roles+databases.
 # Optional explicit overrides when you intentionally need new DB passwords:
 GITEA_DB_PASSWORD="<new-password>" ./scripts/k3d-bootstrap-secrets.sh --namespace ai-homebase
 VAULTWARDEN_DB_PASSWORD="<new-password>" ./scripts/k3d-bootstrap-secrets.sh --namespace ai-homebase
+NEXTCLOUD_DB_PASSWORD="<new-password>" ./scripts/k3d-bootstrap-secrets.sh --namespace ai-homebase
+PAPERLESS_DB_PASSWORD="<new-password>" ./scripts/k3d-bootstrap-secrets.sh --namespace ai-homebase
 ./scripts/incus-vm-down.sh --vm-name openclaw-sandbox
 ./scripts/k3d-local-teardown.sh --cluster-name ai-homebase-dev --vm-name openclaw-sandbox
 ./scripts/openclaw-remote-docker-load-images.sh \

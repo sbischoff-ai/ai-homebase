@@ -55,7 +55,7 @@ helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
 {{- end -}}
 
 {{- define "platform-stack.sharedPostgresqlBootstrapEnabled" -}}
-{{- if and .Values.sharedPostgresql.enabled (or .Values.gitea.enabled .Values.vaultwarden.enabled .Values.nextcloud.enabled) -}}true{{- end -}}
+{{- if and .Values.sharedPostgresql.enabled (or .Values.gitea.enabled .Values.vaultwarden.enabled .Values.nextcloud.enabled .Values.paperlessNgx.enabled) -}}true{{- end -}}
 {{- end -}}
 
 {{- define "platform-stack.sharedPostgresqlBootstrapJobName" -}}

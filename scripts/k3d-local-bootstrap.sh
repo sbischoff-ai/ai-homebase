@@ -228,4 +228,5 @@ else
 fi
 echo "  Gitea URL: http://gitea.localtest.me"
 echo "  Vaultwarden URL: http://vaultwarden.localtest.me"
+echo "  Paperless URL: http://paperless.localtest.me"
 echo "  Bootstrap log: ${BOOTSTRAP_LOG_FILE}"

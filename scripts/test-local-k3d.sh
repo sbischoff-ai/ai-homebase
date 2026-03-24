@@ -12,6 +12,7 @@ OPENCLAW_WAIT_TIMEOUT="${OPENCLAW_WAIT_TIMEOUT:-600s}"
 NEXTCLOUD_WAIT_TIMEOUT="${NEXTCLOUD_WAIT_TIMEOUT:-1200s}"
 GITEA_WAIT_TIMEOUT="${GITEA_WAIT_TIMEOUT:-1200s}"
 VAULTWARDEN_WAIT_TIMEOUT="${VAULTWARDEN_WAIT_TIMEOUT:-900s}"
+PAPERLESS_WAIT_TIMEOUT="${PAPERLESS_WAIT_TIMEOUT:-1200s}"
 
 usage() {
   cat <<USAGE
@@ -25,7 +26,7 @@ Options:
   --values-file <path>        Values file path (repeatable)
   --kube-context <context>    Optional kube context
   --kubeconfig <path>         Optional kubeconfig path (overrides KUBECONFIG env)
-  Env timeouts                OPENCLAW_WAIT_TIMEOUT=${OPENCLAW_WAIT_TIMEOUT}, NEXTCLOUD_WAIT_TIMEOUT=${NEXTCLOUD_WAIT_TIMEOUT}, GITEA_WAIT_TIMEOUT=${GITEA_WAIT_TIMEOUT}, VAULTWARDEN_WAIT_TIMEOUT=${VAULTWARDEN_WAIT_TIMEOUT}
+  Env timeouts                OPENCLAW_WAIT_TIMEOUT=${OPENCLAW_WAIT_TIMEOUT}, NEXTCLOUD_WAIT_TIMEOUT=${NEXTCLOUD_WAIT_TIMEOUT}, GITEA_WAIT_TIMEOUT=${GITEA_WAIT_TIMEOUT}, VAULTWARDEN_WAIT_TIMEOUT=${VAULTWARDEN_WAIT_TIMEOUT}, PAPERLESS_WAIT_TIMEOUT=${PAPERLESS_WAIT_TIMEOUT}
   --verbose                   Stream full command output
   -h, --help                  Show this help message
 USAGE
@@ -287,6 +288,10 @@ is_vaultwarden_enabled() {
   effective_bool_value "vaultwarden.enabled"
 }
 
+is_paperless_enabled() {
+  effective_bool_value "paperlessNgx.enabled"
+}
+
 manifest_named_resources() {
   local kind_filter="$1"
   helm get manifest "$RELEASE_NAME" \
@@ -361,13 +366,6 @@ wait_for_statefulset() {
 
   step "Waiting for statefulset/${statefulset_name} rollout"
   run_checked kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" rollout status "statefulset/${statefulset_name}" --timeout="$wait_timeout"
-
-  step "Waiting for pods to become Ready (app=${app_name})"
-  run_checked kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" wait \
-    --for=condition=Ready \
-    pod \
-    -l "app.kubernetes.io/instance=${RELEASE_NAME},app.kubernetes.io/name=${app_name}" \
-    --timeout="$wait_timeout"
 }
 
 wait_for_gitea_workloads() {
@@ -478,6 +476,17 @@ if [[ "$(is_vaultwarden_enabled)" == "true" ]]; then
     http://127.0.0.1/
 else
   warn "Skipping Vaultwarden workload/service/ingress checks because vaultwarden.enabled=false in effective values"
+fi
+
+if [[ "$(is_paperless_enabled)" == "true" ]]; then
+  wait_for_statefulset paperless-ngx "$PAPERLESS_WAIT_TIMEOUT"
+  verify_labeled_service paperless-ngx
+  step "Checking paperless ingress endpoint"
+  run_checked curl --silent --show-error --fail \
+    -H 'Host: paperless.localtest.me' \
+    http://127.0.0.1/api/health/
+else
+  warn "Skipping Paperless workload/service/ingress checks because paperlessNgx.enabled=false in effective values"
 fi
 
 if [[ "$(is_openclaw_ingress_enabled)" == "true" ]]; then

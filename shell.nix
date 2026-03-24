@@ -6,6 +6,9 @@ let
     k3d
     gnumake
     python3
+    curl
+    openssh
+    openssl
   ];
 
   shells = {
@@ -16,7 +19,7 @@ let
         export KUBECONFIG="${KUBECONFIG:-$HOME/.kube/config}"
 
         echo "ai-homebase nix-shell profile: dev"
-        echo "Available tools: helm, kubectl, k3d, make, python3"
+        echo "Available tools: helm, kubectl, k3d, make, python3, curl, ssh-keyscan, openssl"
         echo "Tip: install Incus separately on the host if you want the bootstrap-managed sandbox VM"
         echo "Tip: k3d requires a running Docker daemon (check: docker info)"
         echo "Use --argstr profile devops to add Azure deployment tooling"
@@ -33,7 +36,7 @@ let
         export KUBECONFIG="${KUBECONFIG:-$HOME/.kube/config}"
 
         echo "ai-homebase nix-shell profile: devops"
-        echo "Available tools: helm, kubectl, k3d, make, python3, az, kubelogin"
+        echo "Available tools: helm, kubectl, k3d, make, python3, curl, ssh-keyscan, openssl, az, kubelogin"
         echo "Tip: install Incus separately on the host if you want the bootstrap-managed sandbox VM"
         echo "Tip: k3d requires a running Docker daemon (check: docker info)"
       '';

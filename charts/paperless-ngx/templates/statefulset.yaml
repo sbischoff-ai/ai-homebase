@@ -29,6 +29,29 @@ spec:
       securityContext:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      initContainers:
+        - name: wait-for-shared-postgresql-bootstrap
+          image: "{{ .Values.bootstrapWait.image.repository }}:{{ .Values.bootstrapWait.image.tag }}"
+          imagePullPolicy: {{ .Values.bootstrapWait.image.pullPolicy }}
+          command:
+            - /bin/sh
+            - -ceu
+            - |
+              until PGPASSWORD="$PAPERLESS_DB_PASSWORD" psql \
+                --host {{ .Values.externalDatabase.host | quote }} \
+                --port {{ .Values.externalDatabase.port | toString | quote }} \
+                --username {{ .Values.externalDatabase.user | quote }} \
+                --dbname {{ .Values.externalDatabase.name | quote }} \
+                -tAc "SELECT current_database(), current_user;" | grep -qx '{{ .Values.externalDatabase.name }}|{{ .Values.externalDatabase.user }}'; do
+                echo "waiting for live PostgreSQL bootstrap of {{ .Values.externalDatabase.user }}"
+                sleep 2
+              done
+          env:
+            - name: PAPERLESS_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.externalDatabase.passwordSecret.name }}
+                  key: {{ .Values.externalDatabase.passwordSecret.key }}
       containers:
         - name: paperless-ngx
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -38,17 +61,15 @@ spec:
               containerPort: {{ .Values.service.targetPort }}
           {{- if .Values.probes.liveness.enabled }}
           livenessProbe:
-            httpGet:
-              path: {{ .Values.probes.liveness.path | quote }}
-              port: 8000
+            tcpSocket:
+              port: http
             initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
             periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
           {{- end }}
           {{- if .Values.probes.readiness.enabled }}
           readinessProbe:
-            httpGet:
-              path: {{ .Values.probes.readiness.path | quote }}
-              port: 8000
+            tcpSocket:
+              port: http
             initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
             periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
           {{- end }}
@@ -101,11 +122,11 @@ spec:
             - name: PAPERLESS_REDIS_PREFIX
               value: {{ .Values.redis.prefix | quote }}
             - name: PAPERLESS_URL
-              value: {{ .Values.appConfig.url | quote }}
+              value: {{ include "paperless-ngx.externalUrl" . | quote }}
             - name: PAPERLESS_ALLOWED_HOSTS
-              value: {{ .Values.appConfig.allowedHosts | quote }}
+              value: {{ include "paperless-ngx.allowedHosts" . | quote }}
             - name: PAPERLESS_CSRF_TRUSTED_ORIGINS
-              value: {{ .Values.appConfig.csrfTrustedOrigins | quote }}
+              value: {{ include "paperless-ngx.csrfTrustedOrigins" . | quote }}
             - name: PAPERLESS_CORS_ALLOWED_HOSTS
               value: {{ .Values.appConfig.corsAllowedHosts | quote }}
             - name: PAPERLESS_TIME_ZONE
@@ -152,20 +173,36 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: {{ .Values.persistence.data.existingClaim }}
+        {{- else if .Values.persistence.data.enabled }}
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "paperless-ngx.pvcName" (list . "data") }}
         {{- end }}
         {{- if and .Values.persistence.media.enabled .Values.persistence.media.existingClaim }}
         - name: media
           persistentVolumeClaim:
             claimName: {{ .Values.persistence.media.existingClaim }}
+        {{- else if .Values.persistence.media.enabled }}
+        - name: media
+          persistentVolumeClaim:
+            claimName: {{ include "paperless-ngx.pvcName" (list . "media") }}
         {{- end }}
         {{- if and .Values.persistence.consume.enabled .Values.persistence.consume.existingClaim }}
         - name: consume
           persistentVolumeClaim:
             claimName: {{ .Values.persistence.consume.existingClaim }}
+        {{- else if .Values.persistence.consume.enabled }}
+        - name: consume
+          persistentVolumeClaim:
+            claimName: {{ include "paperless-ngx.pvcName" (list . "consume") }}
         {{- end }}
         {{- if and .Values.persistence.export.enabled .Values.persistence.export.existingClaim }}
         - name: export
           persistentVolumeClaim:
             claimName: {{ .Values.persistence.export.existingClaim }}
+        {{- else if .Values.persistence.export.enabled }}
+        - name: export
+          persistentVolumeClaim:
+            claimName: {{ include "paperless-ngx.pvcName" (list . "export") }}
         {{- end }}
 {{- end }}

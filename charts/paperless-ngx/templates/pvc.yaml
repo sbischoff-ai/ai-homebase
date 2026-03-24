@@ -3,7 +3,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: data
+  name: {{ include "paperless-ngx.pvcName" (list . "data") }}
   labels:
     {{- include "paperless-ngx.labels" . | nindent 4 }}
   {{- if or .Values.persistence.data.annotations .Values.backup.annotations }}
@@ -31,7 +31,7 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: media
+  name: {{ include "paperless-ngx.pvcName" (list . "media") }}
   labels:
     {{- include "paperless-ngx.labels" . | nindent 4 }}
   {{- if or .Values.persistence.media.annotations .Values.backup.annotations }}
@@ -59,7 +59,7 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: consume
+  name: {{ include "paperless-ngx.pvcName" (list . "consume") }}
   labels:
     {{- include "paperless-ngx.labels" . | nindent 4 }}
   {{- if or .Values.persistence.consume.annotations .Values.backup.annotations }}
@@ -87,7 +87,7 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: export
+  name: {{ include "paperless-ngx.pvcName" (list . "export") }}
   labels:
     {{- include "paperless-ngx.labels" . | nindent 4 }}
   {{- if or .Values.persistence.export.annotations .Values.backup.annotations }}

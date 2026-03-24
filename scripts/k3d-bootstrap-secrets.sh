@@ -18,6 +18,8 @@ GITEA_DB_PASSWORD="${GITEA_DB_PASSWORD:-}"
 VAULTWARDEN_DB_PASSWORD="${VAULTWARDEN_DB_PASSWORD:-}"
 NEXTCLOUD_DB_PASSWORD="${NEXTCLOUD_DB_PASSWORD:-}"
 NEXTCLOUD_ADMIN_PASSWORD="${NEXTCLOUD_ADMIN_PASSWORD:-}"
+PAPERLESS_DB_PASSWORD="${PAPERLESS_DB_PASSWORD:-}"
+PAPERLESS_ADMIN_PASSWORD="${PAPERLESS_ADMIN_PASSWORD:-}"
 REMOTE_DOCKER_SECRET_NAME="${REMOTE_DOCKER_SECRET_NAME:-openclaw-remote-docker-ssh}"
 REMOTE_DOCKER_HOST="${REMOTE_DOCKER_HOST:-host.k3d.internal}"
 REMOTE_DOCKER_PORT="${REMOTE_DOCKER_PORT:-2222}"
@@ -56,6 +58,8 @@ Options:
   --vaultwarden-db-password <v>  Vaultwarden database password (default: reuse existing secret value or generate)
   --nextcloud-db-password <v>    Nextcloud database password (default: reuse existing secret value or generate)
   --nextcloud-admin-password <v> Nextcloud admin password (default: reuse existing secret value or generate)
+  --paperless-db-password <v>    Paperless database password (default: reuse existing secret value or generate)
+  --paperless-admin-password <v> Paperless admin password (default: reuse existing secret value or generate)
   --verbose                      Stream full command output
   -h, --help                     Show this help message
 USAGE
@@ -77,6 +81,8 @@ while [[ $# -gt 0 ]]; do
     --vaultwarden-db-password) VAULTWARDEN_DB_PASSWORD="$2"; shift 2 ;;
     --nextcloud-db-password) NEXTCLOUD_DB_PASSWORD="$2"; shift 2 ;;
     --nextcloud-admin-password) NEXTCLOUD_ADMIN_PASSWORD="$2"; shift 2 ;;
+    --paperless-db-password) PAPERLESS_DB_PASSWORD="$2"; shift 2 ;;
+    --paperless-admin-password) PAPERLESS_ADMIN_PASSWORD="$2"; shift 2 ;;
     --verbose) BOOTSTRAP_VERBOSE=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
@@ -258,6 +264,61 @@ resolve_nextcloud_admin_password() {
   openssl rand -hex 24
 }
 
+resolve_paperless_db_password() {
+  local existing_password_b64=""
+
+  if [[ -n "$PAPERLESS_DB_PASSWORD" ]]; then
+    printf '%s' "$PAPERLESS_DB_PASSWORD"
+    return 0
+  fi
+
+  existing_password_b64="$(
+    kubectl "${KUBECTL_ARGS[@]}" -n "$NAMESPACE" get secret paperless-config-secrets \
+      -o jsonpath='{.data.PAPERLESS_DB_PASSWORD}' 2>>"$BOOTSTRAP_LOG_FILE" || true
+  )"
+  if [[ -n "$existing_password_b64" ]]; then
+    printf '%s' "$existing_password_b64" | base64 --decode
+    return 0
+  fi
+
+  openssl rand -hex 24
+}
+
+resolve_paperless_admin_password() {
+  local existing_password_b64=""
+
+  if [[ -n "$PAPERLESS_ADMIN_PASSWORD" ]]; then
+    printf '%s' "$PAPERLESS_ADMIN_PASSWORD"
+    return 0
+  fi
+
+  existing_password_b64="$(
+    kubectl "${KUBECTL_ARGS[@]}" -n "$NAMESPACE" get secret paperless-config-secrets \
+      -o jsonpath='{.data.PAPERLESS_ADMIN_PASSWORD}' 2>>"$BOOTSTRAP_LOG_FILE" || true
+  )"
+  if [[ -n "$existing_password_b64" ]]; then
+    printf '%s' "$existing_password_b64" | base64 --decode
+    return 0
+  fi
+
+  openssl rand -hex 24
+}
+
+resolve_paperless_secret_key() {
+  local existing_secret_key_b64=""
+
+  existing_secret_key_b64="$(
+    kubectl "${KUBECTL_ARGS[@]}" -n "$NAMESPACE" get secret paperless-config-secrets \
+      -o jsonpath='{.data.PAPERLESS_SECRET_KEY}' 2>>"$BOOTSTRAP_LOG_FILE" || true
+  )"
+  if [[ -n "$existing_secret_key_b64" ]]; then
+    printf '%s' "$existing_secret_key_b64" | base64 --decode
+    return 0
+  fi
+
+  openssl rand -hex 32
+}
+
 step "Ensuring namespace ${NAMESPACE} exists"
 apply_manifest <<MANIFEST
 apiVersion: v1
@@ -278,7 +339,11 @@ GITEA_DB_PASSWORD="$(resolve_gitea_db_password)"
 VAULTWARDEN_DB_PASSWORD="$(resolve_vaultwarden_db_password)"
 NEXTCLOUD_DB_PASSWORD="$(resolve_nextcloud_db_password)"
 NEXTCLOUD_ADMIN_PASSWORD="$(resolve_nextcloud_admin_password)"
+PAPERLESS_DB_PASSWORD="$(resolve_paperless_db_password)"
+PAPERLESS_ADMIN_PASSWORD="$(resolve_paperless_admin_password)"
+PAPERLESS_SECRET_KEY="$(resolve_paperless_secret_key)"
 GITEA_REDIS_URI="redis://:${REDIS_PASSWORD}@platform-stack-shared-redis:6379/0?pool_size=100&idle_timeout=180s"
+PAPERLESS_REDIS_URI="redis://:${REDIS_PASSWORD}@platform-stack-shared-redis:6379/0"
 
 create_and_apply_secret gitea-config-secrets \
   --from-literal=GITEA__database__PASSWD="${GITEA_DB_PASSWORD}" \
@@ -295,6 +360,12 @@ create_and_apply_secret nextcloud-config-secrets \
   --from-literal=NEXTCLOUD_ADMIN_PASSWORD="${NEXTCLOUD_ADMIN_PASSWORD}" \
   --from-literal=POSTGRES_PASSWORD="${NEXTCLOUD_DB_PASSWORD}" \
   --from-literal=REDIS_HOST_PASSWORD="${REDIS_PASSWORD}"
+
+create_and_apply_secret paperless-config-secrets \
+  --from-literal=PAPERLESS_SECRET_KEY="${PAPERLESS_SECRET_KEY}" \
+  --from-literal=PAPERLESS_ADMIN_PASSWORD="${PAPERLESS_ADMIN_PASSWORD}" \
+  --from-literal=PAPERLESS_DB_PASSWORD="${PAPERLESS_DB_PASSWORD}" \
+  --from-literal=PAPERLESS_REDIS="${PAPERLESS_REDIS_URI}"
 
 OPENCLAW_SECRET_ARGS=(
   --from-literal=OPENCLAW_GATEWAY_TOKEN="$OPENCLAW_GATEWAY_TOKEN"

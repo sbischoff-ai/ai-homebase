@@ -113,13 +113,29 @@ vaultwarden:
     storageClass: local-path
 
 paperlessNgx:
-  enabled: false
+  enabled: true
+  ingress:
+    enabled: true
+    className: nginx
+    hosts:
+      - host: paperless.localtest.me
+        paths:
+          - path: /
+            pathType: Prefix
   persistence:
     data:
-      enabled: false
+      enabled: true
+      size: 5Gi
+      storageClass: local-path
     media:
-      enabled: false
+      enabled: true
+      size: 10Gi
+      storageClass: local-path
     consume:
-      enabled: false
+      enabled: true
+      size: 2Gi
+      storageClass: local-path
     export:
-      enabled: false
+      enabled: true
+      size: 2Gi
+      storageClass: local-path

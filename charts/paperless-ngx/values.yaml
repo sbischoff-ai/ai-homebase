@@ -105,10 +105,16 @@ podSecurityContext:
     type: RuntimeDefault
 
 securityContext:
-  runAsNonRoot: true
+  runAsUser: 0
+  runAsGroup: 0
+  runAsNonRoot: false
   allowPrivilegeEscalation: false
   readOnlyRootFilesystem: false
   capabilities:
+    add:
+      - CHOWN
+      - SETGID
+      - SETUID
     drop:
       - ALL
 
@@ -128,6 +134,12 @@ probes:
     path: /api/health/
     initialDelaySeconds: 10
     periodSeconds: 10
+
+bootstrapWait:
+  image:
+    repository: docker.io/postgres
+    tag: "17.5-alpine"
+    pullPolicy: IfNotPresent
 
 # Secret injection conventions:
 # - Secret names: kebab-case (example: paperlessngx-app-secrets)

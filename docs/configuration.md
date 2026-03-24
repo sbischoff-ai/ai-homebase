@@ -115,4 +115,4 @@ helm upgrade --install platform-stack charts/platform-stack   -n <namespace>   -
 ```
 
 
-Shared PostgreSQL no longer relies on a persistent `/docker-entrypoint-initdb.d` payload for Gitea/Vaultwarden/Nextcloud role creation. Instead, the umbrella chart renders a live reconciliation Job when `sharedPostgresql.enabled=true` and any of `gitea.enabled=true`, `vaultwarden.enabled=true`, or `nextcloud.enabled=true`; the corresponding workloads use dedicated PostgreSQL roles/databases, and Gitea/Vaultwarden explicitly gate startup on direct SQL connectivity before app startup.
+Shared PostgreSQL no longer relies on a persistent `/docker-entrypoint-initdb.d` payload for Gitea/Vaultwarden/Nextcloud/Paperless role creation. Instead, the umbrella chart renders a live reconciliation Job when `sharedPostgresql.enabled=true` and any of `gitea.enabled=true`, `vaultwarden.enabled=true`, `nextcloud.enabled=true`, or `paperlessNgx.enabled=true`; the corresponding workloads use dedicated PostgreSQL roles/databases, and Gitea/Vaultwarden/Paperless explicitly gate startup on direct SQL connectivity before app startup.
