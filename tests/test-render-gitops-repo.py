@@ -76,7 +76,6 @@ robot_username = "gitops-bot"
 
         bootstrap_values = (output_dir / "charts" / "platform-stack" / "clusters" / "lab-cluster" / "bootstrap-values.yaml").read_text()
         gitops_values = (output_dir / "charts" / "platform-stack" / "clusters" / "lab-cluster" / "gitops-values.yaml").read_text()
-
         assert '"nextcloudMcp"' in bootstrap_values
         assert "nextcloud-mcp.test.internal" in bootstrap_values
         assert '"commands"' in bootstrap_values

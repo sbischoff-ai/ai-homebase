@@ -43,7 +43,7 @@ If `gitops.robot_password` is empty, the bootstrap script preserves the existing
 After the GitOps bootstrap succeeds:
 
 - the Gitea repo becomes the source of truth for the cluster
-- Argo CD keeps sync in manual mode
+- Argo CD keeps sync in manual mode because agents may be allowed to push changes to the GitOps repo; sync should therefore be triggered explicitly through the UI or API
 - direct `helm upgrade` should be treated as break-glass only
 
 The Argo CD repository Secret is not committed to git. It is created directly in the cluster and points at the in-cluster Gitea service URL.

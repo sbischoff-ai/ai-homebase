@@ -126,6 +126,13 @@
           "type": "string"
         }
       }
+    },
+    "bootstrapApps": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
     }
   }
 }
