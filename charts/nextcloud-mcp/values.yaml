@@ -40,6 +40,16 @@ nextcloud:
 authentication:
   mode: multi_user_basic
 
+args:
+  - --enable-app
+  - notes
+  - --enable-app
+  - webdav
+  - --enable-app
+  - tables
+  - --enable-app
+  - calendar
+
 podAnnotations: {}
 podLabels: {}
 

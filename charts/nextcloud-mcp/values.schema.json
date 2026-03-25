@@ -78,6 +78,14 @@
           "default": "multi_user_basic"
         }
       }
+    },
+    "args": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
     }
   }
 }

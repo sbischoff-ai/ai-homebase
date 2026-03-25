@@ -1,0 +1,91 @@
+{{- if .Values.bootstrapApps }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "nextcloud.fullname" . }}-bootstrap-apps
+  labels:
+    {{- include "nextcloud.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "8"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        {{- include "nextcloud.selectorLabels" . | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: bootstrap-apps
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - /bin/sh
+            - -ceu
+            - |
+              until su -s /bin/sh www-data -c 'cd /var/www/html && php occ status --output=json 2>/dev/null | grep -q "\"installed\":true"'; do
+                echo "waiting for nextcloud bootstrap"
+                sleep 5
+              done
+
+              install_and_enable_app() {
+                app_id="$1"
+                echo "processing app: ${app_id}"
+                if su -s /bin/sh www-data -c "cd /var/www/html && php occ app:list --output=json" | grep -q "\"${app_id}\":"; then
+                  echo "app '${app_id}' is already installed"
+                else
+                  echo "installing '${app_id}'"
+                  su -s /bin/sh www-data -c "cd /var/www/html && php occ app:install \"${app_id}\""
+                fi
+                echo "enabling '${app_id}'"
+                su -s /bin/sh www-data -c "cd /var/www/html && php occ app:enable \"${app_id}\""
+              }
+
+              {{- range .Values.bootstrapApps }}
+              install_and_enable_app {{ . | quote }}
+              {{- end }}
+          env:
+            - name: POSTGRES_HOST
+              value: {{ .Values.externalDatabase.host | quote }}
+            - name: POSTGRES_PORT
+              value: {{ .Values.externalDatabase.port | toString | quote }}
+            - name: POSTGRES_DB
+              value: {{ .Values.externalDatabase.database | quote }}
+            - name: POSTGRES_USER
+              value: {{ .Values.externalDatabase.user | quote }}
+            {{- if and .Values.externalDatabase.passwordSecret.name .Values.externalDatabase.passwordSecret.key }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.externalDatabase.passwordSecret.name }}
+                  key: {{ .Values.externalDatabase.passwordSecret.key }}
+            {{- end }}
+            - name: REDIS_HOST
+              value: {{ .Values.externalRedis.host | quote }}
+            - name: REDIS_HOST_PORT
+              value: {{ .Values.externalRedis.port | toString | quote }}
+            {{- if and .Values.externalRedis.passwordSecret.name .Values.externalRedis.passwordSecret.key }}
+            - name: REDIS_HOST_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.externalRedis.passwordSecret.name }}
+                  key: {{ .Values.externalRedis.passwordSecret.key }}
+            {{- end }}
+          volumeMounts:
+            - name: data
+              mountPath: /var/www/html
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "nextcloud.dataPvcName" . }}
+{{- end }}

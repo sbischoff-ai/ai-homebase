@@ -148,11 +148,11 @@ openclaw:
     mcp:
       servers:
         nextcloud:
-        command: node
-        args:
-          - /home/node/.openclaw/workspace/mcp-http-bridge.mjs
-          - --url
-          - ${OPENCLAW_NEXTCLOUD_MCP_INTERNAL_URL}
+          command: node
+          args:
+            - /home/node/.openclaw/workspace/mcp-http-bridge.mjs
+            - --url
+            - ${OPENCLAW_NEXTCLOUD_MCP_INTERNAL_URL}
             - --url
             - ${OPENCLAW_NEXTCLOUD_MCP_EXTERNAL_URL}
             - --header
@@ -280,6 +280,11 @@ nextcloud:
       passwordSecret:
         name: openclaw-nextcloud-mcp-secrets
         key: NEXTCLOUD_PASSWORD
+  bootstrapApps:
+    - notes
+    - tables
+    - calendar
+    - tasks
   externalDatabase:
     host: platform-stack-shared-postgresql
     port: 5432
@@ -330,6 +335,15 @@ nextcloudMcp:
     url: http://platform-stack-nextcloud
   authentication:
     mode: multi_user_basic
+  args:
+    - --enable-app
+    - notes
+    - --enable-app
+    - webdav
+    - --enable-app
+    - tables
+    - --enable-app
+    - calendar
 
 gitea:
   enabled: false

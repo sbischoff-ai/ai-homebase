@@ -5,9 +5,15 @@ metadata:
   labels:
     app.kubernetes.io/name: {{ include "shared-postgresql.name" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: Helm
 spec:
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Retain
+    whenScaled: Retain
+  podManagementPolicy: OrderedReady
   serviceName: {{ include "shared-postgresql.fullname" . }}
   replicas: 1
+  revisionHistoryLimit: 10
   selector:
     matchLabels:
       app.kubernetes.io/name: {{ include "shared-postgresql.name" . }}
@@ -17,7 +23,13 @@ spec:
       labels:
         app.kubernetes.io/name: {{ include "shared-postgresql.name" . }}
         app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/managed-by: Helm
     spec:
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
       containers:
         - name: postgresql
           image: "{{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -25,6 +37,7 @@ spec:
           ports:
             - name: postgresql
               containerPort: {{ .Values.service.port }}
+              protocol: TCP
           env:
             {{- if .Values.auth.username }}
             - name: POSTGRES_USER
@@ -55,6 +68,8 @@ spec:
             {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
       {{- if or .Values.primary.initdb.scriptsSecret (not .Values.primary.persistence.enabled) }}
       volumes:
         {{- if .Values.primary.initdb.scriptsSecret }}
@@ -79,15 +94,22 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      partition: 0
   {{- if .Values.primary.persistence.enabled }}
   volumeClaimTemplates:
-    - metadata:
+    - apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
         name: data
       spec:
         accessModes: ["ReadWriteOnce"]
         resources:
           requests:
             storage: {{ .Values.primary.persistence.size }}
+        volumeMode: Filesystem
         {{- if .Values.primary.persistence.storageClass }}
         storageClassName: {{ .Values.primary.persistence.storageClass | quote }}
         {{- end }}

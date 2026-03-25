@@ -7,6 +7,7 @@ This chart deploys Nextcloud as a single primary web workload plus a dedicated c
 - **Application runtime:** standard `nextcloud:<tag>-apache` container image in a `StatefulSet`.
 - **Database/cache model:** external PostgreSQL and external Redis are expected via `externalDatabase.*` and `externalRedis.*` values.
 - **Background jobs:** a dedicated `CronJob` (`nextcloud.cron.*`) runs `php -f /var/www/html/cron.php` on a schedule and mounts the same data path.
+- **Bootstrap apps:** optional `bootstrapApps[]` renders a post-install/post-upgrade Job that waits for Nextcloud readiness, then converges the requested app set through `occ app:install` and `occ app:enable`.
 - **Bootstrap users:** optional `bootstrapUsers[]` renders a post-install/post-upgrade Job that waits for Nextcloud readiness, then creates or resets listed local users through `occ`.
 
 ## Required secrets
@@ -69,3 +70,14 @@ Before each major step:
 3. Verify restore procedures (database + PVC) in a non-production environment.
 
 After upgrade, validate app health, background jobs, and external integrations before proceeding to the next major.
+
+## App bootstrap model
+
+Use `bootstrapApps[]` when you want Helm bootstrap and later reruns to keep a specific app set present. The standard stack uses that path for:
+
+- `notes`
+- `tables`
+- `calendar`
+- `tasks`
+
+`initialApps[]` remains available for the image entrypoint hook, but it only participates in first-time container bootstrap and is not the standard convergent path in this repo.
