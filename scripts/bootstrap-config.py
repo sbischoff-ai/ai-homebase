@@ -50,6 +50,7 @@ SECRET_KEY_VALUE_NAMES = {
 HOST_KEYS = {
     "openclaw": ("hosts", "openclaw"),
     "nextcloud": ("hosts", "nextcloud"),
+    "nextcloud_mcp": ("hosts", "nextcloud_mcp"),
     "nextcloud_public": ("hosts", "nextcloud_public"),
     "gitea": ("hosts", "gitea"),
     "argocd": ("hosts", "argocd"),
@@ -93,6 +94,13 @@ def nested_string(data: dict[str, object], path: tuple[str, ...], default: str =
     return require_string(cursor, ".".join(path))
 
 
+def nested_nonempty_string(data: dict[str, object], path: tuple[str, ...], default: str = "") -> str:
+    value = nested_string(data, path, default)
+    if value == "":
+        return default
+    return value
+
+
 def provider_values(data: dict[str, object]) -> dict[str, str]:
     providers = {
         "OPENAI_API_KEY": nested_string(data, ("providers", "openai_api_key")),
@@ -117,7 +125,7 @@ def resolved_values(data: dict[str, object]) -> dict[str, str]:
     admin_username = nested_string(data, ("admin", "username"), "homebase-admin")
     admin_email = nested_string(data, ("admin", "email"), "admin@example.invalid")
     admin_password = nested_string(data, ("admin", "password"))
-    argocd_admin_user = nested_string(data, ("services", "argocd", "admin", "user"), "admin")
+    argocd_admin_user = nested_nonempty_string(data, ("services", "argocd", "admin", "user"), "admin")
     argocd_admin_password = nested_string(data, ("services", "argocd", "admin", "password"))
     mail_domain = nested_string(data, ("mail", "domain"))
     mail_smtp_host = nested_string(data, ("mail", "smtp_host"))
@@ -144,24 +152,26 @@ def resolved_values(data: dict[str, object]) -> dict[str, str]:
         "VAULTWARDEN_DB_PASSWORD": nested_string(data, ("secrets", "vaultwarden_db_password")),
         "VAULTWARDEN_ADMIN_TOKEN": nested_string(data, ("secrets", "vaultwarden_admin_token")),
         "NEXTCLOUD_DB_PASSWORD": nested_string(data, ("secrets", "nextcloud_db_password")),
+        "OPENCLAW_NEXTCLOUD_MCP_PASSWORD": nested_string(data, ("secrets", "openclaw_nextcloud_mcp_password")),
         "PAPERLESS_DB_PASSWORD": nested_string(data, ("secrets", "paperless_db_password")),
         "PAPERLESS_SECRET_KEY": nested_string(data, ("secrets", "paperless_secret_key")),
         "ADMIN_NAME": admin_name,
         "ADMIN_USERNAME": admin_username,
         "ADMIN_EMAIL": admin_email,
         "ADMIN_PASSWORD": admin_password,
-        "GITEA_ADMIN_USERNAME": nested_string(data, ("services", "gitea", "admin", "username"), admin_username),
-        "GITEA_ADMIN_EMAIL": nested_string(data, ("services", "gitea", "admin", "email"), admin_email),
-        "GITEA_ADMIN_PASSWORD": nested_string(data, ("services", "gitea", "admin", "password"), admin_password),
-        "NEXTCLOUD_ADMIN_USER": nested_string(data, ("services", "nextcloud", "admin", "user"), admin_username),
-        "NEXTCLOUD_ADMIN_PASSWORD": nested_string(data, ("services", "nextcloud", "admin", "password"), admin_password),
-        "PAPERLESS_ADMIN_USER": nested_string(data, ("services", "paperless", "admin", "user"), admin_username),
-        "PAPERLESS_ADMIN_MAIL": nested_string(data, ("services", "paperless", "admin", "mail"), admin_email),
-        "PAPERLESS_ADMIN_PASSWORD": nested_string(data, ("services", "paperless", "admin", "password"), admin_password),
+        "GITEA_ADMIN_USERNAME": nested_nonempty_string(data, ("services", "gitea", "admin", "username"), admin_username),
+        "GITEA_ADMIN_EMAIL": nested_nonempty_string(data, ("services", "gitea", "admin", "email"), admin_email),
+        "GITEA_ADMIN_PASSWORD": nested_nonempty_string(data, ("services", "gitea", "admin", "password"), admin_password),
+        "NEXTCLOUD_ADMIN_USER": nested_nonempty_string(data, ("services", "nextcloud", "admin", "user"), admin_username),
+        "NEXTCLOUD_ADMIN_PASSWORD": nested_nonempty_string(data, ("services", "nextcloud", "admin", "password"), admin_password),
+        "PAPERLESS_ADMIN_USER": nested_nonempty_string(data, ("services", "paperless", "admin", "user"), admin_username),
+        "PAPERLESS_ADMIN_MAIL": nested_nonempty_string(data, ("services", "paperless", "admin", "mail"), admin_email),
+        "PAPERLESS_ADMIN_PASSWORD": nested_nonempty_string(data, ("services", "paperless", "admin", "password"), admin_password),
         "ARGOCD_ADMIN_USER": argocd_admin_user,
         "ARGOCD_ADMIN_PASSWORD": argocd_admin_password,
         "OPENCLAW_HOST": nested_string(data, HOST_KEYS["openclaw"]),
         "NEXTCLOUD_HOST": nested_string(data, HOST_KEYS["nextcloud"]),
+        "NEXTCLOUD_MCP_HOST": nested_string(data, HOST_KEYS["nextcloud_mcp"]),
         "NEXTCLOUD_PUBLIC_HOST": nested_string(data, HOST_KEYS["nextcloud_public"]),
         "GITEA_HOST": nested_string(data, HOST_KEYS["gitea"]),
         "ARGOCD_HOST": nested_string(data, HOST_KEYS["argocd"]),
@@ -224,6 +234,7 @@ def command_render_values(args: argparse.Namespace) -> int:
     global_hosts = {
         "openclaw": values["OPENCLAW_HOST"],
         "nextcloud": values["NEXTCLOUD_HOST"],
+        "nextcloudMcp": values["NEXTCLOUD_MCP_HOST"],
         "gitea": values["GITEA_HOST"],
         "argocd": values["ARGOCD_HOST"],
         "vaultwarden": values["VAULTWARDEN_HOST"],
@@ -237,6 +248,24 @@ def command_render_values(args: argparse.Namespace) -> int:
                     "model": {
                         "primary": values["OPENCLAW_DEFAULT_MODEL"],
                     }
+                }
+            }
+        }
+    openclaw.setdefault("openclaw", {}).setdefault("commands", {})["mcp"] = True
+    if values["NEXTCLOUD_MCP_HOST"]:
+        openclaw["openclaw"]["mcp"] = {
+            "servers": {
+                "nextcloud": {
+                    "command": "node",
+                    "args": [
+                        "/home/node/.openclaw/workspace/mcp-http-bridge.mjs",
+                        "--url",
+                        "${OPENCLAW_NEXTCLOUD_MCP_INTERNAL_URL}",
+                        "--url",
+                        "${OPENCLAW_NEXTCLOUD_MCP_EXTERNAL_URL}",
+                        "--header",
+                        "Authorization=${OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER}",
+                    ],
                 }
             }
         }
@@ -328,8 +357,46 @@ def command_render_values(args: argparse.Namespace) -> int:
                 "domain": values["MAIL_DOMAIN"],
             },
             "trustedDomains": [
-                host for host in (values["NEXTCLOUD_HOST"], values["NEXTCLOUD_PUBLIC_HOST"]) if host
+                host
+                for host in (
+                    values["NEXTCLOUD_HOST"],
+                    values["NEXTCLOUD_PUBLIC_HOST"],
+                    "platform-stack-nextcloud",
+                    "platform-stack-nextcloud.ai-homebase.svc",
+                    "platform-stack-nextcloud.ai-homebase.svc.cluster.local",
+                )
+                if host
             ],
+            "bootstrapUsers": [
+                {
+                    "username": "openclaw-mcp",
+                    "displayName": "OpenClaw MCP",
+                    "passwordSecret": {
+                        "name": "openclaw-nextcloud-mcp-secrets",
+                        "key": "NEXTCLOUD_PASSWORD",
+                    },
+                }
+            ],
+        },
+        "nextcloudMcp": {
+            "ingress": (
+                {
+                    "hosts": [
+                        {
+                            "host": values["NEXTCLOUD_MCP_HOST"],
+                            "paths": [{"path": "/", "pathType": "Prefix"}],
+                        }
+                    ],
+                    "tls": [
+                        {
+                            "secretName": "nextcloud-mcp-tls",
+                            "hosts": [values["NEXTCLOUD_MCP_HOST"]],
+                        }
+                    ],
+                }
+                if values["NEXTCLOUD_MCP_HOST"]
+                else {}
+            ),
         },
         "vaultwarden": {
             "existingSecret": "vaultwarden-config-secrets",

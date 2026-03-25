@@ -13,9 +13,12 @@ REMOTE_DOCKER_SECRET_NAME="${REMOTE_DOCKER_SECRET_NAME:-}"
 REMOTE_DOCKER_HOST="${REMOTE_DOCKER_HOST:-}"
 REMOTE_DOCKER_PORT="${REMOTE_DOCKER_PORT:-}"
 REMOTE_DOCKER_KEY_PATH="${REMOTE_DOCKER_KEY_PATH:-}"
+INCUS_VM_NAME="${INCUS_VM_NAME:-openclaw-sandbox}"
+INCUS_CONNECTION_INFO_PATH="${INCUS_CONNECTION_INFO_PATH:-${HOME}/.local/state/ai-homebase/incus/${INCUS_VM_NAME}.env}"
 SKIP_INSTALL=0
 OPENCLAW_WAIT_TIMEOUT="${OPENCLAW_WAIT_TIMEOUT:-600s}"
 NEXTCLOUD_WAIT_TIMEOUT="${NEXTCLOUD_WAIT_TIMEOUT:-1200s}"
+NEXTCLOUD_MCP_WAIT_TIMEOUT="${NEXTCLOUD_MCP_WAIT_TIMEOUT:-900s}"
 GITEA_WAIT_TIMEOUT="${GITEA_WAIT_TIMEOUT:-1200s}"
 VAULTWARDEN_WAIT_TIMEOUT="${VAULTWARDEN_WAIT_TIMEOUT:-900s}"
 POSTFIX_RELAY_WAIT_TIMEOUT="${POSTFIX_RELAY_WAIT_TIMEOUT:-600s}"
@@ -40,6 +43,8 @@ Options:
   --remote-docker-host <host> Override OpenClaw remote Docker SSH host during bootstrap
   --remote-docker-port <port> Override OpenClaw remote Docker SSH port during bootstrap
   --remote-docker-key <path>  Override OpenClaw remote Docker SSH private key during bootstrap
+  --incus-vm-name <name>      Incus VM name for sandbox-side checks (default: ${INCUS_VM_NAME})
+  --incus-connection-info <p> Incus VM env file for sandbox-side checks (default: ${INCUS_CONNECTION_INFO_PATH})
   --skip-install              Skip the shared bootstrap/install phase and run smoke checks only
   Env timeouts                OPENCLAW_WAIT_TIMEOUT=${OPENCLAW_WAIT_TIMEOUT}, NEXTCLOUD_WAIT_TIMEOUT=${NEXTCLOUD_WAIT_TIMEOUT}, GITEA_WAIT_TIMEOUT=${GITEA_WAIT_TIMEOUT}, VAULTWARDEN_WAIT_TIMEOUT=${VAULTWARDEN_WAIT_TIMEOUT}, POSTFIX_RELAY_WAIT_TIMEOUT=${POSTFIX_RELAY_WAIT_TIMEOUT}, PAPERLESS_WAIT_TIMEOUT=${PAPERLESS_WAIT_TIMEOUT}
   Ingress retry tuning        INGRESS_ENDPOINT_RETRIES=${INGRESS_ENDPOINT_RETRIES}, INGRESS_ENDPOINT_RETRY_DELAY_SECONDS=${INGRESS_ENDPOINT_RETRY_DELAY_SECONDS}
@@ -60,6 +65,8 @@ while [[ $# -gt 0 ]]; do
     --remote-docker-host) REMOTE_DOCKER_HOST="$2"; shift 2 ;;
     --remote-docker-port) REMOTE_DOCKER_PORT="$2"; shift 2 ;;
     --remote-docker-key) REMOTE_DOCKER_KEY_PATH="$2"; shift 2 ;;
+    --incus-vm-name) INCUS_VM_NAME="$2"; INCUS_CONNECTION_INFO_PATH="${HOME}/.local/state/ai-homebase/incus/${INCUS_VM_NAME}.env"; shift 2 ;;
+    --incus-connection-info) INCUS_CONNECTION_INFO_PATH="$2"; shift 2 ;;
     --skip-install) SKIP_INSTALL=1; shift ;;
     --verbose) BOOTSTRAP_VERBOSE=1; shift ;;
     -h|--help) usage; exit 0 ;;
@@ -340,6 +347,10 @@ is_vaultwarden_enabled() {
   effective_bool_value "vaultwarden.enabled"
 }
 
+is_nextcloud_mcp_enabled() {
+  effective_bool_value "nextcloudMcp.enabled"
+}
+
 is_postfix_relay_enabled() {
   effective_bool_value "postfixRelay.enabled"
 }
@@ -528,6 +539,54 @@ verify_openclaw_remote_docker() {
   "
 }
 
+verify_openclaw_mcp_bootstrap_config() {
+  local configmap_name="$1"
+  local openclaw_json=""
+
+  openclaw_json="$(
+    kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" get configmap "$configmap_name" -o jsonpath='{.data.openclaw\.json}'
+  )"
+
+  if [[ "$openclaw_json" != *'${OPENCLAW_NEXTCLOUD_MCP_INTERNAL_URL}'* ]]; then
+    fail "OpenClaw bootstrap config in ConfigMap/${configmap_name} is missing the internal Nextcloud MCP URL placeholder"
+    exit 1
+  fi
+
+  if [[ "$openclaw_json" != *'${OPENCLAW_NEXTCLOUD_MCP_EXTERNAL_URL}'* ]]; then
+    fail "OpenClaw bootstrap config in ConfigMap/${configmap_name} is missing the external Nextcloud MCP URL placeholder"
+    exit 1
+  fi
+}
+
+verify_incus_hostname_resolution() {
+  local host_name="$1"
+  local host_listen_address="$2"
+
+  if ! command -v incus >/dev/null 2>&1; then
+    warn "Skipping Incus sandbox DNS checks because incus is not installed in the current shell"
+    return 0
+  fi
+
+  step "Checking Incus VM hostname resolution for ${host_name}"
+  CURRENT_COMMAND="incus exec ${INCUS_VM_NAME} -- getent hosts ${host_name}"
+  run_checked incus exec "$INCUS_VM_NAME" -- sh -ceu "
+    resolved_ip=\$(getent ahostsv4 '${host_name}' | awk 'NR==1 {print \$1}')
+    [ -n \"\$resolved_ip\" ]
+    [ \"\$resolved_ip\" = '${host_listen_address}' ]
+  "
+
+  step "Checking Docker-container reachability for ${host_name}"
+  CURRENT_COMMAND="incus exec ${INCUS_VM_NAME} -- docker run --rm curlimages/curl:8.12.1 -sSI http://${host_name}/health/ready"
+  run_checked incus exec "$INCUS_VM_NAME" -- sh -ceu "
+    status_line=\$(docker run --rm curlimages/curl:8.12.1 -sSI 'http://${host_name}/health/ready' | awk 'NR==1 {print \$2}')
+    [ -n \"\$status_line\" ]
+    case \"\$status_line\" in
+      200|308) ;;
+      *) exit 1 ;;
+    esac
+  "
+}
+
 if [[ "$SKIP_INSTALL" -eq 0 ]]; then
   BOOTSTRAP_STACK_CMD=(
     ./scripts/bootstrap-stack.sh
@@ -566,12 +625,20 @@ if [[ "$SKIP_INSTALL" -eq 0 ]]; then
 fi
 
 NEXTCLOUD_INGRESS_HOST="$(effective_value "nextcloud.ingress.private.host")"
+NEXTCLOUD_MCP_INGRESS_HOST="$(effective_value "nextcloudMcp.ingress.hosts.0.host")"
 VAULTWARDEN_INGRESS_HOST="$(effective_value "vaultwarden.ingress.hosts.0.host")"
 PAPERLESS_INGRESS_HOST="$(effective_value "paperlessNgx.ingress.hosts.0.host")"
 OPENCLAW_INGRESS_HOST="$(effective_value "openclaw.ingress.hosts.0.host")"
+HOST_LISTEN_ADDRESS_VALUE=""
+if [[ -f "$INCUS_CONNECTION_INFO_PATH" ]]; then
+  # shellcheck disable=SC1090
+  source "$INCUS_CONNECTION_INFO_PATH"
+  HOST_LISTEN_ADDRESS_VALUE="${HOST_LISTEN_ADDRESS:-}"
+fi
 
 wait_for_workload openclaw "$OPENCLAW_WAIT_TIMEOUT"
 OPENCLAW_DEPLOYMENT_NAME="$(resolve_deployment_name openclaw)"
+verify_openclaw_mcp_bootstrap_config "$OPENCLAW_DEPLOYMENT_NAME"
 
 if [[ "$(is_openclaw_remote_docker_enabled)" == "true" ]]; then
   verify_openclaw_remote_docker "$OPENCLAW_DEPLOYMENT_NAME"
@@ -587,6 +654,21 @@ if [[ "$(is_nextcloud_enabled)" == "true" ]]; then
   wait_for_http_endpoint "${NEXTCLOUD_INGRESS_HOST}" "http://127.0.0.1/status.php" "Nextcloud"
 else
   warn "Skipping Nextcloud workload/service/ingress checks because nextcloud.enabled=false in effective values"
+fi
+
+if [[ "$(is_nextcloud_mcp_enabled)" == "true" ]]; then
+  wait_for_workload nextcloud-mcp "$NEXTCLOUD_MCP_WAIT_TIMEOUT"
+  verify_labeled_service nextcloud-mcp
+  if [[ -n "$HOST_LISTEN_ADDRESS_VALUE" ]]; then
+    verify_incus_hostname_resolution "$NEXTCLOUD_MCP_INGRESS_HOST" "$HOST_LISTEN_ADDRESS_VALUE"
+  else
+    warn "Skipping Incus sandbox DNS checks because ${INCUS_CONNECTION_INFO_PATH} is missing or does not define HOST_LISTEN_ADDRESS"
+  fi
+  step "Checking nextcloud-mcp ingress endpoint"
+  CURRENT_COMMAND="curl --silent --show-error --fail -H Host: ${NEXTCLOUD_MCP_INGRESS_HOST} http://127.0.0.1/health/ready"
+  wait_for_http_endpoint "${NEXTCLOUD_MCP_INGRESS_HOST}" "http://127.0.0.1/health/ready" "Nextcloud MCP"
+else
+  warn "Skipping Nextcloud MCP workload/service/ingress checks because nextcloudMcp.enabled=false in effective values"
 fi
 
 if [[ "$(is_gitea_enabled)" == "true" ]]; then

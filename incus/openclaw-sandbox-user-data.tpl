@@ -6,6 +6,7 @@ packages:
   - docker.io
   - openssh-server
   - ca-certificates
+  - dnsmasq
 
 users:
   - default
@@ -21,12 +22,7 @@ write_files:
   - path: /etc/docker/daemon.json
     permissions: '0644'
     content: |
-      {
-        "features": {
-          "buildkit": true
-        },
-        "log-driver": "journald"
-      }
+__DOCKER_DAEMON_JSON__
 
 runcmd:
   - systemctl enable --now ssh

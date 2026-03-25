@@ -19,8 +19,9 @@ trap 'rm -rf "${sandbox_dir}"' EXIT
 repo_dir="${sandbox_dir}/repo"
 mkdir -p "${repo_dir}/scripts"
 cp "${REPO_ROOT}/scripts/bootstrap-gitops.sh" "${repo_dir}/scripts/bootstrap-gitops.sh"
+cp "${REPO_ROOT}/scripts/bootstrap-stack.sh" "${repo_dir}/scripts/bootstrap-stack.sh"
 cp "${REPO_ROOT}/scripts/bootstrap-config.py" "${repo_dir}/scripts/bootstrap-config.py"
-chmod +x "${repo_dir}/scripts/bootstrap-gitops.sh" "${repo_dir}/scripts/bootstrap-config.py"
+chmod +x "${repo_dir}/scripts/bootstrap-gitops.sh" "${repo_dir}/scripts/bootstrap-stack.sh" "${repo_dir}/scripts/bootstrap-config.py"
 
 bootstrap_config_path="${sandbox_dir}/bootstrap.local.toml"
 command_log="${sandbox_dir}/commands.log"
@@ -66,12 +67,12 @@ printf 'bootstrap-secrets.sh %s\n' "$*" >>"${FAKE_COMMAND_LOG:?}"
 SH
 chmod +x "${repo_dir}/scripts/bootstrap-secrets.sh"
 
-cat >"${repo_dir}/scripts/install.sh" <<'SH'
+cat >"${repo_dir}/scripts/bootstrap-stack.sh" <<'SH'
 #!/usr/bin/env bash
 set -euo pipefail
-printf 'install.sh %s\n' "$*" >>"${FAKE_COMMAND_LOG:?}"
+printf 'bootstrap-stack.sh %s\n' "$*" >>"${FAKE_COMMAND_LOG:?}"
 SH
-chmod +x "${repo_dir}/scripts/install.sh"
+chmod +x "${repo_dir}/scripts/bootstrap-stack.sh"
 
 cat >"${repo_dir}/scripts/render-gitops-repo.py" <<'PY'
 #!/usr/bin/env python3
@@ -167,7 +168,7 @@ kubectl_output="$(cat "${kubectl_log}")"
 curl_output="$(cat "${curl_log}")"
 git_output="$(cat "${git_log}")"
 
-assert_contains "${commands}" "install.sh --profile k3d --bootstrap-config ${bootstrap_config_path} --release-name platform-stack --namespace ai-homebase --enable-service argo-cd"
+assert_contains "${commands}" "bootstrap-stack.sh --profile k3d --bootstrap-config ${bootstrap_config_path} --release-name platform-stack --namespace ai-homebase --skip-secrets --enable-service argo-cd"
 assert_contains "${commands}" "bootstrap-secrets.sh --profile k3d --bootstrap-config ${bootstrap_config_path} --release-name platform-stack --namespace ai-homebase"
 assert_contains "${curl_output}" "/api/v1/admin/users"
 assert_contains "${curl_output}" "/api/v1/user/repos"

@@ -363,11 +363,12 @@ fi
 
 step "Installing Argo CD through the existing Helm path"
 INSTALL_CMD=(
-  ./scripts/install.sh
+  ./scripts/bootstrap-stack.sh
   --profile "$PROFILE"
   --bootstrap-config "$BOOTSTRAP_CONFIG_PATH"
   --release-name "$RELEASE_NAME"
   --namespace "$NAMESPACE"
+  --skip-secrets
   --enable-service argo-cd
 )
 if [[ -n "$KUBECONFIG_PATH" ]]; then

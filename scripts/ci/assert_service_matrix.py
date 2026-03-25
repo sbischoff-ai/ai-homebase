@@ -46,6 +46,8 @@ MATRIX = [
         "expect_present": {
             ("Deployment", "platform-stack-openclaw"),
             ("Ingress", "platform-stack-openclaw"),
+            ("Deployment", "platform-stack-nextcloud-mcp"),
+            ("Ingress", "platform-stack-nextcloud-mcp"),
         },
     },
     {
@@ -63,6 +65,8 @@ MATRIX = [
             ("Service", "platform-stack-postfix-relay"),
             ("StatefulSet", "platform-stack-nextcloud"),
             ("Ingress", "platform-stack-nextcloud-private"),
+            ("Deployment", "platform-stack-nextcloud-mcp"),
+            ("Ingress", "platform-stack-nextcloud-mcp"),
             ("StatefulSet", "platform-stack-paperless-ngx"),
             ("Ingress", "platform-stack-paperless-ngx"),
         },
@@ -84,6 +88,8 @@ MATRIX = [
             ("Ingress", "platform-stack-vaultwarden"),
             ("StatefulSet", "platform-stack-nextcloud"),
             ("Ingress", "platform-stack-nextcloud-private"),
+            ("Deployment", "platform-stack-nextcloud-mcp"),
+            ("Ingress", "platform-stack-nextcloud-mcp"),
             ("StatefulSet", "platform-stack-paperless-ngx"),
             ("Ingress", "platform-stack-paperless-ngx"),
         },
@@ -312,6 +318,7 @@ def assert_k3d_default_ingress_classes() -> None:
     expected = {
         "platform-stack-openclaw": "openclaw.localtest.me",
         "platform-stack-vaultwarden": "vaultwarden.localtest.me",
+        "platform-stack-nextcloud-mcp": "nextcloud-mcp.localtest.me",
     }
     for name, host in expected.items():
         ingress = find_document(rendered, kind="Ingress", name=name)

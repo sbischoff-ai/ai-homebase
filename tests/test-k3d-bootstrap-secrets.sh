@@ -108,6 +108,16 @@ fi
           ;;
       esac
     fi
+    if [[ "$2" == "secret" && "$3" == "openclaw-nextcloud-mcp-secrets" ]]; then
+      case "${4:-}" in
+        -o)
+          if [[ "$5" == "jsonpath={.data.NEXTCLOUD_PASSWORD}" ]]; then
+            printf '%s' "${FAKE_EXISTING_OPENCLAW_NEXTCLOUD_MCP_PASSWORD_B64:-}"
+          fi
+          exit 0
+          ;;
+      esac
+    fi
     if [[ "$2" == "secret" && "$3" == "paperless-config-secrets" ]]; then
       case "${4:-}" in
         -o)
@@ -322,6 +332,10 @@ EOF
       assert_contains "${kubectl_output}" "literal=email=git@example.invalid"
       assert_contains "${kubectl_output}" "literal=password=existing-gitea-admin-password"
       assert_contains "${kubectl_output}" "literal=VAULTWARDEN_DB_PASSWORD=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      assert_contains "${kubectl_output}" "get secret openclaw-nextcloud-mcp-secrets -o jsonpath={.data.NEXTCLOUD_PASSWORD}"
+      assert_contains "${kubectl_output}" "literal=NEXTCLOUD_USERNAME=openclaw-mcp"
+      assert_contains "${kubectl_output}" "literal=NEXTCLOUD_PASSWORD=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      assert_contains "${kubectl_output}" "literal=OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER=Basic b3BlbmNsYXctbWNwOjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmMDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
       assert_contains "${kubectl_output}" "validated-id-ed25519=${key_path}"
       assert_contains "${kubectl_output}" "validated-known-hosts="
       ;;

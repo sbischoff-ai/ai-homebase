@@ -21,13 +21,15 @@ The important constraint is that both targets converge on the same bootstrap and
 
 ## Bootstrap Model
 
-The bootstrap flow is split into two phases:
+The bootstrap flow is split into three phases:
 
 1. **Target-specific cluster preparation**
    `k3d-local-bootstrap.sh` creates the local cluster and Incus-backed sandbox VM
    `install-k3s-ubuntu-2404.sh` prepares a fresh Ubuntu host for `k3s`
 2. **Shared stack bootstrap**
-   `bootstrap-stack.sh` creates bootstrap-managed Secrets and then runs the Helm install/upgrade path for either target
+   `bootstrap-stack.sh` creates bootstrap-managed Secrets and then runs the Helm apply path for either target
+3. **GitOps handoff**
+   `bootstrap-gitops.sh` is the normal next step after a healthy bootstrap and enables Argo CD against the in-cluster Gitea repo
 
 `bootstrap.local.toml` is the operator input for both targets. It drives hostnames, provider keys, admin defaults, and user-supplied tokens.
 

@@ -35,6 +35,75 @@ spec:
         - name: {{ . }}
         {{- end }}
       {{- end }}
+      initContainers:
+        - name: recover-incomplete-bootstrap
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - /bin/sh
+            - -ceu
+            - |
+              if [ ! -f /var/www/html/config/config.php ]; then
+                exit 0
+              fi
+              if su -s /bin/sh www-data -c 'cd /var/www/html && php occ status --output=json 2>/dev/null | grep -q "\"installed\":true"'; then
+                exit 0
+              fi
+              echo "removing incomplete Nextcloud bootstrap state"
+              rm -f /var/www/html/config/config.php /var/www/html/nextcloud-init-sync.lock
+          volumeMounts:
+            - name: data
+              mountPath: /var/www/html
+        - name: wait-for-shared-postgresql-bootstrap
+          image: "{{ .Values.bootstrapWait.image.repository }}:{{ .Values.bootstrapWait.image.tag }}"
+          imagePullPolicy: {{ .Values.bootstrapWait.image.pullPolicy }}
+          command:
+            - /bin/sh
+            - -ceu
+            - |
+              until PGPASSWORD="$NEXTCLOUD_DB_PASSWORD" psql \
+                --host {{ .Values.externalDatabase.host | quote }} \
+                --port {{ .Values.externalDatabase.port | toString | quote }} \
+                --username {{ .Values.externalDatabase.user | quote }} \
+                --dbname {{ .Values.externalDatabase.database | quote }} \
+                -tAc "SELECT current_database(), current_user;" | grep -qx '{{ .Values.externalDatabase.database }}|{{ .Values.externalDatabase.user }}'; do
+                echo "waiting for live PostgreSQL bootstrap of {{ .Values.externalDatabase.user }}"
+                sleep 2
+              done
+          env:
+            - name: NEXTCLOUD_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.externalDatabase.passwordSecret.name }}
+                  key: {{ .Values.externalDatabase.passwordSecret.key }}
+        {{- $trustedDomains := .Values.trustedDomains }}
+        {{- $trustedDomainsValue := "" }}
+        {{- if kindIs "slice" $trustedDomains }}
+        {{- $trustedDomainsValue = join " " $trustedDomains }}
+        {{- else if $trustedDomains }}
+        {{- $trustedDomainsValue = $trustedDomains | toString }}
+        {{- end }}
+        - name: reconcile-trusted-domains
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - /bin/sh
+            - -ceu
+            - |
+              if ! su -s /bin/sh www-data -c 'cd /var/www/html && php occ status --output=json 2>/dev/null | grep -q "\"installed\":true"'; then
+                exit 0
+              fi
+              idx=0
+              for domain in localhost $NEXTCLOUD_TRUSTED_DOMAINS; do
+                su -s /bin/sh www-data -c "cd /var/www/html && php occ config:system:set trusted_domains ${idx} --value='${domain}'"
+                idx=$((idx + 1))
+              done
+          env:
+            - name: NEXTCLOUD_TRUSTED_DOMAINS
+              value: {{ $trustedDomainsValue | quote }}
+          volumeMounts:
+            - name: data
+              mountPath: /var/www/html
       containers:
         - name: nextcloud
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -48,7 +117,7 @@ spec:
               command:
                 - /bin/sh
                 - -ec
-                - su -s /bin/sh www-data -c 'cd /var/www/html && php occ status --no-ansi >/dev/null'
+                - su -s /bin/sh www-data -c 'cd /var/www/html && php occ status --output=json 2>/dev/null | grep -q "\"installed\":true"'
             initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
             periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
           {{- end }}
@@ -58,16 +127,9 @@ spec:
               command:
                 - /bin/sh
                 - -ec
-                - su -s /bin/sh www-data -c 'cd /var/www/html && php occ status --no-ansi >/dev/null'
+                - su -s /bin/sh www-data -c 'cd /var/www/html && php occ status --output=json 2>/dev/null | grep -q "\"installed\":true"'
             initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
             periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
-          {{- end }}
-          {{- $trustedDomains := .Values.trustedDomains }}
-          {{- $trustedDomainsValue := "" }}
-          {{- if kindIs "slice" $trustedDomains }}
-          {{- $trustedDomainsValue = join " " $trustedDomains }}
-          {{- else if $trustedDomains }}
-          {{- $trustedDomainsValue = $trustedDomains | toString }}
           {{- end }}
           {{- $trustedProxiesValue := join " " (.Values.trustedProxies | default (list)) }}
           env:

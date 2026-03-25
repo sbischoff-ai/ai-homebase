@@ -1,6 +1,6 @@
 # ai-homebase
 
-`ai-homebase` is a Helm-based homelab stack for running OpenClaw as the center of a personal AI control plane, with supporting services such as Nextcloud, Gitea, Paperless-ngx, Vaultwarden, and an in-cluster Postfix relay for application email.
+`ai-homebase` is a Helm-based homelab stack for running OpenClaw as the center of a personal AI control plane, with supporting services such as Nextcloud, a dedicated Nextcloud MCP gateway, Gitea, Paperless-ngx, Vaultwarden, and an in-cluster Postfix relay for application email.
 
 The point of the repo is not just “a pile of charts.” It gives you one opinionated platform shape that works in two places: `k3d` for fast local iteration and `k3s` for the long-running homelab deployment. The bootstrap flow, secrets model, hostnames, and service posture stay aligned between those targets so local validation is actually useful before you touch the real server.
 
@@ -21,7 +21,7 @@ cp bootstrap.example.toml bootstrap.local.toml
 ./scripts/bootstrap-gitops.sh --profile k3d --bootstrap-config bootstrap.local.toml
 ```
 
-Use [docs/deployment-k3d.md](./docs/deployment-k3d.md) for the full local workflow.
+Use [docs/deployment-k3d.md](./docs/deployment-k3d.md) for the full local workflow, including the required NixOS host preparation and the GitOps handoff that normally follows a healthy local bootstrap.
 
 ### Homelab `k3s`
 
@@ -32,9 +32,9 @@ cp bootstrap.example.toml bootstrap.local.toml
 ./scripts/bootstrap-gitops.sh --profile k3s --bootstrap-config bootstrap.local.toml
 ```
 
-Use [docs/runbook-homelab.md](./docs/runbook-homelab.md) for the full host-prep, bootstrap, and post-install path.
+Use [docs/runbook-homelab.md](./docs/runbook-homelab.md) for the full Ubuntu host-prep, bootstrap, and GitOps handoff path.
 
-In both cases, fill in the new `[mail]` section in `bootstrap.local.toml` before bootstrapping so Nextcloud and Vaultwarden can send mail through the bundled Postfix relay.
+In both cases, fill in the new `[mail]` section in `bootstrap.local.toml` before bootstrapping so Nextcloud and Vaultwarden can send mail through the bundled Postfix relay. The same bootstrap flow now also creates a dedicated `openclaw-mcp` Nextcloud user and seeds the OpenClaw gateway config with the standard Nextcloud MCP server definition.
 
 ## Documentation Map
 

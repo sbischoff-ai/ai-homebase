@@ -250,6 +250,14 @@
             }
           }
         },
+        "commands": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "mcp": {
+          "type": "object",
+          "additionalProperties": true
+        },
         "plugins": {
           "type": "object",
           "additionalProperties": true,

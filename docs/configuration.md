@@ -21,6 +21,7 @@ Local bootstrap operator input also lives outside the Helm values hierarchy:
 - Use the same `bootstrap.local.toml` for both `k3d` and `k3s`; cluster setup differs by target, but the stack bootstrap values and secret inputs stay shared.
 
 Canonical global host keys include `global.hosts.paperlessNgx` for Paperless, `global.hosts.vaultwarden` for Vaultwarden, and `global.hosts.argocd` for Argo CD. Nextcloud also supports a second bootstrap-only hostname key, `hosts.nextcloud_public`, which feeds the public ingress host when the `k3s` overlay enables it.
+Nextcloud MCP follows the same pattern: `global.hosts.nextcloudMcp` is the canonical values key, and bootstrap config uses `hosts.nextcloud_mcp`.
 Mail delivery is also bootstrap-driven: `[mail]` in `bootstrap.local.toml` feeds `global.mail.*`, the Postfix relay hostname, and the default sender addresses used by Nextcloud and Vaultwarden.
 
 ## Layering model
@@ -64,6 +65,7 @@ The supported targets split runtime posture by service:
 - `openclaw.remoteDocker.*` is part of the standard OpenClaw posture for every supported target: keep it enabled and use overlays only to change the SSH endpoint, Secret name, or image details for a concrete environment.
 
 OpenClaw now renders its Docker/browser sandbox JSON directly from chart values, and the standard `openclaw.remoteDocker.*` block wires `DOCKER_HOST`, `HOME`, injected Docker CLI tooling, and SSH material into the pod so Docker commands execute against the supported remote daemon over SSH.
+When the standard Incus sandbox VM env file exists at `~/.local/state/ai-homebase/incus/openclaw-sandbox.env`, the shared bootstrap path now auto-discovers that concrete listener address for both `k3d` and `k3s` and writes an override values layer so later `bootstrap-stack.sh` reruns do not silently drift back to the profile-default hostname.
 The shared OpenClaw defaults also pin `openclaw.openclaw.agents.defaults.workspace` to `/home/node/.openclaw/workspace` so the persisted path stays inside the PVC without duplicating `.openclaw`, while the `k3d` overlay keeps provider/search secret key mappings optional and local bootstrap fills in only the exported keys it forwards into `openclaw-app-secrets`.
 
 ## Values schema validation
@@ -119,6 +121,7 @@ Commit only secret **references** in versioned overlays and generate the actual 
 For local or operator-managed bootstrap, treat `bootstrap.local.toml` as the canonical source for:
 
 - service hostnames
+- the dedicated Nextcloud MCP hostname
 - outbound mail domain and SMTP hostname
 - OpenClaw/search provider keys
 - user-provided gateway/bootstrap secrets
@@ -147,3 +150,4 @@ helm upgrade --install platform-stack charts/platform-stack   -n <namespace>   -
 
 
 Shared PostgreSQL no longer relies on a persistent `/docker-entrypoint-initdb.d` payload for Gitea/Vaultwarden/Nextcloud/Paperless role creation. Instead, the umbrella chart renders a live reconciliation Job when `sharedPostgresql.enabled=true` and any of `gitea.enabled=true`, `vaultwarden.enabled=true`, `nextcloud.enabled=true`, or `paperlessNgx.enabled=true`; the corresponding workloads use dedicated PostgreSQL roles/databases, and Gitea/Vaultwarden/Paperless explicitly gate startup on direct SQL connectivity before app startup.
+OpenClaw bootstrap config now also seeds `commands.mcp` and `mcp.servers.nextcloud` into `openclaw.json` on first start, and `scripts/bootstrap-secrets.sh` creates `openclaw-nextcloud-mcp-secrets` with the dedicated Nextcloud MCP credentials plus the precomputed Basic Auth header OpenClaw uses for that server definition.

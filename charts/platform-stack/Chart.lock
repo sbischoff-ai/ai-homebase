@@ -11,6 +11,9 @@ dependencies:
 - name: nextcloud
   repository: file://../nextcloud
   version: 0.1.0
+- name: nextcloud-mcp
+  repository: file://../nextcloud-mcp
+  version: 0.1.0
 - name: gitea
   repository: file://../gitea
   version: 0.1.0
@@ -29,5 +32,5 @@ dependencies:
 - name: shared-redis
   repository: file://../shared-redis
   version: 0.1.0
-digest: sha256:ff18ca4168af0c0e71731bee6163e13f431808c6d34b3090bff3ee9f3466cbbb
-generated: "2026-03-24T22:03:49.133983015+01:00"
+digest: sha256:19467f6cc1aa21dd418a2a8ced5e5038930aea73b71e690c641e2f8fb1ee7902
+generated: "2026-03-25T12:11:17.840257079+01:00"

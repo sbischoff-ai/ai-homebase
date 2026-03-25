@@ -22,6 +22,11 @@ dependencies:
     version: 0.1.0
     repository: file://../nextcloud
     condition: nextcloud.enabled
+  - name: nextcloud-mcp
+    version: 0.1.0
+    repository: file://../nextcloud-mcp
+    alias: nextcloudMcp
+    condition: nextcloudMcp.enabled
   - name: gitea
     version: 0.1.0
     repository: file://../gitea

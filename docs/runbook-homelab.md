@@ -30,11 +30,21 @@ Fill in:
 
 ## 3. Bootstrap or Upgrade the Stack
 
+Before bootstrapping OpenClaw itself, create or refresh the standard Incus-backed remote Docker sandbox VM:
+
+```bash
+./scripts/k3s-homelab-sandbox-up.sh --bootstrap-config bootstrap.local.toml
+```
+
+This uses the same `incus-vm-up.sh` helper as the local path, but with the homelab hostname posture and the current Nextcloud MCP hostname from `bootstrap.local.toml`.
+
+## 4. Bootstrap or Upgrade the Stack
+
 ```bash
 ./scripts/bootstrap-stack.sh --profile k3s --bootstrap-config bootstrap.local.toml
 ```
 
-This runs the shared secret/bootstrap/install path:
+This runs the shared secret/bootstrap/apply path:
 
 1. create or refresh bootstrap-managed Secrets
 2. render the bootstrap-generated values layer from `bootstrap.local.toml`
@@ -42,21 +52,21 @@ This runs the shared secret/bootstrap/install path:
 
 Before expecting mail delivery from Nextcloud or Vaultwarden on `k3s`, complete the DNS and reverse-DNS steps in [networking.md](./networking.md) for the `[mail]` domain and SMTP hostname.
 
-## 4. Verify the Cluster
+## 5. Hand Off to GitOps
+
+After the normal `k3s` bootstrap is healthy, the regular next step is to add Argo CD and switch day-two changes to the GitOps repo:
+
+```bash
+./scripts/bootstrap-gitops.sh --profile k3s --bootstrap-config bootstrap.local.toml
+```
+
+## 6. Verify the Cluster
 
 ```bash
 kubectl -n ai-homebase get pods
 kubectl -n ai-homebase get ingress
 kubectl -n ai-homebase get pvc
 kubectl -n ai-homebase describe ingress
-```
-
-## 5. Optional GitOps Handoff
-
-After the normal `k3s` bootstrap is healthy, you can add Argo CD and switch day-two changes to the GitOps repo:
-
-```bash
-./scripts/bootstrap-gitops.sh --profile k3s --bootstrap-config bootstrap.local.toml
 ```
 
 ## See Also

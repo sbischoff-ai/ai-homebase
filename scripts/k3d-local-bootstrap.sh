@@ -13,7 +13,6 @@ REMOTE_DOCKER_HOST="${REMOTE_DOCKER_HOST:-host.k3d.internal}"
 REMOTE_DOCKER_PORT="${REMOTE_DOCKER_PORT:-2222}"
 REMOTE_DOCKER_KEY_PATH="${REMOTE_DOCKER_KEY_PATH:-${HOME}/.local/state/ai-homebase/incus/${INCUS_VM_NAME}-id_ed25519}"
 INCUS_CONNECTION_INFO_PATH="${INCUS_CONNECTION_INFO_PATH:-}"
-OVERRIDE_VALUES_FILE=""
 REMOTE_DOCKER_HOST_EXPLICIT=0
 REMOTE_DOCKER_PORT_EXPLICIT=0
 OPENCLAW_GATEWAY_TOKEN_VALUE=""
@@ -23,6 +22,7 @@ NEXTCLOUD_HOST_VALUE="nextcloud.localtest.me"
 GITEA_HOST_VALUE="gitea.localtest.me"
 VAULTWARDEN_HOST_VALUE="vaultwarden.localtest.me"
 PAPERLESS_HOST_VALUE="paperless.localtest.me"
+NEXTCLOUD_MCP_HOST_VALUE="nextcloud-mcp.localtest.me"
 
 usage() {
   cat <<USAGE
@@ -88,6 +88,7 @@ NEXTCLOUD_HOST_VALUE="${NEXTCLOUD_HOST:-${NEXTCLOUD_HOST_VALUE}}"
 GITEA_HOST_VALUE="${GITEA_HOST:-${GITEA_HOST_VALUE}}"
 VAULTWARDEN_HOST_VALUE="${VAULTWARDEN_HOST:-${VAULTWARDEN_HOST_VALUE}}"
 PAPERLESS_HOST_VALUE="${PAPERLESS_HOST:-${PAPERLESS_HOST_VALUE}}"
+NEXTCLOUD_MCP_HOST_VALUE="${NEXTCLOUD_MCP_HOST:-${NEXTCLOUD_MCP_HOST_VALUE}}"
 
 step "Bootstrapping k3d cluster and ingress"
 K3D_UP_CMD=(
@@ -100,7 +101,9 @@ run_quiet "${K3D_UP_CMD[@]}"
 ok "Cluster is ready"
 
 step "Bootstrapping Incus sandbox VM"
-run_quiet ./scripts/incus-vm-up.sh --vm-name "$INCUS_VM_NAME"
+run_quiet ./scripts/incus-vm-up.sh \
+  --vm-name "$INCUS_VM_NAME" \
+  --resolve-host "$NEXTCLOUD_MCP_HOST_VALUE"
 ok "Incus sandbox VM is ready"
 
 if [[ -f "$INCUS_CONNECTION_INFO_PATH" ]]; then
@@ -114,26 +117,28 @@ if [[ -f "$INCUS_CONNECTION_INFO_PATH" ]]; then
   fi
 fi
 
-OVERRIDE_VALUES_FILE="$(mktemp /tmp/ai-homebase-k3d-remote-docker.XXXXXX.yaml)"
-cat >"$OVERRIDE_VALUES_FILE" <<EOF2
-openclaw:
-  remoteDocker:
-    dockerHost: ssh://docker-remote@${REMOTE_DOCKER_HOST}:${REMOTE_DOCKER_PORT}
-EOF2
-
-trap 'rm -f "$OVERRIDE_VALUES_FILE"' EXIT
-
 step "Bootstrapping platform stack and running smoke checks"
-run_quiet ./scripts/bootstrap-stack.sh \
+BOOTSTRAP_STACK_CMD=(
+  ./scripts/bootstrap-stack.sh
   --profile k3d \
   --namespace "$NAMESPACE" \
   --release-name "$RELEASE_NAME" \
   --kubeconfig "$KUBECONFIG_PATH" \
   --bootstrap-config "$BOOTSTRAP_CONFIG_PATH" \
-  --remote-docker-host "$REMOTE_DOCKER_HOST" \
-  --remote-docker-port "$REMOTE_DOCKER_PORT" \
-  --remote-docker-key "$REMOTE_DOCKER_KEY_PATH" \
-  --values-file "$OVERRIDE_VALUES_FILE"
+  --incus-vm-name "$INCUS_VM_NAME" \
+  --incus-connection-info "$INCUS_CONNECTION_INFO_PATH" \
+  --remote-docker-key "$REMOTE_DOCKER_KEY_PATH"
+)
+if [[ "$REMOTE_DOCKER_HOST_EXPLICIT" -eq 1 ]]; then
+  BOOTSTRAP_STACK_CMD+=(--remote-docker-host "$REMOTE_DOCKER_HOST")
+fi
+if [[ "$REMOTE_DOCKER_PORT_EXPLICIT" -eq 1 ]]; then
+  BOOTSTRAP_STACK_CMD+=(--remote-docker-port "$REMOTE_DOCKER_PORT")
+fi
+if [[ "${BOOTSTRAP_VERBOSE:-0}" == "1" ]]; then
+  BOOTSTRAP_STACK_CMD+=(--verbose)
+fi
+run_quiet "${BOOTSTRAP_STACK_CMD[@]}"
 ok "Platform stack is bootstrapped"
 
 run_quiet ./scripts/test-local-k3d.sh \
@@ -142,9 +147,6 @@ run_quiet ./scripts/test-local-k3d.sh \
   --kubeconfig "$KUBECONFIG_PATH" \
   --skip-install
 ok "Smoke checks passed"
-
-rm -f "$OVERRIDE_VALUES_FILE"
-
 echo
 echo "Local bootstrap complete."
 echo "Summary:"
@@ -155,6 +157,7 @@ echo "  Remote Docker SSH secret: openclaw-remote-docker-ssh"
 echo "  OpenClaw gateway token: ${OPENCLAW_GATEWAY_TOKEN_VALUE}"
 echo "  OpenClaw URL: http://${OPENCLAW_HOST_VALUE}"
 echo "  Nextcloud URL: http://${NEXTCLOUD_HOST_VALUE}"
+echo "  Nextcloud MCP URL: http://${NEXTCLOUD_MCP_HOST_VALUE}"
 if [[ -n "$OPENCLAW_DEFAULT_MODEL" ]]; then
   echo "  OpenClaw default model: ${OPENCLAW_DEFAULT_MODEL}"
 else

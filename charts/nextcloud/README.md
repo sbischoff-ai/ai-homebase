@@ -7,6 +7,7 @@ This chart deploys Nextcloud as a single primary web workload plus a dedicated c
 - **Application runtime:** standard `nextcloud:<tag>-apache` container image in a `StatefulSet`.
 - **Database/cache model:** external PostgreSQL and external Redis are expected via `externalDatabase.*` and `externalRedis.*` values.
 - **Background jobs:** a dedicated `CronJob` (`nextcloud.cron.*`) runs `php -f /var/www/html/cron.php` on a schedule and mounts the same data path.
+- **Bootstrap users:** optional `bootstrapUsers[]` renders a post-install/post-upgrade Job that waits for Nextcloud readiness, then creates or resets listed local users through `occ`.
 
 ## Required secrets
 

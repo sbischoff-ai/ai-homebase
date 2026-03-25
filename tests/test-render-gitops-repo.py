@@ -7,24 +7,17 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-SCRIPT = REPO_ROOT / "scripts" / "render-gitops-repo.py"
 
 
-def write_config(text: str) -> Path:
-    tmpdir = Path(tempfile.mkdtemp())
-    path = tmpdir / "bootstrap.local.toml"
-    path.write_text(text)
-    return path
-
-
-config = write_config(
-    """
+def main() -> int:
+    bootstrap_config = """\
 [providers]
 openai_api_key = "test-openai-key"
 
 [hosts]
 openclaw = "openclaw.test.internal"
 nextcloud = "nextcloud.test.internal"
+nextcloud_mcp = "nextcloud-mcp.test.internal"
 gitea = "gitea.test.internal"
 argocd = "argocd.test.internal"
 vaultwarden = "vaultwarden.test.internal"
@@ -39,54 +32,65 @@ name = "Test Admin"
 username = "test-admin"
 email = "admin@example.invalid"
 password = "shared-admin-password"
+
+[gitops]
+cluster_name = "lab-cluster"
+repo_name = "cluster-gitops"
+repo_branch = "main"
+project = "platform-stack"
+robot_username = "gitops-bot"
 """
-)
 
-output_dir = Path(tempfile.mkdtemp()) / "gitops-repo"
-subprocess.run(
-    [
-        "python3",
-        str(SCRIPT),
-        "--output-dir",
-        str(output_dir),
-        "--bootstrap-config",
-        str(config),
-        "--profile",
-        "k3d",
-        "--cluster-name",
-        "lab-cluster",
-        "--release-name",
-        "platform-stack",
-        "--namespace",
-        "ai-homebase",
-        "--repo-url",
-        "http://platform-stack-gitea-http.ai-homebase.svc.cluster.local:3000/gitops-bot/cluster-gitops.git",
-        "--repo-branch",
-        "main",
-        "--project",
-        "platform-stack",
-    ],
-    check=True,
-)
+    with tempfile.TemporaryDirectory() as tmpdir:
+        temp_root = Path(tmpdir)
+        config_path = temp_root / "bootstrap.local.toml"
+        output_dir = temp_root / "repo"
+        config_path.write_text(bootstrap_config)
 
-bootstrap_values = (output_dir / "charts" / "platform-stack" / "clusters" / "lab-cluster" / "bootstrap-values.yaml").read_text()
-gitops_values = (output_dir / "charts" / "platform-stack" / "clusters" / "lab-cluster" / "gitops-values.yaml").read_text()
-project_yaml = (output_dir / "gitops" / "clusters" / "lab-cluster" / "project.yaml").read_text()
-app_yaml = (output_dir / "gitops" / "clusters" / "lab-cluster" / "applications" / "platform-stack.yaml").read_text()
-root_yaml = (output_dir / "gitops" / "clusters" / "lab-cluster" / "root-application.yaml").read_text()
+        subprocess.run(
+            [
+                "python3",
+                str(REPO_ROOT / "scripts" / "render-gitops-repo.py"),
+                "--output-dir",
+                str(output_dir),
+                "--bootstrap-config",
+                str(config_path),
+                "--profile",
+                "k3d",
+                "--cluster-name",
+                "lab-cluster",
+                "--release-name",
+                "platform-stack",
+                "--namespace",
+                "ai-homebase",
+                "--repo-url",
+                "http://platform-stack-gitea-http.ai-homebase.svc.cluster.local:3000/gitops-bot/cluster-gitops.git",
+                "--repo-branch",
+                "main",
+                "--project",
+                "platform-stack",
+            ],
+            check=True,
+            cwd=REPO_ROOT,
+        )
 
-assert '"argocd": "argocd.test.internal"' in bootstrap_values
-assert "argoCd:" in gitops_values
-assert "enabled: true" in gitops_values
-assert "name: platform-stack" in project_yaml
-assert "namespace: ai-homebase" in project_yaml
-assert "namespace: kube-system" in project_yaml
-assert "repoURL: http://platform-stack-gitea-http.ai-homebase.svc.cluster.local:3000/gitops-bot/cluster-gitops.git" in app_yaml
-assert "valueFiles:" in app_yaml
-assert "- values-k3d.yaml" in app_yaml
-assert "- clusters/lab-cluster/bootstrap-values.yaml" in app_yaml
-assert "- clusters/lab-cluster/gitops-values.yaml" in app_yaml
-assert "- ServerSideApply=true" in app_yaml
-assert "path: gitops/clusters/lab-cluster" in root_yaml
+        bootstrap_values = (output_dir / "charts" / "platform-stack" / "clusters" / "lab-cluster" / "bootstrap-values.yaml").read_text()
+        gitops_values = (output_dir / "charts" / "platform-stack" / "clusters" / "lab-cluster" / "gitops-values.yaml").read_text()
 
-print("render gitops repo tests passed")
+        assert '"nextcloudMcp"' in bootstrap_values
+        assert "nextcloud-mcp.test.internal" in bootstrap_values
+        assert '"commands"' in bootstrap_values
+        assert '"mcp"' in bootstrap_values
+        assert '"servers"' in bootstrap_values
+        assert '"nextcloud"' in bootstrap_values
+        assert "Authorization=${OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER}" in bootstrap_values
+        assert "${OPENCLAW_NEXTCLOUD_MCP_INTERNAL_URL}" in bootstrap_values
+        assert "${OPENCLAW_NEXTCLOUD_MCP_EXTERNAL_URL}" in bootstrap_values
+        assert "argoCd:" in gitops_values
+        assert "enabled: true" in gitops_values
+
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

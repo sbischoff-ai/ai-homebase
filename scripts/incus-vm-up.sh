@@ -16,6 +16,7 @@ SSH_KEY_PATH="${SSH_KEY_PATH:-${STATE_DIR}/${VM_NAME}-id_ed25519}"
 HOST_ALIAS="${HOST_ALIAS:-host.k3d.internal}"
 VM_STATIC_IPV4="${VM_STATIC_IPV4:-}"
 HOST_LISTEN_ADDRESS="${HOST_LISTEN_ADDRESS:-}"
+RESOLVE_HOSTS=()
 INCUS_NETWORK_IPV4_CIDR="${INCUS_NETWORK_IPV4_CIDR:-}"
 INCUS_NETWORK_BRIDGE_IPV4="${INCUS_NETWORK_BRIDGE_IPV4:-}"
 INCUS_NETWORK_IPV4_NAT="${INCUS_NETWORK_IPV4_NAT:-}"
@@ -47,6 +48,7 @@ Options:
   --ssh-key-path <path>      SSH key path for remote Docker access (default: ${SSH_KEY_PATH})
   --host-alias <name>        Hostname pods should use for the proxied SSH endpoint (default: ${HOST_ALIAS})
   --host-listen-address <ip> Concrete Incus-host IPv4 for the NAT proxy listener (default: auto-detect from ${INCUS_NETWORK})
+  --resolve-host <name>      Guest/container hostname to resolve to the Incus host listener address (repeatable)
   --vm-static-ipv4 <ip>      Stable VM IPv4 for NAT proxying (default: auto-derive from ${INCUS_NETWORK})
   --ssh-ready-timeout-seconds <seconds>
                              Wait time for the VM SSH endpoint to become reachable (default: ${SSH_READY_TIMEOUT_SECONDS})
@@ -72,6 +74,7 @@ while [[ $# -gt 0 ]]; do
     --ssh-key-path) SSH_KEY_PATH="$2"; shift 2 ;;
     --host-alias) HOST_ALIAS="$2"; shift 2 ;;
     --host-listen-address) HOST_LISTEN_ADDRESS="$2"; shift 2 ;;
+    --resolve-host) RESOLVE_HOSTS+=("$2"); shift 2 ;;
     --vm-static-ipv4) VM_STATIC_IPV4="$2"; shift 2 ;;
     --ssh-ready-timeout-seconds) SSH_READY_TIMEOUT_SECONDS="$2"; shift 2 ;;
     --verbose) BOOTSTRAP_VERBOSE=1; shift ;;
@@ -220,6 +223,34 @@ if candidate == interface.ip:
 
 print(candidate)
 PY
+}
+
+normalize_resolve_hosts() {
+  local normalized=()
+  local candidate=""
+  local -A seen=()
+
+  if [[ -n "$HOST_ALIAS" ]]; then
+    RESOLVE_HOSTS+=("$HOST_ALIAS")
+  fi
+
+  for candidate in "${RESOLVE_HOSTS[@]}"; do
+    candidate="${candidate,,}"
+    candidate="${candidate#"${candidate%%[![:space:]]*}"}"
+    candidate="${candidate%"${candidate##*[![:space:]]}"}"
+    [[ -n "$candidate" ]] || continue
+    if [[ ! "$candidate" =~ ^[a-z0-9.-]+$ ]]; then
+      fail "Invalid --resolve-host value: ${candidate}. Expected a DNS hostname containing only [a-z0-9.-]."
+      exit 1
+    fi
+    if [[ -n "${seen[$candidate]:-}" ]]; then
+      continue
+    fi
+    seen[$candidate]=1
+    normalized+=("$candidate")
+  done
+
+  RESOLVE_HOSTS=("${normalized[@]}")
 }
 
 autodetect_network_addresses() {
@@ -508,7 +539,7 @@ render_cloud_init() {
   local rendered_path
   rendered_path="$(mktemp /tmp/${VM_NAME}-cloud-init.XXXXXX.yaml)"
 
-  python3 - "$template_path" "$rendered_path" "$VM_NAME" "$REMOTE_USER" "$SSH_KEY_PATH.pub" <<'PY'
+  python3 - "$template_path" "$rendered_path" "$VM_NAME" "$REMOTE_USER" "$SSH_KEY_PATH.pub" "$HOST_LISTEN_ADDRESS" "$VM_STATIC_IPV4" <<'PY'
 import pathlib
 import sys
 
@@ -517,13 +548,27 @@ rendered_path = pathlib.Path(sys.argv[2])
 vm_name = sys.argv[3]
 remote_user = sys.argv[4]
 ssh_pubkey_path = pathlib.Path(sys.argv[5])
+host_listen_address = sys.argv[6]
+vm_static_ipv4 = sys.argv[7]
 
 text = template_path.read_text()
 ssh_key = ssh_pubkey_path.read_text().strip()
+docker_daemon_json = """{
+  "features": {
+    "buildkit": true
+  },
+  "log-driver": "journald",
+  "dns": [
+    "%s"
+  ]
+}""" % vm_static_ipv4
 rendered = (text
     .replace("__VM_NAME__", vm_name)
     .replace("__REMOTE_USER__", remote_user)
-    .replace("__SSH_PUBLIC_KEY__", ssh_key))
+    .replace("__SSH_PUBLIC_KEY__", ssh_key)
+    .replace("__HOST_LISTEN_ADDRESS__", host_listen_address)
+    .replace("__VM_STATIC_IPV4__", vm_static_ipv4)
+    .replace("__DOCKER_DAEMON_JSON__", "\n".join(f"      {line}" for line in docker_daemon_json.splitlines())))
 rendered_path.write_text(rendered)
 PY
 
@@ -594,6 +639,86 @@ ensure_proxy_device() {
   fi
 }
 
+reconcile_guest_hostname_overrides() {
+  local temp_dir hosts_file dnsmasq_file docker_daemon_file hosts_script host_entry nameserver
+
+  if [[ ${#RESOLVE_HOSTS[@]} -eq 0 ]]; then
+    return 0
+  fi
+
+  temp_dir="$(mktemp -d /tmp/${VM_NAME}-host-overrides.XXXXXX)"
+  hosts_file="${temp_dir}/ai-homebase-hosts"
+  dnsmasq_file="${temp_dir}/ai-homebase-hosts.conf"
+  docker_daemon_file="${temp_dir}/daemon.json"
+  hosts_script="${temp_dir}/configure-hosts.sh"
+  trap 'rm -rf "${temp_dir:-}" "${CLOUD_INIT_FILE:-}" "${NETWORK_CONFIG_FILE:-}"' EXIT
+
+  : >"$hosts_file"
+  for host_entry in "${RESOLVE_HOSTS[@]}"; do
+    printf '%s %s\n' "$HOST_LISTEN_ADDRESS" "$host_entry" >>"$hosts_file"
+  done
+
+  cat >"$dnsmasq_file" <<EOF
+bind-interfaces
+listen-address=127.0.0.1,${VM_STATIC_IPV4}
+cache-size=1000
+EOF
+  for host_entry in "${RESOLVE_HOSTS[@]}"; do
+    printf 'address=/%s/%s\n' "$host_entry" "$HOST_LISTEN_ADDRESS" >>"$dnsmasq_file"
+  done
+  for nameserver in ${INCUS_NETWORK_DNS_NAMESERVERS//,/ }; do
+    [[ -n "$nameserver" && "$nameserver" != "none" ]] || continue
+    printf 'server=%s\n' "$nameserver" >>"$dnsmasq_file"
+  done
+  if ! grep -q '^server=' "$dnsmasq_file"; then
+    printf 'server=%s\n' "$INCUS_NETWORK_BRIDGE_IPV4" >>"$dnsmasq_file"
+  fi
+
+  cat >"$docker_daemon_file" <<EOF
+{
+  "features": {
+    "buildkit": true
+  },
+  "log-driver": "journald",
+  "dns": [
+    "${VM_STATIC_IPV4}"
+  ]
+}
+EOF
+
+  cat >"$hosts_script" <<'EOF'
+#!/bin/sh
+set -eu
+touch /etc/hosts
+while IFS= read -r entry; do
+  [ -n "$entry" ] || continue
+  if grep -Fqx "$entry" /etc/hosts; then
+    continue
+  fi
+  printf '%s\n' "$entry" >> /etc/hosts
+done < /etc/ai-homebase-hosts
+EOF
+
+  step "Reconciling guest hostname overrides for ${VM_NAME}"
+  run_checked incus exec "$VM_NAME" -- sh -ceu '
+    export DEBIAN_FRONTEND=noninteractive
+    if ! dpkg-query -W -f="${Status}" dnsmasq 2>/dev/null | grep -q "install ok installed"; then
+      apt-get update
+      apt-get install -y dnsmasq
+    fi
+  '
+  run_checked incus file push "$hosts_file" "${VM_NAME}/etc/ai-homebase-hosts"
+  run_checked incus file push "$dnsmasq_file" "${VM_NAME}/etc/dnsmasq.d/ai-homebase-hosts.conf"
+  run_checked incus file push "$docker_daemon_file" "${VM_NAME}/etc/docker/daemon.json"
+  run_checked incus file push "$hosts_script" "${VM_NAME}/usr/local/bin/ai-homebase-configure-hosts.sh"
+  run_checked incus exec "$VM_NAME" -- chmod 0755 /usr/local/bin/ai-homebase-configure-hosts.sh
+  run_checked incus exec "$VM_NAME" -- /usr/local/bin/ai-homebase-configure-hosts.sh
+  run_checked incus exec "$VM_NAME" -- systemctl enable dnsmasq
+  run_checked incus exec "$VM_NAME" -- systemctl restart dnsmasq
+  run_checked incus exec "$VM_NAME" -- systemctl restart docker.service
+  ok "Guest hostname overrides reconciled for ${VM_NAME}"
+}
+
 ensure_vm_static_ip() {
   if instance_has_local_device eth0; then
     run_checked incus config device set "$VM_NAME" eth0 ipv4.address "$VM_STATIC_IPV4"
@@ -627,6 +752,7 @@ EOF
 ensure_ssh_key
 autodetect_network_addresses
 validate_network_dns_strategy
+normalize_resolve_hosts
 CLOUD_INIT_FILE="$(render_cloud_init)"
 NETWORK_CONFIG_FILE=""
 trap 'rm -f "${CLOUD_INIT_FILE:-}" "${NETWORK_CONFIG_FILE:-}"' EXIT
@@ -674,6 +800,7 @@ else
 fi
 
 write_connection_info
+reconcile_guest_hostname_overrides
 
 guest_ipv4_display="${VM_IPV4:-${VM_STATIC_IPV4}}"
 
