@@ -6,6 +6,7 @@ global:
   hosts:
     openclaw: openclaw.localtest.me
     nextcloud: nextcloud.localtest.me
+    nextcloudMcp: nextcloud-mcp.localtest.me
     gitea: gitea.localtest.me
     argocd: argocd.localtest.me
     vaultwarden: vaultwarden.localtest.me
@@ -55,7 +56,10 @@ openclaw:
     xaiApiKey: ""
     googleApiKey: ""
     braveSearchApiKey: ""
-  secretRefs: []
+  secretRefs:
+    - name: openclaw-nextcloud-mcp-secrets
+      key: OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER
+      envVar: OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER
   openclaw:
     gateway:
       controlUi:
@@ -63,6 +67,17 @@ openclaw:
           - https://openclaw.localtest.me
       trustedProxies:
         - 10.42.0.0/16
+    mcp:
+      servers:
+        nextcloud:
+          args:
+            - /home/node/.openclaw/workspace/mcp-http-bridge.mjs
+            - --url
+            - ${OPENCLAW_NEXTCLOUD_MCP_INTERNAL_URL}
+            - --url
+            - ${OPENCLAW_NEXTCLOUD_MCP_EXTERNAL_URL}
+            - --header
+            - Authorization=${OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER}
 
 
 nextcloud:
@@ -82,6 +97,21 @@ nextcloud:
     enabled: true
     size: 10Gi
     storageClass: local-path
+
+nextcloudMcp:
+  enabled: true
+  ingress:
+    enabled: true
+    className: nginx
+    hosts:
+      - host: nextcloud-mcp.localtest.me
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: nextcloud-mcp-tls
+        hosts:
+          - nextcloud-mcp.localtest.me
 
 argoCd:
   enabled: false

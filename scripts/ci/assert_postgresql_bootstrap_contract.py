@@ -43,7 +43,7 @@ def main() -> None:
 
     require(platform_values, "bootstrap:", context="charts/platform-stack/values.yaml")
     require(platform_values, 'tag: "17.5-alpine"', context="charts/platform-stack/values.yaml")
-    require(platform_values, 'scriptsSecret: ""', context="charts/platform-stack/values.yaml")
+    require(platform_values, "scriptsSecret: shared-postgresql-initdb", context="charts/platform-stack/values.yaml")
     require(gitea_values, "preExtraInitContainers:", context="charts/gitea/values.yaml")
     require(gitea_values, "wait-for-shared-postgresql-bootstrap", context="charts/gitea/values.yaml")
     require(vaultwarden_template, "wait-for-shared-postgresql-bootstrap", context="charts/vaultwarden/templates/deployment.yaml")
@@ -62,7 +62,7 @@ def main() -> None:
     require(bootstrap_template, 'restartPolicy: Never', context="charts/platform-stack/templates/shared-postgresql-bootstrap-job.yaml")
     require(bootstrap_template, 'terminationMessagePolicy: FallbackToLogsOnError', context="charts/platform-stack/templates/shared-postgresql-bootstrap-job.yaml")
 
-    forbid(bootstrap_script, "create_and_apply_secret shared-postgresql-initdb", context="scripts/bootstrap-secrets.sh")
+    require(bootstrap_script, "create_and_apply_secret shared-postgresql-initdb", context="scripts/bootstrap-secrets.sh")
     forbid(bootstrap_script, "reconcile_gitea_postgres_live", context="scripts/bootstrap-secrets.sh")
     require(
         bootstrap_script,
@@ -76,6 +76,7 @@ def main() -> None:
         context="scripts/bootstrap-secrets.sh",
     )
     require(bootstrap_script, '--from-literal=PAPERLESS_DB_PASSWORD="${PAPERLESS_DB_PASSWORD}"', context="scripts/bootstrap-secrets.sh")
+    require(bootstrap_script, "10-app-databases.sql", context="scripts/bootstrap-secrets.sh")
 
     rendered_disabled = render(
         BASE_VALUES,
@@ -92,6 +93,7 @@ def main() -> None:
     rendered_k3d = render(BASE_VALUES, K3D_VALUES)
     require(rendered_k3d, "kind: Job", context="rendered k3d manifests")
     require(rendered_k3d, "name: platform-stack-shared-postgresql-bootstrap", context="rendered k3d manifests")
+    require(rendered_k3d, "secretName: shared-postgresql-initdb", context="rendered k3d manifests")
     require(rendered_k3d, "wait-for-shared-postgresql-bootstrap", context="rendered k3d manifests")
     require(rendered_k3d, "VAULTWARDEN_DB_PASSWORD", context="rendered k3d manifests")
     require(rendered_k3d, "PAPERLESS_DB_PASSWORD", context="rendered k3d manifests")

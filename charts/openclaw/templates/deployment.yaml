@@ -7,8 +7,15 @@
 {{- $remoteDockerEnabled := .Values.remoteDocker.enabled | default false }}
 {{- $remoteDockerCliEnabled := and $remoteDockerEnabled (.Values.remoteDocker.cli.enabled | default true) }}
 {{- $persistentConfigEnabled := and .Values.config.enabled .Values.persistence.enabled }}
-{{- $configPath := ternary (printf "%s/openclaw.json" (trimSuffix "/" .Values.persistence.mountPath)) "/etc/openclaw/openclaw.json" $persistentConfigEnabled }}
+{{- $persistentMountPath := trimSuffix "/" .Values.persistence.mountPath }}
+{{- $configPath := ternary (printf "%s/openclaw.json" $persistentMountPath) "/etc/openclaw/openclaw.json" $persistentConfigEnabled }}
+{{- $launcherPath := .Values.config.launcher.path | default "/home/node/.openclaw/workspace/mcp-http-bridge.mjs" }}
+{{- $persistentLauncherPath := replace (printf "%s/" $persistentMountPath) "/config-target-root/" $launcherPath }}
 {{- $remoteDockerCliInstallPath := .Values.remoteDocker.cli.installPath | default "/opt/openclaw-tools/bin" }}
+{{- $nextcloudMcpHost := .Values.global.hosts.nextcloudMcp | default "" }}
+{{- $nextcloudMcpExternalScheme := ternary "http" "https" (hasSuffix ".localtest.me" $nextcloudMcpHost) }}
+{{- $nextcloudMcpExternalUrl := ternary (printf "%s://%s/mcp" $nextcloudMcpExternalScheme $nextcloudMcpHost) "" (ne $nextcloudMcpHost "") }}
+{{- $nextcloudMcpInternalUrl := printf "http://%s-nextcloud-mcp.%s.svc.cluster.local:8000/mcp" .Release.Name .Release.Namespace }}
 {{- if and (eq $gatewayAuthMode "token") (not .Values.existingSecret) }}
 {{- fail "openclaw.existingSecret is required when openclaw.gateway.auth.mode=token" }}
 {{- end }}
@@ -91,6 +98,8 @@ spec:
               set -eu
               target_dir={{ ternary "/config-target-root" "/config-target" $persistentConfigEnabled | quote }}
               target_file="${target_dir}/openclaw.json"
+              launcher_source=/config-source/mcp-http-bridge.mjs
+              launcher_target={{ ternary $persistentLauncherPath $launcherPath $persistentConfigEnabled | quote }}
               mkdir -p "${target_dir}"
               if [ ! -s /config-source/openclaw.json ]; then
                 echo >&2 "Rendered ConfigMap file /config-source/openclaw.json is missing or empty; verify the openclaw ConfigMap rendered correctly before deployment."
@@ -98,35 +107,35 @@ spec:
               fi
               if [ -s "${target_file}" ]; then
                 echo "Preserving existing OpenClaw config at ${target_file}."
-                exit 0
+              else
+                cp -f /config-source/openclaw.json "${target_file}" || {
+                  echo >&2 "Failed to bootstrap ${target_file} from /config-source/openclaw.json; verify the writable config target volume is mounted and accessible to the init container."
+                  exit 1
+                }
               fi
-              cp -f /config-source/openclaw.json "${target_file}" || {
-                echo >&2 "Failed to bootstrap ${target_file} from /config-source/openclaw.json; verify the writable config target volume is mounted and accessible to the init container."
-                exit 1
-              }
-              chmod 0755 "${target_dir}" || {
-                echo >&2 "Failed to set mode 0755 on ${target_dir} before handing it to the main container."
-                exit 1
-              }
-              chmod 0644 "${target_file}" || {
-                echo >&2 "Failed to set mode 0644 on ${target_file} after bootstrapping the rendered config."
-                exit 1
-              }
-              chown -R 1000:1000 "${target_dir}" || {
-                echo >&2 "Failed to hand ${target_dir} to UID/GID 1000 after bootstrapping the rendered config."
-                exit 1
-              }
+              if [ -s "${launcher_source}" ]; then
+                mkdir -p "$(dirname "${launcher_target}")" || {
+                  echo >&2 "Failed to create launcher target directory for ${launcher_target}."
+                  exit 1
+                }
+                if [ ! -s "${launcher_target}" ]; then
+                  cp -f "${launcher_source}" "${launcher_target}" || {
+                    echo >&2 "Failed to bootstrap ${launcher_target} from ${launcher_source}."
+                    exit 1
+                  }
+                else
+                  echo "Preserving existing MCP bridge at ${launcher_target}."
+                fi
+              fi
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
-            runAsNonRoot: false
-            runAsUser: 0
-            runAsGroup: 0
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
             capabilities:
               drop:
                 - ALL
-              add:
-                - CHOWN
           volumeMounts:
             - name: config-source
               mountPath: /config-source
@@ -307,6 +316,10 @@ spec:
               value: {{ $configPath | quote }}
             - name: OPENCLAW_SANDBOX
               value: {{ ternary "1" "0" (ne (toString $sandboxMode) "off") | quote }}
+            - name: OPENCLAW_NEXTCLOUD_MCP_INTERNAL_URL
+              value: {{ $nextcloudMcpInternalUrl | quote }}
+            - name: OPENCLAW_NEXTCLOUD_MCP_EXTERNAL_URL
+              value: {{ $nextcloudMcpExternalUrl | quote }}
             {{- if $remoteDockerEnabled }}
             - name: DOCKER_HOST
               value: {{ .Values.remoteDocker.dockerHost | quote }}
@@ -466,6 +479,12 @@ spec:
             - name: config
               mountPath: /etc/openclaw
             {{- end }}
+            {{- if and .Values.config.enabled (.Values.config.launcher.enabled | default true) (not $persistentConfigEnabled) }}
+            - name: config-source
+              mountPath: {{ $launcherPath }}
+              subPath: mcp-http-bridge.mjs
+              readOnly: true
+            {{- end }}
             {{- if $remoteDockerEnabled }}
             {{- if $remoteDockerCliEnabled }}
             - name: remote-docker-cli
@@ -495,6 +514,8 @@ spec:
             items:
               - key: openclaw.json
                 path: openclaw.json
+              - key: mcp-http-bridge.mjs
+                path: mcp-http-bridge.mjs
         {{- if not $persistentConfigEnabled }}
         - name: config
           emptyDir: {}

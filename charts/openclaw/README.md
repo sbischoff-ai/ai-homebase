@@ -85,7 +85,7 @@ It is **not intended to be a hostile multi-tenant shared service**.
 
 ## Sandbox configuration
 
-The chart renders `agents.defaults.sandbox.*` plus `plugins.*` into `openclaw.json`. The shipped defaults set up Docker sandboxing with explicit `backend: "docker"` plus `docker.*` and `browser.*` fields, including `browser.cdpSourceRange` for remote browser access control, and keep `remoteDocker.enabled=true` so the Deployment exports `DOCKER_HOST`/`HOME`, prepares an SSH directory at `remoteDocker.ssh.mountPath`, and mounts the referenced Secret for the standard remote Docker path.
+The chart renders `commands.*`, `agents.defaults.sandbox.*`, `agents.defaults.mcp.*`, and `plugins.*` into `openclaw.json`. The shipped defaults set up Docker sandboxing with explicit `backend: "docker"` plus `docker.*` and `browser.*` fields, include a local `node` launcher that bridges stdio MCP traffic to a remote HTTP MCP endpoint, and keep `remoteDocker.enabled=true` so the Deployment exports `DOCKER_HOST`/`HOME`, prepares an SSH directory at `remoteDocker.ssh.mountPath`, and mounts the referenced Secret for the standard remote Docker path.
 
 Remote Docker mode now installs the Docker CLI into the pod via the `remoteDocker.cli.*` init-container flow. The main OpenClaw image still needs an SSH client because Docker's `ssh://` transport shells out to `ssh`.
 

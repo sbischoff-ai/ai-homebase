@@ -24,13 +24,14 @@ VAULTWARDEN_DB_PASSWORD=""
 VAULTWARDEN_ADMIN_TOKEN=""
 NEXTCLOUD_DB_PASSWORD=""
 NEXTCLOUD_ADMIN_PASSWORD=""
+OPENCLAW_NEXTCLOUD_MCP_PASSWORD=""
 PAPERLESS_DB_PASSWORD=""
 PAPERLESS_ADMIN_PASSWORD=""
 PAPERLESS_ADMIN_USER=""
 PAPERLESS_ADMIN_MAIL=""
 PAPERLESS_SECRET_KEY=""
 REMOTE_DOCKER_SECRET_NAME="${REMOTE_DOCKER_SECRET_NAME:-openclaw-remote-docker-ssh}"
-REMOTE_DOCKER_HOST="${REMOTE_DOCKER_HOST:-host.k3d.internal}"
+REMOTE_DOCKER_HOST="${REMOTE_DOCKER_HOST:-}"
 REMOTE_DOCKER_PORT="${REMOTE_DOCKER_PORT:-2222}"
 REMOTE_DOCKER_KEY_PATH="${REMOTE_DOCKER_KEY_PATH:-${HOME}/.local/state/ai-homebase/incus/openclaw-sandbox-id_ed25519}"
 POSTGRES_ADMIN_PASSWORD=""
@@ -87,6 +88,13 @@ case "$PROFILE" in
   k3d|k3s) ;;
   *) echo "Missing or unsupported --profile. Use k3d or k3s." >&2; usage; exit 1 ;;
 esac
+
+if [[ -z "$REMOTE_DOCKER_HOST" ]]; then
+  case "$PROFILE" in
+    k3d) REMOTE_DOCKER_HOST="host.k3d.internal" ;;
+    k3s) REMOTE_DOCKER_HOST="openclaw-sandbox.homebase.internal" ;;
+  esac
+fi
 
 bootstrap_init_logging
 trap 'fail "Bootstrap secrets generation failed. Log: ${BOOTSTRAP_LOG_FILE}"' ERR
@@ -287,11 +295,50 @@ VAULTWARDEN_DB_PASSWORD="$(resolve_from_existing_secret_or_generate "$VAULTWARDE
 VAULTWARDEN_ADMIN_TOKEN="$(resolve_from_existing_secret_or_empty "$VAULTWARDEN_ADMIN_TOKEN" vaultwarden-config-secrets '{.data.ADMIN_TOKEN}')"
 NEXTCLOUD_DB_PASSWORD="$(resolve_from_existing_secret_or_generate "$NEXTCLOUD_DB_PASSWORD" nextcloud-config-secrets '{.data.POSTGRES_PASSWORD}')"
 NEXTCLOUD_ADMIN_PASSWORD="$(resolve_from_existing_secret_or_generate "$NEXTCLOUD_ADMIN_PASSWORD" nextcloud-config-secrets '{.data.NEXTCLOUD_ADMIN_PASSWORD}')"
+OPENCLAW_NEXTCLOUD_MCP_PASSWORD="$(resolve_from_existing_secret_or_generate "$OPENCLAW_NEXTCLOUD_MCP_PASSWORD" openclaw-nextcloud-mcp-secrets '{.data.NEXTCLOUD_PASSWORD}')"
 PAPERLESS_DB_PASSWORD="$(resolve_from_existing_secret_or_generate "$PAPERLESS_DB_PASSWORD" paperless-config-secrets '{.data.PAPERLESS_DB_PASSWORD}')"
 PAPERLESS_ADMIN_PASSWORD="$(resolve_from_existing_secret_or_generate "$PAPERLESS_ADMIN_PASSWORD" paperless-config-secrets '{.data.PAPERLESS_ADMIN_PASSWORD}')"
 PAPERLESS_SECRET_KEY="$(resolve_paperless_secret_key)"
 GITEA_REDIS_URI="redis://:${REDIS_PASSWORD}@platform-stack-shared-redis:6379/0?pool_size=100&idle_timeout=180s"
 PAPERLESS_REDIS_URI="redis://:${REDIS_PASSWORD}@platform-stack-shared-redis:6379/0"
+
+SHARED_POSTGRESQL_INITDB_SQL="$(mktemp /tmp/ai-homebase-shared-postgresql-initdb.XXXXXX.sql)"
+cat >"$SHARED_POSTGRESQL_INITDB_SQL" <<EOF
+SELECT format('CREATE ROLE gitea LOGIN PASSWORD %L', '${GITEA_DB_PASSWORD}')
+WHERE NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'gitea')\gexec
+SELECT format('ALTER ROLE gitea WITH LOGIN PASSWORD %L', '${GITEA_DB_PASSWORD}')
+WHERE EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'gitea')\gexec
+SELECT 'CREATE DATABASE gitea OWNER gitea'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'gitea')\gexec
+ALTER DATABASE gitea OWNER TO gitea;
+
+SELECT format('CREATE ROLE vaultwarden LOGIN PASSWORD %L', '${VAULTWARDEN_DB_PASSWORD}')
+WHERE NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'vaultwarden')\gexec
+SELECT format('ALTER ROLE vaultwarden WITH LOGIN PASSWORD %L', '${VAULTWARDEN_DB_PASSWORD}')
+WHERE EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'vaultwarden')\gexec
+SELECT 'CREATE DATABASE vaultwarden OWNER vaultwarden'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'vaultwarden')\gexec
+ALTER DATABASE vaultwarden OWNER TO vaultwarden;
+
+SELECT format('CREATE ROLE nextcloud LOGIN PASSWORD %L', '${NEXTCLOUD_DB_PASSWORD}')
+WHERE NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'nextcloud')\gexec
+SELECT format('ALTER ROLE nextcloud WITH LOGIN PASSWORD %L', '${NEXTCLOUD_DB_PASSWORD}')
+WHERE EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'nextcloud')\gexec
+SELECT 'CREATE DATABASE nextcloud OWNER nextcloud'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'nextcloud')\gexec
+ALTER DATABASE nextcloud OWNER TO nextcloud;
+
+SELECT format('CREATE ROLE paperless LOGIN PASSWORD %L', '${PAPERLESS_DB_PASSWORD}')
+WHERE NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'paperless')\gexec
+SELECT format('ALTER ROLE paperless WITH LOGIN PASSWORD %L', '${PAPERLESS_DB_PASSWORD}')
+WHERE EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'paperless')\gexec
+SELECT 'CREATE DATABASE paperless OWNER paperless'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'paperless')\gexec
+ALTER DATABASE paperless OWNER TO paperless;
+EOF
+create_and_apply_secret shared-postgresql-initdb \
+  --from-file=10-app-databases.sql="${SHARED_POSTGRESQL_INITDB_SQL}"
+rm -f "$SHARED_POSTGRESQL_INITDB_SQL"
 
 create_and_apply_secret gitea-config-secrets \
   --from-literal=GITEA__database__PASSWD="${GITEA_DB_PASSWORD}" \
@@ -319,6 +366,12 @@ create_and_apply_secret nextcloud-config-secrets \
   --from-literal=NEXTCLOUD_ADMIN_PASSWORD="${NEXTCLOUD_ADMIN_PASSWORD}" \
   --from-literal=POSTGRES_PASSWORD="${NEXTCLOUD_DB_PASSWORD}" \
   --from-literal=REDIS_HOST_PASSWORD="${REDIS_PASSWORD}"
+
+OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER="Basic $(printf 'openclaw-mcp:%s' "${OPENCLAW_NEXTCLOUD_MCP_PASSWORD}" | base64 | tr -d '\n')"
+create_and_apply_secret openclaw-nextcloud-mcp-secrets \
+  --from-literal=NEXTCLOUD_USERNAME="openclaw-mcp" \
+  --from-literal=NEXTCLOUD_PASSWORD="${OPENCLAW_NEXTCLOUD_MCP_PASSWORD}" \
+  --from-literal=OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER="${OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER}"
 
 create_and_apply_secret paperless-config-secrets \
   --from-literal=PAPERLESS_SECRET_KEY="${PAPERLESS_SECRET_KEY}" \

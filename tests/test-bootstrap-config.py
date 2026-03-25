@@ -27,6 +27,7 @@ brave_api_key = "test-brave-key"
 [hosts]
 openclaw = "openclaw.test.internal"
 nextcloud = "nextcloud.test.internal"
+nextcloud_mcp = "nextcloud-mcp.test.internal"
 nextcloud_public = "nextcloud.example.com"
 gitea = "gitea.test.internal"
 argocd = "argocd.test.internal"
@@ -54,6 +55,7 @@ password = "argocd-admin-password"
 
 [secrets]
 vaultwarden_admin_token = "vaultwarden-admin-token"
+openclaw_nextcloud_mcp_password = "nextcloud-mcp-password"
 
 [gitops]
 cluster_name = "lab-cluster"
@@ -84,6 +86,7 @@ assert "BRAVE_API_KEY=test-brave-key" in shell_vars
 assert "OPENCLAW_DEFAULT_MODEL=openai/gpt-5.2" in shell_vars
 assert "GITEA_ADMIN_EMAIL=git@example.invalid" in shell_vars
 assert "NEXTCLOUD_ADMIN_USER=test-admin" in shell_vars
+assert "NEXTCLOUD_MCP_HOST=nextcloud-mcp.test.internal" in shell_vars
 assert "PAPERLESS_ADMIN_MAIL=admin@example.invalid" in shell_vars
 assert "OPENCLAW_HOST=openclaw.test.internal" in shell_vars
 assert "NEXTCLOUD_PUBLIC_HOST=nextcloud.example.com" in shell_vars
@@ -93,6 +96,7 @@ assert "MAIL_DOMAIN=example.com" in shell_vars
 assert "MAIL_SMTP_HOST=smtp.example.com" in shell_vars
 assert "MAIL_FROM_LOCALPART=noreply" in shell_vars
 assert "VAULTWARDEN_ADMIN_TOKEN=vaultwarden-admin-token" in shell_vars
+assert "OPENCLAW_NEXTCLOUD_MCP_PASSWORD=nextcloud-mcp-password" in shell_vars
 assert "ARGOCD_ADMIN_USER=admin" in shell_vars
 assert "ARGOCD_ADMIN_PASSWORD=argocd-admin-password" in shell_vars
 assert "GITOPS_CLUSTER_NAME=lab-cluster" in shell_vars
@@ -115,15 +119,27 @@ assert rendered_values["gitea"]["gitea"]["gitea"]["admin"]["existingSecret"] == 
 assert rendered_values["gitea"]["gitea"]["ingress"]["hosts"][0]["host"] == "gitea.test.internal"
 assert rendered_values["argoCd"]["argocd"]["server"]["ingress"]["hostname"] == "argocd.test.internal"
 assert rendered_values["nextcloud"]["admin"]["user"] == "test-admin"
+assert rendered_values["nextcloud"]["bootstrapUsers"][0]["username"] == "openclaw-mcp"
 assert rendered_values["nextcloud"]["ingress"]["private"]["host"] == "nextcloud.test.internal"
 assert rendered_values["nextcloud"]["ingress"]["public"]["host"] == "nextcloud.example.com"
 assert rendered_values["nextcloud"]["smtp"]["host"] == "platform-stack-postfix-relay"
 assert rendered_values["nextcloud"]["smtp"]["domain"] == "example.com"
-assert rendered_values["nextcloud"]["trustedDomains"] == ["nextcloud.test.internal", "nextcloud.example.com"]
+assert rendered_values["nextcloud"]["trustedDomains"] == [
+    "nextcloud.test.internal",
+    "nextcloud.example.com",
+    "platform-stack-nextcloud",
+    "platform-stack-nextcloud.ai-homebase.svc",
+    "platform-stack-nextcloud.ai-homebase.svc.cluster.local",
+]
 assert rendered_values["vaultwarden"]["existingSecret"] == "vaultwarden-config-secrets"
 assert rendered_values["vaultwarden"]["ingress"]["hosts"][0]["host"] == "vaultwarden.test.internal"
 assert rendered_values["vaultwarden"]["ingress"]["tls"][0]["secretName"] == "vaultwarden-tls"
 assert rendered_values["vaultwarden"]["smtp"]["from"] == "noreply@example.com"
+assert rendered_values["nextcloudMcp"]["ingress"]["hosts"][0]["host"] == "nextcloud-mcp.test.internal"
+assert rendered_values["openclaw"]["openclaw"]["commands"]["mcp"] is True
+assert rendered_values["openclaw"]["openclaw"]["mcp"]["servers"]["nextcloud"]["args"][0] == "/home/node/.openclaw/workspace/mcp-http-bridge.mjs"
+assert rendered_values["openclaw"]["openclaw"]["mcp"]["servers"]["nextcloud"]["args"][2] == "${OPENCLAW_NEXTCLOUD_MCP_INTERNAL_URL}"
+assert rendered_values["openclaw"]["openclaw"]["mcp"]["servers"]["nextcloud"]["args"][4] == "${OPENCLAW_NEXTCLOUD_MCP_EXTERNAL_URL}"
 assert rendered_values["paperlessNgx"]["admin"]["mail"] == "admin@example.invalid"
 assert rendered_values["paperlessNgx"]["ingress"]["hosts"][0]["host"] == "paperless.test.internal"
 assert rendered_values["global"]["mail"]["smtpHost"] == "smtp.example.com"
@@ -198,5 +214,42 @@ rendered_values = json.loads(
 )
 assert rendered_values["argoCd"]["argocd"]["configs"]["cm"]["accounts.operator-admin"] == "apiKey, login"
 assert rendered_values["argoCd"]["argocd"]["configs"]["rbac"]["policy.csv"] == "g, operator-admin, role:admin"
+
+blank_service_admin_override_config = write_config(
+    """
+[providers]
+openai_api_key = "test-openai-key"
+
+[mail]
+domain = "example.com"
+smtp_host = "smtp.example.com"
+
+[admin]
+username = "fallback-admin"
+email = "fallback@example.invalid"
+password = "fallback-password"
+
+[services.nextcloud.admin]
+user = ""
+password = ""
+
+[services.paperless.admin]
+user = ""
+mail = ""
+password = ""
+"""
+)
+
+shell_vars = subprocess.run(
+    ["python3", str(SCRIPT), "shell-vars", "--config", str(blank_service_admin_override_config)],
+    check=True,
+    capture_output=True,
+    text=True,
+).stdout
+assert "NEXTCLOUD_ADMIN_USER=fallback-admin" in shell_vars
+assert "NEXTCLOUD_ADMIN_PASSWORD=fallback-password" in shell_vars
+assert "PAPERLESS_ADMIN_USER=fallback-admin" in shell_vars
+assert "PAPERLESS_ADMIN_MAIL=fallback@example.invalid" in shell_vars
+assert "PAPERLESS_ADMIN_PASSWORD=fallback-password" in shell_vars
 
 print("bootstrap config tests passed")

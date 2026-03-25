@@ -35,8 +35,13 @@ spec:
               imagePullPolicy: {{ .Values.image.pullPolicy }}
               command:
                 - /bin/sh
-                - -c
-                - php -f /var/www/html/cron.php
+                - -ceu
+                - |
+                  if ! su -s /bin/sh www-data -c 'cd /var/www/html && php occ status --output=json 2>/dev/null | grep -q "\"installed\":true"'; then
+                    echo "skipping cron: nextcloud not installed yet"
+                    exit 0
+                  fi
+                  php -f /var/www/html/cron.php
               env:
                 - name: POSTGRES_HOST
                   value: {{ .Values.externalDatabase.host | quote }}

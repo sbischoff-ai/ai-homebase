@@ -16,6 +16,7 @@ global:
   domain: ""
   hosts:
     openclaw: ""
+    nextcloudMcp: ""
   commonLabels: {}
   podAnnotations: {}
   nodeSelector: {}
@@ -64,6 +65,9 @@ persistence:
 
 config:
   enabled: true
+  launcher:
+    enabled: true
+    path: /home/node/.openclaw/workspace/mcp-http-bridge.mjs
 
 remoteDocker:
   enabled: true
@@ -129,6 +133,20 @@ openclaw:
       - id: default
         name: OpenClaw Assistant
         workspace: /home/node/.openclaw/workspace
+  commands:
+    mcp: true
+  mcp:
+    servers:
+      nextcloud:
+        command: node
+        args:
+          - /home/node/.openclaw/workspace/mcp-http-bridge.mjs
+          - --url
+          - ${OPENCLAW_NEXTCLOUD_MCP_INTERNAL_URL}
+          - --url
+          - ${OPENCLAW_NEXTCLOUD_MCP_EXTERNAL_URL}
+          - --header
+          - Authorization=${OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER}
   plugins:
     entries: {}
 

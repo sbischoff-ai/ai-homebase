@@ -20,7 +20,11 @@ trap 'rm -rf "${sandbox_dir}"' EXIT
 repo_dir="${sandbox_dir}/repo"
 mkdir -p "${repo_dir}/scripts" "${repo_dir}/charts/platform-stack"
 cp "${REPO_ROOT}/scripts/install.sh" "${repo_dir}/scripts/install.sh"
+cp "${REPO_ROOT}/scripts/bootstrap-stack.sh" "${repo_dir}/scripts/bootstrap-stack.sh"
+cp "${REPO_ROOT}/scripts/bootstrap-config.py" "${repo_dir}/scripts/bootstrap-config.py"
 chmod +x "${repo_dir}/scripts/install.sh"
+chmod +x "${repo_dir}/scripts/bootstrap-stack.sh"
+chmod +x "${repo_dir}/scripts/bootstrap-config.py"
 
 cat >"${repo_dir}/charts/platform-stack/values.yaml" <<'EOF'
 openclaw:

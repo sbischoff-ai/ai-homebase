@@ -93,17 +93,16 @@ python3 scripts/ci/assert_postgresql_bootstrap_contract.py
 scripts/ci/check_golden.sh
 ```
 
-## Install wrappers
+## Bootstrap flows
 
 ```bash
 python3 scripts/bootstrap-config.py validate --config bootstrap.local.toml
-./scripts/bootstrap-stack.sh --profile k3d --bootstrap-config bootstrap.local.toml
+./scripts/k3d-local-bootstrap.sh --cluster-name ai-homebase-dev --bootstrap-config bootstrap.local.toml
 ./scripts/bootstrap-gitops.sh --profile k3d --bootstrap-config bootstrap.local.toml
 sudo ./scripts/install-k3s-ubuntu-2404.sh
+./scripts/k3s-homelab-sandbox-up.sh --bootstrap-config bootstrap.local.toml
 ./scripts/bootstrap-stack.sh --profile k3s --bootstrap-config bootstrap.local.toml
 ./scripts/bootstrap-gitops.sh --profile k3s --bootstrap-config bootstrap.local.toml
-./scripts/install-k3d.sh
-./scripts/install-k3s.sh
 ```
 
 ## Local bootstrap and Incus sandbox helpers
@@ -141,4 +140,5 @@ source ~/.local/state/ai-homebase/incus/openclaw-sandbox.env
 
 ```bash
 sudo ./scripts/install-k3s-ubuntu-2404.sh
+./scripts/k3s-homelab-sandbox-up.sh --bootstrap-config bootstrap.local.toml
 ```

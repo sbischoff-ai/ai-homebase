@@ -10,7 +10,7 @@ Use this page when the concise workflow in [`docs/deployment-k3d.md`](./deployme
 - The local bootstrap disables the default k3s Traefik add-on during cluster creation so Helm-managed `ingress-nginx` is the single intended HTTP/HTTPS ingress controller.
 - `scripts/k3d-up.sh` pins `rancher/k3s:v1.32.11-k3s1` by default so the local cluster is new enough for the repository's current cert-manager CRDs.
 - `k3d` still uses Docker to run the local cluster node containers.
-- After the cluster and Incus VM are ready, the local workflow hands off to the same `./scripts/bootstrap-stack.sh --profile k3d` secret/bootstrap install path that mirrors the `k3s` bootstrap flow.
+- After the cluster and Incus VM are ready, the local workflow hands off to the same `./scripts/bootstrap-stack.sh --profile k3d` secret/bootstrap/apply path that mirrors the `k3s` bootstrap flow.
 
 ### OpenClaw sandbox behavior
 
@@ -47,6 +47,8 @@ Use this page when the concise workflow in [`docs/deployment-k3d.md`](./deployme
 
 - `*.localtest.me` usually resolves to `127.0.0.1`, but some hosts still need explicit local host entries.
 - When hostname resolution is wrong, browser access failures can look like an ingress or Helm problem even though the cluster is healthy.
+- `scripts/incus-vm-up.sh` now reconciles a small `dnsmasq` configuration inside the Incus VM and points Docker container DNS at that guest-local resolver. That makes the configured Nextcloud MCP ingress hostname resolve to the Incus host listener address from inside both the VM and its Docker containers.
+- Host `/etc/hosts` alone does not solve container-side DNS inside the remote Docker VM; the VM-side DNS override is the supported fix.
 
 ## Networking internals
 

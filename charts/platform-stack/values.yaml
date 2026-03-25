@@ -11,6 +11,7 @@ global:
   hosts:
     openclaw: openclaw.homebase.local
     nextcloud: cloud.homebase.local
+    nextcloudMcp: nextcloud-mcp.homebase.local
     gitea: gitea.vpn.homebase.internal
     argocd: argocd.vpn.homebase.internal
     vaultwarden: vaultwarden.homebase.local
@@ -132,16 +133,30 @@ openclaw:
             memorySwap: 2g
             cpus: 1
             network: bridge
-          browser:
-            enabled: true
-            image: openclaw-sandbox-browser:bookworm-slim
-            network: bridge
-            cdpPort: 9222
-            vncPort: 5900
-            noVncPort: 6080
-            headless: false
-            enableNoVnc: true
-            cdpSourceRange: ""
+        browser:
+          enabled: true
+          image: openclaw-sandbox-browser:bookworm-slim
+          network: bridge
+          cdpPort: 9222
+          vncPort: 5900
+          noVncPort: 6080
+          headless: false
+          enableNoVnc: true
+          cdpSourceRange: ""
+    commands:
+      mcp: true
+    mcp:
+      servers:
+        nextcloud:
+        command: node
+        args:
+          - /home/node/.openclaw/workspace/mcp-http-bridge.mjs
+          - --url
+          - ${OPENCLAW_NEXTCLOUD_MCP_INTERNAL_URL}
+            - --url
+            - ${OPENCLAW_NEXTCLOUD_MCP_EXTERNAL_URL}
+            - --header
+            - Authorization=${OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER}
     plugins:
       entries: {}
   podDisruptionBudget:
@@ -170,7 +185,10 @@ openclaw:
     xaiApiKey: ""
     googleApiKey: ""
     braveSearchApiKey: ""
-  secretRefs: []
+  secretRefs:
+    - name: openclaw-nextcloud-mcp-secrets
+      key: OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER
+      envVar: OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER
 
 argoCd:
   enabled: false
@@ -252,7 +270,16 @@ nextcloud:
       key: NEXTCLOUD_ADMIN_PASSWORD
   trustedDomains:
     - cloud.homebase.local
+    - platform-stack-nextcloud
+    - platform-stack-nextcloud.ai-homebase.svc
+    - platform-stack-nextcloud.ai-homebase.svc.cluster.local
   trustedProxies: []
+  bootstrapUsers:
+    - username: openclaw-mcp
+      displayName: OpenClaw MCP
+      passwordSecret:
+        name: openclaw-nextcloud-mcp-secrets
+        key: NEXTCLOUD_PASSWORD
   externalDatabase:
     host: platform-stack-shared-postgresql
     port: 5432
@@ -278,6 +305,31 @@ nextcloud:
     passwordSecret:
       name: ""
       key: ""
+
+nextcloudMcp:
+  enabled: true
+  service:
+    type: ClusterIP
+    port: 8000
+    targetPort: 8000
+  ingress:
+    enabled: true
+    className: internal-nginx
+    annotations:
+      cert-manager.io/cluster-issuer: platform-stack-root-ca
+    hosts:
+      - host: nextcloud-mcp.homebase.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: nextcloud-mcp-tls
+        hosts:
+          - nextcloud-mcp.homebase.local
+  nextcloud:
+    url: http://platform-stack-nextcloud
+  authentication:
+    mode: multi_user_basic
 
 gitea:
   enabled: false
@@ -468,16 +520,17 @@ postfixRelay:
   replicaCount: 1
   podAnnotations: {}
   podSecurityContext:
-    fsGroup: 1000
-    fsGroupChangePolicy: OnRootMismatch
+    runAsUser: 0
+    runAsGroup: 0
+    runAsNonRoot: false
     seccompProfile:
       type: RuntimeDefault
   securityContext:
-    allowPrivilegeEscalation: false
+    allowPrivilegeEscalation: true
     readOnlyRootFilesystem: false
-    capabilities:
-      drop:
-        - ALL
+    runAsUser: 0
+    runAsGroup: 0
+    runAsNonRoot: false
   config:
     allowedSenderDomains: ""
     hostname: ""
@@ -626,7 +679,7 @@ sharedPostgresql:
       size: 100Gi
       storageClass: ""
     initdb:
-      scriptsSecret: ""
+      scriptsSecret: shared-postgresql-initdb
 
 sharedRedis:
   enabled: true

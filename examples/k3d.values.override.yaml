@@ -25,6 +25,12 @@ openclaw:
 #   persistence:
 #     size: 20Gi
 
+# Example: override the standard Nextcloud MCP hostname when your Incus VM/container DNS needs
+# a different host-routed name than the shipped localtest.me default.
+# global:
+#   hosts:
+#     nextcloudMcp: nextcloud-mcp.example.internal
+
 # Example: override the standard OpenClaw remote Docker sandbox endpoint or images.
 # Layer examples/openclaw.remote-docker.values.yaml after the target overlay when the default
 # host.k3d.internal:2222 / SSH Secret / browser.cdpSourceRange values need adjustment.

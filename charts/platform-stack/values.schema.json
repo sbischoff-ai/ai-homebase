@@ -125,6 +125,9 @@
             "nextcloud": {
               "$ref": "#/definitions/hostname"
             },
+            "nextcloudMcp": {
+              "$ref": "#/definitions/hostname"
+            },
             "gitea": {
               "$ref": "#/definitions/hostname"
             },
@@ -248,6 +251,9 @@
       "$ref": "#/definitions/optionalServiceToggle"
     },
     "gitea": {
+      "$ref": "#/definitions/optionalServiceToggle"
+    },
+    "nextcloudMcp": {
       "$ref": "#/definitions/optionalServiceToggle"
     },
     "argoCd": {

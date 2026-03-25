@@ -170,6 +170,8 @@ smtp:
 # Nextcloud container image.
 initialApps: []
 
+bootstrapUsers: []
+
 externalDatabase:
   host: ""
   port: 5432

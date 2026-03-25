@@ -2,6 +2,8 @@
 
 Use this path for full local validation of the stack, including the shared bootstrap flow that `k3s` uses after cluster setup.
 
+This guide assumes you are running from the repository's `shell.nix` environment. On NixOS, prepare the local prerequisites through `configuration.nix` before using this path.
+
 ## 1. Prepare the Bootstrap Config
 
 ```bash
@@ -26,7 +28,9 @@ This does three things in order:
 
 1. creates or reuses the local `k3d` cluster
 2. boots the Incus-backed remote Docker VM for OpenClaw
-3. runs the shared bootstrap/install flow, then local smoke checks
+3. runs the shared bootstrap/apply flow, then local smoke checks
+
+If you keep the standard Nextcloud MCP service enabled, `scripts/incus-vm-up.sh` now configures the Incus VM and its Docker containers to resolve that MCP ingress hostname to the Incus host listener address automatically. You should only need extra host-side work when the k3d ingress listener itself is not reachable on the Incus bridge address.
 
 If you need a different k3s image for `k3d`, export `K3S_IMAGE` before running the script.
 
@@ -61,9 +65,9 @@ kubectl --kubeconfig ~/.kube/k3d-ai-homebase-dev.yaml -n ai-homebase exec -it de
 ./scripts/k3d-local-teardown.sh --cluster-name ai-homebase-dev --vm-name openclaw-sandbox
 ```
 
-## 6. Optional GitOps Handoff
+## 6. GitOps Handoff
 
-After the normal local bootstrap succeeds, you can add Argo CD and hand the cluster over to GitOps:
+After the normal local bootstrap succeeds, the regular next step is to add Argo CD and hand the cluster over to GitOps:
 
 ```bash
 ./scripts/bootstrap-gitops.sh --profile k3d --bootstrap-config bootstrap.local.toml

@@ -1,6 +1,7 @@
 [hosts]
 openclaw = "openclaw.localtest.me"
 nextcloud = "nextcloud.localtest.me"
+nextcloud_mcp = "nextcloud-mcp.localtest.me"
 nextcloud_public = ""
 gitea = "gitea.localtest.me"
 argocd = "argocd.localtest.me"
@@ -36,6 +37,7 @@ gitea_db_password = ""
 vaultwarden_db_password = ""
 vaultwarden_admin_token = ""
 nextcloud_db_password = ""
+openclaw_nextcloud_mcp_password = ""
 paperless_db_password = ""
 paperless_secret_key = ""
 

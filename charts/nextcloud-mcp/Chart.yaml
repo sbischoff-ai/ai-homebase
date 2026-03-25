@@ -1,0 +1,6 @@
+apiVersion: v2
+name: nextcloud-mcp
+description: Nextcloud MCP companion service
+type: application
+version: 0.1.0
+appVersion: "0.65.3"

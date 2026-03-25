@@ -1,10 +1,10 @@
 # GitOps Bootstrap
 
-This page covers the optional second-stage bootstrap that adds Argo CD and hands cluster changes over to an in-cluster Gitea repository.
+This page covers the GitOps handoff that adds Argo CD and hands cluster changes over to an in-cluster Gitea repository.
 
 ## When to Run It
 
-Run the GitOps bootstrap only after the normal `bootstrap-stack.sh` or `k3d-local-bootstrap.sh` workflow is healthy.
+Run the GitOps bootstrap after the normal `bootstrap-stack.sh` or `k3d-local-bootstrap.sh` workflow is healthy.
 
 ```bash
 ./scripts/bootstrap-gitops.sh --profile <k3d|k3s> --bootstrap-config bootstrap.local.toml
@@ -14,7 +14,7 @@ Run the GitOps bootstrap only after the normal `bootstrap-stack.sh` or `k3d-loca
 
 The script performs five steps:
 
-1. installs Argo CD through the existing `platform-stack` Helm path
+1. reapplies the existing `platform-stack` Helm path through `bootstrap-stack.sh --skip-secrets --enable-service argo-cd`
 2. reads the bootstrap-managed Gitea admin credentials from Kubernetes
 3. creates or updates a dedicated GitOps robot user and private repo in Gitea
 4. pushes a self-contained snapshot of the local charts and cluster values to that repo
