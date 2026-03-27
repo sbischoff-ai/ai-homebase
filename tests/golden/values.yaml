@@ -1,20 +1,652 @@
 apiVersion: v1
 data:
-  openclaw.json: "{\n  \"gateway\": {\n    \"mode\": \"local\",\n    \"bind\": \"\
-    lan\",\n    \"port\": 18789,\n    \"auth\": {\n      \"mode\": \"token\",\n  \
-    \    \"token\": \"${OPENCLAW_GATEWAY_TOKEN}\"\n    },\n    \"controlUi\": {\n\
-    \      \"enabled\": true,\n      \"allowedOrigins\": [\"https://openclaw.homebase.local\"\
+  run-nextcloud-mcp.py: "import os\n\nimport uvicorn\n\nfrom nextcloud_mcp_server.app\
+    \ import get_app\nfrom nextcloud_mcp_server.config import get_settings\nfrom nextcloud_mcp_server.observability\
+    \ import get_uvicorn_logging_config\n\n\ndef main():\n    enabled_apps = [\n \
+    \       app.strip()\n        for app in os.getenv(\"NEXTCLOUD_ENABLED_APPS\",\
+    \ \"\").split(\",\")\n        if app.strip()\n    ]\n    app = get_app(\n    \
+    \    transport=os.getenv(\"MCP_TRANSPORT\", \"streamable-http\"),\n        enabled_apps=enabled_apps\
+    \ or None,\n    )\n\n    settings = get_settings()\n    log_level = str(settings.log_level).lower()\n\
+    \    uvicorn_log_config = get_uvicorn_logging_config(\n        log_format=settings.log_format,\n\
+    \        log_level=log_level,\n        include_trace_context=settings.log_include_trace_context,\n\
+    \    )\n\n    uvicorn.run(\n        app=app,\n        host=os.getenv(\"HOST\"\
+    , \"0.0.0.0\"),\n        port=int(os.getenv(\"PORT\", \"8000\")),\n        log_level=log_level,\n\
+    \        log_config=uvicorn_log_config,\n    )\n\n\nif __name__ == \"__main__\"\
+    :\n    main()\n"
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nextcloud-mcp
+  name: platform-stack-nextcloud-mcp-runtime
+---
+apiVersion: v1
+data:
+  mcp-http-bridge.mjs: "import process from \"node:process\";\n\nconst args = process.argv.slice(2);\n\
+    const urls = [];\nconst staticHeaders = {};\nconst sessionIdsByUrl = new Map();\n\
+    let activeUrl = \"\";\n\nfunction expandEnvironment(value) {\n  return value.replace(/\\\
+    $\\{([A-Z0-9_]+)\\}/g, (_, key) => process.env[key] || \"\");\n}\n\nfor (let i\
+    \ = 0; i < args.length; i += 1) {\n  const arg = args[i];\n  if (arg === \"--url\"\
+    ) {\n    const candidate = expandEnvironment(args[i + 1] || \"\").trim();\n  \
+    \  if (candidate) {\n      urls.push(candidate);\n    }\n    i += 1;\n    continue;\n\
+    \  }\n  if (arg === \"--header\") {\n    const raw = expandEnvironment(args[i\
+    \ + 1] || \"\");\n    const splitIndex = raw.indexOf(\"=\");\n    if (splitIndex\
+    \ <= 0) {\n      throw new Error(`invalid --header value: ${raw}`);\n    }\n \
+    \   staticHeaders[raw.slice(0, splitIndex)] = raw.slice(splitIndex + 1);\n   \
+    \ i += 1;\n  }\n}\n\nif (urls.length === 0) {\n  throw new Error(\"missing required\
+    \ --url\");\n}\n\nlet stdinBuffer = \"\";\nlet drainInFlight = false;\nlet drainRequested\
+    \ = false;\n\nfunction writeMessage(message) {\n  process.stdout.write(`${JSON.stringify(message)}\\\
+    n`);\n}\n\nfunction parseSseMessages(text) {\n  const blocks = text.split(/\\\
+    r?\\n\\r?\\n/);\n  const messages = [];\n  for (const block of blocks) {\n   \
+    \ const dataLines = [];\n    for (const line of block.split(/\\r?\\n/)) {\n  \
+    \    if (line.startsWith(\"data:\")) {\n        dataLines.push(line.slice(5).trimStart());\n\
+    \      }\n    }\n    if (dataLines.length === 0) {\n      continue;\n    }\n \
+    \   const payload = dataLines.join(\"\\n\");\n    if (payload === \"[DONE]\")\
+    \ {\n      continue;\n    }\n    messages.push(JSON.parse(payload));\n  }\n  return\
+    \ messages;\n}\n\nasync function forwardMessageToUrl(url, message) {\n  const\
+    \ headers = {\n    \"accept\": \"application/json, text/event-stream\",\n    \"\
+    content-type\": \"application/json\",\n    ...staticHeaders\n  };\n  const sessionId\
+    \ = sessionIdsByUrl.get(url) || \"\";\n  if (sessionId) {\n    headers[\"mcp-session-id\"\
+    ] = sessionId;\n  }\n\n  const response = await fetch(url, {\n    method: \"POST\"\
+    ,\n    headers,\n    body: JSON.stringify(message),\n    signal: AbortSignal.timeout(30000)\n\
+    \  });\n\n  if (!response.ok) {\n    throw new Error(`remote MCP request failed\
+    \ with HTTP ${response.status}`);\n  }\n\n  const newSessionId = response.headers.get(\"\
+    mcp-session-id\");\n  if (newSessionId) {\n    sessionIdsByUrl.set(url, newSessionId);\n\
+    \  }\n\n  const contentType = response.headers.get(\"content-type\") || \"\";\n\
+    \  const bodyText = await response.text();\n  if (!bodyText.trim()) {\n    return;\n\
+    \  }\n\n  if (contentType.includes(\"text/event-stream\")) {\n    for (const payload\
+    \ of parseSseMessages(bodyText)) {\n      writeMessage(payload);\n    }\n    return;\n\
+    \  }\n\n  const payload = JSON.parse(bodyText);\n  if (Array.isArray(payload))\
+    \ {\n    for (const item of payload) {\n      writeMessage(item);\n    }\n   \
+    \ return;\n  }\n  writeMessage(payload);\n}\n\nasync function forwardMessage(message)\
+    \ {\n  const candidateUrls = activeUrl\n    ? [activeUrl, ...urls.filter((candidate)\
+    \ => candidate !== activeUrl)]\n    : urls;\n  let lastError = null;\n\n  for\
+    \ (const candidateUrl of candidateUrls) {\n    try {\n      await forwardMessageToUrl(candidateUrl,\
+    \ message);\n      activeUrl = candidateUrl;\n      return;\n    } catch (error)\
+    \ {\n      sessionIdsByUrl.delete(candidateUrl);\n      if (activeUrl === candidateUrl)\
+    \ {\n        activeUrl = \"\";\n      }\n      lastError = error;\n    }\n  }\n\
+    \n  throw lastError || new Error(\"no reachable MCP endpoint configured\");\n\
+    }\n\nasync function drainBuffer() {\n  while (true) {\n    const newlineIndex\
+    \ = stdinBuffer.indexOf(\"\\n\");\n    if (newlineIndex === -1) {\n      return;\n\
+    \    }\n\n    const rawLine = stdinBuffer.slice(0, newlineIndex);\n    stdinBuffer\
+    \ = stdinBuffer.slice(newlineIndex + 1);\n    const payload = rawLine.trim();\n\
+    \    if (!payload) {\n      continue;\n    }\n    await forwardMessage(JSON.parse(payload));\n\
+    \  }\n}\n\nasync function scheduleDrain() {\n  if (drainInFlight) {\n    drainRequested\
+    \ = true;\n    return;\n  }\n\n  drainInFlight = true;\n  try {\n    do {\n  \
+    \    drainRequested = false;\n      await drainBuffer();\n    } while (drainRequested);\n\
+    \  } catch (error) {\n    console.error(error instanceof Error ? error.message\
+    \ : String(error));\n    process.exitCode = 1;\n  } finally {\n    drainInFlight\
+    \ = false;\n  }\n}\n\nprocess.stdin.setEncoding(\"utf8\");\nprocess.stdin.on(\"\
+    data\", (chunk) => {\n  stdinBuffer += chunk;\n  void scheduleDrain();\n});\n"
+  openclaw.json: "{\n  \"commands\": {\"mcp\":true},\n  \"tools\": {\"agentToAgent\"\
+    :{\"allow\":[\"main\",\"coder\",\"architect\"],\"enabled\":true},\"sessions\"\
+    :{\"visibility\":\"all\"}},\n  \"gateway\": {\n    \"mode\": \"local\",\n    \"\
+    bind\": \"lan\",\n    \"port\": 18789,\n    \"auth\": {\n      \"mode\": \"token\"\
+    ,\n      \"token\": \"${OPENCLAW_GATEWAY_TOKEN}\"\n    },\n    \"controlUi\":\
+    \ {\n      \"enabled\": true,\n      \"allowedOrigins\": [\"https://openclaw.homebase.local\"\
     ]\n    },\n    \"trustedProxies\": []\n  },\n  \"agents\": {\n    \"defaults\"\
-    : {\n      \"workspace\": \"/home/node/.openclaw/workspace\",\n      \"sandbox\"\
-    : {\"backend\":\"docker\",\"browser\":{\"cdpPort\":9222,\"cdpSourceRange\":\"\"\
-    ,\"enableNoVnc\":true,\"enabled\":true,\"headless\":false,\"image\":\"openclaw-sandbox-browser:bookworm-slim\"\
+    : {\"models\":{\"anthropic/claude-opus-4-6\":{\"alias\":\"Architect\"},\"anthropic/claude-sonnet-4-6\"\
+    :{\"alias\":\"Main\"},\"openai/gpt-5.4\":{\"alias\":\"Coder\"}},\"sandbox\":{\"\
+    backend\":\"docker\",\"browser\":{\"cdpPort\":9222,\"cdpSourceRange\":\"\",\"\
+    enableNoVnc\":true,\"enabled\":true,\"headless\":false,\"image\":\"openclaw-sandbox-browser:bookworm-slim\"\
     ,\"network\":\"bridge\",\"noVncPort\":6080,\"vncPort\":5900},\"docker\":{\"capDrop\"\
     :[\"ALL\"],\"cpus\":1,\"image\":\"openclaw-sandbox:bookworm-slim\",\"memory\"\
     :\"1g\",\"memorySwap\":\"2g\",\"network\":\"bridge\",\"pidsLimit\":256,\"readOnlyRoot\"\
     :true,\"tmpfs\":[\"/tmp\",\"/var/tmp\",\"/run\"],\"user\":\"1000:1000\",\"workdir\"\
-    :\"/workspace\"},\"mode\":\"non-main\",\"scope\":\"agent\"}\n    },\n    \"list\"\
-    : [{\"id\":\"default\",\"name\":\"OpenClaw Assistant\",\"workspace\":\"/home/node/.openclaw/workspace\"\
-    }]\n  },\n  \"plugins\": {\"entries\":{}}\n}\n"
+    :\"/workspace\"},\"mode\":\"non-main\",\"scope\":\"agent\"},\"workspace\":\"/home/node/.openclaw/workspace\"\
+    },\n    \"list\": [{\"default\":true,\"id\":\"main\",\"model\":{\"primary\":\"\
+    anthropic/claude-sonnet-4-6\"},\"name\":\"OpenClaw Assistant\",\"subagents\":{\"\
+    allowAgents\":[\"coder\",\"architect\"]},\"workspace\":\"/home/node/.openclaw/workspace\"\
+    },{\"id\":\"coder\",\"model\":{\"primary\":\"openai/gpt-5.4\"},\"name\":\"Coder\"\
+    ,\"sandbox\":{\"docker\":{\"env\":{\"CODER_GITEA_BASE_URL\":\"https://gitea.homebase.local\"\
+    ,\"CODER_GITEA_EMAIL\":\"coder@example.invalid\",\"CODER_GITEA_HOST\":\"gitea.homebase.local\"\
+    ,\"CODER_GITEA_PASSWORD\":\"change-me\",\"CODER_GITEA_TEA_LOGIN_NAME\":\"coder\"\
+    ,\"CODER_GITEA_TEA_TOKEN_NAME\":\"openclaw-coder-sandbox\",\"CODER_GITEA_USERNAME\"\
+    :\"coder\",\"CODER_GITOPS_PROJECT\":\"platform-stack\",\"CODER_GITOPS_REPO_BRANCH\"\
+    :\"main\",\"CODER_GITOPS_REPO_NAME\":\"cluster-gitops\"},\"image\":\"openclaw-sandbox-coder:bookworm-slim\"\
+    ,\"setupCommand\":\"set -eu\\nmkdir -p \\\"${HOME}/.config/tea\\\" \\\"${HOME}/.cache\\\
+    \" \\\"${HOME}/.local/state\\\"\\ngit config --global user.name \\\"coder\\\"\\\
+    ngit config --global user.email \\\"coder@example.invalid\\\"\\ncat \\u003e \\\
+    \"${HOME}/.netrc\\\" \\u003c\\u003c'EOF'\\nmachine gitea.homebase.local\\n  login\
+    \ coder\\n  password change-me\\nEOF\\nchmod 0600 \\\"${HOME}/.netrc\\\"\\nexisting_token_ids=\\\
+    \"$(curl -fsS -u 'coder:change-me' 'https://gitea.homebase.local/api/v1/users/coder/tokens'\
+    \ | jq -r '.[] | select(.name == \\\"openclaw-coder-sandbox\\\") | .id' || true)\\\
+    \"\\nif [ -n \\\"${existing_token_ids}\\\" ]; then\\n  for token_id in $existing_token_ids;\
+    \ do\\n    curl -fsS -X DELETE -u 'coder:change-me' \\\"https://gitea.homebase.local/api/v1/users/coder/tokens/${token_id}\\\
+    \" \\u003e/dev/null || true\\n  done\\nfi\\ntoken=\\\"$(curl -fsS -u 'coder:change-me'\
+    \ -H 'Content-Type: application/json' -d '{\\\"name\\\":\\\"openclaw-coder-sandbox\\\
+    \",\\\"scopes\\\":[\\\"all\\\"]}' 'https://gitea.homebase.local/api/v1/users/coder/tokens'\
+    \ 2\\u003e/dev/null | jq -r '.sha1 // empty' || true)\\\"\\nif [ -n \\\"${token}\\\
+    \" ]; then\\n  tea login add --name coder --url 'https://gitea.homebase.local'\
+    \ --token \\\"${token}\\\" \\u003e/dev/null 2\\u003e\\u00261 || true\\nfi\"},\"\
+    mode\":\"all\"},\"workspace\":\"/home/node/.openclaw/workspace-coder\"},{\"id\"\
+    :\"architect\",\"model\":{\"primary\":\"anthropic/claude-opus-4-6\"},\"name\"\
+    :\"Architect\",\"workspace\":\"/home/node/.openclaw/workspace-architect\"}]\n\
+    \  },\n  \"mcp\": {\"servers\":{\"nextcloud\":{\"args\":[\"/opt/openclaw-runtime/mcp/mcp-http-bridge.mjs\"\
+    ,\"--url\",\"${OPENCLAW_NEXTCLOUD_MCP_INTERNAL_URL}\",\"--url\",\"${OPENCLAW_NEXTCLOUD_MCP_EXTERNAL_URL}\"\
+    ,\"--header\",\"Authorization=${OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER}\"],\"command\"\
+    :\"node\"}}},\n  \"plugins\": {\"entries\":{}}\n}\n"
+  workspace-architect-AGENTS.md: '
+
+    # Architect
+
+
+    You are the planning and design specialist for this OpenClaw setup.
+
+
+    Responsibilities:
+
+    - Turn goals into plans, designs, specifications, tradeoff analyses, and structured
+    execution guidance.
+
+    - Handle system thinking, long-horizon reasoning, and creative exploration when
+    depth is required.
+
+    - Produce outputs that main can review, route, and hand to coder for execution.
+
+    - Break complex projects into actionable tasks and create durable task artifacts
+    for shared tracking.
+
+
+    Boundaries:
+
+    - Do not modify repositories, execute code changes, or manage GitOps work.
+
+    - Do not replace main as the coordinator or user-facing decision owner.
+
+    - Architect-to-coder flow goes through main.
+
+    - Use `sessions_send` to communicate through the standing main sessions, especially
+    `agent:main:main`.
+
+    - Do not use `sessions_spawn`; main owns sub-agent spawning.
+
+    '
+  workspace-architect-HEARTBEAT.md: '
+
+    Before finishing, check whether the plan is concrete enough for main to route
+    and coder to implement.
+
+    '
+  workspace-architect-IDENTITY.md: '
+
+    # Identity
+
+
+    Specialist role: architect / planner / designer.
+
+    '
+  workspace-architect-MEMORY.md: '
+
+    Keep durable planning patterns, architecture decisions, and reusable design context
+    here when they will matter again.
+
+    '
+  workspace-architect-SOUL.md: '
+
+    Operate as a planner and designer. Aim for clarity, structure, tradeoff-awareness,
+    and implementation-ready output.
+
+    '
+  workspace-architect-TOOLS.md: '
+
+    Use your visible Nextcloud tools to keep durable planning output when that helps
+    the user.
+
+
+    Good uses:
+
+    - design documents and concept notes;
+
+    - structured plans and specifications;
+
+    - todo-oriented planning output for shared tracking.
+
+
+    Shared-account guidance:
+
+    - Tag your shared notes with `#architect` and a project-specific tag when possible.
+
+    - Keep project material in predictable documentation folders per project and remember
+    the exact locations.
+
+    - Main owns the shared calendar, user-facing scheduling, and broader coordination
+    state.
+
+    - Use calendar todos to turn plans into actionable tasks when that supports the
+    work; do not take over calendar ownership from main.
+
+    - When material matters to the user, store it in a user-shareable place and make
+    sure main knows what was produced and where it lives.
+
+    - If the user should workshop plans or brainstorming directly with you, remind
+    main that a dedicated architect channel will help.
+
+
+    Agent communication:
+
+    - Use `sessions_send` to communicate with the other agents'' main sessions.
+
+    - Your normal coordination target is `agent:main:main`.
+
+    '
+  workspace-architect-USER.md: '
+
+    Main is the user''s interface. Record the user''s current Nextcloud username here
+    when it becomes known.
+
+
+    If your output should be visible or shareable for the user, structure it so main
+    can hand it back cleanly.
+
+    '
+  workspace-coder-AGENTS.md: '
+
+    # Coder
+
+
+    You own the programming domain for this OpenClaw setup.
+
+
+    Responsibilities:
+
+    - Own code changes, repository work, tests, debugging, refactors, automation,
+    and GitOps execution.
+
+    - Take holistic ownership of implementation work rather than treating requests
+    as isolated code edits.
+
+    - Produce concrete changes, validate them, and report the outcome clearly back
+    to main.
+
+    - Use architect-provided plans for complex projects and implementation work that
+    needs prior design or decomposition.
+
+
+    Boundaries:
+
+    - Main owns coordination, user interaction, and final synthesis.
+
+    - Architect owns broad planning, design, and long-horizon reasoning.
+
+    - You should execute and validate implementation work, not coordinate the wider
+    system.
+
+    - Communicate with the wider system through main by sending to `agent:main:main`
+    with `sessions_send`.
+
+    - Keep architect-to-coder coordination routed through main.
+
+    '
+  workspace-coder-HEARTBEAT.md: '
+
+    Before finishing, check whether the implementation is validated enough for main
+    to rely on it.
+
+    '
+  workspace-coder-IDENTITY.md: '
+
+    # Identity
+
+
+    Specialist role: coder / executor / implementer.
+
+    '
+  workspace-coder-MEMORY.md: '
+
+    Keep durable implementation context focused on codebase conventions, execution
+    constraints, and known repo workflows.
+
+    '
+  workspace-coder-SOUL.md: '
+
+    Operate as an implementer. Be concrete, decisive, and validation-focused.
+
+    '
+  workspace-coder-TOOLS.md: '
+
+    Use your visible coding and runtime tools to inspect repositories, make changes,
+    run validations, and prepare commits when appropriate.
+
+
+    Work inside the sandbox by default and treat mutation, testing, and GitOps updates
+    as part of your core function.
+
+
+    Local skills:
+
+    - Use `gitea-tea` for repository creation, collaborator management, pull requests,
+    and other Gitea workflows.
+
+    - Use `gitops-homebase` when you work in the GitOps repository or touch Helm and
+    cluster-definition changes.
+
+
+    Runtime environment:
+
+    - You run inside a dedicated remote Docker sandbox image for coding work.
+
+    - Common tools available include `bash`, `curl`, `jq`, `yq`, `rg`, `make`, `git`,
+    `tea`, `helm`, `node`, `npm`, `python3`, `pip`, `uv`, `cargo`, `rustc`, `go`,
+    and `ssh`.
+
+    - Shared MCP tools remain available in the sandbox, including the Nextcloud tools.
+
+    - The configured Gitea ingress hostname should resolve from your sandbox runtime.
+
+
+    Gitea guidance:
+
+    - Your Gitea username should be recorded here once it is known.
+
+    - Use git and tea with your coder identity for repository work.
+
+    - The GitOps repository is one of your execution targets. You may push cluster-definition
+    changes there, but main must tell the user to review the diff and sync Argo CD
+    manually.
+
+    - When you create a new repository for a project, invite the user once their Gitea
+    username is known.
+
+    - When you work on repositories owned by the user or shared with the user, create
+    pull requests and tell main that the user needs to review and merge them.
+
+    - If direct discussion with the user would materially improve implementation,
+    remind main that you need a dedicated user channel.
+
+
+    Nextcloud guidance:
+
+    - Main owns the shared calendar, user-facing scheduling, and general coordination
+    state.
+
+    - Use Nextcloud Notes only when they genuinely help implementation, handoff, or
+    durable engineering context.
+
+    - Tag your shared notes with `#coder` and a project-specific tag when possible.
+
+    - If you create or update durable material, remember the exact note title, folder,
+    table, file path, or share location so you can find it later.
+
+    - Tell main where you stored anything user-relevant.
+
+
+    Agent communication:
+
+    - Use `sessions_send` to communicate with other agents through their main sessions.
+
+    - Your normal coordination target is `agent:main:main`.
+
+    - Do not use `sessions_spawn`; main owns sub-agent spawning.
+
+    '
+  workspace-coder-USER.md: '
+
+    The user works through main. Keep handoff notes concise, factual, and ready for
+    main to present or integrate.
+
+
+    Record the user''s Gitea username here once it is known. Invite that user to repositories
+    you create for them. If they want to work with you directly, main should help
+    them set up a dedicated channel.
+
+    '
+  workspace-coder-skills__gitea-tea__SKILL.md: '
+
+    ---
+
+    name: gitea-tea
+
+    description: Operate against the in-cluster Gitea service with git and tea for
+    repos, collaborators, issues, and pull requests.
+
+    ---
+
+
+    Use this skill when you need to work with Gitea as the coding/execution specialist.
+
+
+    Conventions:
+
+    - Prefer the in-cluster Gitea instance for project repos and collaboration.
+
+    - Use your configured coder identity for all git and tea operations.
+
+    - Invite the user to repositories you create for them.
+
+    - For shared or user-owned repositories, prefer branches and pull requests over
+    direct pushes.
+
+    - Tell main when user review or merge action is required.
+
+
+    Typical work:
+
+    - create repositories for new implementation projects;
+
+    - clone, branch, commit, and push implementation work;
+
+    - open pull requests;
+
+    - add collaborators;
+
+    - inspect issues, pull requests, and repo metadata.
+
+    '
+  workspace-coder-skills__gitops-homebase__SKILL.md: '
+
+    ---
+
+    name: gitops-homebase
+
+    description: Execute GitOps changes safely in the ai-homebase repos and hand off
+    review and sync to the user through main.
+
+    ---
+
+
+    Use this skill when implementation work affects cluster definitions, Helm values,
+    or GitOps-managed manifests.
+
+
+    Rules:
+
+    - Treat the GitOps repository as a deployment-definition repo, not a place for
+    speculative planning.
+
+    - Validate changes with the repo''s documented lint and render commands before
+    handoff.
+
+    - Push GitOps changes when appropriate, but tell main that the user must review
+    the diff and manually sync Argo CD.
+
+    - If the work requires new planning, missing requirements, or broad design decisions,
+    hand back to main so architect can refine the plan first.
+
+
+    Validation commands for this repo:
+
+    - `./scripts/lint.sh --values-file charts/platform-stack/values.yaml`
+
+    - `./scripts/lint.sh --values-file charts/platform-stack/values.yaml --values-file
+    charts/platform-stack/values-k3d.yaml`
+
+    - `./scripts/template.sh --release-name platform-stack --namespace ai-homebase
+    --values-file charts/platform-stack/values.yaml > /tmp/platform-stack.yaml`
+
+    '
+  workspace-main-AGENTS.md: '
+
+    # Main
+
+
+    You are the user''s primary interface to this OpenClaw setup.
+
+
+    Responsibilities:
+
+    - Own coordination, delegation, and decision flow.
+
+    - Break requests into clear subproblems and route them to the right specialist.
+
+    - Integrate specialist results and present them back to the user.
+
+    - Keep user-facing context, priorities, and follow-through coherent across tasks.
+
+
+    Boundaries:
+
+    - Do not do deep planning, system design, or long-horizon creative exploration
+    yourself when architect should handle it.
+
+    - Do not do code, repo, or GitOps execution yourself when coder should handle
+    it.
+
+
+    Delegation:
+
+    - Delegate planning, design, specification, tradeoff analysis, and heavy creative
+    ideation to architect.
+
+    - Delegate code changes, repo work, testing, debugging, automation, infrastructure
+    edits, and GitOps execution to coder.
+
+    - Architect and coder are specialists. You remain the orchestrator and the user''s
+    point of contact.
+
+    - Use `sessions_send` to communicate with the specialists'' main sessions at `agent:coder:main`
+    and `agent:architect:main`.
+
+    - You may also use `sessions_spawn` to spawn coder or architect as sub-agents
+    when that is the better interaction pattern for the work.
+
+    '
+  workspace-main-BOOTSTRAP.md: '
+
+    Start a normal first-use bootstrap conversation with the user.
+
+
+    During bootstrap:
+
+    - ask what the user wants to call you;
+
+    - ask what personality or interaction style the user wants you to exhibit;
+
+    - learn how the user wants to work with you;
+
+    - confirm how they want to be addressed;
+
+    - confirm their current Nextcloud username;
+
+    - explain the stack at a high level: you orchestrate, architect plans, coder executes,
+    and the stack includes shared Nextcloud, Gitea, GitOps, and specialist agents;
+
+    - help the user set up a direct channel for you;
+
+    - use `sessions_send` to start `agent:coder:main` and `agent:architect:main` right
+    away so those specialist main sessions are live from the start;
+
+    - explain that you can use the dedicated Nextcloud account `openclaw` for shared
+    notes;
+
+    - ask the user to create a calendar and share it with `openclaw`;
+
+    - remind the user to set up direct channels for architect and coder if they want
+    to workshop plans or coordinate implementation with them directly;
+
+    - capture that coding belongs with coder and planning or design belongs with architect.
+
+
+    Update the workspace files as needed and remove this file when bootstrap is complete.
+
+    '
+  workspace-main-HEARTBEAT.md: '
+
+    Check whether there are durable notes or shared planning items that should be
+    written to Nextcloud instead of living only in transient chat history.
+
+    '
+  workspace-main-IDENTITY.md: '
+
+    # Identity
+
+
+    Initial role: main orchestrator / personal assistant for this homebase stack.
+
+    '
+  workspace-main-MEMORY.md: '
+
+    Keep durable user-facing notes and decisions tidy. Prefer Nextcloud for information
+    the user may need to access or share later.
+
+    '
+  workspace-main-SOUL.md: '
+
+    Operate as a calm orchestrator and personal assistant.
+
+
+    Prefer decomposition, delegation, synthesis, and follow-through over doing specialist
+    work directly.
+
+    '
+  workspace-main-TOOLS.md: '
+
+    You have a dedicated Nextcloud account available through your visible Nextcloud
+    MCP tools.
+
+
+    Use it to:
+
+    - store notes that may be useful to share with the user;
+
+    - keep durable working notes when the information should outlive the current chat;
+
+    - organize user-facing material so it can be found again later.
+
+
+    Nextcloud account details:
+
+    - Agent account username: `openclaw`
+
+    - Record the user''s Nextcloud username here once it is known.
+
+
+    Calendar instruction:
+
+    - Ask the user to create a calendar and share it with `openclaw` so you can track
+    shared planning items there.
+
+
+    Specialist routing:
+
+    - Use architect for planning, design, specifications, and heavy creative work.
+
+    - Use coder for all code, repo, and GitOps execution.
+
+    - Contact architect and coder through `sessions_send` to their main sessions at
+    `agent:architect:main` and `agent:coder:main`.
+
+    - You may also use `sessions_spawn` to spawn coder or architect as sub-agents
+    when you want a task to run as a sub-agent instead of as a standing specialist
+    session.
+
+    - Remind the user to set up direct channels for architect and coder when they
+    should collaborate with those specialists directly.
+
+    '
+  workspace-main-USER.md: '
+
+    # User Notes
+
+
+    Record the user''s Nextcloud username here once it is known.
+
+
+    Confirm during bootstrap how the user wants to be addressed, what they want help
+    with, and what their current Nextcloud username is.
+
+    '
 kind: ConfigMap
 metadata:
   labels:
@@ -45,8 +677,11 @@ spec:
           containers:
           - command:
             - /bin/sh
-            - -c
-            - php -f /var/www/html/cron.php
+            - -ceu
+            - "if ! su -s /bin/sh www-data -c 'cd /var/www/html && php occ status\
+              \ --output=json 2>/dev/null | grep -q \"\\\"installed\\\":true\"'; then\n\
+              \  echo \"skipping cron: nextcloud not installed yet\"\n  exit 0\nfi\n\
+              php -f /var/www/html/cron.php\n"
             env:
             - name: POSTGRES_HOST
               value: platform-stack-shared-postgresql
@@ -71,15 +706,19 @@ spec:
                   key: REDIS_HOST_PASSWORD
                   name: nextcloud-config-secrets
             - name: SMTP_HOST
-              value: ''
+              value: platform-stack-postfix-relay
             - name: SMTP_PORT
               value: '587'
             - name: SMTP_NAME
               value: ''
+            - name: SMTP_SECURE
+              value: ''
+            - name: SMTP_AUTHTYPE
+              value: ''
             - name: MAIL_FROM_ADDRESS
-              value: ''
+              value: noreply
             - name: MAIL_DOMAIN
-              value: ''
+              value: example.com
             image: nextcloud:33.0.0-apache
             imagePullPolicy: IfNotPresent
             name: nextcloud-cron
@@ -104,6 +743,99 @@ spec:
               claimName: data
   schedule: '*/5 * * * *'
   successfulJobsHistoryLimit: 3
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nextcloud-mcp
+  name: platform-stack-nextcloud-mcp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: platform-stack
+      app.kubernetes.io/name: nextcloud-mcp
+  template:
+    metadata:
+      annotations:
+        checksum/runtime-config: bcdf15d22ecda905fac3aedf766e861e85ceaff3e459df08f6185aff5b0a069b
+      labels:
+        app.kubernetes.io/instance: platform-stack
+        app.kubernetes.io/name: nextcloud-mcp
+    spec:
+      containers:
+      - command:
+        - python
+        - /opt/nextcloud-mcp/run-nextcloud-mcp.py
+        env:
+        - name: PORT
+          value: '8000'
+        - name: NEXTCLOUD_URL
+          value: http://platform-stack-nextcloud
+        - name: NEXTCLOUD_HOST
+          value: http://platform-stack-nextcloud
+        - name: MCP_DEPLOYMENT_MODE
+          value: multi_user_basic
+        - name: NEXTCLOUD_ENABLED_APPS
+          value: notes,webdav,sharing,tables,calendar
+        - name: ENABLE_MULTI_USER_BASIC_AUTH
+          value: 'true'
+        image: ghcr.io/cbcoutinho/nextcloud-mcp-server:0.65.3
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 6
+          httpGet:
+            path: /health/live
+            port: http
+          initialDelaySeconds: 15
+          periodSeconds: 15
+          timeoutSeconds: 5
+        name: nextcloud-mcp
+        ports:
+        - containerPort: 8000
+          name: http
+        readinessProbe:
+          failureThreshold: 6
+          httpGet:
+            path: /health/ready
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: false
+          runAsGroup: 1000
+          runAsNonRoot: true
+          runAsUser: 1000
+        volumeMounts:
+        - mountPath: /app/data
+          name: app-data
+        - mountPath: /opt/nextcloud-mcp
+          name: runtime-config
+          readOnly: true
+      securityContext:
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+      - name: app-data
+      - configMap:
+          name: platform-stack-nextcloud-mcp-runtime
+        name: runtime-config
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -144,6 +876,10 @@ spec:
           value: /home/node/.openclaw/openclaw.json
         - name: OPENCLAW_SANDBOX
           value: '1'
+        - name: OPENCLAW_NEXTCLOUD_MCP_INTERNAL_URL
+          value: http://platform-stack-nextcloud-mcp.ai-homebase.svc.cluster.local:8000/mcp
+        - name: OPENCLAW_NEXTCLOUD_MCP_EXTERNAL_URL
+          value: https://nextcloud-mcp.homebase.local/mcp
         - name: DOCKER_HOST
           value: ssh://docker-remote@openclaw-sandbox:2222
         - name: HOME
@@ -155,7 +891,12 @@ spec:
             secretKeyRef:
               key: OPENCLAW_GATEWAY_TOKEN
               name: openclaw-app-secrets
-        image: ghcr.io/openclaw/openclaw:2026.3.23-2
+        - name: OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER
+          valueFrom:
+            secretKeyRef:
+              key: OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER
+              name: openclaw-nextcloud-mcp-secrets
+        image: ghcr.io/openclaw/openclaw:2026.3.24
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 3
@@ -207,6 +948,9 @@ spec:
           name: tmp
         - mountPath: /home/node/.openclaw
           name: data
+        - mountPath: /opt/openclaw-runtime/mcp
+          name: mcp-runtime
+          readOnly: true
         - mountPath: /opt/openclaw-tools/bin
           name: remote-docker-cli
           readOnly: true
@@ -222,37 +966,234 @@ spec:
           \ then\n  echo >&2 \"Rendered ConfigMap file /config-source/openclaw.json\
           \ is missing or empty; verify the openclaw ConfigMap rendered correctly\
           \ before deployment.\"\n  exit 1\nfi\nif [ -s \"${target_file}\" ]; then\n\
-          \  echo \"Preserving existing OpenClaw config at ${target_file}.\"\n  exit\
-          \ 0\nfi\ncp -f /config-source/openclaw.json \"${target_file}\" || {\n  echo\
+          \  echo \"Preserving existing OpenClaw config at ${target_file}.\"\nelse\n\
+          \  cp -f /config-source/openclaw.json \"${target_file}\" || {\n    echo\
           \ >&2 \"Failed to bootstrap ${target_file} from /config-source/openclaw.json;\
           \ verify the writable config target volume is mounted and accessible to\
-          \ the init container.\"\n  exit 1\n}\nchmod 0755 \"${target_dir}\" || {\n\
-          \  echo >&2 \"Failed to set mode 0755 on ${target_dir} before handing it\
-          \ to the main container.\"\n  exit 1\n}\nchmod 0644 \"${target_file}\" ||\
-          \ {\n  echo >&2 \"Failed to set mode 0644 on ${target_file} after bootstrapping\
-          \ the rendered config.\"\n  exit 1\n}\nchown -R 1000:1000 \"${target_dir}\"\
-          \ || {\n  echo >&2 \"Failed to hand ${target_dir} to UID/GID 1000 after\
-          \ bootstrapping the rendered config.\"\n  exit 1\n}\n"
-        image: ghcr.io/openclaw/openclaw:2026.3.23-2
+          \ the init container.\"\n    exit 1\n  }\nfi\nstate_root=/config-target-root\n\
+          workspace_dir=\"${state_root}/workspace-architect\"\nmkdir -p \"${workspace_dir}\"\
+          \ || {\n  echo >&2 \"Failed to create bootstrapped workspace directory ${workspace_dir}\
+          \ for agent architect.\"\n  exit 1\n}\ntarget_path=\"${workspace_dir}/AGENTS.md\"\
+          \ntarget_parent=\"$(dirname \"${target_path}\")\"\nmkdir -p \"${target_parent}\"\
+          \ || {\n  echo >&2 \"Failed to create ${target_parent} before seeding AGENTS.md\
+          \ for agent architect.\"\n  exit 1\n}\nif [ -e \"${target_path}\" ]; then\n\
+          \  echo \"Preserving existing AGENTS.md in ${workspace_dir}.\"\nelse\n \
+          \ cp -f /config-source/workspace-architect-AGENTS.md \"${target_path}\"\
+          \ || {\n    echo >&2 \"Failed to seed AGENTS.md into ${workspace_dir} for\
+          \ agent architect.\"\n    exit 1\n  }\nfi\ntarget_path=\"${workspace_dir}/HEARTBEAT.md\"\
+          \ntarget_parent=\"$(dirname \"${target_path}\")\"\nmkdir -p \"${target_parent}\"\
+          \ || {\n  echo >&2 \"Failed to create ${target_parent} before seeding HEARTBEAT.md\
+          \ for agent architect.\"\n  exit 1\n}\nif [ -e \"${target_path}\" ]; then\n\
+          \  echo \"Preserving existing HEARTBEAT.md in ${workspace_dir}.\"\nelse\n\
+          \  cp -f /config-source/workspace-architect-HEARTBEAT.md \"${target_path}\"\
+          \ || {\n    echo >&2 \"Failed to seed HEARTBEAT.md into ${workspace_dir}\
+          \ for agent architect.\"\n    exit 1\n  }\nfi\ntarget_path=\"${workspace_dir}/IDENTITY.md\"\
+          \ntarget_parent=\"$(dirname \"${target_path}\")\"\nmkdir -p \"${target_parent}\"\
+          \ || {\n  echo >&2 \"Failed to create ${target_parent} before seeding IDENTITY.md\
+          \ for agent architect.\"\n  exit 1\n}\nif [ -e \"${target_path}\" ]; then\n\
+          \  echo \"Preserving existing IDENTITY.md in ${workspace_dir}.\"\nelse\n\
+          \  cp -f /config-source/workspace-architect-IDENTITY.md \"${target_path}\"\
+          \ || {\n    echo >&2 \"Failed to seed IDENTITY.md into ${workspace_dir}\
+          \ for agent architect.\"\n    exit 1\n  }\nfi\ntarget_path=\"${workspace_dir}/MEMORY.md\"\
+          \ntarget_parent=\"$(dirname \"${target_path}\")\"\nmkdir -p \"${target_parent}\"\
+          \ || {\n  echo >&2 \"Failed to create ${target_parent} before seeding MEMORY.md\
+          \ for agent architect.\"\n  exit 1\n}\nif [ -e \"${target_path}\" ]; then\n\
+          \  echo \"Preserving existing MEMORY.md in ${workspace_dir}.\"\nelse\n \
+          \ cp -f /config-source/workspace-architect-MEMORY.md \"${target_path}\"\
+          \ || {\n    echo >&2 \"Failed to seed MEMORY.md into ${workspace_dir} for\
+          \ agent architect.\"\n    exit 1\n  }\nfi\ntarget_path=\"${workspace_dir}/SOUL.md\"\
+          \ntarget_parent=\"$(dirname \"${target_path}\")\"\nmkdir -p \"${target_parent}\"\
+          \ || {\n  echo >&2 \"Failed to create ${target_parent} before seeding SOUL.md\
+          \ for agent architect.\"\n  exit 1\n}\nif [ -e \"${target_path}\" ]; then\n\
+          \  echo \"Preserving existing SOUL.md in ${workspace_dir}.\"\nelse\n  cp\
+          \ -f /config-source/workspace-architect-SOUL.md \"${target_path}\" || {\n\
+          \    echo >&2 \"Failed to seed SOUL.md into ${workspace_dir} for agent architect.\"\
+          \n    exit 1\n  }\nfi\ntarget_path=\"${workspace_dir}/TOOLS.md\"\ntarget_parent=\"\
+          $(dirname \"${target_path}\")\"\nmkdir -p \"${target_parent}\" || {\n  echo\
+          \ >&2 \"Failed to create ${target_parent} before seeding TOOLS.md for agent\
+          \ architect.\"\n  exit 1\n}\nif [ -e \"${target_path}\" ]; then\n  echo\
+          \ \"Preserving existing TOOLS.md in ${workspace_dir}.\"\nelse\n  cp -f /config-source/workspace-architect-TOOLS.md\
+          \ \"${target_path}\" || {\n    echo >&2 \"Failed to seed TOOLS.md into ${workspace_dir}\
+          \ for agent architect.\"\n    exit 1\n  }\nfi\ntarget_path=\"${workspace_dir}/USER.md\"\
+          \ntarget_parent=\"$(dirname \"${target_path}\")\"\nmkdir -p \"${target_parent}\"\
+          \ || {\n  echo >&2 \"Failed to create ${target_parent} before seeding USER.md\
+          \ for agent architect.\"\n  exit 1\n}\nif [ -e \"${target_path}\" ]; then\n\
+          \  echo \"Preserving existing USER.md in ${workspace_dir}.\"\nelse\n  cp\
+          \ -f /config-source/workspace-architect-USER.md \"${target_path}\" || {\n\
+          \    echo >&2 \"Failed to seed USER.md into ${workspace_dir} for agent architect.\"\
+          \n    exit 1\n  }\nfi\nworkspace_dir=\"${state_root}/workspace-coder\"\n\
+          mkdir -p \"${workspace_dir}\" || {\n  echo >&2 \"Failed to create bootstrapped\
+          \ workspace directory ${workspace_dir} for agent coder.\"\n  exit 1\n}\n\
+          target_path=\"${workspace_dir}/AGENTS.md\"\ntarget_parent=\"$(dirname \"\
+          ${target_path}\")\"\nmkdir -p \"${target_parent}\" || {\n  echo >&2 \"Failed\
+          \ to create ${target_parent} before seeding AGENTS.md for agent coder.\"\
+          \n  exit 1\n}\nif [ -e \"${target_path}\" ]; then\n  echo \"Preserving existing\
+          \ AGENTS.md in ${workspace_dir}.\"\nelse\n  cp -f /config-source/workspace-coder-AGENTS.md\
+          \ \"${target_path}\" || {\n    echo >&2 \"Failed to seed AGENTS.md into\
+          \ ${workspace_dir} for agent coder.\"\n    exit 1\n  }\nfi\ntarget_path=\"\
+          ${workspace_dir}/HEARTBEAT.md\"\ntarget_parent=\"$(dirname \"${target_path}\"\
+          )\"\nmkdir -p \"${target_parent}\" || {\n  echo >&2 \"Failed to create ${target_parent}\
+          \ before seeding HEARTBEAT.md for agent coder.\"\n  exit 1\n}\nif [ -e \"\
+          ${target_path}\" ]; then\n  echo \"Preserving existing HEARTBEAT.md in ${workspace_dir}.\"\
+          \nelse\n  cp -f /config-source/workspace-coder-HEARTBEAT.md \"${target_path}\"\
+          \ || {\n    echo >&2 \"Failed to seed HEARTBEAT.md into ${workspace_dir}\
+          \ for agent coder.\"\n    exit 1\n  }\nfi\ntarget_path=\"${workspace_dir}/IDENTITY.md\"\
+          \ntarget_parent=\"$(dirname \"${target_path}\")\"\nmkdir -p \"${target_parent}\"\
+          \ || {\n  echo >&2 \"Failed to create ${target_parent} before seeding IDENTITY.md\
+          \ for agent coder.\"\n  exit 1\n}\nif [ -e \"${target_path}\" ]; then\n\
+          \  echo \"Preserving existing IDENTITY.md in ${workspace_dir}.\"\nelse\n\
+          \  cp -f /config-source/workspace-coder-IDENTITY.md \"${target_path}\" ||\
+          \ {\n    echo >&2 \"Failed to seed IDENTITY.md into ${workspace_dir} for\
+          \ agent coder.\"\n    exit 1\n  }\nfi\ntarget_path=\"${workspace_dir}/MEMORY.md\"\
+          \ntarget_parent=\"$(dirname \"${target_path}\")\"\nmkdir -p \"${target_parent}\"\
+          \ || {\n  echo >&2 \"Failed to create ${target_parent} before seeding MEMORY.md\
+          \ for agent coder.\"\n  exit 1\n}\nif [ -e \"${target_path}\" ]; then\n\
+          \  echo \"Preserving existing MEMORY.md in ${workspace_dir}.\"\nelse\n \
+          \ cp -f /config-source/workspace-coder-MEMORY.md \"${target_path}\" || {\n\
+          \    echo >&2 \"Failed to seed MEMORY.md into ${workspace_dir} for agent\
+          \ coder.\"\n    exit 1\n  }\nfi\ntarget_path=\"${workspace_dir}/SOUL.md\"\
+          \ntarget_parent=\"$(dirname \"${target_path}\")\"\nmkdir -p \"${target_parent}\"\
+          \ || {\n  echo >&2 \"Failed to create ${target_parent} before seeding SOUL.md\
+          \ for agent coder.\"\n  exit 1\n}\nif [ -e \"${target_path}\" ]; then\n\
+          \  echo \"Preserving existing SOUL.md in ${workspace_dir}.\"\nelse\n  cp\
+          \ -f /config-source/workspace-coder-SOUL.md \"${target_path}\" || {\n  \
+          \  echo >&2 \"Failed to seed SOUL.md into ${workspace_dir} for agent coder.\"\
+          \n    exit 1\n  }\nfi\ntarget_path=\"${workspace_dir}/TOOLS.md\"\ntarget_parent=\"\
+          $(dirname \"${target_path}\")\"\nmkdir -p \"${target_parent}\" || {\n  echo\
+          \ >&2 \"Failed to create ${target_parent} before seeding TOOLS.md for agent\
+          \ coder.\"\n  exit 1\n}\nif [ -e \"${target_path}\" ]; then\n  echo \"Preserving\
+          \ existing TOOLS.md in ${workspace_dir}.\"\nelse\n  cp -f /config-source/workspace-coder-TOOLS.md\
+          \ \"${target_path}\" || {\n    echo >&2 \"Failed to seed TOOLS.md into ${workspace_dir}\
+          \ for agent coder.\"\n    exit 1\n  }\nfi\ntarget_path=\"${workspace_dir}/USER.md\"\
+          \ntarget_parent=\"$(dirname \"${target_path}\")\"\nmkdir -p \"${target_parent}\"\
+          \ || {\n  echo >&2 \"Failed to create ${target_parent} before seeding USER.md\
+          \ for agent coder.\"\n  exit 1\n}\nif [ -e \"${target_path}\" ]; then\n\
+          \  echo \"Preserving existing USER.md in ${workspace_dir}.\"\nelse\n  cp\
+          \ -f /config-source/workspace-coder-USER.md \"${target_path}\" || {\n  \
+          \  echo >&2 \"Failed to seed USER.md into ${workspace_dir} for agent coder.\"\
+          \n    exit 1\n  }\nfi\ntarget_path=\"${workspace_dir}/skills/gitea-tea/SKILL.md\"\
+          \ntarget_parent=\"$(dirname \"${target_path}\")\"\nmkdir -p \"${target_parent}\"\
+          \ || {\n  echo >&2 \"Failed to create ${target_parent} before seeding skills/gitea-tea/SKILL.md\
+          \ for agent coder.\"\n  exit 1\n}\nif [ -e \"${target_path}\" ]; then\n\
+          \  echo \"Preserving existing skills/gitea-tea/SKILL.md in ${workspace_dir}.\"\
+          \nelse\n  cp -f /config-source/workspace-coder-skills__gitea-tea__SKILL.md\
+          \ \"${target_path}\" || {\n    echo >&2 \"Failed to seed skills/gitea-tea/SKILL.md\
+          \ into ${workspace_dir} for agent coder.\"\n    exit 1\n  }\nfi\ntarget_path=\"\
+          ${workspace_dir}/skills/gitops-homebase/SKILL.md\"\ntarget_parent=\"$(dirname\
+          \ \"${target_path}\")\"\nmkdir -p \"${target_parent}\" || {\n  echo >&2\
+          \ \"Failed to create ${target_parent} before seeding skills/gitops-homebase/SKILL.md\
+          \ for agent coder.\"\n  exit 1\n}\nif [ -e \"${target_path}\" ]; then\n\
+          \  echo \"Preserving existing skills/gitops-homebase/SKILL.md in ${workspace_dir}.\"\
+          \nelse\n  cp -f /config-source/workspace-coder-skills__gitops-homebase__SKILL.md\
+          \ \"${target_path}\" || {\n    echo >&2 \"Failed to seed skills/gitops-homebase/SKILL.md\
+          \ into ${workspace_dir} for agent coder.\"\n    exit 1\n  }\nfi\nworkspace_dir=\"\
+          ${state_root}/workspace\"\nmkdir -p \"${workspace_dir}\" || {\n  echo >&2\
+          \ \"Failed to create bootstrapped workspace directory ${workspace_dir} for\
+          \ agent main.\"\n  exit 1\n}\ntarget_path=\"${workspace_dir}/AGENTS.md\"\
+          \ntarget_parent=\"$(dirname \"${target_path}\")\"\nmkdir -p \"${target_parent}\"\
+          \ || {\n  echo >&2 \"Failed to create ${target_parent} before seeding AGENTS.md\
+          \ for agent main.\"\n  exit 1\n}\nif [ -e \"${target_path}\" ]; then\n \
+          \ echo \"Preserving existing AGENTS.md in ${workspace_dir}.\"\nelse\n  cp\
+          \ -f /config-source/workspace-main-AGENTS.md \"${target_path}\" || {\n \
+          \   echo >&2 \"Failed to seed AGENTS.md into ${workspace_dir} for agent\
+          \ main.\"\n    exit 1\n  }\nfi\ntarget_path=\"${workspace_dir}/BOOTSTRAP.md\"\
+          \ntarget_parent=\"$(dirname \"${target_path}\")\"\nmkdir -p \"${target_parent}\"\
+          \ || {\n  echo >&2 \"Failed to create ${target_parent} before seeding BOOTSTRAP.md\
+          \ for agent main.\"\n  exit 1\n}\nif [ -e \"${target_path}\" ]; then\n \
+          \ echo \"Preserving existing BOOTSTRAP.md in ${workspace_dir}.\"\nelse\n\
+          \  cp -f /config-source/workspace-main-BOOTSTRAP.md \"${target_path}\" ||\
+          \ {\n    echo >&2 \"Failed to seed BOOTSTRAP.md into ${workspace_dir} for\
+          \ agent main.\"\n    exit 1\n  }\nfi\ntarget_path=\"${workspace_dir}/HEARTBEAT.md\"\
+          \ntarget_parent=\"$(dirname \"${target_path}\")\"\nmkdir -p \"${target_parent}\"\
+          \ || {\n  echo >&2 \"Failed to create ${target_parent} before seeding HEARTBEAT.md\
+          \ for agent main.\"\n  exit 1\n}\nif [ -e \"${target_path}\" ]; then\n \
+          \ echo \"Preserving existing HEARTBEAT.md in ${workspace_dir}.\"\nelse\n\
+          \  cp -f /config-source/workspace-main-HEARTBEAT.md \"${target_path}\" ||\
+          \ {\n    echo >&2 \"Failed to seed HEARTBEAT.md into ${workspace_dir} for\
+          \ agent main.\"\n    exit 1\n  }\nfi\ntarget_path=\"${workspace_dir}/IDENTITY.md\"\
+          \ntarget_parent=\"$(dirname \"${target_path}\")\"\nmkdir -p \"${target_parent}\"\
+          \ || {\n  echo >&2 \"Failed to create ${target_parent} before seeding IDENTITY.md\
+          \ for agent main.\"\n  exit 1\n}\nif [ -e \"${target_path}\" ]; then\n \
+          \ echo \"Preserving existing IDENTITY.md in ${workspace_dir}.\"\nelse\n\
+          \  cp -f /config-source/workspace-main-IDENTITY.md \"${target_path}\" ||\
+          \ {\n    echo >&2 \"Failed to seed IDENTITY.md into ${workspace_dir} for\
+          \ agent main.\"\n    exit 1\n  }\nfi\ntarget_path=\"${workspace_dir}/MEMORY.md\"\
+          \ntarget_parent=\"$(dirname \"${target_path}\")\"\nmkdir -p \"${target_parent}\"\
+          \ || {\n  echo >&2 \"Failed to create ${target_parent} before seeding MEMORY.md\
+          \ for agent main.\"\n  exit 1\n}\nif [ -e \"${target_path}\" ]; then\n \
+          \ echo \"Preserving existing MEMORY.md in ${workspace_dir}.\"\nelse\n  cp\
+          \ -f /config-source/workspace-main-MEMORY.md \"${target_path}\" || {\n \
+          \   echo >&2 \"Failed to seed MEMORY.md into ${workspace_dir} for agent\
+          \ main.\"\n    exit 1\n  }\nfi\ntarget_path=\"${workspace_dir}/SOUL.md\"\
+          \ntarget_parent=\"$(dirname \"${target_path}\")\"\nmkdir -p \"${target_parent}\"\
+          \ || {\n  echo >&2 \"Failed to create ${target_parent} before seeding SOUL.md\
+          \ for agent main.\"\n  exit 1\n}\nif [ -e \"${target_path}\" ]; then\n \
+          \ echo \"Preserving existing SOUL.md in ${workspace_dir}.\"\nelse\n  cp\
+          \ -f /config-source/workspace-main-SOUL.md \"${target_path}\" || {\n   \
+          \ echo >&2 \"Failed to seed SOUL.md into ${workspace_dir} for agent main.\"\
+          \n    exit 1\n  }\nfi\ntarget_path=\"${workspace_dir}/TOOLS.md\"\ntarget_parent=\"\
+          $(dirname \"${target_path}\")\"\nmkdir -p \"${target_parent}\" || {\n  echo\
+          \ >&2 \"Failed to create ${target_parent} before seeding TOOLS.md for agent\
+          \ main.\"\n  exit 1\n}\nif [ -e \"${target_path}\" ]; then\n  echo \"Preserving\
+          \ existing TOOLS.md in ${workspace_dir}.\"\nelse\n  cp -f /config-source/workspace-main-TOOLS.md\
+          \ \"${target_path}\" || {\n    echo >&2 \"Failed to seed TOOLS.md into ${workspace_dir}\
+          \ for agent main.\"\n    exit 1\n  }\nfi\ntarget_path=\"${workspace_dir}/USER.md\"\
+          \ntarget_parent=\"$(dirname \"${target_path}\")\"\nmkdir -p \"${target_parent}\"\
+          \ || {\n  echo >&2 \"Failed to create ${target_parent} before seeding USER.md\
+          \ for agent main.\"\n  exit 1\n}\nif [ -e \"${target_path}\" ]; then\n \
+          \ echo \"Preserving existing USER.md in ${workspace_dir}.\"\nelse\n  cp\
+          \ -f /config-source/workspace-main-USER.md \"${target_path}\" || {\n   \
+          \ echo >&2 \"Failed to seed USER.md into ${workspace_dir} for agent main.\"\
+          \n    exit 1\n  }\nfi\n"
+        image: ghcr.io/openclaw/openclaw:2026.3.24
         imagePullPolicy: IfNotPresent
         name: config-permissions
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
-            add:
-            - CHOWN
             drop:
             - ALL
           readOnlyRootFilesystem: true
-          runAsGroup: 0
-          runAsNonRoot: false
-          runAsUser: 0
+          runAsGroup: 1000
+          runAsNonRoot: true
+          runAsUser: 1000
         volumeMounts:
         - mountPath: /config-source
           name: config-source
           readOnly: true
+        - mountPath: /runtime-target
+          name: mcp-runtime
         - mountPath: /config-target-root
           name: data
+      - command:
+        - /bin/sh
+        - -c
+        - "set -eu\nif [ ! -s /config-source/mcp-http-bridge.mjs ]; then\n  echo >&2\
+          \ \"Rendered ConfigMap file /config-source/mcp-http-bridge.mjs is missing\
+          \ or empty; verify the openclaw ConfigMap rendered correctly before deployment.\"\
+          \n  exit 1\nfi\nmkdir -p /runtime-target || {\n  echo >&2 \"Failed to create\
+          \ MCP runtime target directory /runtime-target.\"\n  exit 1\n}\ncp -f /config-source/mcp-http-bridge.mjs\
+          \ /runtime-target/mcp-http-bridge.mjs || {\n  echo >&2 \"Failed to bootstrap\
+          \ shared MCP bridge into /runtime-target/mcp-http-bridge.mjs.\"\n  exit\
+          \ 1\n}\n"
+        image: ghcr.io/openclaw/openclaw:2026.3.24
+        imagePullPolicy: IfNotPresent
+        name: mcp-runtime
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 1000
+          runAsNonRoot: true
+          runAsUser: 1000
+        volumeMounts:
+        - mountPath: /config-source
+          name: config-source
+          readOnly: true
+        - mountPath: /runtime-target
+          name: mcp-runtime
       - command:
         - /bin/sh
         - -c
@@ -295,7 +1236,7 @@ spec:
           \ in the OpenClaw image. Build from images/openclaw-remote-docker/Dockerfile\
           \ or use an equivalent image.\"\n  exit 1\nfi\necho \"docker CLI available\
           \ at ${docker_path}\"\necho \"ssh client available at ${ssh_path}\"\n"
-        image: ghcr.io/openclaw/openclaw:2026.3.23-2
+        image: ghcr.io/openclaw/openclaw:2026.3.24
         imagePullPolicy: IfNotPresent
         name: remote-docker-runtime-check
         securityContext:
@@ -344,7 +1285,7 @@ spec:
           \  echo >&2 \"Failed to hand /ssh-target to UID/GID 1000 after permissions\
           \ were locked down; verify the init container still runs as UID/GID 0 with\
           \ the CHOWN capability required by the security context.\"\n  exit 1\n}\n"
-        image: ghcr.io/openclaw/openclaw:2026.3.23-2
+        image: ghcr.io/openclaw/openclaw:2026.3.24
         imagePullPolicy: IfNotPresent
         name: remote-docker-ssh-permissions
         securityContext:
@@ -375,11 +1316,9 @@ spec:
         persistentVolumeClaim:
           claimName: platform-stack-openclaw
       - configMap:
-          items:
-          - key: openclaw.json
-            path: openclaw.json
           name: platform-stack-openclaw
         name: config-source
+      - name: mcp-runtime
       - name: remote-docker-cli
       - name: remote-docker-ssh-secret
         secret:
@@ -633,6 +1572,34 @@ metadata:
   labels:
     app.kubernetes.io/instance: platform-stack
     app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nextcloud-mcp
+  name: platform-stack-nextcloud-mcp
+spec:
+  ingressClassName: internal-nginx
+  rules:
+  - host: nextcloud-mcp.homebase.local
+    http:
+      paths:
+      - backend:
+          service:
+            name: platform-stack-nextcloud-mcp
+            port:
+              number: 8000
+        path: /
+        pathType: Prefix
+  tls:
+  - hosts:
+    - nextcloud-mcp.homebase.local
+    secretName: nextcloud-mcp-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: platform-stack-root-ca
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: nextcloud
   name: platform-stack-nextcloud-private
 spec:
@@ -684,6 +1651,182 @@ metadata:
   annotations:
     helm.sh/hook: post-install,post-upgrade
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+    helm.sh/hook-weight: '8'
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nextcloud
+  name: platform-stack-nextcloud-bootstrap-apps
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: platform-stack
+        app.kubernetes.io/name: nextcloud
+    spec:
+      containers:
+      - command:
+        - /bin/sh
+        - -ceu
+        - "until su -s /bin/sh www-data -c 'cd /var/www/html && php occ status --output=json\
+          \ 2>/dev/null | grep -q \"\\\"installed\\\":true\"'; do\n  echo \"waiting\
+          \ for nextcloud bootstrap\"\n  sleep 5\ndone\n\ninstall_and_enable_app()\
+          \ {\n  app_id=\"$1\"\n  echo \"processing app: ${app_id}\"\n  if su -s /bin/sh\
+          \ www-data -c \"cd /var/www/html && php occ app:list --output=json\" | grep\
+          \ -q \"\\\"${app_id}\\\":\"; then\n    echo \"app '${app_id}' is already\
+          \ installed\"\n  else\n    echo \"installing '${app_id}'\"\n    su -s /bin/sh\
+          \ www-data -c \"cd /var/www/html && php occ app:install \\\"${app_id}\\\"\
+          \"\n  fi\n  echo \"enabling '${app_id}'\"\n  su -s /bin/sh www-data -c \"\
+          cd /var/www/html && php occ app:enable \\\"${app_id}\\\"\"\n}\ninstall_and_enable_app\
+          \ \"notes\"\ninstall_and_enable_app \"tables\"\ninstall_and_enable_app \"\
+          calendar\"\ninstall_and_enable_app \"tasks\"\n"
+        env:
+        - name: POSTGRES_HOST
+          value: platform-stack-shared-postgresql
+        - name: POSTGRES_PORT
+          value: '5432'
+        - name: POSTGRES_DB
+          value: nextcloud
+        - name: POSTGRES_USER
+          value: nextcloud
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: POSTGRES_PASSWORD
+              name: nextcloud-config-secrets
+        - name: REDIS_HOST
+          value: platform-stack-shared-redis
+        - name: REDIS_HOST_PORT
+          value: '6379'
+        - name: REDIS_HOST_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: REDIS_HOST_PASSWORD
+              name: nextcloud-config-secrets
+        image: nextcloud:33.0.0-apache
+        imagePullPolicy: IfNotPresent
+        name: bootstrap-apps
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          runAsNonRoot: false
+        volumeMounts:
+        - mountPath: /var/www/html
+          name: data
+      restartPolicy: Never
+      securityContext:
+        fsGroup: 33
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: data
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+    helm.sh/hook-weight: '10'
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nextcloud
+  name: platform-stack-nextcloud-bootstrap-users
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: platform-stack
+        app.kubernetes.io/name: nextcloud
+    spec:
+      containers:
+      - command:
+        - /bin/sh
+        - -ceu
+        - "until su -s /bin/sh www-data -c 'cd /var/www/html && php occ status --output=json\
+          \ 2>/dev/null | grep -q \"\\\"installed\\\":true\"'; do\n  echo \"waiting\
+          \ for nextcloud bootstrap\"\n  sleep 5\ndone\nusername_var=\"BOOTSTRAP_USER_0_USERNAME\"\
+          \ndisplay_name_var=\"BOOTSTRAP_USER_0_DISPLAY_NAME\"\npassword_var=\"BOOTSTRAP_USER_0_PASSWORD\"\
+          \nusername=\"$(printenv \"${username_var}\")\"\ndisplay_name=\"$(printenv\
+          \ \"${display_name_var}\")\"\npassword=\"$(printenv \"${password_var}\"\
+          )\"\n\nif ! su -s /bin/sh www-data -c \"cd /var/www/html && php occ user:info\
+          \ \\\"${username}\\\" >/dev/null 2>&1\"; then\n  OC_PASS=\"${password}\"\
+          \ su -s /bin/sh www-data -c \"cd /var/www/html && php occ user:add --password-from-env\
+          \ --display-name \\\"${display_name}\\\" \\\"${username}\\\"\"\nfi\ncurrent_display_name=\"\
+          $(su -s /bin/sh www-data -c \"cd /var/www/html && php occ user:info \\\"\
+          ${username}\\\" 2>/dev/null\" | sed -n 's/^  - display_name: //p' | head\
+          \ -n 1)\"\nif [ \"${current_display_name}\" != \"${display_name}\" ]; then\n\
+          \  su -s /bin/sh www-data -c \"cd /var/www/html && php occ user:setting\
+          \ \\\"${username}\\\" settings display_name \\\"${display_name}\\\" >/dev/null\"\
+          \nfi\nOC_PASS=\"${password}\" su -s /bin/sh www-data -c \"cd /var/www/html\
+          \ && php occ user:resetpassword --password-from-env \\\"${username}\\\"\"\
+          \n"
+        env:
+        - name: POSTGRES_HOST
+          value: platform-stack-shared-postgresql
+        - name: POSTGRES_PORT
+          value: '5432'
+        - name: POSTGRES_DB
+          value: nextcloud
+        - name: POSTGRES_USER
+          value: nextcloud
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: POSTGRES_PASSWORD
+              name: nextcloud-config-secrets
+        - name: REDIS_HOST
+          value: platform-stack-shared-redis
+        - name: REDIS_HOST_PORT
+          value: '6379'
+        - name: REDIS_HOST_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: REDIS_HOST_PASSWORD
+              name: nextcloud-config-secrets
+        - name: BOOTSTRAP_USER_0_USERNAME
+          value: openclaw
+        - name: BOOTSTRAP_USER_0_DISPLAY_NAME
+          value: OpenClaw
+        - name: BOOTSTRAP_USER_0_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: NEXTCLOUD_PASSWORD
+              name: openclaw-nextcloud-mcp-secrets
+        image: nextcloud:33.0.0-apache
+        imagePullPolicy: IfNotPresent
+        name: bootstrap-users
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          runAsNonRoot: false
+        volumeMounts:
+        - mountPath: /var/www/html
+          name: data
+      restartPolicy: Never
+      securityContext:
+        fsGroup: 33
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: data
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  annotations:
+    helm.sh/hook: post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+    helm.sh/hook-weight: '-10'
   labels:
     app.kubernetes.io/component: shared-postgresql-bootstrap
     app.kubernetes.io/instance: platform-stack
@@ -843,6 +1986,25 @@ spec:
   selector:
     app.kubernetes.io/instance: platform-stack
     app.kubernetes.io/name: nextcloud
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nextcloud-mcp
+  name: platform-stack-nextcloud-mcp
+spec:
+  ports:
+  - name: http
+    port: 8000
+    protocol: TCP
+    targetPort: 8000
+  selector:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/name: nextcloud-mcp
   type: ClusterIP
 ---
 apiVersion: v1
@@ -1074,7 +2236,8 @@ spec:
               key: NEXTCLOUD_ADMIN_PASSWORD
               name: nextcloud-config-secrets
         - name: NEXTCLOUD_TRUSTED_DOMAINS
-          value: cloud.homebase.local
+          value: cloud.homebase.local platform-stack-nextcloud platform-stack-nextcloud.ai-homebase.svc
+            platform-stack-nextcloud.ai-homebase.svc.cluster.local
         - name: APACHE_DISABLE_REWRITE_IP
           value: '1'
         - name: OVERWRITEPROTOCOL
@@ -1086,15 +2249,19 @@ spec:
         - name: NEXTCLOUD_INIT_HTACCESS
           value: 'true'
         - name: SMTP_HOST
-          value: ''
+          value: platform-stack-postfix-relay
         - name: SMTP_PORT
           value: '587'
         - name: SMTP_NAME
           value: ''
+        - name: SMTP_SECURE
+          value: ''
+        - name: SMTP_AUTHTYPE
+          value: ''
         - name: MAIL_FROM_ADDRESS
-          value: ''
+          value: noreply
         - name: MAIL_DOMAIN
-          value: ''
+          value: example.com
         - name: POSTGRES_HOST
           value: platform-stack-shared-postgresql
         - name: POSTGRES_PORT
@@ -1124,8 +2291,8 @@ spec:
             command:
             - /bin/sh
             - -ec
-            - su -s /bin/sh www-data -c 'cd /var/www/html && php occ status --no-ansi
-              >/dev/null'
+            - su -s /bin/sh www-data -c 'cd /var/www/html && php occ status --output=json
+              2>/dev/null | grep -q "\"installed\":true"'
           initialDelaySeconds: 30
           periodSeconds: 10
         name: nextcloud
@@ -1137,14 +2304,64 @@ spec:
             command:
             - /bin/sh
             - -ec
-            - su -s /bin/sh www-data -c 'cd /var/www/html && php occ status --no-ansi
-              >/dev/null'
+            - su -s /bin/sh www-data -c 'cd /var/www/html && php occ status --output=json
+              2>/dev/null | grep -q "\"installed\":true"'
           initialDelaySeconds: 10
           periodSeconds: 10
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: false
           runAsNonRoot: false
+        volumeMounts:
+        - mountPath: /var/www/html
+          name: data
+      initContainers:
+      - command:
+        - /bin/sh
+        - -ceu
+        - "if [ ! -f /var/www/html/config/config.php ]; then\n  exit 0\nfi\nif su\
+          \ -s /bin/sh www-data -c 'cd /var/www/html && php occ status --output=json\
+          \ 2>/dev/null | grep -q \"\\\"installed\\\":true\"'; then\n  exit 0\nfi\n\
+          echo \"removing incomplete Nextcloud bootstrap state\"\nrm -f /var/www/html/config/config.php\
+          \ /var/www/html/nextcloud-init-sync.lock\n"
+        image: nextcloud:33.0.0-apache
+        imagePullPolicy: IfNotPresent
+        name: recover-incomplete-bootstrap
+        volumeMounts:
+        - mountPath: /var/www/html
+          name: data
+      - command:
+        - /bin/sh
+        - -ceu
+        - "until PGPASSWORD=\"$NEXTCLOUD_DB_PASSWORD\" psql \\\n  --host \"platform-stack-shared-postgresql\"\
+          \ \\\n  --port \"5432\" \\\n  --username \"nextcloud\" \\\n  --dbname \"\
+          nextcloud\" \\\n  -tAc \"SELECT current_database(), current_user;\" | grep\
+          \ -qx 'nextcloud|nextcloud'; do\n  echo \"waiting for live PostgreSQL bootstrap\
+          \ of nextcloud\"\n  sleep 2\ndone\n"
+        env:
+        - name: NEXTCLOUD_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: POSTGRES_PASSWORD
+              name: nextcloud-config-secrets
+        image: docker.io/postgres:17.5-alpine
+        imagePullPolicy: IfNotPresent
+        name: wait-for-shared-postgresql-bootstrap
+      - command:
+        - /bin/sh
+        - -ceu
+        - "if ! su -s /bin/sh www-data -c 'cd /var/www/html && php occ status --output=json\
+          \ 2>/dev/null | grep -q \"\\\"installed\\\":true\"'; then\n  exit 0\nfi\n\
+          idx=0\nfor domain in localhost $NEXTCLOUD_TRUSTED_DOMAINS; do\n  su -s /bin/sh\
+          \ www-data -c \"cd /var/www/html && php occ config:system:set trusted_domains\
+          \ ${idx} --value='${domain}'\"\n  idx=$((idx + 1))\ndone\n"
+        env:
+        - name: NEXTCLOUD_TRUSTED_DOMAINS
+          value: cloud.homebase.local platform-stack-nextcloud platform-stack-nextcloud.ai-homebase.svc
+            platform-stack-nextcloud.ai-homebase.svc.cluster.local
+        image: nextcloud:33.0.0-apache
+        imagePullPolicy: IfNotPresent
+        name: reconcile-trusted-domains
         volumeMounts:
         - mountPath: /var/www/html
           name: data
@@ -1163,10 +2380,16 @@ kind: StatefulSet
 metadata:
   labels:
     app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: sharedPostgresql
   name: platform-stack-shared-postgresql
 spec:
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Retain
+    whenScaled: Retain
+  podManagementPolicy: OrderedReady
   replicas: 1
+  revisionHistoryLimit: 10
   selector:
     matchLabels:
       app.kubernetes.io/instance: platform-stack
@@ -1176,6 +2399,7 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/instance: platform-stack
+        app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: sharedPostgresql
     spec:
       containers:
@@ -1191,11 +2415,31 @@ spec:
         ports:
         - containerPort: 5432
           name: postgresql
+          protocol: TCP
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
         volumeMounts:
         - mountPath: /var/lib/postgresql/data
           name: data
+        - mountPath: /docker-entrypoint-initdb.d
+          name: initdb-scripts
+          readOnly: true
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: initdb-scripts
+        secret:
+          secretName: shared-postgresql-initdb
+  updateStrategy:
+    rollingUpdate:
+      partition: 0
+    type: RollingUpdate
   volumeClaimTemplates:
-  - metadata:
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
       name: data
     spec:
       accessModes:
@@ -1203,16 +2447,23 @@ spec:
       resources:
         requests:
           storage: 100Gi
+      volumeMode: Filesystem
 ---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   labels:
     app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: sharedRedis
   name: platform-stack-shared-redis
 spec:
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Retain
+    whenScaled: Retain
+  podManagementPolicy: OrderedReady
   replicas: 1
+  revisionHistoryLimit: 10
   selector:
     matchLabels:
       app.kubernetes.io/instance: platform-stack
@@ -1222,6 +2473,7 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/instance: platform-stack
+        app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: sharedRedis
     spec:
       containers:
@@ -1248,17 +2500,30 @@ spec:
         ports:
         - containerPort: 6379
           name: redis
+          protocol: TCP
         readinessProbe:
           exec:
             command:
             - sh
             - -c
             - redis-cli -a "$REDIS_PASSWORD" ping
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
         volumeMounts:
         - mountPath: /data
           name: data
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      terminationGracePeriodSeconds: 30
+  updateStrategy:
+    rollingUpdate:
+      partition: 0
+    type: RollingUpdate
   volumeClaimTemplates:
-  - metadata:
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
       name: data
     spec:
       accessModes:
@@ -1266,3 +2531,4 @@ spec:
       resources:
         requests:
           storage: 30Gi
+      volumeMode: Filesystem

@@ -11,15 +11,16 @@ spec:
       {{- include "nextcloud-mcp.selectorLabels" . | nindent 6 }}
   template:
     metadata:
+      annotations:
+        checksum/runtime-config: {{ include (print $.Template.BasePath "/runtime-configmap.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
       labels:
         {{- include "nextcloud-mcp.selectorLabels" . | nindent 8 }}
         {{- with .Values.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
-      {{- with .Values.podAnnotations }}
-      annotations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
     spec:
       {{- with .Values.podSecurityContext }}
       securityContext:
@@ -36,8 +37,8 @@ spec:
         - name: nextcloud-mcp
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          {{- with .Values.args }}
-          args:
+          {{- with .Values.command }}
+          command:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           ports:
@@ -52,6 +53,8 @@ spec:
               value: {{ .Values.nextcloud.url | quote }}
             - name: MCP_DEPLOYMENT_MODE
               value: {{ .Values.authentication.mode | quote }}
+            - name: NEXTCLOUD_ENABLED_APPS
+              value: {{ join "," .Values.enabledApps | quote }}
             {{- if eq .Values.authentication.mode "multi_user_basic" }}
             - name: ENABLE_MULTI_USER_BASIC_AUTH
               value: "true"
@@ -103,6 +106,9 @@ spec:
           volumeMounts:
             - name: app-data
               mountPath: /app/data
+            - name: runtime-config
+              mountPath: /opt/nextcloud-mcp
+              readOnly: true
           {{- with .Values.securityContext }}
           securityContext:
             {{- toYaml . | nindent 12 }}
@@ -122,3 +128,6 @@ spec:
       volumes:
         - name: app-data
           emptyDir: {}
+        - name: runtime-config
+          configMap:
+            name: {{ include "nextcloud-mcp.fullname" . }}-runtime

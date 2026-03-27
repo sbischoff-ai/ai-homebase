@@ -17,9 +17,6 @@ assert_contains() {
 run_case() {
   local case_name="$1"
   local token_value="$2"
-  local provider_key="$3"
-  local provider_value="$4"
-  local expected_model="$5"
 
   local sandbox_dir
   sandbox_dir="$(mktemp -d)"
@@ -36,10 +33,21 @@ run_case() {
   local command_log="${sandbox_dir}/commands.log"
   local kubeconfig_path="${sandbox_dir}/kubeconfig.yaml"
   local bootstrap_config_path="${sandbox_dir}/bootstrap.local.toml"
+  local shared_state_source="${sandbox_dir}/openclaw-state"
 
   cat >"${bootstrap_config_path}" <<EOF
 [providers]
-${provider_key} = "${provider_value}"
+openai_api_key = "test-openai-key"
+anthropic_api_key = "test-anthropic-key"
+
+[openclaw.agents.main]
+model = "anthropic/claude-sonnet-4-6"
+
+[openclaw.agents.coder]
+model = "openai/gpt-5.4"
+
+[openclaw.agents.architect]
+model = "anthropic/claude-opus-4-6"
 
 [hosts]
 openclaw = "openclaw.test.internal"
@@ -82,7 +90,8 @@ SH
       --namespace test-namespace \
       --release-name test-release \
       --kubeconfig "${kubeconfig_path}" \
-      --bootstrap-config "${bootstrap_config_path}"
+      --bootstrap-config "${bootstrap_config_path}" \
+      --shared-openclaw-state-source "${shared_state_source}"
   ) >"${output_file}" 2>&1
 
   local output commands
@@ -92,7 +101,8 @@ SH
   assert_contains "${output}" "Local bootstrap complete."
   assert_contains "${output}" "  Kubeconfig path: ${kubeconfig_path}"
   assert_contains "${output}" "  OpenClaw URL: http://openclaw.test.internal"
-  assert_contains "${output}" "  OpenClaw default model: ${expected_model}"
+  assert_contains "${output}" "  OpenClaw main model: anthropic/claude-sonnet-4-6"
+  assert_contains "${output}" "  OpenClaw coder model: openai/gpt-5.4"
   assert_contains "${output}" "  Gitea URL: http://gitea.test.internal"
 
   case "${case_name}" in
@@ -102,14 +112,15 @@ SH
   esac
 
   assert_contains "${commands}" "bootstrap-stack.sh --profile k3d --namespace test-namespace --release-name test-release --kubeconfig ${kubeconfig_path} --bootstrap-config ${bootstrap_config_path}"
-  assert_contains "${commands}" "--values-file /tmp/ai-homebase-k3d-remote-docker"
   assert_contains "${commands}" "test-local-k3d.sh --release-name test-release --namespace test-namespace --kubeconfig ${kubeconfig_path} --skip-install"
+  assert_contains "${commands}" "k3d-up.sh --cluster-name test-cluster --kubeconfig ${kubeconfig_path} --shared-openclaw-state-source ${shared_state_source} --shared-openclaw-state-target /var/lib/ai-homebase/openclaw-state"
+  assert_contains "${commands}" "incus-vm-up.sh --vm-name openclaw-sandbox --shared-openclaw-state-source ${shared_state_source} --shared-openclaw-state-target /home/node/.openclaw --resolve-host nextcloud-mcp.localtest.me --resolve-host gitea.test.internal"
 
   trap - RETURN
   rm -rf "${sandbox_dir}"
 }
 
-run_case default-token "" openai_api_key test-openai-key openai/gpt-5.2
-run_case explicit-token test-gateway-token anthropic_api_key test-anthropic-key anthropic/claude-opus-4-6
+run_case default-token ""
+run_case explicit-token test-gateway-token
 
 echo "k3d local bootstrap tests passed"

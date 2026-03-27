@@ -7,7 +7,8 @@ PROFILE="${PROFILE:-}"
 BOOTSTRAP_CONFIG_PATH="${BOOTSTRAP_CONFIG_PATH:-bootstrap.local.toml}"
 NAMESPACE="${NAMESPACE:-ai-homebase}"
 RELEASE_NAME="${RELEASE_NAME:-platform-stack}"
-KUBECONFIG_PATH="${KUBECONFIG_PATH:-${KUBECONFIG:-}}"
+KUBECONFIG_PATH="${KUBECONFIG_PATH:-}"
+RAW_KUBECONFIG="${KUBECONFIG:-}"
 OPENCLAW_GATEWAY_TOKEN=""
 OPENAI_API_KEY=""
 ANTHROPIC_API_KEY=""
@@ -46,6 +47,20 @@ OPENCLAW_PROVIDER_ENV_VARS=(
   MOONSHOT_API_KEY
 )
 
+normalize_kubeconfig_path() {
+  local candidate="${1:-}"
+  case "$candidate" in
+    '${KUBECONFIG:-'*'}')
+      candidate="${candidate#'${KUBECONFIG:-'}"
+      candidate="${candidate%\}}"
+      ;;
+    'KUBECONFIG:-'*)
+      candidate="${candidate#KUBECONFIG:-}"
+      ;;
+  esac
+  printf '%s' "$candidate"
+}
+
 usage() {
   cat <<USAGE
 Usage: $0 --profile <k3d|k3s> [options]
@@ -83,6 +98,10 @@ while [[ $# -gt 0 ]]; do
     *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
   esac
 done
+
+if [[ -z "$KUBECONFIG_PATH" ]]; then
+  KUBECONFIG_PATH="$(normalize_kubeconfig_path "$RAW_KUBECONFIG")"
+fi
 
 case "$PROFILE" in
   k3d|k3s) ;;
@@ -367,9 +386,9 @@ create_and_apply_secret nextcloud-config-secrets \
   --from-literal=POSTGRES_PASSWORD="${NEXTCLOUD_DB_PASSWORD}" \
   --from-literal=REDIS_HOST_PASSWORD="${REDIS_PASSWORD}"
 
-OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER="Basic $(printf 'openclaw-mcp:%s' "${OPENCLAW_NEXTCLOUD_MCP_PASSWORD}" | base64 | tr -d '\n')"
+OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER="Basic $(printf 'openclaw:%s' "${OPENCLAW_NEXTCLOUD_MCP_PASSWORD}" | base64 | tr -d '\n')"
 create_and_apply_secret openclaw-nextcloud-mcp-secrets \
-  --from-literal=NEXTCLOUD_USERNAME="openclaw-mcp" \
+  --from-literal=NEXTCLOUD_USERNAME="openclaw" \
   --from-literal=NEXTCLOUD_PASSWORD="${OPENCLAW_NEXTCLOUD_MCP_PASSWORD}" \
   --from-literal=OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER="${OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER}"
 

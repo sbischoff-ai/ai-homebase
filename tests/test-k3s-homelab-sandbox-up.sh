@@ -27,9 +27,20 @@ chmod +x "${repo_dir}/scripts/k3s-homelab-sandbox-up.sh" "${repo_dir}/scripts/bo
 cat >"${sandbox_dir}/bootstrap.local.toml" <<'EOF'
 [providers]
 openai_api_key = "test-openai-key"
+anthropic_api_key = "test-anthropic-key"
+
+[openclaw.agents.main]
+model = "anthropic/claude-sonnet-4-6"
+
+[openclaw.agents.coder]
+model = "openai/gpt-5.4"
+
+[openclaw.agents.architect]
+model = "anthropic/claude-opus-4-6"
 
 [hosts]
 nextcloud_mcp = "nextcloud-mcp.test.internal"
+gitea = "gitea.test.internal"
 
 [mail]
 domain = "example.com"
@@ -54,7 +65,12 @@ output="$(cat "${sandbox_dir}/output.log")"
 
 assert_contains "${commands}" "--vm-name openclaw-sandbox"
 assert_contains "${commands}" "--host-alias openclaw-sandbox.homebase.internal"
+assert_contains "${commands}" "--shared-openclaw-state-source /var/lib/ai-homebase/openclaw-state"
+assert_contains "${commands}" "--shared-openclaw-state-target /home/node/.openclaw"
 assert_contains "${commands}" "--resolve-host nextcloud-mcp.test.internal"
+assert_contains "${commands}" "--resolve-host gitea.test.internal"
 assert_contains "${output}" "Homelab sandbox VM is ready."
+assert_contains "${output}" "Gitea host override inside sandbox: gitea.test.internal"
+assert_contains "${output}" "Shared OpenClaw state: /var/lib/ai-homebase/openclaw-state -> /home/node/.openclaw"
 
 echo "k3s homelab sandbox tests passed"

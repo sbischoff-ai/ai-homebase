@@ -10,6 +10,7 @@ INCUS_STORAGE_POOL="${INCUS_STORAGE_POOL:-default}"
 INCUS_STORAGE_DRIVER="${INCUS_STORAGE_DRIVER:-dir}"
 HELM_APT_REPO="/etc/apt/keyrings/helm.gpg"
 KUBECTL_APT_REPO="/etc/apt/keyrings/kubernetes-apt-keyring.gpg"
+OPENCLAW_SHARED_STATE_DIR="${OPENCLAW_SHARED_STATE_DIR:-/var/lib/ai-homebase/openclaw-state}"
 
 usage() {
   cat <<USAGE
@@ -23,6 +24,8 @@ Options:
   --k3s-install-args <args>    Extra INSTALL_K3S_EXEC args (default: ${K3S_INSTALL_ARGS})
   --incus-bridge-name <name>   Incus bridge name (default: ${INCUS_BRIDGE_NAME})
   --incus-bridge-ipv4 <cidr>   Incus bridge IPv4 CIDR (default: ${INCUS_BRIDGE_IPV4})
+  --openclaw-shared-state-dir <path>
+                               Host path shared between k3s and the sandbox VM for OpenClaw state (default: ${OPENCLAW_SHARED_STATE_DIR})
   --help                       Show this help message
 USAGE
 }
@@ -34,6 +37,7 @@ while [[ $# -gt 0 ]]; do
     --k3s-install-args) K3S_INSTALL_ARGS="$2"; shift 2 ;;
     --incus-bridge-name) INCUS_BRIDGE_NAME="$2"; shift 2 ;;
     --incus-bridge-ipv4) INCUS_BRIDGE_IPV4="$2"; shift 2 ;;
+    --openclaw-shared-state-dir) OPENCLAW_SHARED_STATE_DIR="$2"; shift 2 ;;
     -h|--help|--usage) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
   esac
@@ -108,6 +112,8 @@ if ! incus profile device get default eth0 network >/dev/null 2>&1; then
   incus profile device add default eth0 nic network="${INCUS_BRIDGE_NAME}" name=eth0
 fi
 
+install -d -m 0775 -o 1000 -g 1000 "${OPENCLAW_SHARED_STATE_DIR}"
+
 usermod -aG incus-admin "${TARGET_USER}"
 usermod -aG k3s "${TARGET_USER}" 2>/dev/null || true
 
@@ -118,3 +124,4 @@ echo "  2. Copy bootstrap.example.toml to bootstrap.local.toml and edit hosts, A
 echo "  3. Run ./scripts/k3s-homelab-sandbox-up.sh --bootstrap-config bootstrap.local.toml"
 echo "  4. Run ./scripts/bootstrap-stack.sh --profile k3s --bootstrap-config bootstrap.local.toml"
 echo "  5. Run ./scripts/bootstrap-gitops.sh --profile k3s --bootstrap-config bootstrap.local.toml"
+echo "  Shared OpenClaw state dir: ${OPENCLAW_SHARED_STATE_DIR}"

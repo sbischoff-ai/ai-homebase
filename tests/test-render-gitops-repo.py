@@ -13,6 +13,19 @@ def main() -> int:
     bootstrap_config = """\
 [providers]
 openai_api_key = "test-openai-key"
+anthropic_api_key = "test-anthropic-key"
+
+[openclaw.agents.main]
+model = "anthropic/claude-sonnet-4-6"
+
+[openclaw.agents.coder]
+model = "openai/gpt-5.4"
+
+[openclaw.agents.coder.gitea]
+username = "coder-bot"
+
+[openclaw.agents.architect]
+model = "anthropic/claude-opus-4-6"
 
 [hosts]
 openclaw = "openclaw.test.internal"
@@ -38,7 +51,6 @@ cluster_name = "lab-cluster"
 repo_name = "cluster-gitops"
 repo_branch = "main"
 project = "platform-stack"
-robot_username = "gitops-bot"
 """
 
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -64,7 +76,7 @@ robot_username = "gitops-bot"
                 "--namespace",
                 "ai-homebase",
                 "--repo-url",
-                "http://platform-stack-gitea-http.ai-homebase.svc.cluster.local:3000/gitops-bot/cluster-gitops.git",
+                "http://platform-stack-gitea-http.ai-homebase.svc.cluster.local:3000/coder-bot/cluster-gitops.git",
                 "--repo-branch",
                 "main",
                 "--project",
@@ -79,12 +91,24 @@ robot_username = "gitops-bot"
         assert '"nextcloudMcp"' in bootstrap_values
         assert "nextcloud-mcp.test.internal" in bootstrap_values
         assert '"commands"' in bootstrap_values
+        assert '"tools"' in bootstrap_values
+        assert '"agentToAgent"' in bootstrap_values
+        assert '"models"' in bootstrap_values
+        assert '"coder"' in bootstrap_values
+        assert '"architect"' in bootstrap_values
+        assert 'claude-opus-4-6' in bootstrap_values
         assert '"mcp"' in bootstrap_values
         assert '"servers"' in bootstrap_values
         assert '"nextcloud"' in bootstrap_values
+        assert '"workspaceBootstrap"' in bootstrap_values
+        assert '"BOOTSTRAP.md"' in bootstrap_values
         assert "Authorization=${OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER}" in bootstrap_values
         assert "${OPENCLAW_NEXTCLOUD_MCP_INTERNAL_URL}" in bootstrap_values
         assert "${OPENCLAW_NEXTCLOUD_MCP_EXTERNAL_URL}" in bootstrap_values
+        assert "/opt/openclaw-runtime/mcp/mcp-http-bridge.mjs" in bootstrap_values
+        assert "openclaw-sandbox-coder:bookworm-slim" in bootstrap_values
+        assert '"skills/gitea-tea/SKILL.md"' in bootstrap_values
+        assert '"skills/gitops-homebase/SKILL.md"' in bootstrap_values
         assert "argoCd:" in gitops_values
         assert "enabled: true" in gitops_values
 

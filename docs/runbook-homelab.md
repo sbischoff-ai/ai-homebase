@@ -2,6 +2,19 @@
 
 Use this guide for the long-running homelab deployment.
 
+## Target Host
+
+The current intended host profile is:
+
+- Hetzner A42U-class machine
+- Ryzen 7 Pro 8700GE
+- 64 GB RAM
+- roughly 3 TB storage
+
+This repo currently assumes a single-node `k3s` deployment on that class of machine is the main production target. The sizing posture should therefore leave headroom for the existing stack, the OpenClaw remote sandbox VM, and additional future services such as Qdrant, Qdrant MCP, Memgraph, Memgraph Lab, and coder-deployed web services.
+
+The single-node tradeoff is deliberate: the platform is meant to be operationally simple first, not highly available yet.
+
 ## 1. Prepare the Host
 
 On a fresh Ubuntu 24.04 machine:
@@ -37,6 +50,7 @@ Before bootstrapping OpenClaw itself, create or refresh the standard Incus-backe
 ```
 
 This uses the same `incus-vm-up.sh` helper as the local path, but with the homelab hostname posture and the current Nextcloud MCP hostname from `bootstrap.local.toml`.
+It also mounts the shared OpenClaw state directory into the Incus VM at `/home/node/.openclaw` so remote Docker sandboxes see the same workspace and sandbox staging tree as the gateway pod.
 
 ## 4. Bootstrap or Upgrade the Stack
 
@@ -52,6 +66,8 @@ This runs the shared secret/bootstrap/apply path:
 
 Before expecting mail delivery from Nextcloud or Vaultwarden on `k3s`, complete the DNS and reverse-DNS steps in [networking.md](./networking.md) for the `[mail]` domain and SMTP hostname.
 
+The shipped `k3s` overlay now carries more explicit resource requests and limits than the local target because this homelab posture is expected to consolidate several stateful services on one host while still leaving room for future additions.
+
 ## 5. Hand Off to GitOps
 
 After the normal `k3s` bootstrap is healthy, the regular next step is to add Argo CD and switch day-two changes to the GitOps repo:
@@ -59,6 +75,8 @@ After the normal `k3s` bootstrap is healthy, the regular next step is to add Arg
 ```bash
 ./scripts/bootstrap-gitops.sh --profile k3s --bootstrap-config bootstrap.local.toml
 ```
+
+If you created the homelab sandbox VM with the default Incus state path, `bootstrap-gitops.sh` now reuses the same remote-Docker connection info and SSH key path as `bootstrap-stack.sh`. You only need to pass `--remote-docker-key` explicitly when you diverged from the standard key location.
 
 ## 6. Verify the Cluster
 

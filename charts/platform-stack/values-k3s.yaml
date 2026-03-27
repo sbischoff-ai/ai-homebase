@@ -1,5 +1,16 @@
 # k3s overlay for the productive homelab deployment.
 # Load this after charts/platform-stack/values.yaml.
+#
+# Target posture:
+# - single-node k3s
+# - Hetzner A42U-class host
+# - Ryzen 7 Pro 8700GE
+# - 64 GiB RAM
+# - ~3 TiB storage
+#
+# The resource settings below aim to keep the current stack comfortable on that host
+# while leaving headroom for the Incus-backed OpenClaw sandbox VM and future services
+# such as Qdrant, Qdrant MCP, Memgraph, Memgraph Lab, and coder-deployed apps.
 
 global:
   storageClass: local-path
@@ -31,6 +42,7 @@ openclaw:
           - openclaw.vpn.homebase.internal
   persistence:
     enabled: true
+    hostPath: /var/lib/ai-homebase/openclaw-state
     size: 50Gi
     storageClass: local-path
   remoteDocker:
@@ -38,11 +50,11 @@ openclaw:
     dockerHost: ssh://docker-remote@openclaw-sandbox.homebase.internal:2222
   resources:
     requests:
-      cpu: 500m
-      memory: 512Mi
+      cpu: "1"
+      memory: 1Gi
     limits:
-      cpu: "2"
-      memory: 2Gi
+      cpu: "3"
+      memory: 4Gi
   openclaw:
     gateway:
       controlUi:
@@ -54,7 +66,7 @@ openclaw:
       servers:
         nextcloud:
           args:
-            - /home/node/.openclaw/workspace/mcp-http-bridge.mjs
+            - /opt/openclaw-runtime/mcp/mcp-http-bridge.mjs
             - --url
             - ${OPENCLAW_NEXTCLOUD_MCP_INTERNAL_URL}
             - --url
@@ -77,6 +89,21 @@ nextcloud:
     enabled: true
     size: 250Gi
     storageClass: local-path
+  resources:
+    requests:
+      cpu: 750m
+      memory: 2Gi
+    limits:
+      cpu: "3"
+      memory: 6Gi
+  cron:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 1Gi
   trustedProxies:
     - 10.42.0.0/16
 
@@ -94,6 +121,13 @@ nextcloudMcp:
       - secretName: nextcloud-mcp-tls
         hosts:
           - nextcloud-mcp.vpn.homebase.internal
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
 
 argoCd:
   enabled: false
@@ -120,6 +154,21 @@ gitea:
       enabled: true
       size: 120Gi
       storageClass: local-path
+    resources:
+      requests:
+        cpu: 500m
+        memory: 1Gi
+      limits:
+        cpu: "2"
+        memory: 4Gi
+    initContainers:
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
     admin:
       username: git-admin
       existingSecret: ""
@@ -144,9 +193,23 @@ vaultwarden:
     enabled: true
     size: 20Gi
     storageClass: local-path
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
 
 postfixRelay:
   enabled: true
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
 
 paperlessNgx:
   enabled: true
@@ -175,10 +238,24 @@ paperlessNgx:
       enabled: true
       size: 20Gi
       storageClass: local-path
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: "2"
+      memory: 4Gi
 
 
 sharedPostgresql:
   enabled: true
+  resources:
+    requests:
+      cpu: "1"
+      memory: 2Gi
+    limits:
+      cpu: "3"
+      memory: 6Gi
   primary:
     persistence:
       enabled: true
@@ -187,6 +264,13 @@ sharedPostgresql:
 
 sharedRedis:
   enabled: true
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 2Gi
   master:
     persistence:
       enabled: true

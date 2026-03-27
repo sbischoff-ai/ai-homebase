@@ -26,6 +26,8 @@ INCUS_NETWORK_MANAGED="${INCUS_NETWORK_MANAGED:-}"
 INCUS_NETWORK_TYPE="${INCUS_NETWORK_TYPE:-}"
 INCUS_NETWORK_DNS_STRATEGY="${INCUS_NETWORK_DNS_STRATEGY:-}"
 CONNECTION_INFO_PATH="${CONNECTION_INFO_PATH:-}"
+SHARED_OPENCLAW_STATE_SOURCE="${SHARED_OPENCLAW_STATE_SOURCE:-}"
+SHARED_OPENCLAW_STATE_TARGET="${SHARED_OPENCLAW_STATE_TARGET:-/home/node/.openclaw}"
 SSH_READY_TIMEOUT_SECONDS="${SSH_READY_TIMEOUT_SECONDS:-600}"
 READINESS_FAILURE_REASON=""
 
@@ -49,6 +51,10 @@ Options:
   --host-alias <name>        Hostname pods should use for the proxied SSH endpoint (default: ${HOST_ALIAS})
   --host-listen-address <ip> Concrete Incus-host IPv4 for the NAT proxy listener (default: auto-detect from ${INCUS_NETWORK})
   --resolve-host <name>      Guest/container hostname to resolve to the Incus host listener address (repeatable)
+  --shared-openclaw-state-source <path>
+                            Host path to mount into the VM so remote Docker sees the same OpenClaw state path as the gateway
+  --shared-openclaw-state-target <path>
+                            Guest path for the shared OpenClaw state mount (default: ${SHARED_OPENCLAW_STATE_TARGET})
   --vm-static-ipv4 <ip>      Stable VM IPv4 for NAT proxying (default: auto-derive from ${INCUS_NETWORK})
   --ssh-ready-timeout-seconds <seconds>
                              Wait time for the VM SSH endpoint to become reachable (default: ${SSH_READY_TIMEOUT_SECONDS})
@@ -75,6 +81,8 @@ while [[ $# -gt 0 ]]; do
     --host-alias) HOST_ALIAS="$2"; shift 2 ;;
     --host-listen-address) HOST_LISTEN_ADDRESS="$2"; shift 2 ;;
     --resolve-host) RESOLVE_HOSTS+=("$2"); shift 2 ;;
+    --shared-openclaw-state-source) SHARED_OPENCLAW_STATE_SOURCE="$2"; shift 2 ;;
+    --shared-openclaw-state-target) SHARED_OPENCLAW_STATE_TARGET="$2"; shift 2 ;;
     --vm-static-ipv4) VM_STATIC_IPV4="$2"; shift 2 ;;
     --ssh-ready-timeout-seconds) SSH_READY_TIMEOUT_SECONDS="$2"; shift 2 ;;
     --verbose) BOOTSTRAP_VERBOSE=1; shift ;;
@@ -639,6 +647,23 @@ ensure_proxy_device() {
   fi
 }
 
+ensure_shared_openclaw_state_mount() {
+  if [[ -z "$SHARED_OPENCLAW_STATE_SOURCE" ]]; then
+    return 0
+  fi
+
+  run_checked mkdir -p "$SHARED_OPENCLAW_STATE_SOURCE"
+
+  if incus config device show "$VM_NAME" | grep -q '^shared-openclaw-state:'; then
+    run_checked incus config device set "$VM_NAME" shared-openclaw-state source "$SHARED_OPENCLAW_STATE_SOURCE"
+    run_checked incus config device set "$VM_NAME" shared-openclaw-state path "$SHARED_OPENCLAW_STATE_TARGET"
+  else
+    run_checked incus config device add "$VM_NAME" shared-openclaw-state disk \
+      source="$SHARED_OPENCLAW_STATE_SOURCE" \
+      path="$SHARED_OPENCLAW_STATE_TARGET"
+  fi
+}
+
 reconcile_guest_hostname_overrides() {
   local temp_dir hosts_file dnsmasq_file docker_daemon_file hosts_script host_entry nameserver
 
@@ -783,6 +808,7 @@ fi
 ensure_root_disk_size
 ensure_vm_static_ip
 ensure_proxy_device
+ensure_shared_openclaw_state_mount
 
 if ! instance_running; then
   step "Starting Incus VM ${VM_NAME}"
@@ -810,6 +836,9 @@ echo "  Guest IP: ${guest_ipv4_display}"
 echo "  VM static IPv4: ${VM_STATIC_IPV4}"
 echo "  SSH proxy endpoint (host alias): ssh://${REMOTE_USER}@${HOST_ALIAS}:${SSH_HOST_PORT}"
 echo "  SSH proxy listen address: ${HOST_LISTEN_ADDRESS}:${SSH_HOST_PORT}"
+if [[ -n "$SHARED_OPENCLAW_STATE_SOURCE" ]]; then
+echo "  Shared OpenClaw state: ${SHARED_OPENCLAW_STATE_SOURCE} -> ${SHARED_OPENCLAW_STATE_TARGET}"
+fi
 echo "  SSH key: ${SSH_KEY_PATH}"
 echo "  Docker host hint: DOCKER_HOST=ssh://${REMOTE_USER}@${HOST_LISTEN_ADDRESS}:${SSH_HOST_PORT}"
 echo "  Connection info: ${CONNECTION_INFO_PATH}"

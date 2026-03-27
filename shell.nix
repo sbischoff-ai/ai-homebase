@@ -5,7 +5,7 @@ let
     kubectl
     k3d
     gnumake
-    python3
+    (python3.withPackages (ps: with ps; [ pyyaml ]))
     curl
     openssh
     openssl

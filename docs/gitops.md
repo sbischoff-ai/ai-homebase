@@ -16,7 +16,7 @@ The script performs five steps:
 
 1. reapplies the existing `platform-stack` Helm path through `bootstrap-stack.sh --skip-secrets --enable-service argo-cd`
 2. reads the bootstrap-managed Gitea admin credentials from Kubernetes
-3. creates or updates a dedicated GitOps robot user and private repo in Gitea
+3. creates or updates the dedicated coder-owned GitOps user and private repo in Gitea
 4. pushes a self-contained snapshot of the local charts and cluster values to that repo
 5. registers the repo in Argo CD and applies the Argo CD `AppProject` and `Application` objects
 
@@ -32,11 +32,11 @@ The GitOps handoff reads these values from `bootstrap.local.toml`:
 - `gitops.repo_branch`
 - `gitops.repo_private`
 - `gitops.project`
-- `gitops.robot_username`
-- `gitops.robot_email`
-- `gitops.robot_password`
+- `openclaw.agents.coder.gitea.username`
+- `openclaw.agents.coder.gitea.email`
+- `openclaw.agents.coder.gitea.password`
 
-If `gitops.robot_password` is empty, the bootstrap script preserves the existing in-cluster GitOps password when present or generates a new one. After the first GitOps bootstrap, the in-cluster GitOps Secret becomes the password source of truth for reruns.
+If `openclaw.agents.coder.gitea.password` is empty, the bootstrap script preserves the existing in-cluster coder GitOps password when present or generates a new one. After the first GitOps bootstrap, the in-cluster GitOps Secret becomes the password source of truth for reruns.
 
 ## Operating Model
 

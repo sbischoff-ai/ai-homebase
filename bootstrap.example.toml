@@ -23,6 +23,20 @@ gemini_api_key = ""
 xai_api_key = ""
 moonshot_api_key = ""
 
+[openclaw.agents.main]
+model = "anthropic/claude-sonnet-4-6"
+
+[openclaw.agents.coder]
+model = "openai/gpt-5.4"
+
+[openclaw.agents.coder.gitea]
+username = "coder"
+email = ""
+password = ""
+
+[openclaw.agents.architect]
+model = "anthropic/claude-opus-4-6"
+
 [admin]
 name = "Homebase Admin"
 username = "homebase-admin"
@@ -65,6 +79,3 @@ repo_name = "cluster-gitops"
 repo_branch = "main"
 repo_private = true
 project = "platform-stack"
-robot_username = "gitops-bot"
-robot_email = ""
-robot_password = ""

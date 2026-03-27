@@ -1,0 +1,49 @@
+FROM openclaw-sandbox:bookworm-slim
+
+USER root
+
+ARG DEBIAN_FRONTEND=noninteractive
+ARG UV_INSTALL_DIR=/usr/local/bin
+ENV CARGO_HOME=/usr/local/cargo
+ENV RUSTUP_HOME=/usr/local/rustup
+ENV PATH=/usr/local/cargo/bin:/usr/local/go/bin:${PATH}
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+      bash \
+      build-essential \
+      ca-certificates \
+      curl \
+      file \
+      git \
+      golang-go \
+      jq \
+      less \
+      make \
+      nodejs \
+      npm \
+      openssh-client \
+      pkg-config \
+      procps \
+      python3 \
+      python3-pip \
+      python3-venv \
+      ripgrep \
+      unzip \
+      xz-utils \
+      yq \
+      zip && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="${UV_INSTALL_DIR}" sh
+
+RUN curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal && \
+    rustc --version && cargo --version
+
+RUN GOBIN=/usr/local/bin go install code.gitea.io/tea@latest && \
+    tea --version
+
+RUN curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash && \
+    helm version --short
+
+USER sandbox

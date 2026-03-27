@@ -5,8 +5,11 @@ PROFILE="${PROFILE:-}"
 BOOTSTRAP_CONFIG_PATH="${BOOTSTRAP_CONFIG_PATH:-bootstrap.local.toml}"
 RELEASE_NAME="${RELEASE_NAME:-platform-stack}"
 NAMESPACE="${NAMESPACE:-ai-homebase}"
-KUBECONFIG_PATH="${KUBECONFIG_PATH:-${KUBECONFIG:-}}"
+KUBECONFIG_PATH="${KUBECONFIG_PATH:-}"
+RAW_KUBECONFIG="${KUBECONFIG:-}"
+K3D_CLUSTER_NAME="${K3D_CLUSTER_NAME:-ai-homebase-dev}"
 KUBE_CONTEXT="${KUBE_CONTEXT:-}"
+REMOTE_DOCKER_KEY_PATH="${REMOTE_DOCKER_KEY_PATH:-}"
 GITOPS_SECRET_NAME="${GITOPS_SECRET_NAME:-gitops-config-secrets}"
 ARGOCD_REPO_SECRET_NAME="${ARGOCD_REPO_SECRET_NAME:-argocd-repo-gitea-gitops}"
 GITEA_WAIT_TIMEOUT="${GITEA_WAIT_TIMEOUT:-300s}"
@@ -25,9 +28,25 @@ Options:
   --release-name <name>      Helm release name (default: ${RELEASE_NAME})
   --namespace <name>         Kubernetes namespace (default: ${NAMESPACE})
   --kubeconfig <path>        Optional kubeconfig path
+  --k3d-cluster-name <name>  k3d cluster name for default kubeconfig lookup (default: ${K3D_CLUSTER_NAME})
   --kube-context <context>   Optional kube context
+  --remote-docker-key <path> Optional SSH private key for the remote Docker image sync step
   -h, --help                 Show this help message
 USAGE
+}
+
+normalize_kubeconfig_path() {
+  local candidate="${1:-}"
+  case "$candidate" in
+    '${KUBECONFIG:-'*'}')
+      candidate="${candidate#'${KUBECONFIG:-'}"
+      candidate="${candidate%\}}"
+      ;;
+    'KUBECONFIG:-'*)
+      candidate="${candidate#KUBECONFIG:-}"
+      ;;
+  esac
+  printf '%s' "$candidate"
 }
 
 while [[ $# -gt 0 ]]; do
@@ -37,16 +56,39 @@ while [[ $# -gt 0 ]]; do
     --release-name) RELEASE_NAME="$2"; shift 2 ;;
     --namespace) NAMESPACE="$2"; shift 2 ;;
     --kubeconfig) KUBECONFIG_PATH="$2"; shift 2 ;;
+    --k3d-cluster-name) K3D_CLUSTER_NAME="$2"; shift 2 ;;
     --kube-context) KUBE_CONTEXT="$2"; shift 2 ;;
+    --remote-docker-key) REMOTE_DOCKER_KEY_PATH="$2"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
   esac
 done
 
+if [[ -z "$KUBECONFIG_PATH" ]]; then
+  KUBECONFIG_PATH="$(normalize_kubeconfig_path "$RAW_KUBECONFIG")"
+fi
+if [[ "$PROFILE" == "k3d" ]]; then
+  DEFAULT_K3D_KUBECONFIG="${HOME}/.kube/k3d-${K3D_CLUSTER_NAME}.yaml"
+  if [[ -f "$DEFAULT_K3D_KUBECONFIG" ]] && {
+    [[ -z "$KUBECONFIG_PATH" ]] ||
+    [[ "$KUBECONFIG_PATH" == "${HOME}/.kube/config" ]] ||
+    [[ ! -f "$KUBECONFIG_PATH" ]];
+  }; then
+    KUBECONFIG_PATH="$DEFAULT_K3D_KUBECONFIG"
+  fi
+fi
+
 case "$PROFILE" in
   k3d|k3s) ;;
   *) echo "Missing or unsupported --profile. Use k3d or k3s." >&2; usage; exit 1 ;;
 esac
+
+for cmd in curl git helm kubectl python3; do
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    echo "Missing required dependency: ${cmd}" >&2
+    exit 1
+  fi
+done
 
 HELM_CONTEXT_ARGS=()
 KUBECTL_CONTEXT_ARGS=()
@@ -293,11 +335,11 @@ push_gitops_repo() {
     cd "$repo_dir"
     git init -b "$GITOPS_REPO_BRANCH" >/dev/null
     git add .
-    git -c user.name="$GITOPS_ROBOT_USERNAME" -c user.email="$GITOPS_ROBOT_EMAIL" commit -m "Bootstrap GitOps repo" >/dev/null
+    git -c user.name="$CODER_GITEA_USERNAME" -c user.email="$CODER_GITEA_EMAIL" commit -m "Bootstrap GitOps repo" >/dev/null
     git remote add origin "$remote_url"
     GIT_TERMINAL_PROMPT=0 \
-    GIT_USERNAME="$GITOPS_ROBOT_USERNAME" \
-    GIT_PASSWORD="$GITOPS_ROBOT_PASSWORD" \
+    GIT_USERNAME="$CODER_GITEA_USERNAME" \
+    GIT_PASSWORD="$CODER_GITEA_PASSWORD" \
     git -c core.askPass="$askpass_script" push --force origin "HEAD:${GITOPS_REPO_BRANCH}" >/dev/null
   )
 }
@@ -339,13 +381,15 @@ fi
 GITEA_BASE_URL="http://${GITEA_HOST}"
 GITEA_API_URL="${GITEA_BASE_URL}/api/v1"
 
-CONFIG_GITOPS_ROBOT_PASSWORD="${GITOPS_ROBOT_PASSWORD:-}"
-if GITOPS_ROBOT_PASSWORD="$(read_secret_value "$GITOPS_SECRET_NAME" '{.data.GITOPS_ROBOT_PASSWORD}')"; then
+CONFIG_CODER_GITEA_PASSWORD="${CODER_GITEA_PASSWORD:-}"
+if CODER_GITEA_PASSWORD="$(read_secret_value "$GITOPS_SECRET_NAME" '{.data.CODER_GITEA_PASSWORD}')"; then
   :
-elif [[ -n "${CONFIG_GITOPS_ROBOT_PASSWORD}" ]]; then
-  GITOPS_ROBOT_PASSWORD="${CONFIG_GITOPS_ROBOT_PASSWORD}"
+elif CODER_GITEA_PASSWORD="$(read_secret_value "$GITOPS_SECRET_NAME" '{.data.GITOPS_ROBOT_PASSWORD}')"; then
+  :
+elif [[ -n "${CONFIG_CODER_GITEA_PASSWORD}" ]]; then
+  CODER_GITEA_PASSWORD="${CONFIG_CODER_GITEA_PASSWORD}"
 else
-  GITOPS_ROBOT_PASSWORD="$(generate_password)"
+  CODER_GITEA_PASSWORD="$(generate_password)"
 fi
 
 step "Refreshing bootstrap-managed secrets before the GitOps handoff"
@@ -358,6 +402,9 @@ BOOTSTRAP_SECRETS_CMD=(
 )
 if [[ -n "$KUBECONFIG_PATH" ]]; then
   BOOTSTRAP_SECRETS_CMD+=(--kubeconfig "$KUBECONFIG_PATH")
+fi
+if [[ -n "$REMOTE_DOCKER_KEY_PATH" ]]; then
+  BOOTSTRAP_SECRETS_CMD+=(--remote-docker-key "$REMOTE_DOCKER_KEY_PATH")
 fi
 "${BOOTSTRAP_SECRETS_CMD[@]}"
 
@@ -377,6 +424,9 @@ fi
 if [[ -n "$KUBE_CONTEXT" ]]; then
   INSTALL_CMD+=(--kube-context "$KUBE_CONTEXT")
 fi
+if [[ -n "$REMOTE_DOCKER_KEY_PATH" ]]; then
+  INSTALL_CMD+=(--remote-docker-key "$REMOTE_DOCKER_KEY_PATH")
+fi
 "${INSTALL_CMD[@]}"
 
 step "Waiting for Gitea and Argo CD"
@@ -384,12 +434,16 @@ wait_for_gitea
 wait_for_argocd
 configure_argocd_admin_account "${ARGOCD_ADMIN_USER:-admin}" "${ARGOCD_ADMIN_PASSWORD:-}"
 
-step "Creating or updating the GitOps robot user in Gitea"
-ROBOT_USER_PAYLOAD="$(build_admin_user_payload "$GITOPS_ROBOT_USERNAME" "$GITOPS_ROBOT_EMAIL" "$GITOPS_ROBOT_PASSWORD")"
-ROBOT_USER_STATUS="$(curl -sS -o /dev/null -w '%{http_code}' "${GITEA_API_URL}/users/${GITOPS_ROBOT_USERNAME}")"
+step "Creating or updating the coder GitOps user in Gitea"
+ROBOT_USER_PAYLOAD="$(build_admin_user_payload "$CODER_GITEA_USERNAME" "$CODER_GITEA_EMAIL" "$CODER_GITEA_PASSWORD")"
+ROBOT_USER_STATUS="$(
+  curl -sS -u "${GITEA_ADMIN_USERNAME}:${GITEA_ADMIN_PASSWORD}" \
+    -o /dev/null -w '%{http_code}' \
+    "${GITEA_API_URL}/users/${CODER_GITEA_USERNAME}"
+)"
 case "$ROBOT_USER_STATUS" in
   200)
-    step "GitOps robot user ${GITOPS_ROBOT_USERNAME} already exists; preserving existing credentials"
+    step "Coder Gitea user ${CODER_GITEA_USERNAME} already exists; preserving existing credentials"
     ;;
   404)
     gitea_api_json POST "${GITEA_API_URL}/admin/users" "$GITEA_ADMIN_USERNAME" "$GITEA_ADMIN_PASSWORD" "$ROBOT_USER_PAYLOAD" >/dev/null
@@ -402,20 +456,20 @@ esac
  
 step "Creating or updating the GitOps repo in Gitea"
 REPO_STATUS="$(
-  curl -sS -u "${GITOPS_ROBOT_USERNAME}:${GITOPS_ROBOT_PASSWORD}" \
+  curl -sS -u "${CODER_GITEA_USERNAME}:${CODER_GITEA_PASSWORD}" \
     -o /dev/null -w '%{http_code}' \
-    "${GITEA_API_URL}/repos/${GITOPS_ROBOT_USERNAME}/${GITOPS_REPO_NAME}"
+    "${GITEA_API_URL}/repos/${CODER_GITEA_USERNAME}/${GITOPS_REPO_NAME}"
 )"
 if [[ "$REPO_STATUS" == "404" ]]; then
   REPO_PAYLOAD="$(build_repo_payload "$GITOPS_REPO_NAME" "$GITOPS_REPO_BRANCH" "$GITOPS_REPO_PRIVATE")"
-  gitea_api_json POST "${GITEA_API_URL}/user/repos" "$GITOPS_ROBOT_USERNAME" "$GITOPS_ROBOT_PASSWORD" "$REPO_PAYLOAD" >/dev/null
+  gitea_api_json POST "${GITEA_API_URL}/user/repos" "$CODER_GITEA_USERNAME" "$CODER_GITEA_PASSWORD" "$REPO_PAYLOAD" >/dev/null
 elif [[ "$REPO_STATUS" != "200" ]]; then
   echo "Unexpected Gitea repo lookup status: ${REPO_STATUS}" >&2
   exit 1
 fi
 
-EXTERNAL_REPO_URL="${GITEA_BASE_URL}/${GITOPS_ROBOT_USERNAME}/${GITOPS_REPO_NAME}.git"
-INTERNAL_REPO_URL="http://${RELEASE_NAME}-gitea-http.${NAMESPACE}.svc.cluster.local:3000/${GITOPS_ROBOT_USERNAME}/${GITOPS_REPO_NAME}.git"
+EXTERNAL_REPO_URL="${GITEA_BASE_URL}/${CODER_GITEA_USERNAME}/${GITOPS_REPO_NAME}.git"
+INTERNAL_REPO_URL="http://${RELEASE_NAME}-gitea-http.${NAMESPACE}.svc.cluster.local:3000/${CODER_GITEA_USERNAME}/${GITOPS_REPO_NAME}.git"
 
 step "Rendering and pushing the GitOps repo snapshot"
 REPO_WORK_DIR="$(mktemp -d /tmp/ai-homebase-gitops-repo.XXXXXX)"
@@ -447,15 +501,15 @@ push_gitops_repo "$REPO_WORK_DIR" "$EXTERNAL_REPO_URL" "$ASKPASS_SCRIPT"
 
 step "Persisting GitOps bootstrap credentials"
 create_and_apply_secret "$GITOPS_SECRET_NAME" \
-  --from-literal=GITOPS_ROBOT_USERNAME="$GITOPS_ROBOT_USERNAME" \
-  --from-literal=GITOPS_ROBOT_EMAIL="$GITOPS_ROBOT_EMAIL" \
-  --from-literal=GITOPS_ROBOT_PASSWORD="$GITOPS_ROBOT_PASSWORD" \
+  --from-literal=CODER_GITEA_USERNAME="$CODER_GITEA_USERNAME" \
+  --from-literal=CODER_GITEA_EMAIL="$CODER_GITEA_EMAIL" \
+  --from-literal=CODER_GITEA_PASSWORD="$CODER_GITEA_PASSWORD" \
   --from-literal=GITOPS_REPO_NAME="$GITOPS_REPO_NAME" \
   --from-literal=GITOPS_REPO_BRANCH="$GITOPS_REPO_BRANCH" \
   --from-literal=GITOPS_PROJECT="$GITOPS_PROJECT"
 
 step "Registering the GitOps repo in Argo CD"
-build_repo_secret_manifest "$NAMESPACE" "$ARGOCD_REPO_SECRET_NAME" "$INTERNAL_REPO_URL" "$GITOPS_ROBOT_USERNAME" "$GITOPS_ROBOT_PASSWORD" \
+build_repo_secret_manifest "$NAMESPACE" "$ARGOCD_REPO_SECRET_NAME" "$INTERNAL_REPO_URL" "$CODER_GITEA_USERNAME" "$CODER_GITEA_PASSWORD" \
   >"$ARGOCD_REPO_SECRET_MANIFEST"
 kubectl "${KUBECTL_CONTEXT_ARGS[@]}" apply -f "$ARGOCD_REPO_SECRET_MANIFEST"
 

@@ -32,6 +32,20 @@ git_log="${sandbox_dir}/git.log"
 cat >"${bootstrap_config_path}" <<'EOF'
 [providers]
 openai_api_key = "test-openai-key"
+anthropic_api_key = "test-anthropic-key"
+
+[openclaw.agents.main]
+model = "anthropic/claude-sonnet-4-6"
+
+[openclaw.agents.coder]
+model = "openai/gpt-5.4"
+
+[openclaw.agents.coder.gitea]
+username = "coder-bot"
+password = "explicit-coder-password"
+
+[openclaw.agents.architect]
+model = "anthropic/claude-opus-4-6"
 
 [hosts]
 openclaw = "openclaw.test.internal"
@@ -56,8 +70,6 @@ cluster_name = "lab-cluster"
 repo_name = "cluster-gitops"
 repo_branch = "main"
 project = "platform-stack"
-robot_username = "gitops-bot"
-robot_password = "explicit-robot-password"
 EOF
 
 cat >"${repo_dir}/scripts/bootstrap-secrets.sh" <<'SH'
@@ -108,6 +120,7 @@ printf 'kubectl %s\n' "$*" >>"${FAKE_KUBECTL_LOG:?}"
 case "$*" in
   *"get secret gitea-admin-secret -o jsonpath={.data.username}"*) printf 'aG9tZWJhc2UtYWRtaW4=' ;;
   *"get secret gitea-admin-secret -o jsonpath={.data.password}"*) printf 'YWRtaW4tcGFzcw==' ;;
+  *"get secret gitops-config-secrets -o jsonpath={.data.CODER_GITEA_PASSWORD}"*) exit 1 ;;
   *"get secret gitops-config-secrets -o jsonpath={.data.GITOPS_ROBOT_PASSWORD}"*) exit 1 ;;
   *) ;;
 esac
@@ -119,8 +132,8 @@ cat >"${sandbox_dir}/bin/curl" <<'SH'
 set -euo pipefail
 printf 'curl %s\n' "$*" >>"${FAKE_CURL_LOG:?}"
 case "$*" in
-  *"/users/gitops-bot"*) printf '404' ;;
-  *"/repos/gitops-bot/cluster-gitops"*) printf '404' ;;
+  *"/users/coder-bot"*) printf '404' ;;
+  *"/repos/coder-bot/cluster-gitops"*) printf '404' ;;
   *"/api/v1/version"*) printf '{"version":"1.0"}' ;;
   *) printf '{}' ;;
 esac
@@ -137,6 +150,8 @@ SH
 chmod +x "${sandbox_dir}/bin/helm" "${sandbox_dir}/bin/kubectl" "${sandbox_dir}/bin/curl" "${sandbox_dir}/bin/git"
 
 output_file="${sandbox_dir}/output.log"
+remote_docker_key_path="${sandbox_dir}/openclaw-sandbox-id_ed25519"
+touch "${remote_docker_key_path}"
 set +e
 (
   cd "${repo_dir}"
@@ -148,7 +163,8 @@ set +e
 
   ./scripts/bootstrap-gitops.sh \
     --profile k3d \
-    --bootstrap-config "${bootstrap_config_path}"
+    --bootstrap-config "${bootstrap_config_path}" \
+    --remote-docker-key "${remote_docker_key_path}"
 ) >"${output_file}" 2>&1
 status=$?
 set -e
@@ -170,6 +186,7 @@ git_output="$(cat "${git_log}")"
 
 assert_contains "${commands}" "bootstrap-stack.sh --profile k3d --bootstrap-config ${bootstrap_config_path} --release-name platform-stack --namespace ai-homebase --skip-secrets --enable-service argo-cd"
 assert_contains "${commands}" "bootstrap-secrets.sh --profile k3d --bootstrap-config ${bootstrap_config_path} --release-name platform-stack --namespace ai-homebase"
+assert_contains "${commands}" "--remote-docker-key ${remote_docker_key_path}"
 assert_contains "${curl_output}" "/api/v1/admin/users"
 assert_contains "${curl_output}" "/api/v1/user/repos"
 assert_contains "${kubectl_output}" "root-application.yaml"

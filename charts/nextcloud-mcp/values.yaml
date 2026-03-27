@@ -40,14 +40,15 @@ nextcloud:
 authentication:
   mode: multi_user_basic
 
-args:
-  - --enable-app
+command:
+  - python
+  - /opt/nextcloud-mcp/run-nextcloud-mcp.py
+
+enabledApps:
   - notes
-  - --enable-app
   - webdav
-  - --enable-app
+  - sharing
   - tables
-  - --enable-app
   - calendar
 
 podAnnotations: {}
