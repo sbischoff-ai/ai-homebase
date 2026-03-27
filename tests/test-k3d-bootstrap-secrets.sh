@@ -269,6 +269,15 @@ gemini_api_key = "${gemini_api_key}"
 xai_api_key = ""
 moonshot_api_key = ""
 
+[openclaw.agents.main]
+model = "anthropic/claude-sonnet-4-6"
+
+[openclaw.agents.coder]
+model = "openai/gpt-5.4"
+
+[openclaw.agents.architect]
+model = "anthropic/claude-opus-4-6"
+
 [mail]
 domain = "example.com"
 smtp_host = "smtp.example.com"
@@ -333,9 +342,9 @@ EOF
       assert_contains "${kubectl_output}" "literal=password=existing-gitea-admin-password"
       assert_contains "${kubectl_output}" "literal=VAULTWARDEN_DB_PASSWORD=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
       assert_contains "${kubectl_output}" "get secret openclaw-nextcloud-mcp-secrets -o jsonpath={.data.NEXTCLOUD_PASSWORD}"
-      assert_contains "${kubectl_output}" "literal=NEXTCLOUD_USERNAME=openclaw-mcp"
+      assert_contains "${kubectl_output}" "literal=NEXTCLOUD_USERNAME=openclaw"
       assert_contains "${kubectl_output}" "literal=NEXTCLOUD_PASSWORD=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-      assert_contains "${kubectl_output}" "literal=OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER=Basic b3BlbmNsYXctbWNwOjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmMDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
+      assert_contains "${kubectl_output}" "literal=OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER=Basic b3BlbmNsYXc6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmMDEyMzQ1Njc4OWFiY2RlZg=="
       assert_contains "${kubectl_output}" "validated-id-ed25519=${key_path}"
       assert_contains "${kubectl_output}" "validated-known-hosts="
       ;;
@@ -418,18 +427,18 @@ EOF
   rm -rf "${sandbox_dir}"
 }
 
-run_case success-openai success present none none none none none OPENAI_API_KEY=test-openai-key
-run_case success-anthropic success present none none none none none ANTHROPIC_API_KEY=test-anthropic-key
-run_case success-multiple success present none none none none none OPENAI_API_KEY=test-openai-key BRAVE_API_KEY=test-brave-key GEMINI_API_KEY=test-gemini-key
-run_case success-existing-shared-passwords success present existing existing none none none OPENAI_API_KEY=test-openai-key
-run_case success-existing-gitea-password success present none none existing none none OPENAI_API_KEY=test-openai-key
-run_case success-explicit-gitea-password success present none none none none none OPENAI_API_KEY=test-openai-key GITEA_DB_PASSWORD=explicit-gitea-password
-run_case success-existing-vaultwarden-password success present none none none existing none OPENAI_API_KEY=test-openai-key
-run_case success-explicit-vaultwarden-password success present none none none none none OPENAI_API_KEY=test-openai-key VAULTWARDEN_DB_PASSWORD=explicit-vaultwarden-password
-run_case success-existing-vaultwarden-admin-token success present none none none none existing OPENAI_API_KEY=test-openai-key
-run_case success-explicit-vaultwarden-admin-token success present none none none none none OPENAI_API_KEY=test-openai-key VAULTWARDEN_ADMIN_TOKEN=explicit-vaultwarden-admin-token
+run_case success-openai success present none none none none none OPENAI_API_KEY=test-openai-key ANTHROPIC_API_KEY=test-anthropic-key
+run_case success-anthropic success present none none none none none OPENAI_API_KEY=test-openai-key ANTHROPIC_API_KEY=test-anthropic-key
+run_case success-multiple success present none none none none none OPENAI_API_KEY=test-openai-key ANTHROPIC_API_KEY=test-anthropic-key BRAVE_API_KEY=test-brave-key GEMINI_API_KEY=test-gemini-key
+run_case success-existing-shared-passwords success present existing existing none none none OPENAI_API_KEY=test-openai-key ANTHROPIC_API_KEY=test-anthropic-key
+run_case success-existing-gitea-password success present none none existing none none OPENAI_API_KEY=test-openai-key ANTHROPIC_API_KEY=test-anthropic-key
+run_case success-explicit-gitea-password success present none none none none none OPENAI_API_KEY=test-openai-key ANTHROPIC_API_KEY=test-anthropic-key GITEA_DB_PASSWORD=explicit-gitea-password
+run_case success-existing-vaultwarden-password success present none none none existing none OPENAI_API_KEY=test-openai-key ANTHROPIC_API_KEY=test-anthropic-key
+run_case success-explicit-vaultwarden-password success present none none none none none OPENAI_API_KEY=test-openai-key ANTHROPIC_API_KEY=test-anthropic-key VAULTWARDEN_DB_PASSWORD=explicit-vaultwarden-password
+run_case success-existing-vaultwarden-admin-token success present none none none none existing OPENAI_API_KEY=test-openai-key ANTHROPIC_API_KEY=test-anthropic-key
+run_case success-explicit-vaultwarden-admin-token success present none none none none none OPENAI_API_KEY=test-openai-key ANTHROPIC_API_KEY=test-anthropic-key VAULTWARDEN_ADMIN_TOKEN=explicit-vaultwarden-admin-token
 run_case missing-provider success present none none none none none
-run_case missing-key success empty none none none none none OPENAI_API_KEY=test-openai-key
-run_case empty-known-hosts empty present none none none none none OPENAI_API_KEY=test-openai-key
+run_case missing-key success empty none none none none none OPENAI_API_KEY=test-openai-key ANTHROPIC_API_KEY=test-anthropic-key
+run_case empty-known-hosts empty present none none none none none OPENAI_API_KEY=test-openai-key ANTHROPIC_API_KEY=test-anthropic-key
 
 echo "k3d bootstrap secrets tests passed"

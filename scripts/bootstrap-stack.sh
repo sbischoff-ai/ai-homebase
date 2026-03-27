@@ -5,7 +5,8 @@ PROFILE="${PROFILE:-}"
 BOOTSTRAP_CONFIG_PATH="${BOOTSTRAP_CONFIG_PATH:-}"
 RELEASE_NAME="${RELEASE_NAME:-platform-stack}"
 NAMESPACE="${NAMESPACE:-ai-homebase}"
-KUBECONFIG_PATH="${KUBECONFIG_PATH:-${KUBECONFIG:-}}"
+KUBECONFIG_PATH="${KUBECONFIG_PATH:-}"
+RAW_KUBECONFIG="${KUBECONFIG:-}"
 KUBE_CONTEXT="${KUBE_CONTEXT:-}"
 VALUES_FILES=()
 SET_ARGS=()
@@ -34,6 +35,21 @@ CERT_MANAGER_DEPLOYMENTS=(
   cert-manager-cainjector
   cert-manager-webhook
 )
+CODER_SANDBOX_IMAGE_TAG="${CODER_SANDBOX_IMAGE_TAG:-openclaw-sandbox-coder:bookworm-slim}"
+
+normalize_kubeconfig_path() {
+  local candidate="${1:-}"
+  case "$candidate" in
+    '${KUBECONFIG:-'*'}')
+      candidate="${candidate#'${KUBECONFIG:-'}"
+      candidate="${candidate%\}}"
+      ;;
+    'KUBECONFIG:-'*)
+      candidate="${candidate#KUBECONFIG:-}"
+      ;;
+  esac
+  printf '%s' "$candidate"
+}
 
 normalize_service_key() {
   case "$1" in
@@ -68,6 +84,25 @@ helm_upgrade_install() {
     "${VALUES_ARGS[@]}" \
     "$@" \
     "${SET_ARGS[@]}"
+}
+
+prepare_openclaw_sandbox_images() {
+  local docker_host=""
+  if [[ -n "$BOOTSTRAP_VALUES_FILE" ]] && grep -q "$CODER_SANDBOX_IMAGE_TAG" "$BOOTSTRAP_VALUES_FILE"; then
+    ./scripts/build-openclaw-sandbox-images.sh --coder-image "$CODER_SANDBOX_IMAGE_TAG"
+    if [[ -n "$REMOTE_DOCKER_HOST" && -n "$REMOTE_DOCKER_PORT" ]]; then
+      docker_host="ssh://docker-remote@${REMOTE_DOCKER_HOST}:${REMOTE_DOCKER_PORT}"
+      load_cmd=(
+        ./scripts/openclaw-remote-docker-load-images.sh
+        --docker-host "$docker_host"
+      )
+      if [[ -n "$REMOTE_DOCKER_KEY_PATH" ]]; then
+        load_cmd+=(--identity-file "$REMOTE_DOCKER_KEY_PATH")
+      fi
+      load_cmd+=(--image "$CODER_SANDBOX_IMAGE_TAG")
+      "${load_cmd[@]}"
+    fi
+  fi
 }
 
 cert_manager_install_enabled() {
@@ -156,6 +191,10 @@ while [[ $# -gt 0 ]]; do
     *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
   esac
 done
+
+if [[ -z "$KUBECONFIG_PATH" ]]; then
+  KUBECONFIG_PATH="$(normalize_kubeconfig_path "$RAW_KUBECONFIG")"
+fi
 
 case "$PROFILE" in
   k3d|k3s) ;;
@@ -255,6 +294,8 @@ if [[ "$SKIP_SECRETS" -eq 0 ]]; then
   "${BOOTSTRAP_SECRETS_CMD[@]}"
 fi
 
+prepare_openclaw_sandbox_images
+
 helm dependency update charts/platform-stack
 
 if cert_manager_install_enabled; then
@@ -266,4 +307,17 @@ if cert_manager_install_enabled; then
   helm_upgrade_install --set certManager.resourcesEnabled=true
 else
   helm_upgrade_install
+fi
+
+if [[ -n "$BOOTSTRAP_CONFIG_PATH" ]]; then
+  CODER_GITEA_CMD=(
+    ./scripts/bootstrap-coder-gitea.sh
+    --bootstrap-config "$BOOTSTRAP_CONFIG_PATH"
+    --release-name "$RELEASE_NAME"
+    --namespace "$NAMESPACE"
+  )
+  if [[ -n "$KUBECONFIG_PATH" ]]; then
+    CODER_GITEA_CMD+=(--kubeconfig "$KUBECONFIG_PATH")
+  fi
+  "${CODER_GITEA_CMD[@]}"
 fi

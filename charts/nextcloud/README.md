@@ -8,7 +8,7 @@ This chart deploys Nextcloud as a single primary web workload plus a dedicated c
 - **Database/cache model:** external PostgreSQL and external Redis are expected via `externalDatabase.*` and `externalRedis.*` values.
 - **Background jobs:** a dedicated `CronJob` (`nextcloud.cron.*`) runs `php -f /var/www/html/cron.php` on a schedule and mounts the same data path.
 - **Bootstrap apps:** optional `bootstrapApps[]` renders a post-install/post-upgrade Job that waits for Nextcloud readiness, then converges the requested app set through `occ app:install` and `occ app:enable`.
-- **Bootstrap users:** optional `bootstrapUsers[]` renders a post-install/post-upgrade Job that waits for Nextcloud readiness, then creates or resets listed local users through `occ`.
+- **Bootstrap users:** optional `bootstrapUsers[]` renders a post-install/post-upgrade Job that waits for Nextcloud readiness, then creates listed local users if missing, reconciles their display names, and resets their passwords through `occ`.
 
 ## Required secrets
 

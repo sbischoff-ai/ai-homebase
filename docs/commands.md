@@ -134,7 +134,10 @@ source ~/.local/state/ai-homebase/incus/openclaw-sandbox.env
   --docker-host "ssh://docker-remote@${HOST_LISTEN_ADDRESS}:${SSH_HOST_PORT}" \
   --image openclaw-sandbox:bookworm-slim \
   --image openclaw-sandbox-browser:bookworm-slim
+./scripts/build-openclaw-sandbox-images.sh
 ```
+
+`bootstrap-stack.sh` now auto-builds the repo-managed coder sandbox image and auto-loads it to the remote Docker host when the rendered OpenClaw config references that image. The manual commands above remain useful for debugging or preloading images explicitly.
 
 ## Fresh Ubuntu 24.04 `k3s` host prep
 

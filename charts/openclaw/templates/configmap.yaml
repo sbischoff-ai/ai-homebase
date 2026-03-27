@@ -9,6 +9,7 @@ data:
   openclaw.json: |
     {
       "commands": {{ toJson (.Values.openclaw.commands | default (dict)) }},
+      "tools": {{ toJson (.Values.openclaw.tools | default (dict)) }},
       "gateway": {
         "mode": {{ .Values.openclaw.gateway.mode | quote }},
         "bind": {{ .Values.openclaw.gateway.bind | quote }},
@@ -24,10 +25,7 @@ data:
         "trustedProxies": {{ toJson (.Values.openclaw.gateway.trustedProxies | default (list)) }}
       },
       "agents": {
-        "defaults": {
-          "workspace": {{ .Values.openclaw.agents.defaults.workspace | quote }},
-          "sandbox": {{ toJson .Values.openclaw.agents.defaults.sandbox }}
-        },
+        "defaults": {{ toJson .Values.openclaw.agents.defaults }},
         "list": {{ toJson .Values.openclaw.agents.list }}
       },
       "mcp": {{ toJson (.Values.openclaw.mcp | default (dict)) }},
@@ -216,4 +214,12 @@ data:
       stdinBuffer += chunk;
       void scheduleDrain();
     });
+  {{- if .Values.workspaceBootstrap.enabled }}
+  {{- range $agentId, $agentConfig := .Values.workspaceBootstrap.agents }}
+  {{- range $filePath, $content := $agentConfig.files }}
+  {{ printf "workspace-%s-%s" $agentId (replace "/" "__" $filePath) }}: |
+{{ $content | nindent 4 }}
+  {{- end }}
+  {{- end }}
+  {{- end }}
 {{- end }}

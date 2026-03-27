@@ -13,7 +13,8 @@ This chart deploys the `nextcloud-mcp-server` companion service for a Nextcloud 
 
 - `nextcloud.url`: upstream Nextcloud base URL the MCP server should call
 - `authentication.mode`: upstream deployment mode, for example `multi_user_basic`
-- `args[]`: optional upstream CLI flags, including repeated `--enable-app <name>` filters
+- `command[]`: optional command override for the server launcher
+- `enabledApps[]`: exact Nextcloud MCP app modules to expose
 
 ## Secret patterns
 
@@ -22,14 +23,14 @@ In the platform stack's `multi_user_basic` posture, the pod uses `NEXTCLOUD_HOST
 
 ## App filtering
 
-The upstream server supports repeated `--enable-app` flags. The standard stack uses that to expose only:
+The standard stack uses `enabledApps[]` to expose only:
 
 - `notes`
 - `webdav`
+- `sharing`
 - `tables`
 - `calendar`
 
-That upstream app set is how this repo currently maps the desired OpenClaw tool groups:
+`Todos` come from the upstream `calendar` surface through CalDAV tasks support.
 
-- `Files/WebDAV` and `Sharing` come from the upstream `webdav` surface.
-- `Todos` come from the upstream `calendar` surface through CalDAV tasks support.
+The chart intentionally launches the server through a small Python wrapper instead of the upstream `--enable-app` CLI flags because the published image currently contains the `sharing` app module but still rejects `--enable-app sharing` during Click validation.

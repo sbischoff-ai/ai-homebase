@@ -29,6 +29,7 @@ openclaw:
           - openclaw.localtest.me
   persistence:
     enabled: true
+    hostPath: /var/lib/ai-homebase/openclaw-state
   remoteDocker:
     enabled: true
     dockerHost: ssh://docker-remote@host.k3d.internal:2222
@@ -71,7 +72,7 @@ openclaw:
       servers:
         nextcloud:
           args:
-            - /home/node/.openclaw/workspace/mcp-http-bridge.mjs
+            - /opt/openclaw-runtime/mcp/mcp-http-bridge.mjs
             - --url
             - ${OPENCLAW_NEXTCLOUD_MCP_INTERNAL_URL}
             - --url

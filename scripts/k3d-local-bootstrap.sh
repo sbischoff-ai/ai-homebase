@@ -9,6 +9,9 @@ RELEASE_NAME="${RELEASE_NAME:-platform-stack}"
 KUBECONFIG_PATH="${KUBECONFIG_PATH:-${HOME}/.kube/k3d-${CLUSTER_NAME}.yaml}"
 BOOTSTRAP_CONFIG_PATH="${BOOTSTRAP_CONFIG_PATH:-bootstrap.local.toml}"
 INCUS_VM_NAME="${INCUS_VM_NAME:-openclaw-sandbox}"
+SHARED_OPENCLAW_STATE_SOURCE="${SHARED_OPENCLAW_STATE_SOURCE:-${HOME}/.local/state/ai-homebase/openclaw-state}"
+SHARED_OPENCLAW_STATE_NODE_PATH="${SHARED_OPENCLAW_STATE_NODE_PATH:-/var/lib/ai-homebase/openclaw-state}"
+SHARED_OPENCLAW_STATE_VM_PATH="${SHARED_OPENCLAW_STATE_VM_PATH:-/home/node/.openclaw}"
 REMOTE_DOCKER_HOST="${REMOTE_DOCKER_HOST:-host.k3d.internal}"
 REMOTE_DOCKER_PORT="${REMOTE_DOCKER_PORT:-2222}"
 REMOTE_DOCKER_KEY_PATH="${REMOTE_DOCKER_KEY_PATH:-${HOME}/.local/state/ai-homebase/incus/${INCUS_VM_NAME}-id_ed25519}"
@@ -16,7 +19,9 @@ INCUS_CONNECTION_INFO_PATH="${INCUS_CONNECTION_INFO_PATH:-}"
 REMOTE_DOCKER_HOST_EXPLICIT=0
 REMOTE_DOCKER_PORT_EXPLICIT=0
 OPENCLAW_GATEWAY_TOKEN_VALUE=""
-OPENCLAW_DEFAULT_MODEL=""
+OPENCLAW_MAIN_MODEL=""
+OPENCLAW_CODER_MODEL=""
+OPENCLAW_ARCHITECT_MODEL=""
 OPENCLAW_HOST_VALUE="openclaw.localtest.me"
 NEXTCLOUD_HOST_VALUE="nextcloud.localtest.me"
 GITEA_HOST_VALUE="gitea.localtest.me"
@@ -37,6 +42,8 @@ Options:
   --kubeconfig <path>      Dedicated kubeconfig path (default: ${KUBECONFIG_PATH})
   --bootstrap-config <p>   Bootstrap config file (default: ${BOOTSTRAP_CONFIG_PATH})
   --incus-vm-name <name>   Incus VM name for the remote Docker sandbox (default: ${INCUS_VM_NAME})
+  --shared-openclaw-state-source <path>
+                           Host path shared between k3d nodes and the sandbox VM for OpenClaw state (default: ${SHARED_OPENCLAW_STATE_SOURCE})
   --remote-docker-host <h> Hostname OpenClaw should use for the remote Docker SSH endpoint (default: ${REMOTE_DOCKER_HOST})
   --remote-docker-port <p> SSH port for the remote Docker endpoint (default: ${REMOTE_DOCKER_PORT})
   --remote-docker-key <p>  Private key path for the OpenClaw remote Docker Secret (default: ${REMOTE_DOCKER_KEY_PATH})
@@ -54,6 +61,7 @@ while [[ $# -gt 0 ]]; do
     --kubeconfig) KUBECONFIG_PATH="$2"; shift 2 ;;
     --bootstrap-config) BOOTSTRAP_CONFIG_PATH="$2"; shift 2 ;;
     --incus-vm-name) INCUS_VM_NAME="$2"; shift 2 ;;
+    --shared-openclaw-state-source) SHARED_OPENCLAW_STATE_SOURCE="$2"; shift 2 ;;
     --remote-docker-host) REMOTE_DOCKER_HOST="$2"; REMOTE_DOCKER_HOST_EXPLICIT=1; shift 2 ;;
     --remote-docker-port) REMOTE_DOCKER_PORT="$2"; REMOTE_DOCKER_PORT_EXPLICIT=1; shift 2 ;;
     --remote-docker-key) REMOTE_DOCKER_KEY_PATH="$2"; shift 2 ;;
@@ -82,7 +90,9 @@ trap on_error ERR
 BOOTSTRAP_SHELL_VARS="$(python3 ./scripts/bootstrap-config.py shell-vars --config "$BOOTSTRAP_CONFIG_PATH")" || exit 1
 eval "$BOOTSTRAP_SHELL_VARS"
 OPENCLAW_GATEWAY_TOKEN_VALUE="${OPENCLAW_GATEWAY_TOKEN:-local-dev-token}"
-OPENCLAW_DEFAULT_MODEL="${OPENCLAW_DEFAULT_MODEL:-}"
+OPENCLAW_MAIN_MODEL="${OPENCLAW_MAIN_MODEL:-}"
+OPENCLAW_CODER_MODEL="${OPENCLAW_CODER_MODEL:-}"
+OPENCLAW_ARCHITECT_MODEL="${OPENCLAW_ARCHITECT_MODEL:-}"
 OPENCLAW_HOST_VALUE="${OPENCLAW_HOST:-${OPENCLAW_HOST_VALUE}}"
 NEXTCLOUD_HOST_VALUE="${NEXTCLOUD_HOST:-${NEXTCLOUD_HOST_VALUE}}"
 GITEA_HOST_VALUE="${GITEA_HOST:-${GITEA_HOST_VALUE}}"
@@ -95,6 +105,8 @@ K3D_UP_CMD=(
   ./scripts/k3d-up.sh
   --cluster-name "$CLUSTER_NAME"
   --kubeconfig "$KUBECONFIG_PATH"
+  --shared-openclaw-state-source "$SHARED_OPENCLAW_STATE_SOURCE"
+  --shared-openclaw-state-target "$SHARED_OPENCLAW_STATE_NODE_PATH"
 )
 
 run_quiet "${K3D_UP_CMD[@]}"
@@ -103,7 +115,10 @@ ok "Cluster is ready"
 step "Bootstrapping Incus sandbox VM"
 run_quiet ./scripts/incus-vm-up.sh \
   --vm-name "$INCUS_VM_NAME" \
-  --resolve-host "$NEXTCLOUD_MCP_HOST_VALUE"
+  --shared-openclaw-state-source "$SHARED_OPENCLAW_STATE_SOURCE" \
+  --shared-openclaw-state-target "$SHARED_OPENCLAW_STATE_VM_PATH" \
+  --resolve-host "$NEXTCLOUD_MCP_HOST_VALUE" \
+  --resolve-host "$GITEA_HOST_VALUE"
 ok "Incus sandbox VM is ready"
 
 if [[ -f "$INCUS_CONNECTION_INFO_PATH" ]]; then
@@ -158,11 +173,9 @@ echo "  OpenClaw gateway token: ${OPENCLAW_GATEWAY_TOKEN_VALUE}"
 echo "  OpenClaw URL: http://${OPENCLAW_HOST_VALUE}"
 echo "  Nextcloud URL: http://${NEXTCLOUD_HOST_VALUE}"
 echo "  Nextcloud MCP URL: http://${NEXTCLOUD_MCP_HOST_VALUE}"
-if [[ -n "$OPENCLAW_DEFAULT_MODEL" ]]; then
-  echo "  OpenClaw default model: ${OPENCLAW_DEFAULT_MODEL}"
-else
-  echo "  OpenClaw default model: not auto-configured (no model-provider key was set in ${BOOTSTRAP_CONFIG_PATH}; search-only keys still bootstrap web tools)"
-fi
+echo "  OpenClaw main model: ${OPENCLAW_MAIN_MODEL}"
+echo "  OpenClaw architect model: ${OPENCLAW_ARCHITECT_MODEL}"
+echo "  OpenClaw coder model: ${OPENCLAW_CODER_MODEL}"
 echo "  Gitea URL: http://${GITEA_HOST_VALUE}"
 echo "  Vaultwarden URL: http://${VAULTWARDEN_HOST_VALUE}"
 echo "  Paperless URL: http://${PAPERLESS_HOST_VALUE}"

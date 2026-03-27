@@ -12,6 +12,8 @@ INGRESS_RELEASE_NAME="${INGRESS_RELEASE_NAME:-ingress-nginx}"
 INGRESS_CHART_REF="${INGRESS_CHART_REF:-ingress-nginx/ingress-nginx}"
 KUBECONFIG_PATH="${KUBECONFIG_PATH:-${HOME}/.kube/k3d-${CLUSTER_NAME}.yaml}"
 K3S_IMAGE="${K3S_IMAGE:-rancher/k3s:v1.32.11-k3s1}"
+SHARED_OPENCLAW_STATE_SOURCE="${SHARED_OPENCLAW_STATE_SOURCE:-${HOME}/.local/state/ai-homebase/openclaw-state}"
+SHARED_OPENCLAW_STATE_TARGET="${SHARED_OPENCLAW_STATE_TARGET:-/var/lib/ai-homebase/openclaw-state}"
 usage() {
   cat <<USAGE
 Usage: $0 [options]
@@ -25,6 +27,10 @@ Options:
   --without-https               Do not map host HTTPS port 443 to the k3s load balancer
   --kubeconfig <path>           Write/use dedicated kubeconfig path (default: ${KUBECONFIG_PATH})
   --k3s-image <image>           k3s image to use for the cluster (default: ${K3S_IMAGE})
+  --shared-openclaw-state-source <path>
+                                Host path bind-mounted into the k3d nodes for shared OpenClaw state (default: ${SHARED_OPENCLAW_STATE_SOURCE})
+  --shared-openclaw-state-target <path>
+                                Node path used for the shared OpenClaw state bind mount (default: ${SHARED_OPENCLAW_STATE_TARGET})
   --verbose                     Stream full command output
   -h, --help                    Show this help message
 USAGE
@@ -38,6 +44,8 @@ while [[ $# -gt 0 ]]; do
     --without-https) ENABLE_HTTPS="false"; shift ;;
     --kubeconfig) KUBECONFIG_PATH="$2"; shift 2 ;;
     --k3s-image) K3S_IMAGE="$2"; shift 2 ;;
+    --shared-openclaw-state-source) SHARED_OPENCLAW_STATE_SOURCE="$2"; shift 2 ;;
+    --shared-openclaw-state-target) SHARED_OPENCLAW_STATE_TARGET="$2"; shift 2 ;;
     --verbose) BOOTSTRAP_VERBOSE=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
@@ -47,7 +55,7 @@ done
 bootstrap_init_logging
 trap 'fail "k3d bootstrap failed. Log: ${BOOTSTRAP_LOG_FILE}"' ERR
 
-for cmd in k3d kubectl helm; do
+for cmd in k3d kubectl helm docker; do
   if ! command -v "$cmd" >/dev/null 2>&1; then
     fail "Missing required dependency: $cmd"
     exit 1
@@ -59,6 +67,7 @@ KUBECTL_ARGS=(--kubeconfig "$KUBECONFIG_PATH")
 HELM_ARGS=(--kubeconfig "$KUBECONFIG_PATH")
 
 run_quiet mkdir -p "$(dirname "$KUBECONFIG_PATH")"
+run_quiet mkdir -p "$SHARED_OPENCLAW_STATE_SOURCE"
 export KUBECONFIG="$KUBECONFIG_PATH"
 
 run_k3d_concise() {
@@ -82,6 +91,27 @@ run_k3d_concise() {
     fi
 
     return $status
+  fi
+}
+
+cluster_has_shared_openclaw_state_mount() {
+  local node_name mount_summary mount_source
+
+  node_name="k3d-${CLUSTER_NAME}-server-0"
+  if ! mount_summary="$(docker inspect "$node_name" --format '{{range .Mounts}}{{println .Source "|" .Destination}}{{end}}' 2>/dev/null)"; then
+    fail "Unable to inspect ${node_name}. If the cluster was created outside this bootstrap flow, recreate it so the shared OpenClaw state bind mount is present."
+    return 1
+  fi
+
+  mount_source="$(printf '%s\n' "$mount_summary" | awk -F'|' -v target="$SHARED_OPENCLAW_STATE_TARGET" '$2 == target {gsub(/[[:space:]]+$/, "", $1); print $1; exit}')"
+  if [[ -z "$mount_source" ]]; then
+    fail "Existing k3d cluster ${CLUSTER_NAME} is missing the shared OpenClaw state mount at ${SHARED_OPENCLAW_STATE_TARGET}. Recreate the cluster with ./scripts/k3d-down.sh --cluster-name ${CLUSTER_NAME} and rerun bootstrap."
+    return 1
+  fi
+
+  if [[ "$mount_source" != "$SHARED_OPENCLAW_STATE_SOURCE" ]]; then
+    fail "Existing k3d cluster ${CLUSTER_NAME} mounts ${SHARED_OPENCLAW_STATE_TARGET} from ${mount_source}, but this bootstrap expects ${SHARED_OPENCLAW_STATE_SOURCE}. Recreate the cluster or align --shared-openclaw-state-source."
+    return 1
   fi
 }
 
@@ -116,6 +146,8 @@ probe_k3d_cluster() {
 
 if probe_k3d_cluster; then
   step "Reusing existing k3d cluster ${CLUSTER_NAME}"
+  cluster_has_shared_openclaw_state_mount
+  ok "Existing cluster has the shared OpenClaw state mount"
 else
   cluster_probe_status=$?
 
@@ -126,6 +158,7 @@ else
       --image "$K3S_IMAGE"
       -p "${HTTP_PORT}:80@loadbalancer"
       --volume "/lib/modules:/lib/modules@all"
+      --volume "${SHARED_OPENCLAW_STATE_SOURCE}:${SHARED_OPENCLAW_STATE_TARGET}@all"
       --k3s-arg "--disable=traefik@server:*"
     )
 

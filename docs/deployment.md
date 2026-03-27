@@ -18,6 +18,14 @@ Continue with [deployment-k3d.md](./deployment-k3d.md).
 
 Use this target for the long-running server install.
 
+The current intended production target is a single-node `k3s` install on a Hetzner A42U-class host with:
+
+- Ryzen 7 Pro 8700GE
+- 64 GB RAM
+- roughly 3 TB storage
+
+That target is expected to run the current stack plus leave room for additional heavier services such as Qdrant, a Qdrant MCP service, Memgraph, Memgraph Lab, and future coder-deployed applications. The repo therefore treats single-node `k3s` as the primary near-term deployment posture rather than as a temporary dev environment.
+
 ```bash
 sudo ./scripts/install-k3s-ubuntu-2404.sh
 cp bootstrap.example.toml bootstrap.local.toml
@@ -33,4 +41,5 @@ Continue with [runbook-homelab.md](./runbook-homelab.md).
 - `bootstrap.local.toml` is the operator input for both targets
 - `k3d` and `k3s` share the same `bootstrap-stack.sh` secret/bootstrap/apply path after cluster setup
 - the regular day-two handoff after a healthy bootstrap is `bootstrap-gitops.sh`
+- the current `k3s` target is a deliberately single-node system; it is intended to use one stronger server well before any future multi-node expansion
 - detailed command catalogs and troubleshooting live outside this page

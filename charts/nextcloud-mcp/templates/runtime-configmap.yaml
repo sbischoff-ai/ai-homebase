@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "nextcloud-mcp.fullname" . }}-runtime
+  labels:
+    {{- include "nextcloud-mcp.labels" . | nindent 4 }}
+data:
+  run-nextcloud-mcp.py: |
+    import os
+
+    import uvicorn
+
+    from nextcloud_mcp_server.app import get_app
+    from nextcloud_mcp_server.config import get_settings
+    from nextcloud_mcp_server.observability import get_uvicorn_logging_config
+
+
+    def main():
+        enabled_apps = [
+            app.strip()
+            for app in os.getenv("NEXTCLOUD_ENABLED_APPS", "").split(",")
+            if app.strip()
+        ]
+        app = get_app(
+            transport=os.getenv("MCP_TRANSPORT", "streamable-http"),
+            enabled_apps=enabled_apps or None,
+        )
+
+        settings = get_settings()
+        log_level = str(settings.log_level).lower()
+        uvicorn_log_config = get_uvicorn_logging_config(
+            log_format=settings.log_format,
+            log_level=log_level,
+            include_trace_context=settings.log_include_trace_context,
+        )
+
+        uvicorn.run(
+            app=app,
+            host=os.getenv("HOST", "0.0.0.0"),
+            port=int(os.getenv("PORT", "8000")),
+            log_level=log_level,
+            log_config=uvicorn_log_config,
+        )
+
+
+    if __name__ == "__main__":
+        main()

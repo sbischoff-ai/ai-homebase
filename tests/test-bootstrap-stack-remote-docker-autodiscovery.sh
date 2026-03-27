@@ -38,6 +38,16 @@ EOF
 cat >"${sandbox_dir}/bootstrap.local.toml" <<'EOF'
 [providers]
 openai_api_key = "test-openai-key"
+anthropic_api_key = "test-anthropic-key"
+
+[openclaw.agents.main]
+model = "anthropic/claude-sonnet-4-6"
+
+[openclaw.agents.coder]
+model = "openai/gpt-5.4"
+
+[openclaw.agents.architect]
+model = "anthropic/claude-opus-4-6"
 
 [mail]
 domain = "example.com"
@@ -56,6 +66,27 @@ set -euo pipefail
 printf 'bootstrap-secrets.sh %s\n' "$*" >>"${FAKE_COMMAND_LOG:?}"
 SH
 chmod +x "${repo_dir}/scripts/bootstrap-secrets.sh"
+
+cat >"${repo_dir}/scripts/build-openclaw-sandbox-images.sh" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'build-openclaw-sandbox-images.sh %s\n' "$*" >>"${FAKE_COMMAND_LOG:?}"
+SH
+chmod +x "${repo_dir}/scripts/build-openclaw-sandbox-images.sh"
+
+cat >"${repo_dir}/scripts/openclaw-remote-docker-load-images.sh" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'openclaw-remote-docker-load-images.sh %s\n' "$*" >>"${FAKE_COMMAND_LOG:?}"
+SH
+chmod +x "${repo_dir}/scripts/openclaw-remote-docker-load-images.sh"
+
+cat >"${repo_dir}/scripts/bootstrap-coder-gitea.sh" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'bootstrap-coder-gitea.sh %s\n' "$*" >>"${FAKE_COMMAND_LOG:?}"
+SH
+chmod +x "${repo_dir}/scripts/bootstrap-coder-gitea.sh"
 
 cat >"${sandbox_dir}/bin/helm" <<'SH'
 #!/usr/bin/env bash
@@ -109,6 +140,9 @@ helm_log="$(cat "${sandbox_dir}/helm.log")"
 
 assert_contains "${commands}" "--remote-docker-host 10.10.10.1"
 assert_contains "${commands}" "--remote-docker-port 2222"
+assert_contains "${commands}" "build-openclaw-sandbox-images.sh --coder-image openclaw-sandbox-coder:bookworm-slim"
+assert_contains "${commands}" "openclaw-remote-docker-load-images.sh --docker-host ssh://docker-remote@10.10.10.1:2222 --image openclaw-sandbox-coder:bookworm-slim"
+assert_contains "${commands}" "bootstrap-coder-gitea.sh --bootstrap-config ${sandbox_dir}/bootstrap.local.toml --release-name platform-stack --namespace ai-homebase"
 assert_contains "${helm_log}" "dockerHost: ssh://docker-remote@10.10.10.1:2222"
 
 echo "bootstrap stack remote docker autodiscovery tests passed"

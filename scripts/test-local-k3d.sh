@@ -7,7 +7,8 @@ RELEASE_NAME="${RELEASE_NAME:-platform-stack}"
 NAMESPACE="${NAMESPACE:-ai-homebase}"
 VALUES_FILES=()
 KUBE_CONTEXT="${KUBE_CONTEXT:-}"
-KUBECONFIG_PATH="${KUBECONFIG_PATH:-${KUBECONFIG:-}}"
+KUBECONFIG_PATH="${KUBECONFIG_PATH:-}"
+RAW_KUBECONFIG="${KUBECONFIG:-}"
 BOOTSTRAP_CONFIG_PATH="${BOOTSTRAP_CONFIG_PATH:-bootstrap.local.toml}"
 REMOTE_DOCKER_SECRET_NAME="${REMOTE_DOCKER_SECRET_NAME:-}"
 REMOTE_DOCKER_HOST="${REMOTE_DOCKER_HOST:-}"
@@ -25,6 +26,20 @@ POSTFIX_RELAY_WAIT_TIMEOUT="${POSTFIX_RELAY_WAIT_TIMEOUT:-600s}"
 PAPERLESS_WAIT_TIMEOUT="${PAPERLESS_WAIT_TIMEOUT:-1200s}"
 INGRESS_ENDPOINT_RETRIES="${INGRESS_ENDPOINT_RETRIES:-60}"
 INGRESS_ENDPOINT_RETRY_DELAY_SECONDS="${INGRESS_ENDPOINT_RETRY_DELAY_SECONDS:-2}"
+
+normalize_kubeconfig_path() {
+  local candidate="${1:-}"
+  case "$candidate" in
+    '${KUBECONFIG:-'*'}')
+      candidate="${candidate#'${KUBECONFIG:-'}"
+      candidate="${candidate%\}}"
+      ;;
+    'KUBECONFIG:-'*)
+      candidate="${candidate#KUBECONFIG:-}"
+      ;;
+  esac
+  printf '%s' "$candidate"
+}
 
 usage() {
   cat <<USAGE
@@ -73,6 +88,10 @@ while [[ $# -gt 0 ]]; do
     *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
   esac
 done
+
+if [[ -z "$KUBECONFIG_PATH" ]]; then
+  KUBECONFIG_PATH="$(normalize_kubeconfig_path "$RAW_KUBECONFIG")"
+fi
 
 bootstrap_init_logging
 

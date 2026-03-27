@@ -79,7 +79,12 @@
           "default": "",
           "description": "PVC storageClass override for OpenClaw state."
         },
-        "existingClaim": { "type": "string", "default": "" }
+        "existingClaim": { "type": "string", "default": "" },
+        "hostPath": {
+          "type": "string",
+          "default": "",
+          "description": "Optional hostPath source to mount instead of using a PVC when OpenClaw state must be shared with a remote Docker host."
+        }
       }
     },
     "remoteDocker": {
@@ -171,6 +176,10 @@
       "type": "object",
       "additionalProperties": true,
       "properties": {
+        "tools": {
+          "type": "object",
+          "additionalProperties": true
+        },
         "gateway": {
           "type": "object",
           "additionalProperties": true,

@@ -24,6 +24,14 @@ Fill in:
 ./scripts/k3d-local-bootstrap.sh --cluster-name ai-homebase-dev --bootstrap-config bootstrap.local.toml
 ```
 
+This local bootstrap now creates a shared OpenClaw state directory on the host, bind-mounts it into the k3d nodes, and mounts the same directory into the Incus sandbox VM so remote Docker sandboxes see the same `/home/node/.openclaw` tree as the gateway pod.
+
+If you reuse an older k3d cluster that was created before this shared-state bind mount existed, the bootstrap now fails fast with a clear message. In that case, recreate the cluster with:
+
+```bash
+./scripts/k3d-down.sh --cluster-name ai-homebase-dev
+```
+
 This does three things in order:
 
 1. creates or reuses the local `k3d` cluster

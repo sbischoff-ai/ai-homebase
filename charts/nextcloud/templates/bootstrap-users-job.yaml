@@ -45,6 +45,10 @@ spec:
               if ! su -s /bin/sh www-data -c "cd /var/www/html && php occ user:info \"${username}\" >/dev/null 2>&1"; then
                 OC_PASS="${password}" su -s /bin/sh www-data -c "cd /var/www/html && php occ user:add --password-from-env --display-name \"${display_name}\" \"${username}\""
               fi
+              current_display_name="$(su -s /bin/sh www-data -c "cd /var/www/html && php occ user:info \"${username}\" 2>/dev/null" | sed -n 's/^  - display_name: //p' | head -n 1)"
+              if [ "${current_display_name}" != "${display_name}" ]; then
+                su -s /bin/sh www-data -c "cd /var/www/html && php occ user:setting \"${username}\" settings display_name \"${display_name}\" >/dev/null"
+              fi
               OC_PASS="${password}" su -s /bin/sh www-data -c "cd /var/www/html && php occ user:resetpassword --password-from-env \"${username}\""
               {{- end }}
           env:

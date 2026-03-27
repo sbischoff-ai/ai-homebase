@@ -9,8 +9,8 @@
 {{- $persistentConfigEnabled := and .Values.config.enabled .Values.persistence.enabled }}
 {{- $persistentMountPath := trimSuffix "/" .Values.persistence.mountPath }}
 {{- $configPath := ternary (printf "%s/openclaw.json" $persistentMountPath) "/etc/openclaw/openclaw.json" $persistentConfigEnabled }}
-{{- $launcherPath := .Values.config.launcher.path | default "/home/node/.openclaw/workspace/mcp-http-bridge.mjs" }}
-{{- $persistentLauncherPath := replace (printf "%s/" $persistentMountPath) "/config-target-root/" $launcherPath }}
+{{- $launcherPath := .Values.config.launcher.path | default "/opt/openclaw-runtime/mcp/mcp-http-bridge.mjs" }}
+{{- $launcherDir := dir $launcherPath }}
 {{- $remoteDockerCliInstallPath := .Values.remoteDocker.cli.installPath | default "/opt/openclaw-tools/bin" }}
 {{- $nextcloudMcpHost := .Values.global.hosts.nextcloudMcp | default "" }}
 {{- $nextcloudMcpExternalScheme := ternary "http" "https" (hasSuffix ".localtest.me" $nextcloudMcpHost) }}
@@ -98,8 +98,6 @@ spec:
               set -eu
               target_dir={{ ternary "/config-target-root" "/config-target" $persistentConfigEnabled | quote }}
               target_file="${target_dir}/openclaw.json"
-              launcher_source=/config-source/mcp-http-bridge.mjs
-              launcher_target={{ ternary $persistentLauncherPath $launcherPath $persistentConfigEnabled | quote }}
               mkdir -p "${target_dir}"
               if [ ! -s /config-source/openclaw.json ]; then
                 echo >&2 "Rendered ConfigMap file /config-source/openclaw.json is missing or empty; verify the openclaw ConfigMap rendered correctly before deployment."
@@ -113,20 +111,32 @@ spec:
                   exit 1
                 }
               fi
-              if [ -s "${launcher_source}" ]; then
-                mkdir -p "$(dirname "${launcher_target}")" || {
-                  echo >&2 "Failed to create launcher target directory for ${launcher_target}."
+              {{- if and $persistentConfigEnabled .Values.workspaceBootstrap.enabled }}
+              state_root=/config-target-root
+              {{- range $agentId, $agentConfig := .Values.workspaceBootstrap.agents }}
+              workspace_dir="${state_root}/{{ trimPrefix "/" (trimPrefix $persistentMountPath $agentConfig.workspace) }}"
+              mkdir -p "${workspace_dir}" || {
+                echo >&2 "Failed to create bootstrapped workspace directory ${workspace_dir} for agent {{ $agentId }}."
+                exit 1
+              }
+              {{- range $filePath, $_ := $agentConfig.files }}
+              target_path="${workspace_dir}/{{ $filePath }}"
+              target_parent="$(dirname "${target_path}")"
+              mkdir -p "${target_parent}" || {
+                echo >&2 "Failed to create ${target_parent} before seeding {{ $filePath }} for agent {{ $agentId }}."
+                exit 1
+              }
+              if [ -e "${target_path}" ]; then
+                echo "Preserving existing {{ $filePath }} in ${workspace_dir}."
+              else
+                cp -f /config-source/{{ printf "workspace-%s-%s" $agentId (replace "/" "__" $filePath) }} "${target_path}" || {
+                  echo >&2 "Failed to seed {{ $filePath }} into ${workspace_dir} for agent {{ $agentId }}."
                   exit 1
                 }
-                if [ ! -s "${launcher_target}" ]; then
-                  cp -f "${launcher_source}" "${launcher_target}" || {
-                    echo >&2 "Failed to bootstrap ${launcher_target} from ${launcher_source}."
-                    exit 1
-                  }
-                else
-                  echo "Preserving existing MCP bridge at ${launcher_target}."
-                fi
               fi
+              {{- end }}
+              {{- end }}
+              {{- end }}
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -140,6 +150,10 @@ spec:
             - name: config-source
               mountPath: /config-source
               readOnly: true
+            {{- if .Values.config.launcher.enabled | default true }}
+            - name: mcp-runtime
+              mountPath: /runtime-target
+            {{- end }}
             {{- if $persistentConfigEnabled }}
             - name: data
               mountPath: /config-target-root
@@ -147,6 +161,43 @@ spec:
             - name: config
               mountPath: /config-target
             {{- end }}
+        {{- if and .Values.config.enabled (.Values.config.launcher.enabled | default true) }}
+        - name: mcp-runtime
+          image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -eu
+              if [ ! -s /config-source/mcp-http-bridge.mjs ]; then
+                echo >&2 "Rendered ConfigMap file /config-source/mcp-http-bridge.mjs is missing or empty; verify the openclaw ConfigMap rendered correctly before deployment."
+                exit 1
+              fi
+              mkdir -p /runtime-target || {
+                echo >&2 "Failed to create MCP runtime target directory /runtime-target."
+                exit 1
+              }
+              cp -f /config-source/mcp-http-bridge.mjs /runtime-target/mcp-http-bridge.mjs || {
+                echo >&2 "Failed to bootstrap shared MCP bridge into /runtime-target/mcp-http-bridge.mjs."
+                exit 1
+              }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: config-source
+              mountPath: /config-source
+              readOnly: true
+            - name: mcp-runtime
+              mountPath: /runtime-target
+        {{- end }}
         {{- end }}
         {{- if $remoteDockerEnabled }}
         {{- if $remoteDockerCliEnabled }}
@@ -479,10 +530,9 @@ spec:
             - name: config
               mountPath: /etc/openclaw
             {{- end }}
-            {{- if and .Values.config.enabled (.Values.config.launcher.enabled | default true) (not $persistentConfigEnabled) }}
-            - name: config-source
-              mountPath: {{ $launcherPath }}
-              subPath: mcp-http-bridge.mjs
+            {{- if and .Values.config.enabled (.Values.config.launcher.enabled | default true) }}
+            - name: mcp-runtime
+              mountPath: {{ $launcherDir }}
               readOnly: true
             {{- end }}
             {{- if $remoteDockerEnabled }}
@@ -504,20 +554,25 @@ spec:
             medium: Memory
         {{- if .Values.persistence.enabled }}
         - name: data
+          {{- if .Values.persistence.hostPath }}
+          hostPath:
+            path: {{ .Values.persistence.hostPath | quote }}
+            type: DirectoryOrCreate
+          {{- else }}
           persistentVolumeClaim:
             claimName: {{ default (include "openclaw.fullname" .) .Values.persistence.existingClaim }}
+          {{- end }}
         {{- end }}
         {{- if .Values.config.enabled }}
         - name: config-source
           configMap:
             name: {{ include "openclaw.fullname" . }}
-            items:
-              - key: openclaw.json
-                path: openclaw.json
-              - key: mcp-http-bridge.mjs
-                path: mcp-http-bridge.mjs
         {{- if not $persistentConfigEnabled }}
         - name: config
+          emptyDir: {}
+        {{- end }}
+        {{- if .Values.config.launcher.enabled | default true }}
+        - name: mcp-runtime
           emptyDir: {}
         {{- end }}
         {{- end }}
