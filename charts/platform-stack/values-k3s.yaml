@@ -20,6 +20,7 @@ global:
     nextcloud: cloud.homebase.internal
     nextcloudMcp: nextcloud-mcp.vpn.homebase.internal
     gitea: gitea.vpn.homebase.internal
+    registry: registry.vpn.homebase.internal
     argocd: argocd.vpn.homebase.internal
     vaultwarden: vaultwarden.vpn.homebase.internal
     paperlessNgx: paperless.vpn.homebase.internal
@@ -172,6 +173,27 @@ gitea:
     admin:
       username: git-admin
       existingSecret: ""
+
+registry:
+  enabled: true
+  ingress:
+    enabled: true
+    className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: platform-stack-root-ca
+    hosts:
+      - host: registry.vpn.homebase.internal
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: registry-tls
+        hosts:
+          - registry.vpn.homebase.internal
+  persistence:
+    enabled: true
+    size: 50Gi
+    storageClass: local-path
 
 vaultwarden:
   enabled: true

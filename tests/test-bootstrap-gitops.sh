@@ -92,6 +92,7 @@ from pathlib import Path
 import sys
 
 args = sys.argv[1:]
+print("render-gitops-repo.py", *args)
 output_dir = Path(args[args.index("--output-dir") + 1])
 cluster_name = args[args.index("--cluster-name") + 1]
 (output_dir / "gitops" / "clusters" / cluster_name / "applications").mkdir(parents=True, exist_ok=True)
@@ -160,10 +161,11 @@ set +e
   export FAKE_KUBECTL_LOG="${kubectl_log}"
   export FAKE_CURL_LOG="${curl_log}"
   export FAKE_GIT_LOG="${git_log}"
-
   ./scripts/bootstrap-gitops.sh \
     --profile k3d \
     --bootstrap-config "${bootstrap_config_path}" \
+    --remote-docker-host 10.10.0.1 \
+    --remote-docker-port 2222 \
     --remote-docker-key "${remote_docker_key_path}"
 ) >"${output_file}" 2>&1
 status=$?
@@ -187,11 +189,16 @@ git_output="$(cat "${git_log}")"
 assert_contains "${commands}" "bootstrap-stack.sh --profile k3d --bootstrap-config ${bootstrap_config_path} --release-name platform-stack --namespace ai-homebase --skip-secrets --enable-service argo-cd"
 assert_contains "${commands}" "bootstrap-secrets.sh --profile k3d --bootstrap-config ${bootstrap_config_path} --release-name platform-stack --namespace ai-homebase"
 assert_contains "${commands}" "--remote-docker-key ${remote_docker_key_path}"
+assert_contains "${commands}" "--remote-docker-host 10.10.0.1"
+assert_contains "${commands}" "--remote-docker-port 2222"
 assert_contains "${curl_output}" "/api/v1/admin/users"
 assert_contains "${curl_output}" "/api/v1/user/repos"
 assert_contains "${kubectl_output}" "root-application.yaml"
 assert_contains "${git_output}" "push --force origin HEAD:main"
 assert_contains "${output}" "GitOps bootstrap complete."
 assert_contains "${output}" "Argo CD URL: http://argocd.test.internal"
+assert_contains "${output}" "render-gitops-repo.py"
+assert_contains "${output}" "--remote-docker-host 10.10.0.1"
+assert_contains "${output}" "--remote-docker-port 2222"
 
 echo "bootstrap gitops tests passed"

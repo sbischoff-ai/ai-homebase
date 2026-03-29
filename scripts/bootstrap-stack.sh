@@ -53,7 +53,7 @@ normalize_kubeconfig_path() {
 
 normalize_service_key() {
   case "$1" in
-    openclaw|nextcloud|gitea|vaultwarden) echo "$1" ;;
+    openclaw|nextcloud|gitea|registry|vaultwarden) echo "$1" ;;
     nextcloud-mcp|nextcloudMcp) echo "nextcloudMcp" ;;
     postfix-relay|postfixRelay) echo "postfixRelay" ;;
     argo-cd|argocd|argoCd) echo "argoCd" ;;
@@ -156,7 +156,7 @@ Options:
   --verbose                    Stream full command output
   -h, --help                   Show this help message
 
-Supported services: openclaw, nextcloud, nextcloud-mcp, gitea, argo-cd, vaultwarden, postfix-relay, paperless-ngx
+Supported services: openclaw, nextcloud, nextcloud-mcp, gitea, registry, argo-cd, vaultwarden, postfix-relay, paperless-ngx
 USAGE
 }
 

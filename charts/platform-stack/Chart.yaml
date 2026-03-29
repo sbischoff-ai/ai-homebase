@@ -31,6 +31,10 @@ dependencies:
     version: 0.1.0
     repository: file://../gitea
     condition: gitea.enabled
+  - name: registry
+    version: 0.1.0
+    repository: file://../registry
+    condition: registry.enabled
   - name: vaultwarden
     version: 0.1.0
     repository: file://../vaultwarden

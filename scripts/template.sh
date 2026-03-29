@@ -10,7 +10,7 @@ SET_ARGS=()
 normalize_service_key() {
   case "$1" in
     cert-manager|certManager) echo "certManager" ;;
-    openclaw|nextcloud|gitea|vaultwarden) echo "$1" ;;
+    openclaw|nextcloud|gitea|registry|vaultwarden) echo "$1" ;;
     nextcloud-mcp|nextcloudMcp) echo "nextcloudMcp" ;;
     postfix-relay|postfixRelay) echo "postfixRelay" ;;
     argo-cd|argocd|argoCd) echo "argoCd" ;;

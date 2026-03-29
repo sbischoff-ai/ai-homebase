@@ -29,6 +29,7 @@ SHARED_MCP_BRIDGE_PATH = "/opt/openclaw-runtime/mcp/mcp-http-bridge.mjs"
 NEXTCLOUD_MCP_USERNAME = "openclaw"
 DEFAULT_CODER_SANDBOX_IMAGE = "openclaw-sandbox-coder:bookworm-slim"
 DEFAULT_CODER_GITEA_USERNAME = "coder"
+DEFAULT_REGISTRY_USERNAME = "coder"
 
 SECRET_KEY_VALUE_NAMES = {
     "OPENAI_API_KEY": "openaiApiKey",
@@ -46,6 +47,7 @@ HOST_KEYS = {
     "nextcloud_mcp": ("hosts", "nextcloud_mcp"),
     "nextcloud_public": ("hosts", "nextcloud_public"),
     "gitea": ("hosts", "gitea"),
+    "registry": ("hosts", "registry"),
     "argocd": ("hosts", "argocd"),
     "vaultwarden": ("hosts", "vaultwarden"),
     "paperless": ("hosts", "paperless"),
@@ -103,6 +105,8 @@ def workspace_bootstrap_values(
     user_gitea_username: str,
     coder_gitea_username: str,
     gitea_host: str,
+    registry_host: str,
+    registry_namespace: str,
 ) -> dict[str, object]:
     gitea_scheme = "http" if gitea_host.endswith(".localtest.me") else "https"
     gitea_base_url = f"{gitea_scheme}://{gitea_host}"
@@ -250,15 +254,12 @@ def workspace_bootstrap_values(
 
                         Work inside the sandbox by default and treat mutation, testing, and GitOps updates as part of your core function.
 
-                        Local skills:
-                        - Use `gitea-tea` for repository creation, collaborator management, pull requests, and other Gitea workflows.
-                        - Use `gitops-homebase` when you work in the GitOps repository or touch Helm and cluster-definition changes.
-
                         Runtime environment:
                         - You run inside a dedicated remote Docker sandbox image for coding work.
                         - Common tools available include `bash`, `curl`, `jq`, `yq`, `rg`, `make`, `git`, `tea`, `helm`, `node`, `npm`, `python3`, `pip`, `uv`, `cargo`, `rustc`, `go`, and `ssh`.
                         - Shared MCP tools remain available in the sandbox, including the Nextcloud tools.
                         - The Gitea ingress hostname `{gitea_host}` should resolve from your sandbox runtime.
+                        - The registry hostname `{registry_host}` should resolve from your sandbox runtime, but Docker and cluster runtimes must trust the platform internal CA before registry pushes or pulls will succeed over HTTPS.
 
                         Gitea guidance:
                         - Your Gitea username is `{coder_gitea_username}` on `{gitea_base_url}`.
@@ -267,6 +268,24 @@ def workspace_bootstrap_values(
                         - When you create a new repository for a project, invite the user `{user_gitea_username}` as a collaborator.
                         - When you work on repositories owned by the user or shared with the user, create pull requests and tell main that the user needs to review and merge them.
                         - If direct discussion with the user would materially improve implementation, remind main that you need a dedicated user channel.
+                        - Typical repository workflow:
+                          create repositories when needed, clone them with your coder identity, work on branches when appropriate, commit with clear messages, push changes, and open pull requests when the repo is shared with the user.
+                        - Use `tea` for repository creation, collaborator management, repo inspection, issue inspection, and pull request workflows against the in-cluster Gitea service.
+
+                        GitOps guidance:
+                        - Treat the GitOps repository as a deployment-definition repo, not a place for speculative planning.
+                        - Validate GitOps-affecting changes with the documented lint and render commands before handoff:
+                          `./scripts/lint.sh --values-file charts/platform-stack/values.yaml`
+                          `./scripts/lint.sh --values-file charts/platform-stack/values.yaml --values-file charts/platform-stack/values-k3d.yaml`
+                          `./scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values.yaml > /tmp/platform-stack.yaml`
+                        - Push GitOps changes when appropriate, but tell main that the user must review the diff and manually sync Argo CD.
+                        - If the work requires new planning, missing requirements, or broad design decisions, hand back to main so architect can refine the plan first.
+
+                        Registry guidance:
+                        - Default new cluster-bound images to the in-cluster registry rather than to a public registry when you build images for apps that this stack will run.
+                        - Use image names in the form `<registry-host>/<namespace>/<app>:<tag>`, with `{registry_namespace}` as the default namespace unless the task requires another one.
+                        - Push images before opening or updating GitOps changes that reference them.
+                        - If registry login, push, or pull fails because of TLS trust, tell main that the operator needs the platform internal CA installed for the sandbox Docker runtime and the cluster node container runtime.
 
                         Nextcloud guidance:
                         - Main owns the shared calendar, user-facing scheduling, and general coordination state.
@@ -304,51 +323,6 @@ def workspace_bootstrap_values(
                     "MEMORY.md": normalize_markdown(
                         """
                         Keep durable implementation context focused on codebase conventions, execution constraints, and known repo workflows.
-                        """
-                    ),
-                    "skills/gitea-tea/SKILL.md": normalize_markdown(
-                        """
-                        ---
-                        name: gitea-tea
-                        description: Operate against the in-cluster Gitea service with git and tea for repos, collaborators, issues, and pull requests.
-                        ---
-
-                        Use this skill when you need to work with Gitea as the coding/execution specialist.
-
-                        Conventions:
-                        - Prefer the in-cluster Gitea instance for project repos and collaboration.
-                        - Use your configured coder identity for all git and tea operations.
-                        - Invite the user to repositories you create for them.
-                        - For shared or user-owned repositories, prefer branches and pull requests over direct pushes.
-                        - Tell main when user review or merge action is required.
-
-                        Typical work:
-                        - create repositories for new implementation projects;
-                        - clone, branch, commit, and push implementation work;
-                        - open pull requests;
-                        - add collaborators;
-                        - inspect issues, pull requests, and repo metadata.
-                        """
-                    ),
-                    "skills/gitops-homebase/SKILL.md": normalize_markdown(
-                        """
-                        ---
-                        name: gitops-homebase
-                        description: Execute GitOps changes safely in the ai-homebase repos and hand off review/sync to the user through main.
-                        ---
-
-                        Use this skill when implementation work affects cluster definitions, Helm values, or GitOps-managed manifests.
-
-                        Rules:
-                        - Treat the GitOps repository as a deployment-definition repo, not a place for speculative planning.
-                        - Validate changes with the repo's documented lint and render commands before handoff.
-                        - Push GitOps changes when appropriate, but tell main that the user must review the diff and manually sync Argo CD.
-                        - If the work requires new planning, missing requirements, or broad design decisions, hand back to main so architect can refine the plan first.
-
-                        Validation commands for this repo:
-                        - `./scripts/lint.sh --values-file charts/platform-stack/values.yaml`
-                        - `./scripts/lint.sh --values-file charts/platform-stack/values.yaml --values-file charts/platform-stack/values-k3d.yaml`
-                        - `./scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values.yaml > /tmp/platform-stack.yaml`
                         """
                     ),
                 },
@@ -501,6 +475,12 @@ def resolved_values(data: dict[str, object]) -> dict[str, str]:
     coder_gitea_password = nested_string(data, ("openclaw", "agents", "coder", "gitea", "password"))
     if not coder_gitea_password:
         coder_gitea_password = nested_string(data, ("gitops", "robot_password"))
+    registry_username = nested_nonempty_string(
+        data,
+        ("services", "registry", "auth", "username"),
+        DEFAULT_REGISTRY_USERNAME,
+    )
+    registry_password = nested_string(data, ("services", "registry", "auth", "password"))
 
     if argocd_admin_user and not re.fullmatch(r"[A-Za-z0-9._-]+", argocd_admin_user):
         raise SystemExit(
@@ -557,6 +537,7 @@ def resolved_values(data: dict[str, object]) -> dict[str, str]:
         "NEXTCLOUD_MCP_HOST": nested_string(data, HOST_KEYS["nextcloud_mcp"]),
         "NEXTCLOUD_PUBLIC_HOST": nested_string(data, HOST_KEYS["nextcloud_public"]),
         "GITEA_HOST": nested_string(data, HOST_KEYS["gitea"]),
+        "REGISTRY_HOST": nested_string(data, HOST_KEYS["registry"]),
         "ARGOCD_HOST": nested_string(data, HOST_KEYS["argocd"]),
         "VAULTWARDEN_HOST": nested_string(data, HOST_KEYS["vaultwarden"]),
         "PAPERLESS_HOST": nested_string(data, HOST_KEYS["paperless"]),
@@ -572,6 +553,8 @@ def resolved_values(data: dict[str, object]) -> dict[str, str]:
         "CODER_GITEA_USERNAME": coder_gitea_username,
         "CODER_GITEA_EMAIL": coder_gitea_email,
         "CODER_GITEA_PASSWORD": coder_gitea_password,
+        "REGISTRY_USERNAME": registry_username,
+        "REGISTRY_PASSWORD": registry_password,
         "OPENCLAW_CODER_SANDBOX_IMAGE": DEFAULT_CODER_SANDBOX_IMAGE,
         "OPENCLAW_MAIN_MODEL": main_model,
         "OPENCLAW_CODER_MODEL": coder_model,
@@ -607,6 +590,8 @@ def command_render_values(args: argparse.Namespace) -> int:
         values["GITEA_USER_USERNAME"],
         values["CODER_GITEA_USERNAME"],
         values["GITEA_HOST"],
+        values["REGISTRY_HOST"],
+        values["CODER_GITEA_USERNAME"],
     )
     allowed_models = {
         model_id: {"alias": alias}
@@ -630,6 +615,7 @@ def command_render_values(args: argparse.Namespace) -> int:
         "nextcloud": values["NEXTCLOUD_HOST"],
         "nextcloudMcp": values["NEXTCLOUD_MCP_HOST"],
         "gitea": values["GITEA_HOST"],
+        "registry": values["REGISTRY_HOST"],
         "argocd": values["ARGOCD_HOST"],
         "vaultwarden": values["VAULTWARDEN_HOST"],
         "paperlessNgx": values["PAPERLESS_HOST"],
@@ -640,7 +626,11 @@ def command_render_values(args: argparse.Namespace) -> int:
     coder_setup_command = textwrap.dedent(
         f"""
         set -eu
-        mkdir -p "${{HOME}}/.config/tea" "${{HOME}}/.cache" "${{HOME}}/.local/state"
+        export HOME=/workspace
+        export XDG_CONFIG_HOME="${{HOME}}/.config"
+        export XDG_CACHE_HOME="${{HOME}}/.cache"
+        export XDG_STATE_HOME="${{HOME}}/.local/state"
+        mkdir -p "${{XDG_CONFIG_HOME}}/tea" "${{XDG_CACHE_HOME}}" "${{XDG_STATE_HOME}}" "${{HOME}}/.docker"
         git config --global user.name {shlex.quote(values["CODER_GITEA_USERNAME"])}
         git config --global user.email {shlex.quote(values["CODER_GITEA_EMAIL"])}
         cat > "${{HOME}}/.netrc" <<'EOF'
@@ -658,6 +648,9 @@ def command_render_values(args: argparse.Namespace) -> int:
         token="$(curl -fsS -u {shlex.quote(values["CODER_GITEA_USERNAME"] + ":" + values["CODER_GITEA_PASSWORD"])} -H 'Content-Type: application/json' -d '{{"name":"openclaw-coder-sandbox","scopes":["all"]}}' {shlex.quote(gitea_base_url + f"/api/v1/users/{values['CODER_GITEA_USERNAME']}/tokens")} 2>/dev/null | jq -r '.sha1 // empty' || true)"
         if [ -n "${{token}}" ]; then
           tea login add --name coder --url {shlex.quote(gitea_base_url)} --token "${{token}}" >/dev/null 2>&1 || true
+        fi
+        if [ -n "${{CODER_REGISTRY_HOST:-}}" ] && [ -n "${{CODER_REGISTRY_USERNAME:-}}" ] && [ -n "${{CODER_REGISTRY_PASSWORD:-}}" ]; then
+          printf '%s' "${{CODER_REGISTRY_PASSWORD}}" | docker login "${{CODER_REGISTRY_HOST}}" --username "${{CODER_REGISTRY_USERNAME}}" --password-stdin >/dev/null 2>&1 || true
         fi
         """
     ).strip()
@@ -702,6 +695,13 @@ def command_render_values(args: argparse.Namespace) -> int:
                                 "CODER_GITOPS_PROJECT": values["GITOPS_PROJECT"],
                                 "CODER_GITEA_TEA_LOGIN_NAME": "coder",
                                 "CODER_GITEA_TEA_TOKEN_NAME": "openclaw-coder-sandbox",
+                                "CODER_REGISTRY_HOST": values["REGISTRY_HOST"],
+                                "CODER_REGISTRY_BASE_URL": (
+                                    f"https://{values['REGISTRY_HOST']}" if values["REGISTRY_HOST"] else ""
+                                ),
+                                "CODER_REGISTRY_USERNAME": values["REGISTRY_USERNAME"],
+                                "CODER_REGISTRY_PASSWORD": values["REGISTRY_PASSWORD"],
+                                "CODER_REGISTRY_NAMESPACE": values["CODER_GITEA_USERNAME"],
                             },
                             "setupCommand": coder_setup_command,
                         },
@@ -797,6 +797,29 @@ def command_render_values(args: argparse.Namespace) -> int:
                     }
                 }
             }
+        },
+        "registry": {
+            "auth": {
+                "existingSecret": "registry-auth-secret",
+            },
+            "ingress": (
+                {
+                    "hosts": [
+                        {
+                            "host": values["REGISTRY_HOST"],
+                            "paths": [{"path": "/", "pathType": "Prefix"}],
+                        }
+                    ],
+                    "tls": [
+                        {
+                            "secretName": "registry-tls",
+                            "hosts": [values["REGISTRY_HOST"]],
+                        }
+                    ],
+                }
+                if values["REGISTRY_HOST"]
+                else {}
+            ),
         },
         "argoCd": {
             "argocd": {

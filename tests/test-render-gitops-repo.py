@@ -81,6 +81,10 @@ project = "platform-stack"
                 "main",
                 "--project",
                 "platform-stack",
+                "--remote-docker-host",
+                "10.10.0.1",
+                "--remote-docker-port",
+                "2222",
             ],
             check=True,
             cwd=REPO_ROOT,
@@ -107,10 +111,13 @@ project = "platform-stack"
         assert "${OPENCLAW_NEXTCLOUD_MCP_EXTERNAL_URL}" in bootstrap_values
         assert "/opt/openclaw-runtime/mcp/mcp-http-bridge.mjs" in bootstrap_values
         assert "openclaw-sandbox-coder:bookworm-slim" in bootstrap_values
-        assert '"skills/gitea-tea/SKILL.md"' in bootstrap_values
-        assert '"skills/gitops-homebase/SKILL.md"' in bootstrap_values
+        assert '"skills/gitea-tea/SKILL.md"' not in bootstrap_values
+        assert '"skills/gitops-homebase/SKILL.md"' not in bootstrap_values
+        assert 'Use `tea` for repository creation' in bootstrap_values
+        assert 'Treat the GitOps repository as a deployment-definition repo' in bootstrap_values
         assert "argoCd:" in gitops_values
         assert "enabled: true" in gitops_values
+        assert "dockerHost: ssh://docker-remote@10.10.0.1:2222" in gitops_values
 
     return 0
 

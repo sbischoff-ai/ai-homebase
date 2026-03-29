@@ -66,6 +66,7 @@ helm dependency update charts/platform-stack
   --values-file charts/platform-stack/values.yaml \
   --disable-service nextcloud \
   --disable-service gitea \
+  --disable-service registry \
   > /tmp/platform-stack-core-only.yaml
 
 # Render with cert-manager custom resources explicitly enabled

@@ -25,6 +25,7 @@ OPENCLAW_ARCHITECT_MODEL=""
 OPENCLAW_HOST_VALUE="openclaw.localtest.me"
 NEXTCLOUD_HOST_VALUE="nextcloud.localtest.me"
 GITEA_HOST_VALUE="gitea.localtest.me"
+REGISTRY_HOST_VALUE="registry.localtest.me"
 VAULTWARDEN_HOST_VALUE="vaultwarden.localtest.me"
 PAPERLESS_HOST_VALUE="paperless.localtest.me"
 NEXTCLOUD_MCP_HOST_VALUE="nextcloud-mcp.localtest.me"
@@ -96,6 +97,7 @@ OPENCLAW_ARCHITECT_MODEL="${OPENCLAW_ARCHITECT_MODEL:-}"
 OPENCLAW_HOST_VALUE="${OPENCLAW_HOST:-${OPENCLAW_HOST_VALUE}}"
 NEXTCLOUD_HOST_VALUE="${NEXTCLOUD_HOST:-${NEXTCLOUD_HOST_VALUE}}"
 GITEA_HOST_VALUE="${GITEA_HOST:-${GITEA_HOST_VALUE}}"
+REGISTRY_HOST_VALUE="${REGISTRY_HOST:-${REGISTRY_HOST_VALUE}}"
 VAULTWARDEN_HOST_VALUE="${VAULTWARDEN_HOST:-${VAULTWARDEN_HOST_VALUE}}"
 PAPERLESS_HOST_VALUE="${PAPERLESS_HOST:-${PAPERLESS_HOST_VALUE}}"
 NEXTCLOUD_MCP_HOST_VALUE="${NEXTCLOUD_MCP_HOST:-${NEXTCLOUD_MCP_HOST_VALUE}}"
@@ -117,8 +119,10 @@ run_quiet ./scripts/incus-vm-up.sh \
   --vm-name "$INCUS_VM_NAME" \
   --shared-openclaw-state-source "$SHARED_OPENCLAW_STATE_SOURCE" \
   --shared-openclaw-state-target "$SHARED_OPENCLAW_STATE_VM_PATH" \
+  --resolve-host "$OPENCLAW_HOST_VALUE" \
   --resolve-host "$NEXTCLOUD_MCP_HOST_VALUE" \
-  --resolve-host "$GITEA_HOST_VALUE"
+  --resolve-host "$GITEA_HOST_VALUE" \
+  --resolve-host "$REGISTRY_HOST_VALUE"
 ok "Incus sandbox VM is ready"
 
 if [[ -f "$INCUS_CONNECTION_INFO_PATH" ]]; then
@@ -144,10 +148,10 @@ BOOTSTRAP_STACK_CMD=(
   --incus-connection-info "$INCUS_CONNECTION_INFO_PATH" \
   --remote-docker-key "$REMOTE_DOCKER_KEY_PATH"
 )
-if [[ "$REMOTE_DOCKER_HOST_EXPLICIT" -eq 1 ]]; then
+if [[ -n "$REMOTE_DOCKER_HOST" ]]; then
   BOOTSTRAP_STACK_CMD+=(--remote-docker-host "$REMOTE_DOCKER_HOST")
 fi
-if [[ "$REMOTE_DOCKER_PORT_EXPLICIT" -eq 1 ]]; then
+if [[ -n "$REMOTE_DOCKER_PORT" ]]; then
   BOOTSTRAP_STACK_CMD+=(--remote-docker-port "$REMOTE_DOCKER_PORT")
 fi
 if [[ "${BOOTSTRAP_VERBOSE:-0}" == "1" ]]; then
@@ -177,6 +181,7 @@ echo "  OpenClaw main model: ${OPENCLAW_MAIN_MODEL}"
 echo "  OpenClaw architect model: ${OPENCLAW_ARCHITECT_MODEL}"
 echo "  OpenClaw coder model: ${OPENCLAW_CODER_MODEL}"
 echo "  Gitea URL: http://${GITEA_HOST_VALUE}"
+echo "  Registry URL: https://${REGISTRY_HOST_VALUE}"
 echo "  Vaultwarden URL: http://${VAULTWARDEN_HOST_VALUE}"
 echo "  Paperless URL: http://${PAPERLESS_HOST_VALUE}"
 echo "  Bootstrap log: ${BOOTSTRAP_LOG_FILE}"

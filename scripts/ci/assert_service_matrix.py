@@ -40,6 +40,7 @@ MATRIX = [
         "set": {
             "nextcloud.enabled": "false",
             "gitea.enabled": "false",
+            "registry.enabled": "false",
             "vaultwarden.enabled": "false",
             "paperlessNgx.enabled": "false",
         },
@@ -55,6 +56,7 @@ MATRIX = [
         "set": {
             "nextcloud.enabled": "true",
             "gitea.enabled": "true",
+            "registry.enabled": "true",
             "vaultwarden.enabled": "false",
             "paperlessNgx.enabled": "true",
             "postfixRelay.enabled": "true",
@@ -67,6 +69,8 @@ MATRIX = [
             ("Ingress", "platform-stack-nextcloud-private"),
             ("Deployment", "platform-stack-nextcloud-mcp"),
             ("Ingress", "platform-stack-nextcloud-mcp"),
+            ("Deployment", "platform-stack-registry"),
+            ("Ingress", "platform-stack-registry"),
             ("StatefulSet", "platform-stack-paperless-ngx"),
             ("Ingress", "platform-stack-paperless-ngx"),
         },
@@ -76,6 +80,7 @@ MATRIX = [
         "set": {
             "nextcloud.enabled": "true",
             "gitea.enabled": "true",
+            "registry.enabled": "true",
             "vaultwarden.enabled": "true",
             "paperlessNgx.enabled": "true",
             "postfixRelay.enabled": "true",
@@ -90,6 +95,8 @@ MATRIX = [
             ("Ingress", "platform-stack-nextcloud-private"),
             ("Deployment", "platform-stack-nextcloud-mcp"),
             ("Ingress", "platform-stack-nextcloud-mcp"),
+            ("Deployment", "platform-stack-registry"),
+            ("Ingress", "platform-stack-registry"),
             ("StatefulSet", "platform-stack-paperless-ngx"),
             ("Ingress", "platform-stack-paperless-ngx"),
         },
@@ -319,6 +326,7 @@ def assert_k3d_default_ingress_classes() -> None:
         "platform-stack-openclaw": "openclaw.localtest.me",
         "platform-stack-vaultwarden": "vaultwarden.localtest.me",
         "platform-stack-nextcloud-mcp": "nextcloud-mcp.localtest.me",
+        "platform-stack-registry": "registry.localtest.me",
     }
     for name, host in expected.items():
         ingress = find_document(rendered, kind="Ingress", name=name)
@@ -381,6 +389,38 @@ def assert_k3d_gitea_overlay_resources() -> None:
     )
 
 
+def assert_k3d_registry_overlay_resources() -> None:
+    rendered = render_template(BASE_VALUES, K3D_VALUES)
+
+    deployment = find_document(rendered, kind="Deployment", name="platform-stack-registry")
+    if deployment is None:
+        raise SystemExit("k3d overlay did not render a registry workload")
+
+    service = find_document(rendered, kind="Service", name="platform-stack-registry")
+    if service is None:
+        raise SystemExit("k3d overlay did not render a registry Service")
+
+    ingress = find_document(rendered, kind="Ingress", name="platform-stack-registry")
+    if ingress is None:
+        raise SystemExit("k3d overlay did not render a registry Ingress")
+
+    rendered_class_name = ingress_class_name(ingress)
+    if rendered_class_name != "nginx":
+        raise SystemExit(
+            f"k3d overlay rendered registry ingressClassName={rendered_class_name!r}, expected 'nginx'"
+        )
+
+    hosts = ingress_hosts(ingress)
+    if "registry.localtest.me" not in hosts:
+        raise SystemExit(
+            f"k3d overlay rendered registry ingress hosts={hosts!r}, expected 'registry.localtest.me'"
+        )
+
+    pvc = find_document(rendered, kind="PersistentVolumeClaim", name="platform-stack-registry-data")
+    if pvc is None or not has_local_path_5gi_persistence(pvc):
+        raise SystemExit("k3d overlay rendered registry without 5Gi local-path persistence")
+
+
 def main() -> None:
     for case in MATRIX:
         rendered = render_template(BASE_VALUES, set_values=case["set"])
@@ -407,6 +447,9 @@ def main() -> None:
 
     assert_k3d_gitea_overlay_resources()
     print("k3d overlay: asserted rendered gitea workload/service/ingress + StatefulSet persistence")
+
+    assert_k3d_registry_overlay_resources()
+    print("k3d overlay: asserted rendered registry workload/service/ingress + persistence")
 
 
 if __name__ == "__main__":

@@ -350,6 +350,10 @@ is_openclaw_ingress_enabled() {
   effective_bool_value "openclaw.ingress.enabled"
 }
 
+is_registry_enabled() {
+  effective_bool_value "registry.enabled"
+}
+
 is_openclaw_remote_docker_enabled() {
   effective_bool_value "openclaw.remoteDocker.enabled"
 }
@@ -523,6 +527,13 @@ verify_gitea_services() {
   ok "Validated ${#service_names[@]} Gitea Service resource(s)"
 }
 
+verify_registry_services() {
+  wait_for_workload registry "$GITEA_WAIT_TIMEOUT"
+  verify_labeled_service registry
+  kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" \
+    get ingress "${RELEASE_NAME}-registry" >/dev/null
+}
+
 verify_labeled_service() {
   local app_name="$1"
   local service_name
@@ -580,6 +591,9 @@ verify_openclaw_mcp_bootstrap_config() {
 verify_incus_hostname_resolution() {
   local host_name="$1"
   local host_listen_address="$2"
+  local url_path="${3:-/health/ready}"
+  local endpoint_label="${4:-$host_name}"
+  local status_patterns="${5:-200|308}"
 
   if ! command -v incus >/dev/null 2>&1; then
     warn "Skipping Incus sandbox DNS checks because incus is not installed in the current shell"
@@ -594,13 +608,13 @@ verify_incus_hostname_resolution() {
     [ \"\$resolved_ip\" = '${host_listen_address}' ]
   "
 
-  step "Checking Docker-container reachability for ${host_name}"
-  CURRENT_COMMAND="incus exec ${INCUS_VM_NAME} -- docker run --rm curlimages/curl:8.12.1 -sSI http://${host_name}/health/ready"
+  step "Checking Docker-container reachability for ${endpoint_label}"
+  CURRENT_COMMAND="incus exec ${INCUS_VM_NAME} -- docker run --rm curlimages/curl:8.12.1 -sSI http://${host_name}${url_path}"
   run_checked incus exec "$INCUS_VM_NAME" -- sh -ceu "
-    status_line=\$(docker run --rm curlimages/curl:8.12.1 -sSI 'http://${host_name}/health/ready' | awk 'NR==1 {print \$2}')
+    status_line=\$(docker run --rm curlimages/curl:8.12.1 -sSI 'http://${host_name}${url_path}' | awk 'NR==1 {print \$2}')
     [ -n \"\$status_line\" ]
     case \"\$status_line\" in
-      200|308) ;;
+      ${status_patterns}) ;;
       *) exit 1 ;;
     esac
   "
@@ -648,6 +662,7 @@ NEXTCLOUD_MCP_INGRESS_HOST="$(effective_value "nextcloudMcp.ingress.hosts.0.host
 VAULTWARDEN_INGRESS_HOST="$(effective_value "vaultwarden.ingress.hosts.0.host")"
 PAPERLESS_INGRESS_HOST="$(effective_value "paperlessNgx.ingress.hosts.0.host")"
 OPENCLAW_INGRESS_HOST="$(effective_value "openclaw.ingress.hosts.0.host")"
+REGISTRY_INGRESS_HOST="$(effective_value "registry.ingress.hosts.0.host")"
 HOST_LISTEN_ADDRESS_VALUE=""
 if [[ -f "$INCUS_CONNECTION_INFO_PATH" ]]; then
   # shellcheck disable=SC1090
@@ -679,7 +694,7 @@ if [[ "$(is_nextcloud_mcp_enabled)" == "true" ]]; then
   wait_for_workload nextcloud-mcp "$NEXTCLOUD_MCP_WAIT_TIMEOUT"
   verify_labeled_service nextcloud-mcp
   if [[ -n "$HOST_LISTEN_ADDRESS_VALUE" ]]; then
-    verify_incus_hostname_resolution "$NEXTCLOUD_MCP_INGRESS_HOST" "$HOST_LISTEN_ADDRESS_VALUE"
+    verify_incus_hostname_resolution "$NEXTCLOUD_MCP_INGRESS_HOST" "$HOST_LISTEN_ADDRESS_VALUE" "/health/ready" "Nextcloud MCP"
   else
     warn "Skipping Incus sandbox DNS checks because ${INCUS_CONNECTION_INFO_PATH} is missing or does not define HOST_LISTEN_ADDRESS"
   fi
@@ -695,6 +710,17 @@ if [[ "$(is_gitea_enabled)" == "true" ]]; then
   verify_gitea_services
 else
   warn "Skipping Gitea workload/service checks because gitea.enabled=false in effective values"
+fi
+
+if [[ "$(is_registry_enabled)" == "true" ]]; then
+  if [[ -n "$HOST_LISTEN_ADDRESS_VALUE" ]]; then
+    verify_incus_hostname_resolution "$REGISTRY_INGRESS_HOST" "$HOST_LISTEN_ADDRESS_VALUE" "/v2/" "Registry" "200|401"
+  else
+    warn "Skipping Incus sandbox DNS checks for Registry because ${INCUS_CONNECTION_INFO_PATH} is missing or does not define HOST_LISTEN_ADDRESS"
+  fi
+  verify_registry_services
+else
+  warn "Skipping registry workload/service checks because registry.enabled=false in effective values"
 fi
 
 if [[ "$(is_vaultwarden_enabled)" == "true" ]]; then
@@ -725,6 +751,11 @@ else
 fi
 
 if [[ "$(is_openclaw_ingress_enabled)" == "true" ]]; then
+  if [[ -n "$HOST_LISTEN_ADDRESS_VALUE" ]]; then
+    verify_incus_hostname_resolution "$OPENCLAW_INGRESS_HOST" "$HOST_LISTEN_ADDRESS_VALUE" "/" "OpenClaw" "200|302|307|308"
+  else
+    warn "Skipping Incus sandbox DNS checks for OpenClaw because ${INCUS_CONNECTION_INFO_PATH} is missing or does not define HOST_LISTEN_ADDRESS"
+  fi
   step "Checking openclaw ingress endpoint"
   CURRENT_COMMAND="curl --silent --show-error --fail -H Host: ${OPENCLAW_INGRESS_HOST} http://127.0.0.1/"
   wait_for_http_endpoint "${OPENCLAW_INGRESS_HOST}" "http://127.0.0.1/" "OpenClaw"

@@ -1,6 +1,6 @@
 # ai-homebase
 
-`ai-homebase` is an opinionated homelab platform for running OpenClaw as the center of a personal AI control plane. It combines a multi-agent OpenClaw setup with supporting services such as Nextcloud, a dedicated Nextcloud MCP gateway, Gitea, Paperless-ngx, Vaultwarden, shared PostgreSQL/Redis, and an in-cluster Postfix relay for application email.
+`ai-homebase` is an opinionated homelab platform for running OpenClaw as the center of a personal AI control plane. It combines a multi-agent OpenClaw setup with supporting services such as Nextcloud, a dedicated Nextcloud MCP gateway, Gitea, an in-cluster Docker registry, Paperless-ngx, Vaultwarden, shared PostgreSQL/Redis, and an in-cluster Postfix relay for application email.
 
 The point of the repo is not just “a pile of charts.” It gives you one coherent platform shape that works in two places: `k3d` for fast local iteration and `k3s` for the long-running homelab deployment. The bootstrap flow, secrets model, hostnames, multi-agent topology, MCP posture, and service contracts stay aligned between those targets so local validation is actually useful before you touch the real server.
 
@@ -10,6 +10,7 @@ Characteristic features of this stack:
 - remote Docker sandboxes for specialist agents, including a coder-specific sandbox image with developer tooling
 - Nextcloud shared with OpenClaw through a dedicated MCP gateway and shared-account operating conventions
 - GitOps handoff into an in-cluster Gitea repository with Argo CD kept in manual-sync mode
+- an in-cluster authenticated registry for coder-built application images
 - one bootstrap input model for both local and homelab targets through `bootstrap.local.toml`
 
 The intended long-running target today is a single-node `k3s` install on a Hetzner A42U-class machine with a Ryzen 7 Pro 8700GE, 64 GB RAM, and roughly 3 TB of storage. The repo now assumes that target should have headroom not only for the current stack, but also for additional heavier services such as Qdrant, Memgraph, and future coder-deployed web services.
