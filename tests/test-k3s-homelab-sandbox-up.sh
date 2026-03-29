@@ -39,8 +39,10 @@ model = "openai/gpt-5.4"
 model = "anthropic/claude-opus-4-6"
 
 [hosts]
+openclaw = "openclaw.test.internal"
 nextcloud_mcp = "nextcloud-mcp.test.internal"
 gitea = "gitea.test.internal"
+registry = "registry.test.internal"
 
 [mail]
 domain = "example.com"
@@ -67,10 +69,14 @@ assert_contains "${commands}" "--vm-name openclaw-sandbox"
 assert_contains "${commands}" "--host-alias openclaw-sandbox.homebase.internal"
 assert_contains "${commands}" "--shared-openclaw-state-source /var/lib/ai-homebase/openclaw-state"
 assert_contains "${commands}" "--shared-openclaw-state-target /home/node/.openclaw"
+assert_contains "${commands}" "--resolve-host openclaw.test.internal"
 assert_contains "${commands}" "--resolve-host nextcloud-mcp.test.internal"
 assert_contains "${commands}" "--resolve-host gitea.test.internal"
+assert_contains "${commands}" "--resolve-host registry.test.internal"
 assert_contains "${output}" "Homelab sandbox VM is ready."
 assert_contains "${output}" "Gitea host override inside sandbox: gitea.test.internal"
+assert_contains "${output}" "Registry host override inside sandbox: registry.test.internal"
+assert_contains "${output}" "OpenClaw host override inside sandbox: openclaw.test.internal"
 assert_contains "${output}" "Shared OpenClaw state: /var/lib/ai-homebase/openclaw-state -> /home/node/.openclaw"
 
 echo "k3s homelab sandbox tests passed"

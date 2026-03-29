@@ -11,6 +11,7 @@ Relevant services:
 - OpenClaw
 - Nextcloud
 - Gitea
+- Registry
 - Vaultwarden
 - Postfix relay
 - Paperless-ngx
@@ -30,6 +31,7 @@ Important points:
 - the internal CA private key stays inside Kubernetes
 - clients must trust the exported `ca.crt`
 - the root CA is for trusted internal use, not public internet trust
+- any Docker or container runtime that pushes to or pulls from the in-cluster registry must trust that same CA for the registry hostname
 
 For the full trust and secret model, see [security.md](./security.md).
 

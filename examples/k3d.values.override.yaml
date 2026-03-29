@@ -12,6 +12,11 @@ openclaw:
 #     repository: k3d-ai-homebase-registry.localhost:5000/openclaw
 #     tag: dev
 
+# Example: override the in-cluster registry hostname for local testing.
+# global:
+#   hosts:
+#     registry: registry.localtest.me
+
 # Example: scale local Gitea storage up for a repo-heavy test.
 # gitea:
 #   gitea:

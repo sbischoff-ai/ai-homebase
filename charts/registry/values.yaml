@@ -1,0 +1,91 @@
+enabled: false
+
+nameOverride: ""
+fullnameOverride: ""
+
+replicaCount: 1
+
+image:
+  repository: registry
+  tag: "2"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+global:
+  imagePullSecrets: []
+  storageClass: ""
+  hosts:
+    registry: ""
+  commonLabels: {}
+
+service:
+  type: ClusterIP
+  port: 5000
+  targetPort: http
+  annotations: {}
+
+ingress:
+  enabled: true
+  className: ""
+  annotations:
+    cert-manager.io/cluster-issuer: platform-stack-root-ca
+  defaultHost: registry.example.com
+  hosts:
+    - host: ""
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: registry-tls
+      hosts:
+        - ""
+
+persistence:
+  enabled: true
+  existingClaim: ""
+  accessModes:
+    - ReadWriteOnce
+  size: 20Gi
+  storageClass: ""
+  annotations: {}
+
+auth:
+  existingSecret: registry-auth-secret
+  realm: "Registry Realm"
+  secretKeys:
+    htpasswd: htpasswd
+    username: username
+    password: password
+
+podAnnotations: {}
+podSecurityContext:
+  fsGroup: 1000
+  fsGroupChangePolicy: OnRootMismatch
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
+
+resources: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+probes:
+  readiness:
+    enabled: true
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  liveness:
+    enabled: true
+    initialDelaySeconds: 15
+    periodSeconds: 15

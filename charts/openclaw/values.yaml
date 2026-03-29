@@ -196,15 +196,12 @@ workspaceBootstrap:
 
           Work inside the sandbox by default and treat mutation, testing, and GitOps updates as part of your core function.
 
-          Local skills:
-          - Use `gitea-tea` for repository creation, collaborator management, pull requests, and other Gitea workflows.
-          - Use `gitops-homebase` when you work in the GitOps repository or touch Helm and cluster-definition changes.
-
           Runtime environment:
           - You run inside a dedicated remote Docker sandbox image for coding work.
           - Common tools available include `bash`, `curl`, `jq`, `yq`, `rg`, `make`, `git`, `tea`, `helm`, `node`, `npm`, `python3`, `pip`, `uv`, `cargo`, `rustc`, `go`, and `ssh`.
           - Shared MCP tools remain available in the sandbox, including the Nextcloud tools.
           - The configured Gitea ingress hostname should resolve from your sandbox runtime.
+          - The configured registry hostname should resolve from your sandbox runtime, but Docker and cluster runtimes must trust the platform internal CA before registry pushes or pulls will succeed over HTTPS.
 
           Gitea guidance:
           - Your Gitea username should be recorded here once it is known.
@@ -213,6 +210,24 @@ workspaceBootstrap:
           - When you create a new repository for a project, invite the user once their Gitea username is known.
           - When you work on repositories owned by the user or shared with the user, create pull requests and tell main that the user needs to review and merge them.
           - If direct discussion with the user would materially improve implementation, remind main that you need a dedicated user channel.
+          - Typical repository workflow:
+            create repositories when needed, clone them with your coder identity, work on branches when appropriate, commit with clear messages, push changes, and open pull requests when the repo is shared with the user.
+          - Use `tea` for repository creation, collaborator management, repo inspection, issue inspection, and pull request workflows against the in-cluster Gitea service.
+
+          GitOps guidance:
+          - Treat the GitOps repository as a deployment-definition repo, not a place for speculative planning.
+          - Validate GitOps-affecting changes with the documented lint and render commands before handoff:
+            `./scripts/lint.sh --values-file charts/platform-stack/values.yaml`
+            `./scripts/lint.sh --values-file charts/platform-stack/values.yaml --values-file charts/platform-stack/values-k3d.yaml`
+            `./scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values.yaml > /tmp/platform-stack.yaml`
+          - Push GitOps changes when appropriate, but tell main that the user must review the diff and manually sync Argo CD.
+          - If the work requires new planning, missing requirements, or broad design decisions, hand back to main so architect can refine the plan first.
+
+          Registry guidance:
+          - Default new cluster-bound images to the in-cluster registry rather than to a public registry when you build images for apps that this stack will run.
+          - Use image names in the form `<registry-host>/<namespace>/<app>:<tag>`, with your configured registry namespace as the default namespace unless the task requires another one.
+          - Push images before opening or updating GitOps changes that reference them.
+          - If registry login, push, or pull fails because of TLS trust, tell main that the operator needs the platform internal CA installed for the sandbox Docker runtime and the cluster node container runtime.
 
           Nextcloud guidance:
           - Main owns the shared calendar, user-facing scheduling, and general coordination state.
@@ -237,45 +252,6 @@ workspaceBootstrap:
           Before finishing, check whether the implementation is validated enough for main to rely on it.
         MEMORY.md: |
           Keep durable implementation context focused on codebase conventions, execution constraints, and known repo workflows.
-        skills/gitea-tea/SKILL.md: |
-          ---
-          name: gitea-tea
-          description: Operate against the in-cluster Gitea service with git and tea for repos, collaborators, issues, and pull requests.
-          ---
-
-          Use this skill when you need to work with Gitea as the coding/execution specialist.
-
-          Conventions:
-          - Prefer the in-cluster Gitea instance for project repos and collaboration.
-          - Use your configured coder identity for all git and tea operations.
-          - Invite the user to repositories you create for them.
-          - For shared or user-owned repositories, prefer branches and pull requests over direct pushes.
-          - Tell main when user review or merge action is required.
-
-          Typical work:
-          - create repositories for new implementation projects;
-          - clone, branch, commit, and push implementation work;
-          - open pull requests;
-          - add collaborators;
-          - inspect issues, pull requests, and repo metadata.
-        skills/gitops-homebase/SKILL.md: |
-          ---
-          name: gitops-homebase
-          description: Execute GitOps changes safely in the ai-homebase repos and hand off review and sync to the user through main.
-          ---
-
-          Use this skill when implementation work affects cluster definitions, Helm values, or GitOps-managed manifests.
-
-          Rules:
-          - Treat the GitOps repository as a deployment-definition repo, not a place for speculative planning.
-          - Validate changes with the repo's documented lint and render commands before handoff.
-          - Push GitOps changes when appropriate, but tell main that the user must review the diff and manually sync Argo CD.
-          - If the work requires new planning, missing requirements, or broad design decisions, hand back to main so architect can refine the plan first.
-
-          Validation commands for this repo:
-          - `./scripts/lint.sh --values-file charts/platform-stack/values.yaml`
-          - `./scripts/lint.sh --values-file charts/platform-stack/values.yaml --values-file charts/platform-stack/values-k3d.yaml`
-          - `./scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values.yaml > /tmp/platform-stack.yaml`
     architect:
       workspace: /home/node/.openclaw/workspace-architect
       files:
@@ -413,9 +389,18 @@ openclaw:
               CODER_GITOPS_PROJECT: platform-stack
               CODER_GITEA_TEA_LOGIN_NAME: coder
               CODER_GITEA_TEA_TOKEN_NAME: openclaw-coder-sandbox
+              CODER_REGISTRY_HOST: registry.example.com
+              CODER_REGISTRY_BASE_URL: https://registry.example.com
+              CODER_REGISTRY_USERNAME: coder
+              CODER_REGISTRY_PASSWORD: change-me
+              CODER_REGISTRY_NAMESPACE: coder
             setupCommand: |-
               set -eu
-              mkdir -p "${HOME}/.config/tea" "${HOME}/.cache" "${HOME}/.local/state"
+              export HOME=/workspace
+              export XDG_CONFIG_HOME="${HOME}/.config"
+              export XDG_CACHE_HOME="${HOME}/.cache"
+              export XDG_STATE_HOME="${HOME}/.local/state"
+              mkdir -p "${XDG_CONFIG_HOME}/tea" "${XDG_CACHE_HOME}" "${XDG_STATE_HOME}" "${HOME}/.docker"
               git config --global user.name "coder"
               git config --global user.email "coder@example.invalid"
               cat > "${HOME}/.netrc" <<'EOF'
@@ -433,6 +418,9 @@ openclaw:
               token="$(curl -fsS -u 'coder:change-me' -H 'Content-Type: application/json' -d '{"name":"openclaw-coder-sandbox","scopes":["all"]}' 'https://gitea.example.com/api/v1/users/coder/tokens' 2>/dev/null | jq -r '.sha1 // empty' || true)"
               if [ -n "${token}" ]; then
                 tea login add --name coder --url 'https://gitea.example.com' --token "${token}" >/dev/null 2>&1 || true
+              fi
+              if [ -n "${CODER_REGISTRY_HOST:-}" ] && [ -n "${CODER_REGISTRY_USERNAME:-}" ] && [ -n "${CODER_REGISTRY_PASSWORD:-}" ]; then
+                printf '%s' "${CODER_REGISTRY_PASSWORD}" | docker login "${CODER_REGISTRY_HOST}" --username "${CODER_REGISTRY_USERNAME}" --password-stdin >/dev/null 2>&1 || true
               fi
       - id: architect
         name: Architect

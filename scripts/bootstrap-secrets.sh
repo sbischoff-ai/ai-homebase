@@ -31,6 +31,8 @@ PAPERLESS_ADMIN_PASSWORD=""
 PAPERLESS_ADMIN_USER=""
 PAPERLESS_ADMIN_MAIL=""
 PAPERLESS_SECRET_KEY=""
+REGISTRY_USERNAME=""
+REGISTRY_PASSWORD=""
 REMOTE_DOCKER_SECRET_NAME="${REMOTE_DOCKER_SECRET_NAME:-openclaw-remote-docker-ssh}"
 REMOTE_DOCKER_HOST="${REMOTE_DOCKER_HOST:-}"
 REMOTE_DOCKER_PORT="${REMOTE_DOCKER_PORT:-2222}"
@@ -318,8 +320,11 @@ OPENCLAW_NEXTCLOUD_MCP_PASSWORD="$(resolve_from_existing_secret_or_generate "$OP
 PAPERLESS_DB_PASSWORD="$(resolve_from_existing_secret_or_generate "$PAPERLESS_DB_PASSWORD" paperless-config-secrets '{.data.PAPERLESS_DB_PASSWORD}')"
 PAPERLESS_ADMIN_PASSWORD="$(resolve_from_existing_secret_or_generate "$PAPERLESS_ADMIN_PASSWORD" paperless-config-secrets '{.data.PAPERLESS_ADMIN_PASSWORD}')"
 PAPERLESS_SECRET_KEY="$(resolve_paperless_secret_key)"
+REGISTRY_USERNAME="${REGISTRY_USERNAME:-coder}"
+REGISTRY_PASSWORD="$(resolve_from_existing_secret_or_generate "$REGISTRY_PASSWORD" registry-auth-secret '{.data.password}')"
 GITEA_REDIS_URI="redis://:${REDIS_PASSWORD}@platform-stack-shared-redis:6379/0?pool_size=100&idle_timeout=180s"
 PAPERLESS_REDIS_URI="redis://:${REDIS_PASSWORD}@platform-stack-shared-redis:6379/0"
+REGISTRY_HTPASSWD="$(openssl passwd -apr1 "${REGISTRY_PASSWORD}")"
 
 SHARED_POSTGRESQL_INITDB_SQL="$(mktemp /tmp/ai-homebase-shared-postgresql-initdb.XXXXXX.sql)"
 cat >"$SHARED_POSTGRESQL_INITDB_SQL" <<EOF
@@ -397,6 +402,11 @@ create_and_apply_secret paperless-config-secrets \
   --from-literal=PAPERLESS_ADMIN_PASSWORD="${PAPERLESS_ADMIN_PASSWORD}" \
   --from-literal=PAPERLESS_DB_PASSWORD="${PAPERLESS_DB_PASSWORD}" \
   --from-literal=PAPERLESS_REDIS="${PAPERLESS_REDIS_URI}"
+
+create_and_apply_secret registry-auth-secret \
+  --from-literal=username="${REGISTRY_USERNAME}" \
+  --from-literal=password="${REGISTRY_PASSWORD}" \
+  --from-literal=htpasswd="${REGISTRY_USERNAME}:${REGISTRY_HTPASSWD}"
 
 OPENCLAW_SECRET_ARGS=(
   --from-literal=OPENCLAW_GATEWAY_TOKEN="$OPENCLAW_GATEWAY_TOKEN"

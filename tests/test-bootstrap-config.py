@@ -43,6 +43,7 @@ nextcloud = "nextcloud.test.internal"
 nextcloud_mcp = "nextcloud-mcp.test.internal"
 nextcloud_public = "nextcloud.example.com"
 gitea = "gitea.test.internal"
+registry = "registry.test.internal"
 argocd = "argocd.test.internal"
 vaultwarden = "vaultwarden.test.internal"
 paperless = "paperless.test.internal"
@@ -61,6 +62,10 @@ password = "shared-admin-password"
 
 [services.gitea.admin]
 email = "git@example.invalid"
+
+[services.registry.auth]
+username = "coder"
+password = "registry-password"
 
 [services.argocd.admin]
 user = "admin"
@@ -105,6 +110,7 @@ assert "NEXTCLOUD_MCP_HOST=nextcloud-mcp.test.internal" in shell_vars
 assert "PAPERLESS_ADMIN_MAIL=admin@example.invalid" in shell_vars
 assert "OPENCLAW_HOST=openclaw.test.internal" in shell_vars
 assert "NEXTCLOUD_PUBLIC_HOST=nextcloud.example.com" in shell_vars
+assert "REGISTRY_HOST=registry.test.internal" in shell_vars
 assert "ARGOCD_HOST=argocd.test.internal" in shell_vars
 assert "PAPERLESS_HOST=paperless.test.internal" in shell_vars
 assert "MAIL_DOMAIN=example.com" in shell_vars
@@ -118,6 +124,8 @@ assert "GITOPS_CLUSTER_NAME=lab-cluster" in shell_vars
 assert "CODER_GITEA_USERNAME=coder-bot" in shell_vars
 assert "CODER_GITEA_EMAIL=coder-bot@example.invalid" in shell_vars
 assert "CODER_GITEA_PASSWORD=coder-password" in shell_vars
+assert "REGISTRY_USERNAME=coder" in shell_vars
+assert "REGISTRY_PASSWORD=registry-password" in shell_vars
 assert "GITOPS_REPO_PRIVATE=true" in shell_vars
 
 rendered_values = json.loads(
@@ -149,9 +157,16 @@ assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["CODER_GITEA_BASE_URL"] == "https://gitea.test.internal"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["CODER_GITEA_TEA_LOGIN_NAME"] == "coder"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["CODER_GITEA_TEA_TOKEN_NAME"] == "openclaw-coder-sandbox"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["CODER_REGISTRY_HOST"] == "registry.test.internal"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["CODER_REGISTRY_BASE_URL"] == "https://registry.test.internal"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["CODER_REGISTRY_USERNAME"] == "coder"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["CODER_REGISTRY_NAMESPACE"] == "coder-bot"
+assert "export HOME=/workspace" in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["setupCommand"]
+assert 'mkdir -p "${XDG_CONFIG_HOME}/tea" "${XDG_CACHE_HOME}" "${XDG_STATE_HOME}" "${HOME}/.docker"' in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["setupCommand"]
 assert "git config --global user.name" in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["setupCommand"]
 assert "machine gitea.test.internal" in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["setupCommand"]
 assert "tea login add --name coder" in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["setupCommand"]
+assert 'docker login "${CODER_REGISTRY_HOST}"' in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["setupCommand"]
 assert "${CODER_GITEA_USERNAME}" not in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["setupCommand"]
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["id"] == "architect"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["workspace"] == "/home/node/.openclaw/workspace-architect"
@@ -177,18 +192,23 @@ assert "test-admin" in rendered_values["openclaw"]["workspaceBootstrap"]["agents
 assert "Tag your shared notes with `#coder`" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
 assert "Main owns the shared calendar" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
 assert "agent:main:main" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
-assert "Use `gitea-tea`" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
-assert "Use `gitops-homebase`" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
+assert "Use `tea` for repository creation" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
+assert "Treat the GitOps repository as a deployment-definition repo" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
+assert "Default new cluster-bound images to the in-cluster registry" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
 assert "Common tools available include `bash`" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
 assert "The Gitea ingress hostname `gitea.test.internal` should resolve from your sandbox runtime." in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
-assert "skills/gitea-tea/SKILL.md" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]
-assert "skills/gitops-homebase/SKILL.md" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]
+assert "The registry hostname `registry.test.internal` should resolve from your sandbox runtime" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
+assert "skills/gitea-tea/SKILL.md" not in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]
+assert "skills/gitops-homebase/SKILL.md" not in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]
 assert "Tag your shared notes with `#architect`" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["TOOLS.md"]
 assert "Keep project material in predictable documentation folders per project" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["TOOLS.md"]
 assert "agent:main:main" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["TOOLS.md"]
 assert rendered_values["openclaw"]["ingress"]["hosts"][0]["host"] == "openclaw.test.internal"
 assert rendered_values["gitea"]["gitea"]["gitea"]["admin"]["existingSecret"] == "gitea-admin-secret"
 assert rendered_values["gitea"]["gitea"]["ingress"]["hosts"][0]["host"] == "gitea.test.internal"
+assert rendered_values["registry"]["auth"]["existingSecret"] == "registry-auth-secret"
+assert rendered_values["registry"]["ingress"]["hosts"][0]["host"] == "registry.test.internal"
+assert rendered_values["registry"]["ingress"]["tls"][0]["secretName"] == "registry-tls"
 assert rendered_values["argoCd"]["argocd"]["server"]["ingress"]["hostname"] == "argocd.test.internal"
 assert rendered_values["nextcloud"]["admin"]["user"] == "test-admin"
 assert rendered_values["nextcloud"]["bootstrapUsers"][0]["username"] == "openclaw"
@@ -216,6 +236,12 @@ assert rendered_values["openclaw"]["openclaw"]["mcp"]["servers"]["nextcloud"]["a
 assert rendered_values["paperlessNgx"]["admin"]["mail"] == "admin@example.invalid"
 assert rendered_values["paperlessNgx"]["ingress"]["hosts"][0]["host"] == "paperless.test.internal"
 assert rendered_values["global"]["mail"]["smtpHost"] == "smtp.example.com"
+assert rendered_values["global"]["hosts"]["registry"] == "registry.test.internal"
+
+coder_dockerfile = (REPO_ROOT / "images" / "openclaw-sandbox-coder" / "Dockerfile").read_text(encoding="utf-8")
+assert "usermod --home /workspace sandbox" in coder_dockerfile
+assert "ENV HOME=/workspace" in coder_dockerfile
+assert "WORKDIR /workspace" in coder_dockerfile
 
 invalid_config = write_config(
     """

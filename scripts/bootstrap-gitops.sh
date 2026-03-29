@@ -9,7 +9,11 @@ KUBECONFIG_PATH="${KUBECONFIG_PATH:-}"
 RAW_KUBECONFIG="${KUBECONFIG:-}"
 K3D_CLUSTER_NAME="${K3D_CLUSTER_NAME:-ai-homebase-dev}"
 KUBE_CONTEXT="${KUBE_CONTEXT:-}"
+REMOTE_DOCKER_HOST="${REMOTE_DOCKER_HOST:-}"
+REMOTE_DOCKER_PORT="${REMOTE_DOCKER_PORT:-}"
 REMOTE_DOCKER_KEY_PATH="${REMOTE_DOCKER_KEY_PATH:-}"
+INCUS_VM_NAME="${INCUS_VM_NAME:-openclaw-sandbox}"
+INCUS_CONNECTION_INFO_PATH="${INCUS_CONNECTION_INFO_PATH:-}"
 GITOPS_SECRET_NAME="${GITOPS_SECRET_NAME:-gitops-config-secrets}"
 ARGOCD_REPO_SECRET_NAME="${ARGOCD_REPO_SECRET_NAME:-argocd-repo-gitea-gitops}"
 GITEA_WAIT_TIMEOUT="${GITEA_WAIT_TIMEOUT:-300s}"
@@ -30,7 +34,11 @@ Options:
   --kubeconfig <path>        Optional kubeconfig path
   --k3d-cluster-name <name>  k3d cluster name for default kubeconfig lookup (default: ${K3D_CLUSTER_NAME})
   --kube-context <context>   Optional kube context
+  --remote-docker-host <h>   Override OpenClaw remote Docker SSH host
+  --remote-docker-port <p>   Override OpenClaw remote Docker SSH port
   --remote-docker-key <path> Optional SSH private key for the remote Docker image sync step
+  --incus-vm-name <name>     Incus VM name for k3d remote Docker auto-discovery (default: ${INCUS_VM_NAME})
+  --incus-connection-info <p> Incus VM env file for k3d remote Docker auto-discovery
   -h, --help                 Show this help message
 USAGE
 }
@@ -58,7 +66,11 @@ while [[ $# -gt 0 ]]; do
     --kubeconfig) KUBECONFIG_PATH="$2"; shift 2 ;;
     --k3d-cluster-name) K3D_CLUSTER_NAME="$2"; shift 2 ;;
     --kube-context) KUBE_CONTEXT="$2"; shift 2 ;;
+    --remote-docker-host) REMOTE_DOCKER_HOST="$2"; shift 2 ;;
+    --remote-docker-port) REMOTE_DOCKER_PORT="$2"; shift 2 ;;
     --remote-docker-key) REMOTE_DOCKER_KEY_PATH="$2"; shift 2 ;;
+    --incus-vm-name) INCUS_VM_NAME="$2"; shift 2 ;;
+    --incus-connection-info) INCUS_CONNECTION_INFO_PATH="$2"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
   esac
@@ -75,6 +87,20 @@ if [[ "$PROFILE" == "k3d" ]]; then
     [[ ! -f "$KUBECONFIG_PATH" ]];
   }; then
     KUBECONFIG_PATH="$DEFAULT_K3D_KUBECONFIG"
+  fi
+fi
+
+if [[ -z "$INCUS_CONNECTION_INFO_PATH" ]]; then
+  INCUS_CONNECTION_INFO_PATH="${HOME}/.local/state/ai-homebase/incus/${INCUS_VM_NAME}.env"
+fi
+if [[ -f "$INCUS_CONNECTION_INFO_PATH" ]]; then
+  # shellcheck disable=SC1090
+  source "$INCUS_CONNECTION_INFO_PATH"
+  if [[ -z "$REMOTE_DOCKER_HOST" && -n "${HOST_LISTEN_ADDRESS:-}" ]]; then
+    REMOTE_DOCKER_HOST="$HOST_LISTEN_ADDRESS"
+  fi
+  if [[ -z "$REMOTE_DOCKER_PORT" && -n "${SSH_HOST_PORT:-}" ]]; then
+    REMOTE_DOCKER_PORT="$SSH_HOST_PORT"
   fi
 fi
 
@@ -403,6 +429,12 @@ BOOTSTRAP_SECRETS_CMD=(
 if [[ -n "$KUBECONFIG_PATH" ]]; then
   BOOTSTRAP_SECRETS_CMD+=(--kubeconfig "$KUBECONFIG_PATH")
 fi
+if [[ -n "$REMOTE_DOCKER_HOST" ]]; then
+  BOOTSTRAP_SECRETS_CMD+=(--remote-docker-host "$REMOTE_DOCKER_HOST")
+fi
+if [[ -n "$REMOTE_DOCKER_PORT" ]]; then
+  BOOTSTRAP_SECRETS_CMD+=(--remote-docker-port "$REMOTE_DOCKER_PORT")
+fi
 if [[ -n "$REMOTE_DOCKER_KEY_PATH" ]]; then
   BOOTSTRAP_SECRETS_CMD+=(--remote-docker-key "$REMOTE_DOCKER_KEY_PATH")
 fi
@@ -424,8 +456,17 @@ fi
 if [[ -n "$KUBE_CONTEXT" ]]; then
   INSTALL_CMD+=(--kube-context "$KUBE_CONTEXT")
 fi
+if [[ -n "$REMOTE_DOCKER_HOST" ]]; then
+  INSTALL_CMD+=(--remote-docker-host "$REMOTE_DOCKER_HOST")
+fi
+if [[ -n "$REMOTE_DOCKER_PORT" ]]; then
+  INSTALL_CMD+=(--remote-docker-port "$REMOTE_DOCKER_PORT")
+fi
 if [[ -n "$REMOTE_DOCKER_KEY_PATH" ]]; then
   INSTALL_CMD+=(--remote-docker-key "$REMOTE_DOCKER_KEY_PATH")
+fi
+if [[ -n "$INCUS_CONNECTION_INFO_PATH" ]]; then
+  INSTALL_CMD+=(--incus-connection-info "$INCUS_CONNECTION_INFO_PATH")
 fi
 "${INSTALL_CMD[@]}"
 
@@ -486,16 +527,25 @@ esac
 SH
 chmod 0700 "$ASKPASS_SCRIPT"
 
-python3 ./scripts/render-gitops-repo.py \
-  --output-dir "$REPO_WORK_DIR" \
-  --bootstrap-config "$BOOTSTRAP_CONFIG_PATH" \
-  --profile "$PROFILE" \
-  --cluster-name "$GITOPS_CLUSTER_NAME" \
-  --release-name "$RELEASE_NAME" \
-  --namespace "$NAMESPACE" \
-  --repo-url "$INTERNAL_REPO_URL" \
-  --repo-branch "$GITOPS_REPO_BRANCH" \
+RENDER_GITOPS_CMD=(
+  python3 ./scripts/render-gitops-repo.py
+  --output-dir "$REPO_WORK_DIR"
+  --bootstrap-config "$BOOTSTRAP_CONFIG_PATH"
+  --profile "$PROFILE"
+  --cluster-name "$GITOPS_CLUSTER_NAME"
+  --release-name "$RELEASE_NAME"
+  --namespace "$NAMESPACE"
+  --repo-url "$INTERNAL_REPO_URL"
+  --repo-branch "$GITOPS_REPO_BRANCH"
   --project "$GITOPS_PROJECT"
+)
+if [[ -n "$REMOTE_DOCKER_HOST" ]]; then
+  RENDER_GITOPS_CMD+=(--remote-docker-host "$REMOTE_DOCKER_HOST")
+fi
+if [[ -n "$REMOTE_DOCKER_PORT" ]]; then
+  RENDER_GITOPS_CMD+=(--remote-docker-port "$REMOTE_DOCKER_PORT")
+fi
+"${RENDER_GITOPS_CMD[@]}"
 
 push_gitops_repo "$REPO_WORK_DIR" "$EXTERNAL_REPO_URL" "$ASKPASS_SCRIPT"
 

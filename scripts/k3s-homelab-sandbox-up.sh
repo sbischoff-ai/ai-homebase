@@ -52,11 +52,15 @@ bootstrap_init_logging
 
 NEXTCLOUD_MCP_HOST=""
 GITEA_HOST=""
+REGISTRY_HOST=""
+OPENCLAW_HOST=""
 if [[ -f "$BOOTSTRAP_CONFIG_PATH" ]]; then
   BOOTSTRAP_SHELL_VARS="$(python3 ./scripts/bootstrap-config.py shell-vars --config "$BOOTSTRAP_CONFIG_PATH")" || exit 1
   eval "$BOOTSTRAP_SHELL_VARS"
   NEXTCLOUD_MCP_HOST="${NEXTCLOUD_MCP_HOST:-}"
   GITEA_HOST="${GITEA_HOST:-}"
+  REGISTRY_HOST="${REGISTRY_HOST:-}"
+  OPENCLAW_HOST="${OPENCLAW_HOST:-}"
 fi
 
 INCUS_VM_CMD=(
@@ -72,6 +76,12 @@ if [[ -n "$NEXTCLOUD_MCP_HOST" ]]; then
 fi
 if [[ -n "$GITEA_HOST" ]]; then
   INCUS_VM_CMD+=(--resolve-host "$GITEA_HOST")
+fi
+if [[ -n "$REGISTRY_HOST" ]]; then
+  INCUS_VM_CMD+=(--resolve-host "$REGISTRY_HOST")
+fi
+if [[ -n "$OPENCLAW_HOST" ]]; then
+  INCUS_VM_CMD+=(--resolve-host "$OPENCLAW_HOST")
 fi
 
 for resolve_host in "${EXTRA_RESOLVE_HOSTS[@]}"; do
@@ -90,5 +100,11 @@ if [[ -n "$NEXTCLOUD_MCP_HOST" ]]; then
 fi
 if [[ -n "$GITEA_HOST" ]]; then
   echo "  Gitea host override inside sandbox: ${GITEA_HOST}"
+fi
+if [[ -n "$REGISTRY_HOST" ]]; then
+  echo "  Registry host override inside sandbox: ${REGISTRY_HOST}"
+fi
+if [[ -n "$OPENCLAW_HOST" ]]; then
+  echo "  OpenClaw host override inside sandbox: ${OPENCLAW_HOST}"
 fi
 echo "  Incus connection info: ${INCUS_CONNECTION_INFO_PATH}"

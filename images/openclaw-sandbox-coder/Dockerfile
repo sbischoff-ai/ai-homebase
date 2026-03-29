@@ -46,4 +46,11 @@ RUN GOBIN=/usr/local/bin go install code.gitea.io/tea@latest && \
 RUN curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash && \
     helm version --short
 
+RUN usermod --home /workspace sandbox && \
+    mkdir -p /workspace && \
+    chown sandbox:sandbox /workspace
+
+ENV HOME=/workspace
+
 USER sandbox
+WORKDIR /workspace

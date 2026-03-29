@@ -131,6 +131,9 @@
             "gitea": {
               "$ref": "#/definitions/hostname"
             },
+            "registry": {
+              "$ref": "#/definitions/hostname"
+            },
             "argocd": {
               "$ref": "#/definitions/hostname"
             },
@@ -251,6 +254,9 @@
       "$ref": "#/definitions/optionalServiceToggle"
     },
     "gitea": {
+      "$ref": "#/definitions/optionalServiceToggle"
+    },
+    "registry": {
       "$ref": "#/definitions/optionalServiceToggle"
     },
     "nextcloudMcp": {

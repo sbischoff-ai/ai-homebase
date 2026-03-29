@@ -117,10 +117,21 @@ spec:
 """
 
 
-def render_gitops_values() -> str:
-    return """argoCd:
-  enabled: true
-"""
+def render_gitops_values(remote_docker_host: str | None, remote_docker_port: str | None) -> str:
+    lines = [
+        "argoCd:",
+        "  enabled: true",
+    ]
+    if remote_docker_host and remote_docker_port:
+        lines.extend(
+            [
+                "openclaw:",
+                "  remoteDocker:",
+                f"    dockerHost: ssh://docker-remote@{remote_docker_host}:{remote_docker_port}",
+            ]
+        )
+    lines.append("")
+    return "\n".join(lines)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -134,6 +145,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--repo-url", required=True)
     parser.add_argument("--repo-branch", required=True)
     parser.add_argument("--project", required=True)
+    parser.add_argument("--remote-docker-host")
+    parser.add_argument("--remote-docker-port")
     return parser
 
 
@@ -148,7 +161,10 @@ def main() -> int:
     bootstrap_values = render_bootstrap_values(args.bootstrap_config)
     cluster_values_dir = args.output_dir / "charts" / "platform-stack" / "clusters" / args.cluster_name
     write_text(cluster_values_dir / "bootstrap-values.yaml", bootstrap_values)
-    write_text(cluster_values_dir / "gitops-values.yaml", render_gitops_values())
+    write_text(
+        cluster_values_dir / "gitops-values.yaml",
+        render_gitops_values(args.remote_docker_host, args.remote_docker_port),
+    )
 
     gitops_cluster_dir = args.output_dir / "gitops" / "clusters" / args.cluster_name
     write_text(gitops_cluster_dir / "project.yaml", render_project(args.project, args.namespace, args.repo_url))

@@ -4,6 +4,7 @@ nextcloud = "nextcloud.localtest.me"
 nextcloud_mcp = "nextcloud-mcp.localtest.me"
 nextcloud_public = ""
 gitea = "gitea.localtest.me"
+registry = "registry.localtest.me"
 argocd = "argocd.localtest.me"
 vaultwarden = "vaultwarden.localtest.me"
 paperless = "paperless.localtest.me"
@@ -58,6 +59,10 @@ paperless_secret_key = ""
 [services.gitea.admin]
 username = ""
 email = ""
+password = ""
+
+[services.registry.auth]
+username = "coder"
 password = ""
 
 [services.nextcloud.admin]

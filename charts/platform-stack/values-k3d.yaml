@@ -8,6 +8,7 @@ global:
     nextcloud: nextcloud.localtest.me
     nextcloudMcp: nextcloud-mcp.localtest.me
     gitea: gitea.localtest.me
+    registry: registry.localtest.me
     argocd: argocd.localtest.me
     vaultwarden: vaultwarden.localtest.me
     paperlessNgx: paperless.localtest.me
@@ -146,6 +147,25 @@ gitea:
     admin:
       username: git-admin
       existingSecret: ""
+
+registry:
+  enabled: true
+  ingress:
+    enabled: true
+    className: nginx
+    hosts:
+      - host: registry.localtest.me
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: registry-tls
+        hosts:
+          - registry.localtest.me
+  persistence:
+    enabled: true
+    size: 5Gi
+    storageClass: local-path
 
 vaultwarden:
   enabled: true

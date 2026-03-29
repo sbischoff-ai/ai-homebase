@@ -104,13 +104,19 @@ data:
     ,\"CODER_GITEA_PASSWORD\":\"change-me\",\"CODER_GITEA_TEA_LOGIN_NAME\":\"coder\"\
     ,\"CODER_GITEA_TEA_TOKEN_NAME\":\"openclaw-coder-sandbox\",\"CODER_GITEA_USERNAME\"\
     :\"coder\",\"CODER_GITOPS_PROJECT\":\"platform-stack\",\"CODER_GITOPS_REPO_BRANCH\"\
-    :\"main\",\"CODER_GITOPS_REPO_NAME\":\"cluster-gitops\"},\"image\":\"openclaw-sandbox-coder:bookworm-slim\"\
-    ,\"setupCommand\":\"set -eu\\nmkdir -p \\\"${HOME}/.config/tea\\\" \\\"${HOME}/.cache\\\
-    \" \\\"${HOME}/.local/state\\\"\\ngit config --global user.name \\\"coder\\\"\\\
-    ngit config --global user.email \\\"coder@example.invalid\\\"\\ncat \\u003e \\\
-    \"${HOME}/.netrc\\\" \\u003c\\u003c'EOF'\\nmachine gitea.homebase.local\\n  login\
-    \ coder\\n  password change-me\\nEOF\\nchmod 0600 \\\"${HOME}/.netrc\\\"\\nexisting_token_ids=\\\
-    \"$(curl -fsS -u 'coder:change-me' 'https://gitea.homebase.local/api/v1/users/coder/tokens'\
+    :\"main\",\"CODER_GITOPS_REPO_NAME\":\"cluster-gitops\",\"CODER_REGISTRY_BASE_URL\"\
+    :\"https://registry.homebase.local\",\"CODER_REGISTRY_HOST\":\"registry.homebase.local\"\
+    ,\"CODER_REGISTRY_NAMESPACE\":\"coder\",\"CODER_REGISTRY_PASSWORD\":\"change-me\"\
+    ,\"CODER_REGISTRY_USERNAME\":\"coder\"},\"image\":\"openclaw-sandbox-coder:bookworm-slim\"\
+    ,\"setupCommand\":\"set -eu\\nexport HOME=/workspace\\nexport XDG_CONFIG_HOME=\\\
+    \"${HOME}/.config\\\"\\nexport XDG_CACHE_HOME=\\\"${HOME}/.cache\\\"\\nexport\
+    \ XDG_STATE_HOME=\\\"${HOME}/.local/state\\\"\\nmkdir -p \\\"${XDG_CONFIG_HOME}/tea\\\
+    \" \\\"${XDG_CACHE_HOME}\\\" \\\"${XDG_STATE_HOME}\\\" \\\"${HOME}/.docker\\\"\
+    \\ngit config --global user.name \\\"coder\\\"\\ngit config --global user.email\
+    \ \\\"coder@example.invalid\\\"\\ncat \\u003e \\\"${HOME}/.netrc\\\" \\u003c\\\
+    u003c'EOF'\\nmachine gitea.homebase.local\\n  login coder\\n  password change-me\\\
+    nEOF\\nchmod 0600 \\\"${HOME}/.netrc\\\"\\nexisting_token_ids=\\\"$(curl -fsS\
+    \ -u 'coder:change-me' 'https://gitea.homebase.local/api/v1/users/coder/tokens'\
     \ | jq -r '.[] | select(.name == \\\"openclaw-coder-sandbox\\\") | .id' || true)\\\
     \"\\nif [ -n \\\"${existing_token_ids}\\\" ]; then\\n  for token_id in $existing_token_ids;\
     \ do\\n    curl -fsS -X DELETE -u 'coder:change-me' \\\"https://gitea.homebase.local/api/v1/users/coder/tokens/${token_id}\\\
@@ -119,11 +125,15 @@ data:
     \",\\\"scopes\\\":[\\\"all\\\"]}' 'https://gitea.homebase.local/api/v1/users/coder/tokens'\
     \ 2\\u003e/dev/null | jq -r '.sha1 // empty' || true)\\\"\\nif [ -n \\\"${token}\\\
     \" ]; then\\n  tea login add --name coder --url 'https://gitea.homebase.local'\
-    \ --token \\\"${token}\\\" \\u003e/dev/null 2\\u003e\\u00261 || true\\nfi\"},\"\
-    mode\":\"all\"},\"workspace\":\"/home/node/.openclaw/workspace-coder\"},{\"id\"\
-    :\"architect\",\"model\":{\"primary\":\"anthropic/claude-opus-4-6\"},\"name\"\
-    :\"Architect\",\"workspace\":\"/home/node/.openclaw/workspace-architect\"}]\n\
-    \  },\n  \"mcp\": {\"servers\":{\"nextcloud\":{\"args\":[\"/opt/openclaw-runtime/mcp/mcp-http-bridge.mjs\"\
+    \ --token \\\"${token}\\\" \\u003e/dev/null 2\\u003e\\u00261 || true\\nfi\\nif\
+    \ [ -n \\\"${CODER_REGISTRY_HOST:-}\\\" ] \\u0026\\u0026 [ -n \\\"${CODER_REGISTRY_USERNAME:-}\\\
+    \" ] \\u0026\\u0026 [ -n \\\"${CODER_REGISTRY_PASSWORD:-}\\\" ]; then\\n  printf\
+    \ '%s' \\\"${CODER_REGISTRY_PASSWORD}\\\" | docker login \\\"${CODER_REGISTRY_HOST}\\\
+    \" --username \\\"${CODER_REGISTRY_USERNAME}\\\" --password-stdin \\u003e/dev/null\
+    \ 2\\u003e\\u00261 || true\\nfi\"},\"mode\":\"all\"},\"workspace\":\"/home/node/.openclaw/workspace-coder\"\
+    },{\"id\":\"architect\",\"model\":{\"primary\":\"anthropic/claude-opus-4-6\"},\"\
+    name\":\"Architect\",\"workspace\":\"/home/node/.openclaw/workspace-architect\"\
+    }]\n  },\n  \"mcp\": {\"servers\":{\"nextcloud\":{\"args\":[\"/opt/openclaw-runtime/mcp/mcp-http-bridge.mjs\"\
     ,\"--url\",\"${OPENCLAW_NEXTCLOUD_MCP_INTERNAL_URL}\",\"--url\",\"${OPENCLAW_NEXTCLOUD_MCP_EXTERNAL_URL}\"\
     ,\"--header\",\"Authorization=${OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER}\"],\"command\"\
     :\"node\"}}},\n  \"plugins\": {\"entries\":{}}\n}\n"
@@ -304,83 +314,59 @@ data:
     Operate as an implementer. Be concrete, decisive, and validation-focused.
 
     '
-  workspace-coder-TOOLS.md: '
-
-    Use your visible coding and runtime tools to inspect repositories, make changes,
-    run validations, and prepare commits when appropriate.
-
-
-    Work inside the sandbox by default and treat mutation, testing, and GitOps updates
-    as part of your core function.
-
-
-    Local skills:
-
-    - Use `gitea-tea` for repository creation, collaborator management, pull requests,
-    and other Gitea workflows.
-
-    - Use `gitops-homebase` when you work in the GitOps repository or touch Helm and
-    cluster-definition changes.
-
-
-    Runtime environment:
-
-    - You run inside a dedicated remote Docker sandbox image for coding work.
-
-    - Common tools available include `bash`, `curl`, `jq`, `yq`, `rg`, `make`, `git`,
-    `tea`, `helm`, `node`, `npm`, `python3`, `pip`, `uv`, `cargo`, `rustc`, `go`,
-    and `ssh`.
-
-    - Shared MCP tools remain available in the sandbox, including the Nextcloud tools.
-
-    - The configured Gitea ingress hostname should resolve from your sandbox runtime.
-
-
-    Gitea guidance:
-
-    - Your Gitea username should be recorded here once it is known.
-
-    - Use git and tea with your coder identity for repository work.
-
-    - The GitOps repository is one of your execution targets. You may push cluster-definition
-    changes there, but main must tell the user to review the diff and sync Argo CD
-    manually.
-
-    - When you create a new repository for a project, invite the user once their Gitea
-    username is known.
-
-    - When you work on repositories owned by the user or shared with the user, create
-    pull requests and tell main that the user needs to review and merge them.
-
-    - If direct discussion with the user would materially improve implementation,
-    remind main that you need a dedicated user channel.
-
-
-    Nextcloud guidance:
-
-    - Main owns the shared calendar, user-facing scheduling, and general coordination
-    state.
-
-    - Use Nextcloud Notes only when they genuinely help implementation, handoff, or
-    durable engineering context.
-
-    - Tag your shared notes with `#coder` and a project-specific tag when possible.
-
-    - If you create or update durable material, remember the exact note title, folder,
-    table, file path, or share location so you can find it later.
-
-    - Tell main where you stored anything user-relevant.
-
-
-    Agent communication:
-
-    - Use `sessions_send` to communicate with other agents through their main sessions.
-
-    - Your normal coordination target is `agent:main:main`.
-
-    - Do not use `sessions_spawn`; main owns sub-agent spawning.
-
-    '
+  workspace-coder-TOOLS.md: "\nUse your visible coding and runtime tools to inspect\
+    \ repositories, make changes, run validations, and prepare commits when appropriate.\n\
+    \nWork inside the sandbox by default and treat mutation, testing, and GitOps updates\
+    \ as part of your core function.\n\nRuntime environment:\n- You run inside a dedicated\
+    \ remote Docker sandbox image for coding work.\n- Common tools available include\
+    \ `bash`, `curl`, `jq`, `yq`, `rg`, `make`, `git`, `tea`, `helm`, `node`, `npm`,\
+    \ `python3`, `pip`, `uv`, `cargo`, `rustc`, `go`, and `ssh`.\n- Shared MCP tools\
+    \ remain available in the sandbox, including the Nextcloud tools.\n- The configured\
+    \ Gitea ingress hostname should resolve from your sandbox runtime.\n- The configured\
+    \ registry hostname should resolve from your sandbox runtime, but Docker and cluster\
+    \ runtimes must trust the platform internal CA before registry pushes or pulls\
+    \ will succeed over HTTPS.\n\nGitea guidance:\n- Your Gitea username should be\
+    \ recorded here once it is known.\n- Use git and tea with your coder identity\
+    \ for repository work.\n- The GitOps repository is one of your execution targets.\
+    \ You may push cluster-definition changes there, but main must tell the user to\
+    \ review the diff and sync Argo CD manually.\n- When you create a new repository\
+    \ for a project, invite the user once their Gitea username is known.\n- When you\
+    \ work on repositories owned by the user or shared with the user, create pull\
+    \ requests and tell main that the user needs to review and merge them.\n- If direct\
+    \ discussion with the user would materially improve implementation, remind main\
+    \ that you need a dedicated user channel.\n- Typical repository workflow:\n  create\
+    \ repositories when needed, clone them with your coder identity, work on branches\
+    \ when appropriate, commit with clear messages, push changes, and open pull requests\
+    \ when the repo is shared with the user.\n- Use `tea` for repository creation,\
+    \ collaborator management, repo inspection, issue inspection, and pull request\
+    \ workflows against the in-cluster Gitea service.\n\nGitOps guidance:\n- Treat\
+    \ the GitOps repository as a deployment-definition repo, not a place for speculative\
+    \ planning.\n- Validate GitOps-affecting changes with the documented lint and\
+    \ render commands before handoff:\n  `./scripts/lint.sh --values-file charts/platform-stack/values.yaml`\n\
+    \  `./scripts/lint.sh --values-file charts/platform-stack/values.yaml --values-file\
+    \ charts/platform-stack/values-k3d.yaml`\n  `./scripts/template.sh --release-name\
+    \ platform-stack --namespace ai-homebase --values-file charts/platform-stack/values.yaml\
+    \ > /tmp/platform-stack.yaml`\n- Push GitOps changes when appropriate, but tell\
+    \ main that the user must review the diff and manually sync Argo CD.\n- If the\
+    \ work requires new planning, missing requirements, or broad design decisions,\
+    \ hand back to main so architect can refine the plan first.\n\nRegistry guidance:\n\
+    - Default new cluster-bound images to the in-cluster registry rather than to a\
+    \ public registry when you build images for apps that this stack will run.\n-\
+    \ Use image names in the form `<registry-host>/<namespace>/<app>:<tag>`, with\
+    \ your configured registry namespace as the default namespace unless the task\
+    \ requires another one.\n- Push images before opening or updating GitOps changes\
+    \ that reference them.\n- If registry login, push, or pull fails because of TLS\
+    \ trust, tell main that the operator needs the platform internal CA installed\
+    \ for the sandbox Docker runtime and the cluster node container runtime.\n\nNextcloud\
+    \ guidance:\n- Main owns the shared calendar, user-facing scheduling, and general\
+    \ coordination state.\n- Use Nextcloud Notes only when they genuinely help implementation,\
+    \ handoff, or durable engineering context.\n- Tag your shared notes with `#coder`\
+    \ and a project-specific tag when possible.\n- If you create or update durable\
+    \ material, remember the exact note title, folder, table, file path, or share\
+    \ location so you can find it later.\n- Tell main where you stored anything user-relevant.\n\
+    \nAgent communication:\n- Use `sessions_send` to communicate with other agents\
+    \ through their main sessions.\n- Your normal coordination target is `agent:main:main`.\n\
+    - Do not use `sessions_spawn`; main owns sub-agent spawning.\n"
   workspace-coder-USER.md: '
 
     The user works through main. Keep handoff notes concise, factual, and ready for
@@ -390,90 +376,6 @@ data:
     Record the user''s Gitea username here once it is known. Invite that user to repositories
     you create for them. If they want to work with you directly, main should help
     them set up a dedicated channel.
-
-    '
-  workspace-coder-skills__gitea-tea__SKILL.md: '
-
-    ---
-
-    name: gitea-tea
-
-    description: Operate against the in-cluster Gitea service with git and tea for
-    repos, collaborators, issues, and pull requests.
-
-    ---
-
-
-    Use this skill when you need to work with Gitea as the coding/execution specialist.
-
-
-    Conventions:
-
-    - Prefer the in-cluster Gitea instance for project repos and collaboration.
-
-    - Use your configured coder identity for all git and tea operations.
-
-    - Invite the user to repositories you create for them.
-
-    - For shared or user-owned repositories, prefer branches and pull requests over
-    direct pushes.
-
-    - Tell main when user review or merge action is required.
-
-
-    Typical work:
-
-    - create repositories for new implementation projects;
-
-    - clone, branch, commit, and push implementation work;
-
-    - open pull requests;
-
-    - add collaborators;
-
-    - inspect issues, pull requests, and repo metadata.
-
-    '
-  workspace-coder-skills__gitops-homebase__SKILL.md: '
-
-    ---
-
-    name: gitops-homebase
-
-    description: Execute GitOps changes safely in the ai-homebase repos and hand off
-    review and sync to the user through main.
-
-    ---
-
-
-    Use this skill when implementation work affects cluster definitions, Helm values,
-    or GitOps-managed manifests.
-
-
-    Rules:
-
-    - Treat the GitOps repository as a deployment-definition repo, not a place for
-    speculative planning.
-
-    - Validate changes with the repo''s documented lint and render commands before
-    handoff.
-
-    - Push GitOps changes when appropriate, but tell main that the user must review
-    the diff and manually sync Argo CD.
-
-    - If the work requires new planning, missing requirements, or broad design decisions,
-    hand back to main so architect can refine the plan first.
-
-
-    Validation commands for this repo:
-
-    - `./scripts/lint.sh --values-file charts/platform-stack/values.yaml`
-
-    - `./scripts/lint.sh --values-file charts/platform-stack/values.yaml --values-file
-    charts/platform-stack/values-k3d.yaml`
-
-    - `./scripts/template.sh --release-name platform-stack --namespace ai-homebase
-    --values-file charts/platform-stack/values.yaml > /tmp/platform-stack.yaml`
 
     '
   workspace-main-AGENTS.md: '
@@ -1071,39 +973,23 @@ spec:
           \  echo \"Preserving existing USER.md in ${workspace_dir}.\"\nelse\n  cp\
           \ -f /config-source/workspace-coder-USER.md \"${target_path}\" || {\n  \
           \  echo >&2 \"Failed to seed USER.md into ${workspace_dir} for agent coder.\"\
-          \n    exit 1\n  }\nfi\ntarget_path=\"${workspace_dir}/skills/gitea-tea/SKILL.md\"\
-          \ntarget_parent=\"$(dirname \"${target_path}\")\"\nmkdir -p \"${target_parent}\"\
-          \ || {\n  echo >&2 \"Failed to create ${target_parent} before seeding skills/gitea-tea/SKILL.md\
-          \ for agent coder.\"\n  exit 1\n}\nif [ -e \"${target_path}\" ]; then\n\
-          \  echo \"Preserving existing skills/gitea-tea/SKILL.md in ${workspace_dir}.\"\
-          \nelse\n  cp -f /config-source/workspace-coder-skills__gitea-tea__SKILL.md\
-          \ \"${target_path}\" || {\n    echo >&2 \"Failed to seed skills/gitea-tea/SKILL.md\
-          \ into ${workspace_dir} for agent coder.\"\n    exit 1\n  }\nfi\ntarget_path=\"\
-          ${workspace_dir}/skills/gitops-homebase/SKILL.md\"\ntarget_parent=\"$(dirname\
-          \ \"${target_path}\")\"\nmkdir -p \"${target_parent}\" || {\n  echo >&2\
-          \ \"Failed to create ${target_parent} before seeding skills/gitops-homebase/SKILL.md\
-          \ for agent coder.\"\n  exit 1\n}\nif [ -e \"${target_path}\" ]; then\n\
-          \  echo \"Preserving existing skills/gitops-homebase/SKILL.md in ${workspace_dir}.\"\
-          \nelse\n  cp -f /config-source/workspace-coder-skills__gitops-homebase__SKILL.md\
-          \ \"${target_path}\" || {\n    echo >&2 \"Failed to seed skills/gitops-homebase/SKILL.md\
-          \ into ${workspace_dir} for agent coder.\"\n    exit 1\n  }\nfi\nworkspace_dir=\"\
-          ${state_root}/workspace\"\nmkdir -p \"${workspace_dir}\" || {\n  echo >&2\
-          \ \"Failed to create bootstrapped workspace directory ${workspace_dir} for\
-          \ agent main.\"\n  exit 1\n}\ntarget_path=\"${workspace_dir}/AGENTS.md\"\
-          \ntarget_parent=\"$(dirname \"${target_path}\")\"\nmkdir -p \"${target_parent}\"\
-          \ || {\n  echo >&2 \"Failed to create ${target_parent} before seeding AGENTS.md\
-          \ for agent main.\"\n  exit 1\n}\nif [ -e \"${target_path}\" ]; then\n \
-          \ echo \"Preserving existing AGENTS.md in ${workspace_dir}.\"\nelse\n  cp\
-          \ -f /config-source/workspace-main-AGENTS.md \"${target_path}\" || {\n \
-          \   echo >&2 \"Failed to seed AGENTS.md into ${workspace_dir} for agent\
-          \ main.\"\n    exit 1\n  }\nfi\ntarget_path=\"${workspace_dir}/BOOTSTRAP.md\"\
-          \ntarget_parent=\"$(dirname \"${target_path}\")\"\nmkdir -p \"${target_parent}\"\
-          \ || {\n  echo >&2 \"Failed to create ${target_parent} before seeding BOOTSTRAP.md\
-          \ for agent main.\"\n  exit 1\n}\nif [ -e \"${target_path}\" ]; then\n \
-          \ echo \"Preserving existing BOOTSTRAP.md in ${workspace_dir}.\"\nelse\n\
-          \  cp -f /config-source/workspace-main-BOOTSTRAP.md \"${target_path}\" ||\
-          \ {\n    echo >&2 \"Failed to seed BOOTSTRAP.md into ${workspace_dir} for\
-          \ agent main.\"\n    exit 1\n  }\nfi\ntarget_path=\"${workspace_dir}/HEARTBEAT.md\"\
+          \n    exit 1\n  }\nfi\nworkspace_dir=\"${state_root}/workspace\"\nmkdir\
+          \ -p \"${workspace_dir}\" || {\n  echo >&2 \"Failed to create bootstrapped\
+          \ workspace directory ${workspace_dir} for agent main.\"\n  exit 1\n}\n\
+          target_path=\"${workspace_dir}/AGENTS.md\"\ntarget_parent=\"$(dirname \"\
+          ${target_path}\")\"\nmkdir -p \"${target_parent}\" || {\n  echo >&2 \"Failed\
+          \ to create ${target_parent} before seeding AGENTS.md for agent main.\"\n\
+          \  exit 1\n}\nif [ -e \"${target_path}\" ]; then\n  echo \"Preserving existing\
+          \ AGENTS.md in ${workspace_dir}.\"\nelse\n  cp -f /config-source/workspace-main-AGENTS.md\
+          \ \"${target_path}\" || {\n    echo >&2 \"Failed to seed AGENTS.md into\
+          \ ${workspace_dir} for agent main.\"\n    exit 1\n  }\nfi\ntarget_path=\"\
+          ${workspace_dir}/BOOTSTRAP.md\"\ntarget_parent=\"$(dirname \"${target_path}\"\
+          )\"\nmkdir -p \"${target_parent}\" || {\n  echo >&2 \"Failed to create ${target_parent}\
+          \ before seeding BOOTSTRAP.md for agent main.\"\n  exit 1\n}\nif [ -e \"\
+          ${target_path}\" ]; then\n  echo \"Preserving existing BOOTSTRAP.md in ${workspace_dir}.\"\
+          \nelse\n  cp -f /config-source/workspace-main-BOOTSTRAP.md \"${target_path}\"\
+          \ || {\n    echo >&2 \"Failed to seed BOOTSTRAP.md into ${workspace_dir}\
+          \ for agent main.\"\n    exit 1\n  }\nfi\ntarget_path=\"${workspace_dir}/HEARTBEAT.md\"\
           \ntarget_parent=\"$(dirname \"${target_path}\")\"\nmkdir -p \"${target_parent}\"\
           \ || {\n  echo >&2 \"Failed to create ${target_parent} before seeding HEARTBEAT.md\
           \ for agent main.\"\n  exit 1\n}\nif [ -e \"${target_path}\" ]; then\n \
