@@ -1,5 +1,215 @@
 apiVersion: v1
 data:
+  project-0-file-0: '
+
+    # ai-homebase
+
+
+    This project documents the running AI homebase cluster from the perspective of
+    the agents operating inside it.
+
+
+    Purpose:
+
+    - explain what this cluster is for;
+
+    - describe how the agents should work within it;
+
+    - capture the durable operating model for evolving the stack over time.
+
+
+    Working rule:
+
+    - keep long-lived project documentation in `/Projects/ai-homebase/`;
+
+    - keep temporary planning and scratchpad material in `/Notes/ai-homebase/`.
+
+    '
+  project-0-file-1: '
+
+    # Multi-Agent Topology
+
+
+    The cluster bootstraps four standing OpenClaw agents:
+
+
+    - `main`: user-facing coordinator and manager of work
+
+    - `architect`: project planner, designer, and documentation owner
+
+    - `coder`: implementation and GitOps executor
+
+    - `watchdog`: low-cost monitoring, polling, heartbeat, and triage specialist
+
+
+    Coordination model:
+
+    - `main` decides whether work is a small task or a larger project.
+
+    - small tasks may be handled directly by `main` when lightweight and low-risk.
+
+    - projects go to `architect` first for planning, design, decomposition, and durable
+    project documentation.
+
+    - `architect` returns actionable work items to `main`.
+
+    - `main` then routes those items to the user, `coder`, `watchdog`, or itself.
+
+    '
+  project-0-file-2: '
+
+    # GitOps Workflow
+
+
+    This stack is designed to evolve through repository changes and GitOps handoff.
+
+
+    Core flow:
+
+    - `architect` defines plans, design direction, and task decomposition.
+
+    - `coder` applies cluster and application changes in the repository.
+
+    - `coder` validates changes with the documented lint and render commands.
+
+    - GitOps changes are pushed to the cluster repo.
+
+    - the user reviews the diff and syncs Argo CD manually.
+
+
+    Important constraint:
+
+    - `coder` executes changes;
+
+    - `architect` should shape the work when a project needs planning or design first.
+
+    '
+  project-0-file-3: '
+
+    # Cluster Architecture
+
+
+    The cluster centers on OpenClaw as the coordination layer and uses supporting
+    services for durable operations.
+
+
+    Important components:
+
+    - OpenClaw for multi-agent coordination
+
+    - Nextcloud for durable shared storage and project documentation
+
+    - Gitea for source control and GitOps repositories
+
+    - Argo CD for GitOps application delivery
+
+    - shared PostgreSQL and Redis for stateful services
+
+
+    Runtime model:
+
+    - the OpenClaw gateway owns durable state;
+
+    - specialist execution happens through standing agents;
+
+    - coder can use the remote Docker sandbox path for implementation work;
+
+    - watchdog stays in the gateway for low-cost observation and triage.
+
+    '
+  project-0-file-4: '
+
+    # Project Documentation Model
+
+
+    Every project should use the same separation of concerns:
+
+
+    - `/Projects/<project-slug>/` is durable, curated, and long-term
+
+    - `/Notes/<project-slug>/` is temporary, iterative, and short-term
+
+
+    Durable artifacts belong in `/Projects/`, for example:
+
+    - `spec.md`
+
+    - `architecture.md`
+
+    - `plan.md`
+
+    - `decisions.md`
+
+
+    Working notes belong in `/Notes/`, for example:
+
+    - brainstorming
+
+    - planning scratchpads
+
+    - meeting notes
+
+    - task breakdown drafts
+
+
+    Promotion rule:
+
+    - if something becomes important or stable, move it from `/Notes/` into `/Projects/`.
+
+    '
+  project-0-note-0: '
+
+    # ai-homebase project brief
+
+
+    This is the standing project for documenting and improving the cluster itself.
+
+
+    Architect should keep this project current as the system evolves.
+
+    '
+  project-0-note-1: '
+
+    # planning backlog
+
+
+    Keep short-lived planning items here before they become durable project artifacts
+    or routed tasks.
+
+
+    Candidates:
+
+    - architecture refinements
+
+    - documentation gaps
+
+    - workflow improvements
+
+    - future service additions
+
+    '
+  project-0-note-2: '
+
+    # open questions
+
+
+    Use this note to capture unresolved design and operating questions about the cluster.
+
+
+    Move resolved answers into durable project docs in `/Projects/ai-homebase/`.
+
+    '
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nextcloud
+    environment: k3s
+  name: platform-stack-nextcloud-bootstrap-project-content
+---
+apiVersion: v1
+data:
   run-nextcloud-mcp.py: "import os\n\nimport uvicorn\n\nfrom nextcloud_mcp_server.app\
     \ import get_app\nfrom nextcloud_mcp_server.config import get_settings\nfrom nextcloud_mcp_server.observability\
     \ import get_uvicorn_logging_config\n\n\ndef main():\n    enabled_apps = [\n \
@@ -259,6 +469,9 @@ data:
     - When material matters to the user, store it in a user-shareable place and make
     sure main knows what was produced and where it lives.
 
+    - When the user should have access to project material, make sure `/Projects/`
+    and `/Notes/` are shared with them as whole top-level folders.
+
     - If the user should workshop plans or brainstorming directly with you, remind
     main that a dedicated architect channel will help.
 
@@ -507,7 +720,14 @@ data:
     - explain that you can use the dedicated Nextcloud account `openclaw` for shared
     notes;
 
+    - explain that the `ai-homebase` project already exists in Nextcloud at `/Projects/ai-homebase/`
+    with working notes under `/Notes/ai-homebase/`;
+
     - ask the user to create a calendar and share it with `openclaw`;
+
+    - once the user''s real Nextcloud username is confirmed, share `/Projects/` and
+    `/Notes/` with that user so they can access the pre-seeded cluster documentation,
+    working notes, and future project material from the start;
 
     - remind the user to set up direct channels for architect and coder if they want
     to workshop plans or coordinate implementation with them directly;
@@ -2503,6 +2723,114 @@ metadata:
   annotations:
     helm.sh/hook: post-install,post-upgrade
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+    helm.sh/hook-weight: '12'
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nextcloud
+    environment: k3s
+  name: platform-stack-nextcloud-bootstrap-project-content
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: platform-stack
+        app.kubernetes.io/name: nextcloud
+    spec:
+      containers:
+      - command:
+        - /bin/sh
+        - -ceu
+        - "until su -s /bin/sh www-data -c 'cd /var/www/html && php occ status --output=json\
+          \ 2>/dev/null | grep -q \"\\\"installed\\\":true\"'; do\n  echo \"waiting\
+          \ for nextcloud bootstrap\"\n  sleep 5\ndone\n\nensure_parent_dir() {\n\
+          \  target=\"$1\"\n  parent_dir=\"$(dirname \"${target}\")\"\n  mkdir -p\
+          \ \"${parent_dir}\"\n  chown 33:33 \"${parent_dir}\"\n  chmod 0750 \"${parent_dir}\"\
+          \n}\n\nwrite_managed_file() {\n  target=\"$1\"\n  temp_file=\"$(mktemp)\"\
+          \n  cat >\"${temp_file}\"\n  if [ ! -f \"${target}\" ] || ! cmp -s \"${temp_file}\"\
+          \ \"${target}\"; then\n    cp \"${temp_file}\" \"${target}\"\n    chown\
+          \ 33:33 \"${target}\"\n    chmod 0640 \"${target}\"\n  fi\n  rm -f \"${temp_file}\"\
+          \n}\nowner_username=\"openclaw\"\nproject_slug=\"ai-homebase\"\nproject_root=\"\
+          /var/www/html/data/${owner_username}/files/Projects/${project_slug}\"\n\
+          notes_root=\"/var/www/html/data/${owner_username}/files/Notes/${project_slug}\"\
+          \nmkdir -p \"${project_root}\" \"${notes_root}\"\nchown 33:33 \"${project_root}\"\
+          \ \"${notes_root}\"\nchmod 0750 \"${project_root}\" \"${notes_root}\"\n\
+          ensure_parent_dir \"${project_root}/overview.md\"\nwrite_managed_file \"\
+          ${project_root}/overview.md\" <\"/bootstrap-content/project-0-file-0\"\n\
+          ensure_parent_dir \"${project_root}/multi-agent-topology.md\"\nwrite_managed_file\
+          \ \"${project_root}/multi-agent-topology.md\" <\"/bootstrap-content/project-0-file-1\"\
+          \nensure_parent_dir \"${project_root}/gitops-workflow.md\"\nwrite_managed_file\
+          \ \"${project_root}/gitops-workflow.md\" <\"/bootstrap-content/project-0-file-2\"\
+          \nensure_parent_dir \"${project_root}/cluster-architecture.md\"\nwrite_managed_file\
+          \ \"${project_root}/cluster-architecture.md\" <\"/bootstrap-content/project-0-file-3\"\
+          \nensure_parent_dir \"${project_root}/project-documentation-model.md\"\n\
+          write_managed_file \"${project_root}/project-documentation-model.md\" <\"\
+          /bootstrap-content/project-0-file-4\"\nensure_parent_dir \"${notes_root}/project-brief.md\"\
+          \nwrite_managed_file \"${notes_root}/project-brief.md\" <\"/bootstrap-content/project-0-note-0\"\
+          \nensure_parent_dir \"${notes_root}/planning-backlog.md\"\nwrite_managed_file\
+          \ \"${notes_root}/planning-backlog.md\" <\"/bootstrap-content/project-0-note-1\"\
+          \nensure_parent_dir \"${notes_root}/open-questions.md\"\nwrite_managed_file\
+          \ \"${notes_root}/open-questions.md\" <\"/bootstrap-content/project-0-note-2\"\
+          \nsu -s /bin/sh www-data -c \"cd /var/www/html && php occ files:scan --path='${owner_username}/files/Projects/${project_slug}'\"\
+          \nsu -s /bin/sh www-data -c \"cd /var/www/html && php occ files:scan --path='${owner_username}/files/Notes/${project_slug}'\"\
+          \n"
+        env:
+        - name: POSTGRES_HOST
+          value: platform-stack-shared-postgresql
+        - name: POSTGRES_PORT
+          value: '5432'
+        - name: POSTGRES_DB
+          value: nextcloud
+        - name: POSTGRES_USER
+          value: nextcloud
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: POSTGRES_PASSWORD
+              name: nextcloud-config-secrets
+        - name: REDIS_HOST
+          value: platform-stack-shared-redis
+        - name: REDIS_HOST_PORT
+          value: '6379'
+        - name: REDIS_HOST_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: REDIS_HOST_PASSWORD
+              name: nextcloud-config-secrets
+        image: nextcloud:33.0.0-apache
+        imagePullPolicy: IfNotPresent
+        name: bootstrap-project-content
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          runAsNonRoot: false
+        volumeMounts:
+        - mountPath: /var/www/html
+          name: data
+        - mountPath: /bootstrap-content
+          name: bootstrap-content
+          readOnly: true
+      restartPolicy: Never
+      securityContext:
+        fsGroup: 33
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: data
+      - configMap:
+          name: platform-stack-nextcloud-bootstrap-project-content
+        name: bootstrap-content
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
     helm.sh/hook-weight: '10'
   labels:
     app.kubernetes.io/instance: platform-stack
@@ -3588,20 +3916,6 @@ spec:
         - mountPath: /var/www/html
           name: data
       initContainers:
-      - command:
-        - /bin/sh
-        - -ceu
-        - "if [ ! -f /var/www/html/config/config.php ]; then\n  exit 0\nfi\nif su\
-          \ -s /bin/sh www-data -c 'cd /var/www/html && php occ status --output=json\
-          \ 2>/dev/null | grep -q \"\\\"installed\\\":true\"'; then\n  exit 0\nfi\n\
-          echo \"removing incomplete Nextcloud bootstrap state\"\nrm -f /var/www/html/config/config.php\
-          \ /var/www/html/nextcloud-init-sync.lock\n"
-        image: nextcloud:33.0.0-apache
-        imagePullPolicy: IfNotPresent
-        name: recover-incomplete-bootstrap
-        volumeMounts:
-        - mountPath: /var/www/html
-          name: data
       - command:
         - /bin/sh
         - -ceu

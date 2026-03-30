@@ -421,6 +421,21 @@ def assert_k3d_registry_overlay_resources() -> None:
         raise SystemExit("k3d overlay rendered registry without 5Gi local-path persistence")
 
 
+def assert_nextcloud_restart_safety(profile_name: str, rendered: str) -> None:
+    nextcloud = find_document(rendered, kind="StatefulSet", name="platform-stack-nextcloud")
+    if nextcloud is None:
+        raise SystemExit(f"{profile_name} render did not include platform-stack-nextcloud StatefulSet")
+
+    if "name: recover-incomplete-bootstrap" in nextcloud:
+        raise SystemExit(f"{profile_name} render still includes removed destructive Nextcloud init container")
+
+    if "name: wait-for-shared-postgresql-bootstrap" not in nextcloud:
+        raise SystemExit(f"{profile_name} render missing Nextcloud PostgreSQL wait init container")
+
+    if "name: reconcile-trusted-domains" not in nextcloud:
+        raise SystemExit(f"{profile_name} render missing Nextcloud trusted-domains reconciliation init container")
+
+
 def main() -> None:
     for case in MATRIX:
         rendered = render_template(BASE_VALUES, set_values=case["set"])
@@ -440,6 +455,7 @@ def main() -> None:
         rendered = render_template(*values_files)
         resources = rendered_resources(rendered)
         assert_cert_manager_canonical(profile_name, rendered, resources)
+        assert_nextcloud_restart_safety(profile_name, rendered)
         print(f"{profile_name}: asserted canonical cert-manager naming")
 
     assert_k3d_default_ingress_classes()
