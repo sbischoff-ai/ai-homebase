@@ -9,6 +9,7 @@ This chart deploys Nextcloud as a single primary web workload plus a dedicated c
 - **Background jobs:** a dedicated `CronJob` (`nextcloud.cron.*`) runs `php -f /var/www/html/cron.php` on a schedule and mounts the same data path.
 - **Bootstrap apps:** optional `bootstrapApps[]` renders a post-install/post-upgrade Job that waits for Nextcloud readiness, then converges the requested app set through `occ app:install` and `occ app:enable`.
 - **Bootstrap users:** optional `bootstrapUsers[]` renders a post-install/post-upgrade Job that waits for Nextcloud readiness, then creates listed local users if missing, reconciles their display names, and resets their passwords through `occ`.
+- **Bootstrap project content:** optional `bootstrapProjectContent[]` renders a post-install/post-upgrade Job that creates managed project content under `/Projects/<slug>/` and `/Notes/<slug>/` for a target user, then rescans those paths into Nextcloud.
 
 ## Required secrets
 
@@ -81,3 +82,21 @@ Use `bootstrapApps[]` when you want Helm bootstrap and later reruns to keep a sp
 - `tasks`
 
 `initialApps[]` remains available for the image entrypoint hook, but it only participates in first-time container bootstrap and is not the standard convergent path in this repo.
+
+## Project content bootstrap model
+
+Use `bootstrapProjectContent[]` when you want Helm bootstrap and later reruns to keep specific project documentation present for a Nextcloud user.
+
+Each entry defines:
+
+- `slug`: project identifier, used under both `/Projects/<slug>/` and `/Notes/<slug>/`
+- `ownerUsername`: Nextcloud user that owns the seeded content
+- `projectsFiles[]`: durable curated files written into `/Projects/<slug>/`
+- `notes[]`: temporary working notes written into `/Notes/<slug>/`
+
+This repo treats those locations differently:
+
+- `/Projects/` is durable structured storage for long-lived docs and outputs
+- `/Notes/` is working memory and planning scratch space
+
+The bootstrap job writes managed markdown files into the user's Nextcloud storage and rescans the affected paths with `occ files:scan` so the content appears in Nextcloud without requiring external WebDAV or Notes API calls during chart bootstrap.

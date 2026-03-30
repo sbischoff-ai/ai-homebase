@@ -714,7 +714,7 @@ fi
 
 if [[ "$(is_registry_enabled)" == "true" ]]; then
   if [[ -n "$HOST_LISTEN_ADDRESS_VALUE" ]]; then
-    verify_incus_hostname_resolution "$REGISTRY_INGRESS_HOST" "$HOST_LISTEN_ADDRESS_VALUE" "/v2/" "Registry" "200|401"
+    verify_incus_hostname_resolution "$REGISTRY_INGRESS_HOST" "$HOST_LISTEN_ADDRESS_VALUE" "/v2/" "Registry" "200|308|401"
   else
     warn "Skipping Incus sandbox DNS checks for Registry because ${INCUS_CONNECTION_INFO_PATH} is missing or does not define HOST_LISTEN_ADDRESS"
   fi

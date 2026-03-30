@@ -162,4 +162,4 @@ After rebuilding your NixOS configuration, log out/in so the new group membershi
 - `incus/openclaw-sandbox-user-data.tpl` contains the cloud-init user-data definition for the guest.
 - `scripts/incus-vm-up.sh` creates or reuses the VM, manages guest networking/bootstrap, waits for SSH readiness, and writes connection details to `~/.local/state/ai-homebase/incus/<vm-name>.env`.
 - `scripts/incus-vm-down.sh` deletes just the VM.
-- `scripts/k3d-local-teardown.sh` removes both the k3d cluster and the Incus VM.
+- `scripts/k3d-local-teardown.sh` removes the k3d cluster, the Incus VM, and by default the shared local OpenClaw state directory at `~/.local/state/ai-homebase/openclaw-state`. Use `--keep-openclaw-state` to preserve it.

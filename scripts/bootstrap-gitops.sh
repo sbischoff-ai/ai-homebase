@@ -93,6 +93,9 @@ fi
 if [[ -z "$INCUS_CONNECTION_INFO_PATH" ]]; then
   INCUS_CONNECTION_INFO_PATH="${HOME}/.local/state/ai-homebase/incus/${INCUS_VM_NAME}.env"
 fi
+if [[ -z "$REMOTE_DOCKER_KEY_PATH" ]]; then
+  REMOTE_DOCKER_KEY_PATH="${HOME}/.local/state/ai-homebase/incus/${INCUS_VM_NAME}-id_ed25519"
+fi
 if [[ -f "$INCUS_CONNECTION_INFO_PATH" ]]; then
   # shellcheck disable=SC1090
   source "$INCUS_CONNECTION_INFO_PATH"

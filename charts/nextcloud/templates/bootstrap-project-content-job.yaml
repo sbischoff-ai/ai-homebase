@@ -1,0 +1,138 @@
+{{- if .Values.bootstrapProjectContent }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "nextcloud.fullname" . }}-bootstrap-project-content
+  labels:
+    {{- include "nextcloud.labels" . | nindent 4 }}
+data:
+  {{- range $projectIndex, $project := .Values.bootstrapProjectContent }}
+  {{- range $fileIndex, $file := ($project.projectsFiles | default (list)) }}
+  project-{{ $projectIndex }}-file-{{ $fileIndex }}: |
+{{ $file.content | trimSuffix "\n" | nindent 4 }}
+  {{- end }}
+  {{- range $noteIndex, $note := ($project.notes | default (list)) }}
+  project-{{ $projectIndex }}-note-{{ $noteIndex }}: |
+{{ $note.content | trimSuffix "\n" | nindent 4 }}
+  {{- end }}
+  {{- end }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "nextcloud.fullname" . }}-bootstrap-project-content
+  labels:
+    {{- include "nextcloud.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "12"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        {{- include "nextcloud.selectorLabels" . | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: bootstrap-project-content
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - /bin/sh
+            - -ceu
+            - |
+              until su -s /bin/sh www-data -c 'cd /var/www/html && php occ status --output=json 2>/dev/null | grep -q "\"installed\":true"'; do
+                echo "waiting for nextcloud bootstrap"
+                sleep 5
+              done
+
+              ensure_parent_dir() {
+                target="$1"
+                parent_dir="$(dirname "${target}")"
+                mkdir -p "${parent_dir}"
+                chown 33:33 "${parent_dir}"
+                chmod 0750 "${parent_dir}"
+              }
+
+              write_managed_file() {
+                target="$1"
+                temp_file="$(mktemp)"
+                cat >"${temp_file}"
+                if [ ! -f "${target}" ] || ! cmp -s "${temp_file}" "${target}"; then
+                  cp "${temp_file}" "${target}"
+                  chown 33:33 "${target}"
+                  chmod 0640 "${target}"
+                fi
+                rm -f "${temp_file}"
+              }
+
+              {{- range $projectIndex, $project := .Values.bootstrapProjectContent }}
+              owner_username={{ $project.ownerUsername | quote }}
+              project_slug={{ $project.slug | quote }}
+              project_root="/var/www/html/data/${owner_username}/files/Projects/${project_slug}"
+              notes_root="/var/www/html/data/${owner_username}/files/Notes/${project_slug}"
+              mkdir -p "${project_root}" "${notes_root}"
+              chown 33:33 "${project_root}" "${notes_root}"
+              chmod 0750 "${project_root}" "${notes_root}"
+              {{- range $fileIndex, $file := ($project.projectsFiles | default (list)) }}
+              ensure_parent_dir "${project_root}/{{ $file.path }}"
+              write_managed_file "${project_root}/{{ $file.path }}" <"/bootstrap-content/project-{{ $projectIndex }}-file-{{ $fileIndex }}"
+             {{- end }}
+              {{- range $noteIndex, $note := ($project.notes | default (list)) }}
+              ensure_parent_dir "${notes_root}/{{ $note.path }}"
+              write_managed_file "${notes_root}/{{ $note.path }}" <"/bootstrap-content/project-{{ $projectIndex }}-note-{{ $noteIndex }}"
+              {{- end }}
+              su -s /bin/sh www-data -c "cd /var/www/html && php occ files:scan --path='${owner_username}/files/Projects/${project_slug}'"
+              su -s /bin/sh www-data -c "cd /var/www/html && php occ files:scan --path='${owner_username}/files/Notes/${project_slug}'"
+              {{- end }}
+          env:
+            - name: POSTGRES_HOST
+              value: {{ .Values.externalDatabase.host | quote }}
+            - name: POSTGRES_PORT
+              value: {{ .Values.externalDatabase.port | toString | quote }}
+            - name: POSTGRES_DB
+              value: {{ .Values.externalDatabase.database | quote }}
+            - name: POSTGRES_USER
+              value: {{ .Values.externalDatabase.user | quote }}
+            {{- if and .Values.externalDatabase.passwordSecret.name .Values.externalDatabase.passwordSecret.key }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.externalDatabase.passwordSecret.name }}
+                  key: {{ .Values.externalDatabase.passwordSecret.key }}
+            {{- end }}
+            - name: REDIS_HOST
+              value: {{ .Values.externalRedis.host | quote }}
+            - name: REDIS_HOST_PORT
+              value: {{ .Values.externalRedis.port | toString | quote }}
+            {{- if and .Values.externalRedis.passwordSecret.name .Values.externalRedis.passwordSecret.key }}
+            - name: REDIS_HOST_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.externalRedis.passwordSecret.name }}
+                  key: {{ .Values.externalRedis.passwordSecret.key }}
+            {{- end }}
+          volumeMounts:
+            - name: data
+              mountPath: /var/www/html
+            - name: bootstrap-content
+              mountPath: /bootstrap-content
+              readOnly: true
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "nextcloud.dataPvcName" . }}
+        - name: bootstrap-content
+          configMap:
+            name: {{ include "nextcloud.fullname" . }}-bootstrap-project-content
+{{- end }}

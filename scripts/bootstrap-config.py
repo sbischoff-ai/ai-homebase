@@ -25,6 +25,7 @@ PROVIDER_ENV_VARS = (
 DEFAULT_MAIN_MODEL = "anthropic/claude-sonnet-4-6"
 DEFAULT_CODER_MODEL = "openai/gpt-5.4"
 DEFAULT_ARCHITECT_MODEL = "anthropic/claude-opus-4-6"
+DEFAULT_WATCHDOG_MODEL = "anthropic/claude-haiku-4-5"
 SHARED_MCP_BRIDGE_PATH = "/opt/openclaw-runtime/mcp/mcp-http-bridge.mjs"
 NEXTCLOUD_MCP_USERNAME = "openclaw"
 DEFAULT_CODER_SANDBOX_IMAGE = "openclaw-sandbox-coder:bookworm-slim"
@@ -100,6 +101,172 @@ def normalize_markdown(text: str) -> str:
     return textwrap.dedent(text).strip() + "\n"
 
 
+def seeded_nextcloud_project_content() -> list[dict[str, object]]:
+    return [
+        {
+            "slug": "ai-homebase",
+            "ownerUsername": NEXTCLOUD_MCP_USERNAME,
+            "projectsFiles": [
+                {
+                    "path": "overview.md",
+                    "content": normalize_markdown(
+                        """
+                        # ai-homebase
+
+                        This project documents the running AI homebase cluster from the perspective of the agents operating inside it.
+
+                        Purpose:
+                        - explain what this cluster is for;
+                        - describe how the agents should work within it;
+                        - capture the durable operating model for evolving the stack over time.
+
+                        Working rule:
+                        - keep long-lived project documentation in `/Projects/ai-homebase/`;
+                        - keep temporary planning and scratchpad material in `/Notes/ai-homebase/`.
+                        """
+                    ),
+                },
+                {
+                    "path": "multi-agent-topology.md",
+                    "content": normalize_markdown(
+                        """
+                        # Multi-Agent Topology
+
+                        The cluster bootstraps four standing OpenClaw agents:
+
+                        - `main`: user-facing coordinator and manager of work
+                        - `architect`: project planner, designer, and documentation owner
+                        - `coder`: implementation and GitOps executor
+                        - `watchdog`: low-cost monitoring, polling, heartbeat, and triage specialist
+
+                        Coordination model:
+                        - `main` decides whether work is a small task or a larger project.
+                        - small tasks may be handled directly by `main` when lightweight and low-risk.
+                        - projects go to `architect` first for planning, design, decomposition, and durable project documentation.
+                        - `architect` returns actionable work items to `main`.
+                        - `main` then routes those items to the user, `coder`, `watchdog`, or itself.
+                        """
+                    ),
+                },
+                {
+                    "path": "gitops-workflow.md",
+                    "content": normalize_markdown(
+                        """
+                        # GitOps Workflow
+
+                        This stack is designed to evolve through repository changes and GitOps handoff.
+
+                        Core flow:
+                        - `architect` defines plans, design direction, and task decomposition.
+                        - `coder` applies cluster and application changes in the repository.
+                        - `coder` validates changes with the documented lint and render commands.
+                        - GitOps changes are pushed to the cluster repo.
+                        - the user reviews the diff and syncs Argo CD manually.
+
+                        Important constraint:
+                        - `coder` executes changes;
+                        - `architect` should shape the work when a project needs planning or design first.
+                        """
+                    ),
+                },
+                {
+                    "path": "cluster-architecture.md",
+                    "content": normalize_markdown(
+                        """
+                        # Cluster Architecture
+
+                        The cluster centers on OpenClaw as the coordination layer and uses supporting services for durable operations.
+
+                        Important components:
+                        - OpenClaw for multi-agent coordination
+                        - Nextcloud for durable shared storage and project documentation
+                        - Gitea for source control and GitOps repositories
+                        - Argo CD for GitOps application delivery
+                        - shared PostgreSQL and Redis for stateful services
+
+                        Runtime model:
+                        - the OpenClaw gateway owns durable state;
+                        - specialist execution happens through standing agents;
+                        - coder can use the remote Docker sandbox path for implementation work;
+                        - watchdog stays in the gateway for low-cost observation and triage.
+                        """
+                    ),
+                },
+                {
+                    "path": "project-documentation-model.md",
+                    "content": normalize_markdown(
+                        """
+                        # Project Documentation Model
+
+                        Every project should use the same separation of concerns:
+
+                        - `/Projects/<project-slug>/` is durable, curated, and long-term
+                        - `/Notes/<project-slug>/` is temporary, iterative, and short-term
+
+                        Durable artifacts belong in `/Projects/`, for example:
+                        - `spec.md`
+                        - `architecture.md`
+                        - `plan.md`
+                        - `decisions.md`
+
+                        Working notes belong in `/Notes/`, for example:
+                        - brainstorming
+                        - planning scratchpads
+                        - meeting notes
+                        - task breakdown drafts
+
+                        Promotion rule:
+                        - if something becomes important or stable, move it from `/Notes/` into `/Projects/`.
+                        """
+                    ),
+                },
+            ],
+            "notes": [
+                {
+                    "path": "project-brief.md",
+                    "content": normalize_markdown(
+                        """
+                        # ai-homebase project brief
+
+                        This is the standing project for documenting and improving the cluster itself.
+
+                        Architect should keep this project current as the system evolves.
+                        """
+                    ),
+                },
+                {
+                    "path": "planning-backlog.md",
+                    "content": normalize_markdown(
+                        """
+                        # planning backlog
+
+                        Keep short-lived planning items here before they become durable project artifacts or routed tasks.
+
+                        Candidates:
+                        - architecture refinements
+                        - documentation gaps
+                        - workflow improvements
+                        - future service additions
+                        """
+                    ),
+                },
+                {
+                    "path": "open-questions.md",
+                    "content": normalize_markdown(
+                        """
+                        # open questions
+
+                        Use this note to capture unresolved design and operating questions about the cluster.
+
+                        Move resolved answers into durable project docs in `/Projects/ai-homebase/`.
+                        """
+                    ),
+                },
+            ],
+        }
+    ]
+
+
 def workspace_bootstrap_values(
     user_nextcloud_username: str,
     user_gitea_username: str,
@@ -125,6 +292,7 @@ def workspace_bootstrap_values(
                         Responsibilities:
                         - Own coordination, delegation, and decision flow.
                         - Break requests into clear subproblems and route them to the right specialist.
+                        - Distinguish between small tasks and larger projects before deciding how to proceed.
                         - Integrate specialist results and present them back to the user.
                         - Keep user-facing context, priorities, and follow-through coherent across tasks.
 
@@ -133,10 +301,15 @@ def workspace_bootstrap_values(
                         - Do not do code, repo, or GitOps execution yourself when coder should handle it.
 
                         Delegation:
+                        - Handle only small tasks yourself when they are lightweight, low-risk, and do not need deep planning or specialist execution.
+                        - Treat larger efforts as projects and send them to architect first.
                         - Delegate planning, design, specification, tradeoff analysis, and heavy creative ideation to architect.
                         - Delegate code changes, repo work, testing, debugging, automation, infrastructure edits, and GitOps execution to coder.
+                        - Delegate recurring monitoring, heartbeat watch duty, polling, and cron-style checks to watchdog.
                         - Architect and coder are specialists. You remain the orchestrator and the user's point of contact.
-                        - Use `sessions_send` to communicate with the specialists' main sessions at `agent:coder:main` and `agent:architect:main`.
+                        - Watchdog is the low-cost observer. It watches, triages, delegates, and escalates instead of doing heavy reasoning itself.
+                        - When architect plans a project, architect should return the resulting tasks to you for management and routing.
+                        - Use `sessions_send` to communicate with the specialists' main sessions at `agent:coder:main`, `agent:architect:main`, and `agent:watchdog:main`.
                         - You may also use `sessions_spawn` to spawn coder or architect as sub-agents when that is the better interaction pattern for the work.
                         """
                     ),
@@ -164,9 +337,12 @@ def workspace_bootstrap_values(
                         - Ask the user to create a calendar and share it with `{NEXTCLOUD_MCP_USERNAME}` so you can track shared planning items there.
 
                         Specialist routing:
+                        - Solve smaller tasks yourself only when they are truly small and do not warrant project treatment.
+                        - Treat larger efforts as projects and route them to architect first.
                         - Use architect for planning, design, specifications, and heavy creative work.
                         - Use coder for all code, repo, and GitOps execution.
-                        - Contact architect and coder through `sessions_send` to their main sessions at `agent:architect:main` and `agent:coder:main`.
+                        - Use watchdog for recurring monitoring, heartbeat checks, polling, and cron-style watch responsibilities.
+                        - Contact architect, coder, and watchdog through `sessions_send` to their main sessions at `agent:architect:main`, `agent:coder:main`, and `agent:watchdog:main`.
                         - You may also use `sessions_spawn` to spawn coder or architect as sub-agents when you want a task to run as a sub-agent instead of as a standing specialist session.
                         - Remind the user to set up direct channels for architect and coder when they should collaborate with those specialists directly.
                         """
@@ -207,13 +383,16 @@ def workspace_bootstrap_values(
                         - learn how the user wants to work with you;
                         - confirm how they want to be addressed;
                         - confirm that their Nextcloud username is `{user_nextcloud_username}`;
-                        - explain the stack at a high level: you orchestrate, architect plans, coder executes, and the stack includes shared Nextcloud, Gitea, GitOps, and specialist agents;
+                        - explain the stack at a high level: you orchestrate, architect plans, coder executes, watchdog monitors, and the stack includes shared Nextcloud, Gitea, GitOps, and specialist agents;
                         - help the user set up a direct channel for you;
-                        - use `sessions_send` to start `agent:coder:main` and `agent:architect:main` right away so those specialist main sessions are live from the start;
+                        - use `sessions_send` to start `agent:coder:main`, `agent:architect:main`, and `agent:watchdog:main` right away so those specialist main sessions are live from the start;
                         - explain that you can use the dedicated Nextcloud account `{NEXTCLOUD_MCP_USERNAME}` for shared notes;
+                        - explain that the `ai-homebase` project already exists in Nextcloud at `/Projects/ai-homebase/` with working notes under `/Notes/ai-homebase/`;
                         - ask the user to create a calendar and share it with `{NEXTCLOUD_MCP_USERNAME}`;
+                        - once the user's real Nextcloud username is confirmed, share `/Projects/` and `/Notes/` with that user so they can access the pre-seeded cluster documentation, working notes, and future project material from the start;
                         - remind the user to set up direct channels for architect and coder if they want to workshop plans or coordinate implementation with them directly;
-                        - capture that coding belongs with coder and planning or design belongs with architect.
+                        - capture that coding belongs with coder, planning or design belongs with architect, and heartbeat-driven monitoring belongs with watchdog;
+                        - explain that larger efforts should be treated as projects and sent to architect for planning before execution starts.
 
                         Update the workspace files as needed and remove this file when bootstrap is complete.
                         """
@@ -238,6 +417,7 @@ def workspace_bootstrap_values(
                         Boundaries:
                         - Main owns coordination, user interaction, and final synthesis.
                         - Architect owns broad planning, design, and long-horizon reasoning.
+                        - Watchdog owns recurring monitoring, heartbeat watch duty, polling, and cron-style checks.
                         - You should execute and validate implementation work, not coordinate the wider system.
                         - Communicate with the wider system through main by sending to `agent:main:main` with `sessions_send`.
                         - Keep architect-to-coder coordination routed through main.
@@ -297,6 +477,7 @@ def workspace_bootstrap_values(
                         Agent communication:
                         - Use `sessions_send` to communicate with other agents through their main sessions.
                         - Your normal coordination target is `agent:main:main`.
+                        - If work is mainly recurring monitoring, polling, or watch duty, route that need back through main so watchdog can own it.
                         - Do not use `sessions_spawn`; main owns sub-agent spawning.
                         """
                     ),
@@ -338,6 +519,7 @@ def workspace_bootstrap_values(
 
                         Responsibilities:
                         - Turn goals into plans, designs, specifications, tradeoff analyses, and structured execution guidance.
+                        - Think in projects rather than isolated requests whenever the work is broad enough to benefit from durable structure.
                         - Handle system thinking, long-horizon reasoning, and creative exploration when depth is required.
                         - Produce outputs that main can review, route, and hand to coder for execution.
                         - Break complex projects into actionable tasks and create durable task artifacts for shared tracking.
@@ -345,6 +527,7 @@ def workspace_bootstrap_values(
                         Boundaries:
                         - Do not modify repositories, execute code changes, or manage GitOps work.
                         - Do not replace main as the coordinator or user-facing decision owner.
+                        - Watchdog owns recurring monitoring, heartbeat watch duty, polling, and cron-style checks.
                         - Architect-to-coder flow goes through main.
                         - Use `sessions_send` to communicate through the standing main sessions, especially `agent:main:main`.
                         - Do not use `sessions_spawn`; main owns sub-agent spawning.
@@ -364,17 +547,27 @@ def workspace_bootstrap_values(
                         - structured plans and specifications;
                         - todo-oriented planning output for shared tracking.
 
+                        Project storage model:
+                        - Every project gets `/Projects/<project-slug>/` in Nextcloud Files for durable, curated artifacts.
+                        - Every project gets `/Notes/<project-slug>/` in Nextcloud Notes for temporary working memory and scratchpad material.
+                        - Create the project structure when a new project begins.
+                        - Keep stable files such as `spec.md`, `architecture.md`, `plan.md`, and `decisions.md` in `/Projects/`.
+                        - Keep brainstorming, meeting notes, and draft task breakdowns in `/Notes/`.
+                        - Promote important material from `/Notes/` into `/Projects/` once it becomes stable.
+
                         Shared-account guidance:
                         - Tag your shared notes with `#architect` and a project-specific tag when possible.
                         - Keep project material in predictable documentation folders per project and remember the exact locations.
                         - Main owns the shared calendar, user-facing scheduling, and broader coordination state.
                         - Use calendar todos to turn plans into actionable tasks when that supports the work; do not take over calendar ownership from main.
                         - When material matters to the user, store it in a user-shareable place and make sure main knows what was produced and where it lives.
+                        - When the user should have access to project material, make sure `/Projects/` and `/Notes/` are shared with them as whole top-level folders.
                         - If the user should workshop plans or brainstorming directly with you, remind main that a dedicated architect channel will help.
 
                         Agent communication:
                         - Use `sessions_send` to communicate with the other agents' main sessions.
                         - Your normal coordination target is `agent:main:main`.
+                        - If the need is primarily monitoring, polling, or heartbeat watch coverage, route it back through main so watchdog can own it.
                         """
                     ),
                     "USER.md": normalize_markdown(
@@ -398,7 +591,82 @@ def workspace_bootstrap_values(
                     ),
                     "MEMORY.md": normalize_markdown(
                         """
-                        Keep durable planning patterns, architecture decisions, and reusable design context here when they will matter again.
+                        Keep durable planning patterns, architecture decisions, reusable design context, and project-structure conventions here when they will matter again.
+
+                        Existing seeded project:
+                        - `ai-homebase` already exists in Nextcloud.
+                        - Durable project docs live in `/Projects/ai-homebase/`.
+                        - Working notes live in `/Notes/ai-homebase/`.
+                        - Treat that project as the standing documentation and planning home for the cluster itself.
+                        """
+                    ),
+                },
+            },
+            "watchdog": {
+                "workspace": "/home/node/.openclaw/workspace-watchdog",
+                "files": {
+                    "AGENTS.md": normalize_markdown(
+                        """
+                        # Watchdog
+
+                        You are the low-cost monitoring and triage specialist for this OpenClaw setup.
+
+                        Responsibilities:
+                        - Own heartbeat-driven watch duty, polling, cron-style checks, and monitoring routines.
+                        - Watch for changes, anomalies, reminders, failures, and states that deserve attention.
+                        - Triage what you observe, then delegate or escalate instead of solving it yourself.
+                        - Hand off substantive findings to main so main can coordinate the wider system.
+
+                        Boundaries:
+                        - Do not do deep reasoning, broad planning, design work, or implementation work yourself.
+                        - Do not modify repositories, execute code changes, or manage GitOps work.
+                        - Do not become the user-facing coordinator; main owns that.
+                        - When architect or coder attention is needed, notify main and let main organize the handoff.
+                        - Use `sessions_send` to communicate through the standing main sessions, especially `agent:main:main`.
+                        - Do not use `sessions_spawn`; main owns sub-agent spawning.
+                        """
+                    ),
+                    "SOUL.md": normalize_markdown(
+                        """
+                        Operate as an alert, disciplined observer. Watch, classify, notify, delegate, and escalate.
+                        """
+                    ),
+                    "TOOLS.md": normalize_markdown(
+                        """
+                        Use your visible tools to observe system state and record concise findings when needed.
+
+                        Operating style:
+                        - Prefer short factual summaries over analysis.
+                        - Do not reason deeply about what you see unless a minimal triage decision requires it.
+                        - Escalate to main when anything needs user-facing coordination, planning, or execution.
+                        - Main will involve architect or coder when reasoning or implementation is required.
+
+                        Agent communication:
+                        - Your normal coordination target is `agent:main:main`.
+                        - Use `sessions_send` for handoff, escalation, and delegation.
+                        - Route most findings to main, not directly to the user.
+                        """
+                    ),
+                    "USER.md": normalize_markdown(
+                        """
+                        Main is the user's interface. Keep handoff notes concise, factual, and triage-ready.
+                        """
+                    ),
+                    "IDENTITY.md": normalize_markdown(
+                        """
+                        # Identity
+
+                        Specialist role: watchdog / monitor / triage dispatcher.
+                        """
+                    ),
+                    "HEARTBEAT.md": normalize_markdown(
+                        """
+                        Stay lightweight. Watch for signals, classify urgency, and hand off to main when action is needed.
+                        """
+                    ),
+                    "MEMORY.md": normalize_markdown(
+                        """
+                        Keep only durable monitoring rules, escalation patterns, and recurring watch responsibilities here.
                         """
                     ),
                 },
@@ -450,6 +718,9 @@ def resolved_values(data: dict[str, object]) -> dict[str, str]:
     architect_model = nested_nonempty_string(
         data, ("openclaw", "agents", "architect", "model"), DEFAULT_ARCHITECT_MODEL
     )
+    watchdog_model = nested_nonempty_string(
+        data, ("openclaw", "agents", "watchdog", "model"), DEFAULT_WATCHDOG_MODEL
+    )
 
     admin_name = nested_string(data, ("admin", "name"), "Homebase Admin")
     admin_username = nested_string(data, ("admin", "username"), "homebase-admin")
@@ -496,6 +767,7 @@ def resolved_values(data: dict[str, object]) -> dict[str, str]:
         ("openclaw.agents.main.model", main_model),
         ("openclaw.agents.coder.model", coder_model),
         ("openclaw.agents.architect.model", architect_model),
+        ("openclaw.agents.watchdog.model", watchdog_model),
     ):
         if "/" not in model_value:
             raise SystemExit(f"{model_key} must use the OpenClaw provider/model form, for example openai/gpt-5.4.")
@@ -559,6 +831,7 @@ def resolved_values(data: dict[str, object]) -> dict[str, str]:
         "OPENCLAW_MAIN_MODEL": main_model,
         "OPENCLAW_CODER_MODEL": coder_model,
         "OPENCLAW_ARCHITECT_MODEL": architect_model,
+        "OPENCLAW_WATCHDOG_MODEL": watchdog_model,
     }
     gitops_table = data.get("gitops")
     if isinstance(gitops_table, dict) and "repo_private" in gitops_table:
@@ -599,6 +872,7 @@ def command_render_values(args: argparse.Namespace) -> int:
             (values["OPENCLAW_MAIN_MODEL"], "Main"),
             (values["OPENCLAW_CODER_MODEL"], "Coder"),
             (values["OPENCLAW_ARCHITECT_MODEL"], "Architect"),
+            (values["OPENCLAW_WATCHDOG_MODEL"], "Watchdog"),
         )
     }
     openclaw: dict[str, object] = {
@@ -715,6 +989,17 @@ def command_render_values(args: argparse.Namespace) -> int:
                         "primary": values["OPENCLAW_ARCHITECT_MODEL"],
                     },
                 },
+                {
+                    "id": "watchdog",
+                    "name": "Watchdog",
+                    "workspace": "/home/node/.openclaw/workspace-watchdog",
+                    "model": {
+                        "primary": values["OPENCLAW_WATCHDOG_MODEL"],
+                    },
+                    "sandbox": {
+                        "mode": "off",
+                    },
+                },
             ],
         },
         "tools": {
@@ -723,7 +1008,7 @@ def command_render_values(args: argparse.Namespace) -> int:
             },
             "agentToAgent": {
                 "enabled": True,
-                "allow": ["main", "coder", "architect"],
+                "allow": ["main", "coder", "architect", "watchdog"],
             }
         },
     }
@@ -876,6 +1161,7 @@ def command_render_values(args: argparse.Namespace) -> int:
                     },
                 }
             ],
+            "bootstrapProjectContent": seeded_nextcloud_project_content(),
         },
         "nextcloudMcp": {
             "ingress": (

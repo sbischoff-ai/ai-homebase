@@ -133,6 +133,58 @@
         "type": "string",
         "minLength": 1
       }
+    },
+    "bootstrapProjectContent": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["slug", "ownerUsername"],
+        "additionalProperties": true,
+        "properties": {
+          "slug": {
+            "type": "string",
+            "minLength": 1
+          },
+          "ownerUsername": {
+            "type": "string",
+            "minLength": 1
+          },
+          "projectsFiles": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["path", "content"],
+              "additionalProperties": true,
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "content": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["path", "content"],
+              "additionalProperties": true,
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "content": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   }
 }
