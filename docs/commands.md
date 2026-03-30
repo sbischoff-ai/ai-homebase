@@ -131,6 +131,8 @@ source ~/.local/state/ai-homebase/incus/openclaw-sandbox.env
 # Change bootstrap.local.toml when you intentionally need new hostnames, DB passwords, or admin passwords.
 ./scripts/incus-vm-down.sh --vm-name openclaw-sandbox
 ./scripts/k3d-local-teardown.sh --cluster-name ai-homebase-dev --vm-name openclaw-sandbox
+# By default, local teardown also removes ~/.local/state/ai-homebase/openclaw-state.
+# Use --keep-openclaw-state when you intentionally want to preserve that shared local OpenClaw state.
 ./scripts/openclaw-remote-docker-load-images.sh \
   --docker-host "ssh://docker-remote@${HOST_LISTEN_ADDRESS}:${SSH_HOST_PORT}" \
   --image openclaw-sandbox:bookworm-slim \

@@ -6,7 +6,8 @@ The point of the repo is not just “a pile of charts.” It gives you one coher
 
 Characteristic features of this stack:
 
-- OpenClaw bootstrapped as a multi-agent system with `main`, `architect`, and `coder`
+- OpenClaw bootstrapped as a multi-agent system with `main`, `architect`, `coder`, and `watchdog`
+- Architect-oriented project documentation seeded into Nextcloud so the cluster can document and evolve itself from day one
 - remote Docker sandboxes for specialist agents, including a coder-specific sandbox image with developer tooling
 - Nextcloud shared with OpenClaw through a dedicated MCP gateway and shared-account operating conventions
 - GitOps handoff into an in-cluster Gitea repository with Argo CD kept in manual-sync mode
@@ -45,7 +46,7 @@ cp bootstrap.example.toml bootstrap.local.toml
 
 Use [docs/runbook-homelab.md](./docs/runbook-homelab.md) for the full Ubuntu host-prep, bootstrap, and GitOps handoff path.
 
-In both cases, fill in the new `[mail]` section and the per-agent model sections in `bootstrap.local.toml` before bootstrapping so Nextcloud/Vaultwarden mail and the bootstrapped OpenClaw `main`, `architect`, and `coder` agents are configured correctly. The same bootstrap flow also creates a dedicated `openclaw` Nextcloud user, seeds the OpenClaw gateway config with the standard Nextcloud MCP server definition, and pre-seeds specialist workspace files for the multi-agent topology.
+In both cases, fill in the new `[mail]` section and the per-agent model sections in `bootstrap.local.toml` before bootstrapping so Nextcloud/Vaultwarden mail and the bootstrapped OpenClaw `main`, `architect`, `coder`, and `watchdog` agents are configured correctly. The same bootstrap flow also creates a dedicated `openclaw` Nextcloud user, seeds the OpenClaw gateway config with the standard Nextcloud MCP server definition, and pre-seeds specialist workspace files for the multi-agent topology.
 
 ## Documentation Map
 

@@ -81,22 +81,22 @@ data:
     \ = false;\n  }\n}\n\nprocess.stdin.setEncoding(\"utf8\");\nprocess.stdin.on(\"\
     data\", (chunk) => {\n  stdinBuffer += chunk;\n  void scheduleDrain();\n});\n"
   openclaw.json: "{\n  \"commands\": {\"mcp\":true},\n  \"tools\": {\"agentToAgent\"\
-    :{\"allow\":[\"main\",\"coder\",\"architect\"],\"enabled\":true},\"sessions\"\
-    :{\"visibility\":\"all\"}},\n  \"gateway\": {\n    \"mode\": \"local\",\n    \"\
-    bind\": \"lan\",\n    \"port\": 18789,\n    \"auth\": {\n      \"mode\": \"token\"\
-    ,\n      \"token\": \"${OPENCLAW_GATEWAY_TOKEN}\"\n    },\n    \"controlUi\":\
-    \ {\n      \"enabled\": true,\n      \"allowedOrigins\": [\"https://openclaw.vpn.homebase.internal\"\
+    :{\"allow\":[\"main\",\"coder\",\"architect\",\"watchdog\"],\"enabled\":true},\"\
+    sessions\":{\"visibility\":\"all\"}},\n  \"gateway\": {\n    \"mode\": \"local\"\
+    ,\n    \"bind\": \"lan\",\n    \"port\": 18789,\n    \"auth\": {\n      \"mode\"\
+    : \"token\",\n      \"token\": \"${OPENCLAW_GATEWAY_TOKEN}\"\n    },\n    \"controlUi\"\
+    : {\n      \"enabled\": true,\n      \"allowedOrigins\": [\"https://openclaw.vpn.homebase.internal\"\
     ]\n    },\n    \"trustedProxies\": [\"10.42.0.0/16\"]\n  },\n  \"agents\": {\n\
-    \    \"defaults\": {\"models\":{\"anthropic/claude-opus-4-6\":{\"alias\":\"Architect\"\
-    },\"anthropic/claude-sonnet-4-6\":{\"alias\":\"Main\"},\"openai/gpt-5.4\":{\"\
-    alias\":\"Coder\"}},\"sandbox\":{\"backend\":\"docker\",\"browser\":{\"cdpPort\"\
-    :9222,\"cdpSourceRange\":\"\",\"enableNoVnc\":true,\"enabled\":true,\"headless\"\
-    :false,\"image\":\"openclaw-sandbox-browser:bookworm-slim\",\"network\":\"bridge\"\
-    ,\"noVncPort\":6080,\"vncPort\":5900},\"docker\":{\"capDrop\":[\"ALL\"],\"cpus\"\
-    :1,\"image\":\"openclaw-sandbox:bookworm-slim\",\"memory\":\"1g\",\"memorySwap\"\
-    :\"2g\",\"network\":\"bridge\",\"pidsLimit\":256,\"readOnlyRoot\":true,\"tmpfs\"\
-    :[\"/tmp\",\"/var/tmp\",\"/run\"],\"user\":\"1000:1000\",\"workdir\":\"/workspace\"\
-    },\"mode\":\"non-main\",\"scope\":\"agent\"},\"workspace\":\"/home/node/.openclaw/workspace\"\
+    \    \"defaults\": {\"models\":{\"anthropic/claude-haiku-4-5\":{\"alias\":\"Watchdog\"\
+    },\"anthropic/claude-opus-4-6\":{\"alias\":\"Architect\"},\"anthropic/claude-sonnet-4-6\"\
+    :{\"alias\":\"Main\"},\"openai/gpt-5.4\":{\"alias\":\"Coder\"}},\"sandbox\":{\"\
+    backend\":\"docker\",\"browser\":{\"cdpPort\":9222,\"cdpSourceRange\":\"\",\"\
+    enableNoVnc\":true,\"enabled\":true,\"headless\":false,\"image\":\"openclaw-sandbox-browser:bookworm-slim\"\
+    ,\"network\":\"bridge\",\"noVncPort\":6080,\"vncPort\":5900},\"docker\":{\"capDrop\"\
+    :[\"ALL\"],\"cpus\":1,\"image\":\"openclaw-sandbox:bookworm-slim\",\"memory\"\
+    :\"1g\",\"memorySwap\":\"2g\",\"network\":\"bridge\",\"pidsLimit\":256,\"readOnlyRoot\"\
+    :true,\"tmpfs\":[\"/tmp\",\"/var/tmp\",\"/run\"],\"user\":\"1000:1000\",\"workdir\"\
+    :\"/workspace\"},\"mode\":\"non-main\",\"scope\":\"agent\"},\"workspace\":\"/home/node/.openclaw/workspace\"\
     },\n    \"list\": [{\"default\":true,\"id\":\"main\",\"model\":{\"primary\":\"\
     anthropic/claude-sonnet-4-6\"},\"name\":\"OpenClaw Assistant\",\"subagents\":{\"\
     allowAgents\":[\"coder\",\"architect\"]},\"workspace\":\"/home/node/.openclaw/workspace\"\
@@ -135,6 +135,8 @@ data:
     \ 2\\u003e\\u00261 || true\\nfi\"},\"mode\":\"all\"},\"workspace\":\"/home/node/.openclaw/workspace-coder\"\
     },{\"id\":\"architect\",\"model\":{\"primary\":\"anthropic/claude-opus-4-6\"},\"\
     name\":\"Architect\",\"workspace\":\"/home/node/.openclaw/workspace-architect\"\
+    },{\"id\":\"watchdog\",\"model\":{\"primary\":\"anthropic/claude-haiku-4-5\"},\"\
+    name\":\"Watchdog\",\"sandbox\":{\"mode\":false},\"workspace\":\"/home/node/.openclaw/workspace-watchdog\"\
     }]\n  },\n  \"mcp\": {\"servers\":{\"nextcloud\":{\"args\":[\"/opt/openclaw-runtime/mcp/mcp-http-bridge.mjs\"\
     ,\"--url\",\"${OPENCLAW_NEXTCLOUD_MCP_INTERNAL_URL}\",\"--url\",\"${OPENCLAW_NEXTCLOUD_MCP_EXTERNAL_URL}\"\
     ,\"--header\",\"Authorization=${OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER}\"],\"command\"\
@@ -152,6 +154,9 @@ data:
     - Turn goals into plans, designs, specifications, tradeoff analyses, and structured
     execution guidance.
 
+    - Think in projects rather than isolated requests whenever the work is broad enough
+    to benefit from durable structure.
+
     - Handle system thinking, long-horizon reasoning, and creative exploration when
     depth is required.
 
@@ -166,6 +171,9 @@ data:
     - Do not modify repositories, execute code changes, or manage GitOps work.
 
     - Do not replace main as the coordinator or user-facing decision owner.
+
+    - Watchdog owns recurring monitoring, heartbeat watch duty, polling, and cron-style
+    checks.
 
     - Architect-to-coder flow goes through main.
 
@@ -191,8 +199,8 @@ data:
     '
   workspace-architect-MEMORY.md: '
 
-    Keep durable planning patterns, architecture decisions, and reusable design context
-    here when they will matter again.
+    Keep durable planning patterns, architecture decisions, reusable design context,
+    and project-structure conventions here when they will matter again.
 
     '
   workspace-architect-SOUL.md: '
@@ -214,6 +222,25 @@ data:
     - structured plans and specifications;
 
     - todo-oriented planning output for shared tracking.
+
+
+    Project storage model:
+
+    - Every project gets `/Projects/<project-slug>/` in Nextcloud Files for durable,
+    curated artifacts.
+
+    - Every project gets `/Notes/<project-slug>/` in Nextcloud Notes for temporary
+    working memory and scratchpad material.
+
+    - Create the project structure when a new project begins.
+
+    - Keep stable files such as `spec.md`, `architecture.md`, `plan.md`, and `decisions.md`
+    in `/Projects/`.
+
+    - Keep brainstorming, meeting notes, and draft task breakdowns in `/Notes/`.
+
+    - Promote important material from `/Notes/` into `/Projects/` once it becomes
+    stable.
 
 
     Shared-account guidance:
@@ -241,6 +268,9 @@ data:
     - Use `sessions_send` to communicate with the other agents'' main sessions.
 
     - Your normal coordination target is `agent:main:main`.
+
+    - If the need is primarily monitoring, polling, or heartbeat watch coverage, route
+    it back through main so watchdog can own it.
 
     '
   workspace-architect-USER.md: '
@@ -281,6 +311,9 @@ data:
     - Main owns coordination, user interaction, and final synthesis.
 
     - Architect owns broad planning, design, and long-horizon reasoning.
+
+    - Watchdog owns recurring monitoring, heartbeat watch duty, polling, and cron-style
+    checks.
 
     - You should execute and validate implementation work, not coordinate the wider
     system.
@@ -368,7 +401,9 @@ data:
     \ location so you can find it later.\n- Tell main where you stored anything user-relevant.\n\
     \nAgent communication:\n- Use `sessions_send` to communicate with other agents\
     \ through their main sessions.\n- Your normal coordination target is `agent:main:main`.\n\
-    - Do not use `sessions_spawn`; main owns sub-agent spawning.\n"
+    - If work is mainly recurring monitoring, polling, or watch duty, route that need\
+    \ back through main so watchdog can own it.\n- Do not use `sessions_spawn`; main\
+    \ owns sub-agent spawning.\n"
   workspace-coder-USER.md: '
 
     The user works through main. Keep handoff notes concise, factual, and ready for
@@ -394,6 +429,8 @@ data:
 
     - Break requests into clear subproblems and route them to the right specialist.
 
+    - Distinguish between small tasks and larger projects before deciding how to proceed.
+
     - Integrate specialist results and present them back to the user.
 
     - Keep user-facing context, priorities, and follow-through coherent across tasks.
@@ -410,17 +447,31 @@ data:
 
     Delegation:
 
+    - Handle only small tasks yourself when they are lightweight, low-risk, and do
+    not need deep planning or specialist execution.
+
+    - Treat larger efforts as projects and send them to architect first.
+
     - Delegate planning, design, specification, tradeoff analysis, and heavy creative
     ideation to architect.
 
     - Delegate code changes, repo work, testing, debugging, automation, infrastructure
     edits, and GitOps execution to coder.
 
+    - Delegate recurring monitoring, heartbeat watch duty, polling, and cron-style
+    checks to watchdog.
+
     - Architect and coder are specialists. You remain the orchestrator and the user''s
     point of contact.
 
-    - Use `sessions_send` to communicate with the specialists'' main sessions at `agent:coder:main`
-    and `agent:architect:main`.
+    - Watchdog is the low-cost observer. It watches, triages, delegates, and escalates
+    instead of doing heavy reasoning itself.
+
+    - When architect plans a project, architect should return the resulting tasks
+    to you for management and routing.
+
+    - Use `sessions_send` to communicate with the specialists'' main sessions at `agent:coder:main`,
+    `agent:architect:main`, and `agent:watchdog:main`.
 
     - You may also use `sessions_spawn` to spawn coder or architect as sub-agents
     when that is the better interaction pattern for the work.
@@ -444,12 +495,14 @@ data:
     - confirm their current Nextcloud username;
 
     - explain the stack at a high level: you orchestrate, architect plans, coder executes,
-    and the stack includes shared Nextcloud, Gitea, GitOps, and specialist agents;
+    watchdog monitors, and the stack includes shared Nextcloud, Gitea, GitOps, and
+    specialist agents;
 
     - help the user set up a direct channel for you;
 
-    - use `sessions_send` to start `agent:coder:main` and `agent:architect:main` right
-    away so those specialist main sessions are live from the start;
+    - use `sessions_send` to start `agent:coder:main`, `agent:architect:main`, and
+    `agent:watchdog:main` right away so those specialist main sessions are live from
+    the start;
 
     - explain that you can use the dedicated Nextcloud account `openclaw` for shared
     notes;
@@ -459,7 +512,11 @@ data:
     - remind the user to set up direct channels for architect and coder if they want
     to workshop plans or coordinate implementation with them directly;
 
-    - capture that coding belongs with coder and planning or design belongs with architect.
+    - capture that coding belongs with coder, planning or design belongs with architect,
+    and heartbeat-driven monitoring belongs with watchdog;
+
+    - explain that larger efforts should be treated as projects and sent to architect
+    for planning before execution starts.
 
 
     Update the workspace files as needed and remove this file when bootstrap is complete.
@@ -524,12 +581,20 @@ data:
 
     Specialist routing:
 
+    - Solve smaller tasks yourself only when they are truly small and do not warrant
+    project treatment.
+
+    - Treat larger efforts as projects and route them to architect first.
+
     - Use architect for planning, design, specifications, and heavy creative work.
 
     - Use coder for all code, repo, and GitOps execution.
 
-    - Contact architect and coder through `sessions_send` to their main sessions at
-    `agent:architect:main` and `agent:coder:main`.
+    - Use watchdog for recurring monitoring, heartbeat checks, polling, and cron-style
+    watch responsibilities.
+
+    - Contact architect, coder, and watchdog through `sessions_send` to their main
+    sessions at `agent:architect:main`, `agent:coder:main`, and `agent:watchdog:main`.
 
     - You may also use `sessions_spawn` to spawn coder or architect as sub-agents
     when you want a task to run as a sub-agent instead of as a standing specialist
@@ -549,6 +614,103 @@ data:
 
     Confirm during bootstrap how the user wants to be addressed, what they want help
     with, and what their current Nextcloud username is.
+
+    '
+  workspace-watchdog-AGENTS.md: '
+
+    # Watchdog
+
+
+    You are the low-cost monitoring and triage specialist for this OpenClaw setup.
+
+
+    Responsibilities:
+
+    - Own heartbeat-driven watch duty, polling, cron-style checks, and monitoring
+    routines.
+
+    - Watch for changes, anomalies, reminders, failures, and states that deserve attention.
+
+    - Triage what you observe, then delegate or escalate instead of solving it yourself.
+
+    - Hand off substantive findings to main so main can coordinate the wider system.
+
+
+    Boundaries:
+
+    - Do not do deep reasoning, broad planning, design work, or implementation work
+    yourself.
+
+    - Do not modify repositories, execute code changes, or manage GitOps work.
+
+    - Do not become the user-facing coordinator; main owns that.
+
+    - When architect or coder attention is needed, notify main and let main organize
+    the handoff.
+
+    - Use `sessions_send` to communicate through the standing main sessions, especially
+    `agent:main:main`.
+
+    - Do not use `sessions_spawn`; main owns sub-agent spawning.
+
+    '
+  workspace-watchdog-HEARTBEAT.md: '
+
+    Stay lightweight. Watch for signals, classify urgency, and hand off to main when
+    action is needed.
+
+    '
+  workspace-watchdog-IDENTITY.md: '
+
+    # Identity
+
+
+    Specialist role: watchdog / monitor / triage dispatcher.
+
+    '
+  workspace-watchdog-MEMORY.md: '
+
+    Keep only durable monitoring rules, escalation patterns, and recurring watch responsibilities
+    here.
+
+    '
+  workspace-watchdog-SOUL.md: '
+
+    Operate as an alert, disciplined observer. Watch, classify, notify, delegate,
+    and escalate.
+
+    '
+  workspace-watchdog-TOOLS.md: '
+
+    Use your visible tools to observe system state and record concise findings when
+    needed.
+
+
+    Operating style:
+
+    - Prefer short factual summaries over analysis.
+
+    - Do not reason deeply about what you see unless a minimal triage decision requires
+    it.
+
+    - Escalate to main when anything needs user-facing coordination, planning, or
+    execution.
+
+    - Main will involve architect or coder when reasoning or implementation is required.
+
+
+    Agent communication:
+
+    - Your normal coordination target is `agent:main:main`.
+
+    - Use `sessions_send` for handoff, escalation, and delegation.
+
+    - Route most findings to main, not directly to the user.
+
+    '
+  workspace-watchdog-USER.md: '
+
+    Main is the user''s interface. Keep handoff notes concise, factual, and triage-ready.
 
     '
 kind: ConfigMap
@@ -811,7 +973,7 @@ spec:
             secretKeyRef:
               key: OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER
               name: openclaw-nextcloud-mcp-secrets
-        image: ghcr.io/openclaw/openclaw:2026.3.24
+        image: ghcr.io/openclaw/openclaw:2026.3.28
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 3
@@ -1043,8 +1205,58 @@ spec:
           \ echo \"Preserving existing USER.md in ${workspace_dir}.\"\nelse\n  cp\
           \ -f /config-source/workspace-main-USER.md \"${target_path}\" || {\n   \
           \ echo >&2 \"Failed to seed USER.md into ${workspace_dir} for agent main.\"\
+          \n    exit 1\n  }\nfi\nworkspace_dir=\"${state_root}/workspace-watchdog\"\
+          \nmkdir -p \"${workspace_dir}\" || {\n  echo >&2 \"Failed to create bootstrapped\
+          \ workspace directory ${workspace_dir} for agent watchdog.\"\n  exit 1\n\
+          }\ntarget_path=\"${workspace_dir}/AGENTS.md\"\ntarget_parent=\"$(dirname\
+          \ \"${target_path}\")\"\nmkdir -p \"${target_parent}\" || {\n  echo >&2\
+          \ \"Failed to create ${target_parent} before seeding AGENTS.md for agent\
+          \ watchdog.\"\n  exit 1\n}\nif [ -e \"${target_path}\" ]; then\n  echo \"\
+          Preserving existing AGENTS.md in ${workspace_dir}.\"\nelse\n  cp -f /config-source/workspace-watchdog-AGENTS.md\
+          \ \"${target_path}\" || {\n    echo >&2 \"Failed to seed AGENTS.md into\
+          \ ${workspace_dir} for agent watchdog.\"\n    exit 1\n  }\nfi\ntarget_path=\"\
+          ${workspace_dir}/HEARTBEAT.md\"\ntarget_parent=\"$(dirname \"${target_path}\"\
+          )\"\nmkdir -p \"${target_parent}\" || {\n  echo >&2 \"Failed to create ${target_parent}\
+          \ before seeding HEARTBEAT.md for agent watchdog.\"\n  exit 1\n}\nif [ -e\
+          \ \"${target_path}\" ]; then\n  echo \"Preserving existing HEARTBEAT.md\
+          \ in ${workspace_dir}.\"\nelse\n  cp -f /config-source/workspace-watchdog-HEARTBEAT.md\
+          \ \"${target_path}\" || {\n    echo >&2 \"Failed to seed HEARTBEAT.md into\
+          \ ${workspace_dir} for agent watchdog.\"\n    exit 1\n  }\nfi\ntarget_path=\"\
+          ${workspace_dir}/IDENTITY.md\"\ntarget_parent=\"$(dirname \"${target_path}\"\
+          )\"\nmkdir -p \"${target_parent}\" || {\n  echo >&2 \"Failed to create ${target_parent}\
+          \ before seeding IDENTITY.md for agent watchdog.\"\n  exit 1\n}\nif [ -e\
+          \ \"${target_path}\" ]; then\n  echo \"Preserving existing IDENTITY.md in\
+          \ ${workspace_dir}.\"\nelse\n  cp -f /config-source/workspace-watchdog-IDENTITY.md\
+          \ \"${target_path}\" || {\n    echo >&2 \"Failed to seed IDENTITY.md into\
+          \ ${workspace_dir} for agent watchdog.\"\n    exit 1\n  }\nfi\ntarget_path=\"\
+          ${workspace_dir}/MEMORY.md\"\ntarget_parent=\"$(dirname \"${target_path}\"\
+          )\"\nmkdir -p \"${target_parent}\" || {\n  echo >&2 \"Failed to create ${target_parent}\
+          \ before seeding MEMORY.md for agent watchdog.\"\n  exit 1\n}\nif [ -e \"\
+          ${target_path}\" ]; then\n  echo \"Preserving existing MEMORY.md in ${workspace_dir}.\"\
+          \nelse\n  cp -f /config-source/workspace-watchdog-MEMORY.md \"${target_path}\"\
+          \ || {\n    echo >&2 \"Failed to seed MEMORY.md into ${workspace_dir} for\
+          \ agent watchdog.\"\n    exit 1\n  }\nfi\ntarget_path=\"${workspace_dir}/SOUL.md\"\
+          \ntarget_parent=\"$(dirname \"${target_path}\")\"\nmkdir -p \"${target_parent}\"\
+          \ || {\n  echo >&2 \"Failed to create ${target_parent} before seeding SOUL.md\
+          \ for agent watchdog.\"\n  exit 1\n}\nif [ -e \"${target_path}\" ]; then\n\
+          \  echo \"Preserving existing SOUL.md in ${workspace_dir}.\"\nelse\n  cp\
+          \ -f /config-source/workspace-watchdog-SOUL.md \"${target_path}\" || {\n\
+          \    echo >&2 \"Failed to seed SOUL.md into ${workspace_dir} for agent watchdog.\"\
+          \n    exit 1\n  }\nfi\ntarget_path=\"${workspace_dir}/TOOLS.md\"\ntarget_parent=\"\
+          $(dirname \"${target_path}\")\"\nmkdir -p \"${target_parent}\" || {\n  echo\
+          \ >&2 \"Failed to create ${target_parent} before seeding TOOLS.md for agent\
+          \ watchdog.\"\n  exit 1\n}\nif [ -e \"${target_path}\" ]; then\n  echo \"\
+          Preserving existing TOOLS.md in ${workspace_dir}.\"\nelse\n  cp -f /config-source/workspace-watchdog-TOOLS.md\
+          \ \"${target_path}\" || {\n    echo >&2 \"Failed to seed TOOLS.md into ${workspace_dir}\
+          \ for agent watchdog.\"\n    exit 1\n  }\nfi\ntarget_path=\"${workspace_dir}/USER.md\"\
+          \ntarget_parent=\"$(dirname \"${target_path}\")\"\nmkdir -p \"${target_parent}\"\
+          \ || {\n  echo >&2 \"Failed to create ${target_parent} before seeding USER.md\
+          \ for agent watchdog.\"\n  exit 1\n}\nif [ -e \"${target_path}\" ]; then\n\
+          \  echo \"Preserving existing USER.md in ${workspace_dir}.\"\nelse\n  cp\
+          \ -f /config-source/workspace-watchdog-USER.md \"${target_path}\" || {\n\
+          \    echo >&2 \"Failed to seed USER.md into ${workspace_dir} for agent watchdog.\"\
           \n    exit 1\n  }\nfi\n"
-        image: ghcr.io/openclaw/openclaw:2026.3.24
+        image: ghcr.io/openclaw/openclaw:2026.3.28
         imagePullPolicy: IfNotPresent
         name: config-permissions
         securityContext:
@@ -1075,7 +1287,7 @@ spec:
           \ /runtime-target/mcp-http-bridge.mjs || {\n  echo >&2 \"Failed to bootstrap\
           \ shared MCP bridge into /runtime-target/mcp-http-bridge.mjs.\"\n  exit\
           \ 1\n}\n"
-        image: ghcr.io/openclaw/openclaw:2026.3.24
+        image: ghcr.io/openclaw/openclaw:2026.3.28
         imagePullPolicy: IfNotPresent
         name: mcp-runtime
         securityContext:
@@ -1135,7 +1347,7 @@ spec:
           \ in the OpenClaw image. Build from images/openclaw-remote-docker/Dockerfile\
           \ or use an equivalent image.\"\n  exit 1\nfi\necho \"docker CLI available\
           \ at ${docker_path}\"\necho \"ssh client available at ${ssh_path}\"\n"
-        image: ghcr.io/openclaw/openclaw:2026.3.24
+        image: ghcr.io/openclaw/openclaw:2026.3.28
         imagePullPolicy: IfNotPresent
         name: remote-docker-runtime-check
         securityContext:
@@ -1184,7 +1396,7 @@ spec:
           \  echo >&2 \"Failed to hand /ssh-target to UID/GID 1000 after permissions\
           \ were locked down; verify the init container still runs as UID/GID 0 with\
           \ the CHOWN capability required by the security context.\"\n  exit 1\n}\n"
-        image: ghcr.io/openclaw/openclaw:2026.3.24
+        image: ghcr.io/openclaw/openclaw:2026.3.28
         imagePullPolicy: IfNotPresent
         name: remote-docker-ssh-permissions
         securityContext:

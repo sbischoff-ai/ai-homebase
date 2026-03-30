@@ -47,6 +47,9 @@ password = "explicit-coder-password"
 [openclaw.agents.architect]
 model = "anthropic/claude-opus-4-6"
 
+[openclaw.agents.watchdog]
+model = "anthropic/claude-haiku-4-5"
+
 [hosts]
 openclaw = "openclaw.test.internal"
 nextcloud = "nextcloud.test.internal"

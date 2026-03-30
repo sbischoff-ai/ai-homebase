@@ -99,20 +99,33 @@ cluster_has_shared_openclaw_state_mount() {
 
   node_name="k3d-${CLUSTER_NAME}-server-0"
   if ! mount_summary="$(docker inspect "$node_name" --format '{{range .Mounts}}{{println .Source "|" .Destination}}{{end}}' 2>/dev/null)"; then
-    fail "Unable to inspect ${node_name}. If the cluster was created outside this bootstrap flow, recreate it so the shared OpenClaw state bind mount is present."
+    warn "Unable to inspect ${node_name}; recreating the cluster so the shared OpenClaw state bind mount is present."
     return 1
   fi
 
-  mount_source="$(printf '%s\n' "$mount_summary" | awk -F'|' -v target="$SHARED_OPENCLAW_STATE_TARGET" '$2 == target {gsub(/[[:space:]]+$/, "", $1); print $1; exit}')"
+  mount_source="$(printf '%s\n' "$mount_summary" | awk -F'|' -v target="$SHARED_OPENCLAW_STATE_TARGET" '
+    {
+      source=$1
+      destination=$2
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", source)
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", destination)
+      if (destination == target) {
+        print source
+        exit
+      }
+    }
+  ')"
   if [[ -z "$mount_source" ]]; then
-    fail "Existing k3d cluster ${CLUSTER_NAME} is missing the shared OpenClaw state mount at ${SHARED_OPENCLAW_STATE_TARGET}. Recreate the cluster with ./scripts/k3d-down.sh --cluster-name ${CLUSTER_NAME} and rerun bootstrap."
+    warn "Existing k3d cluster ${CLUSTER_NAME} is missing the shared OpenClaw state mount at ${SHARED_OPENCLAW_STATE_TARGET}; recreating it."
     return 1
   fi
 
   if [[ "$mount_source" != "$SHARED_OPENCLAW_STATE_SOURCE" ]]; then
-    fail "Existing k3d cluster ${CLUSTER_NAME} mounts ${SHARED_OPENCLAW_STATE_TARGET} from ${mount_source}, but this bootstrap expects ${SHARED_OPENCLAW_STATE_SOURCE}. Recreate the cluster or align --shared-openclaw-state-source."
+    warn "Existing k3d cluster ${CLUSTER_NAME} mounts ${SHARED_OPENCLAW_STATE_TARGET} from ${mount_source}, but this bootstrap expects ${SHARED_OPENCLAW_STATE_SOURCE}; recreating it."
     return 1
   fi
+
+  return 0
 }
 
 probe_k3d_cluster() {
@@ -146,8 +159,28 @@ probe_k3d_cluster() {
 
 if probe_k3d_cluster; then
   step "Reusing existing k3d cluster ${CLUSTER_NAME}"
-  cluster_has_shared_openclaw_state_mount
-  ok "Existing cluster has the shared OpenClaw state mount"
+  if cluster_has_shared_openclaw_state_mount; then
+    ok "Existing cluster has the shared OpenClaw state mount"
+  else
+    step "Recreating incompatible k3d cluster ${CLUSTER_NAME}"
+    run_k3d_concise k3d cluster delete "$CLUSTER_NAME"
+    echo "ℹ Recreating cluster ${CLUSTER_NAME} with the expected shared OpenClaw state mount."
+    CREATE_ARGS=(
+      --wait
+      --image "$K3S_IMAGE"
+      -p "${HTTP_PORT}:80@loadbalancer"
+      --volume "/lib/modules:/lib/modules@all"
+      --volume "${SHARED_OPENCLAW_STATE_SOURCE}:${SHARED_OPENCLAW_STATE_TARGET}@all"
+      --k3s-arg "--disable=traefik@server:*"
+    )
+
+    if [[ "$ENABLE_HTTPS" == "true" ]]; then
+      CREATE_ARGS+=( -p "${HTTPS_PORT}:443@loadbalancer" )
+    fi
+
+    step "Creating k3d cluster ${CLUSTER_NAME}"
+    run_k3d_concise k3d cluster create "$CLUSTER_NAME" "${CREATE_ARGS[@]}"
+  fi
 else
   cluster_probe_status=$?
 

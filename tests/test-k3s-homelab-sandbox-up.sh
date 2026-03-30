@@ -38,6 +38,9 @@ model = "openai/gpt-5.4"
 [openclaw.agents.architect]
 model = "anthropic/claude-opus-4-6"
 
+[openclaw.agents.watchdog]
+model = "anthropic/claude-haiku-4-5"
+
 [hosts]
 openclaw = "openclaw.test.internal"
 nextcloud_mcp = "nextcloud-mcp.test.internal"

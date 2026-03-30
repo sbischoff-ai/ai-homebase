@@ -37,6 +37,9 @@ password = "coder-password"
 [openclaw.agents.architect]
 model = "anthropic/claude-opus-4-6"
 
+[openclaw.agents.watchdog]
+model = "anthropic/claude-haiku-4-5"
+
 [hosts]
 openclaw = "openclaw.test.internal"
 nextcloud = "nextcloud.test.internal"
@@ -104,6 +107,7 @@ assert "BRAVE_API_KEY=test-brave-key" in shell_vars
 assert "OPENCLAW_MAIN_MODEL=anthropic/claude-sonnet-4-6" in shell_vars
 assert "OPENCLAW_CODER_MODEL=openai/gpt-5.4" in shell_vars
 assert "OPENCLAW_ARCHITECT_MODEL=anthropic/claude-opus-4-6" in shell_vars
+assert "OPENCLAW_WATCHDOG_MODEL=anthropic/claude-haiku-4-5" in shell_vars
 assert "GITEA_ADMIN_EMAIL=git@example.invalid" in shell_vars
 assert "NEXTCLOUD_ADMIN_USER=test-admin" in shell_vars
 assert "NEXTCLOUD_MCP_HOST=nextcloud-mcp.test.internal" in shell_vars
@@ -143,6 +147,7 @@ assert rendered_values["openclaw"]["openclaw"]["agents"]["defaults"]["models"] =
     "anthropic/claude-sonnet-4-6": {"alias": "Main"},
     "openai/gpt-5.4": {"alias": "Coder"},
     "anthropic/claude-opus-4-6": {"alias": "Architect"},
+    "anthropic/claude-haiku-4-5": {"alias": "Watchdog"},
 }
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][0]["id"] == "main"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][0]["default"] is True
@@ -172,9 +177,13 @@ assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["id"] == "ar
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["workspace"] == "/home/node/.openclaw/workspace-architect"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["model"]["primary"] == "anthropic/claude-opus-4-6"
 assert "tools" not in rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][3]["id"] == "watchdog"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][3]["workspace"] == "/home/node/.openclaw/workspace-watchdog"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][3]["model"]["primary"] == "anthropic/claude-haiku-4-5"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][3]["sandbox"]["mode"] == "off"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][0]["subagents"]["allowAgents"] == ["coder", "architect"]
 assert rendered_values["openclaw"]["openclaw"]["tools"]["agentToAgent"]["enabled"] is True
-assert rendered_values["openclaw"]["openclaw"]["tools"]["agentToAgent"]["allow"] == ["main", "coder", "architect"]
+assert rendered_values["openclaw"]["openclaw"]["tools"]["agentToAgent"]["allow"] == ["main", "coder", "architect", "watchdog"]
 assert rendered_values["openclaw"]["openclaw"]["tools"]["sessions"]["visibility"] == "all"
 assert rendered_values["openclaw"]["workspaceBootstrap"]["enabled"] is True
 assert rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["workspace"] == "/home/node/.openclaw/workspace"
@@ -182,11 +191,22 @@ assert "openclaw" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]
 assert "test-admin" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["USER.md"]
 assert "set up direct channels for architect and coder" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["TOOLS.md"]
 assert "agent:coder:main" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["TOOLS.md"]
+assert "agent:watchdog:main" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["TOOLS.md"]
+assert "Treat larger efforts as projects and route them to architect first." in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["TOOLS.md"]
 assert "sessions_spawn" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["AGENTS.md"]
+assert "Distinguish between small tasks and larger projects" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["AGENTS.md"]
 assert "what the user wants to call you" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
 assert "sessions_send" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
+assert "watchdog monitors" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
+assert "treated as projects and sent to architect" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
+assert "/Projects/ai-homebase/" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
+assert "share `/Projects/` and `/Notes/` with that user" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
 assert "planning and design specialist" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["AGENTS.md"]
+assert "Think in projects rather than isolated requests" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["AGENTS.md"]
 assert "programming domain" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["AGENTS.md"]
+assert "low-cost monitoring and triage specialist" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["watchdog"]["files"]["AGENTS.md"]
+assert "agent:main:main" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["watchdog"]["files"]["TOOLS.md"]
+assert "Route most findings to main" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["watchdog"]["files"]["TOOLS.md"]
 assert "coder-bot" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
 assert "test-admin" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["USER.md"]
 assert "Tag your shared notes with `#coder`" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
@@ -202,7 +222,13 @@ assert "skills/gitea-tea/SKILL.md" not in rendered_values["openclaw"]["workspace
 assert "skills/gitops-homebase/SKILL.md" not in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]
 assert "Tag your shared notes with `#architect`" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["TOOLS.md"]
 assert "Keep project material in predictable documentation folders per project" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["TOOLS.md"]
+assert "/Projects/<project-slug>/" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["TOOLS.md"]
+assert "/Notes/<project-slug>/" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["TOOLS.md"]
 assert "agent:main:main" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["TOOLS.md"]
+assert "make sure `/Projects/` and `/Notes/` are shared with them as whole top-level folders" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["TOOLS.md"]
+assert "Existing seeded project:" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["MEMORY.md"]
+assert "/Projects/ai-homebase/" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["MEMORY.md"]
+assert "/Notes/ai-homebase/" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["MEMORY.md"]
 assert rendered_values["openclaw"]["ingress"]["hosts"][0]["host"] == "openclaw.test.internal"
 assert rendered_values["gitea"]["gitea"]["gitea"]["admin"]["existingSecret"] == "gitea-admin-secret"
 assert rendered_values["gitea"]["gitea"]["ingress"]["hosts"][0]["host"] == "gitea.test.internal"
@@ -213,6 +239,12 @@ assert rendered_values["argoCd"]["argocd"]["server"]["ingress"]["hostname"] == "
 assert rendered_values["nextcloud"]["admin"]["user"] == "test-admin"
 assert rendered_values["nextcloud"]["bootstrapUsers"][0]["username"] == "openclaw"
 assert rendered_values["nextcloud"]["bootstrapUsers"][0]["displayName"] == "OpenClaw"
+assert rendered_values["nextcloud"]["bootstrapProjectContent"][0]["slug"] == "ai-homebase"
+assert rendered_values["nextcloud"]["bootstrapProjectContent"][0]["ownerUsername"] == "openclaw"
+assert rendered_values["nextcloud"]["bootstrapProjectContent"][0]["projectsFiles"][0]["path"] == "overview.md"
+assert "running AI homebase cluster" in rendered_values["nextcloud"]["bootstrapProjectContent"][0]["projectsFiles"][0]["content"]
+assert rendered_values["nextcloud"]["bootstrapProjectContent"][0]["notes"][0]["path"] == "project-brief.md"
+assert "standing project for documenting and improving the cluster itself" in rendered_values["nextcloud"]["bootstrapProjectContent"][0]["notes"][0]["content"]
 assert rendered_values["nextcloud"]["ingress"]["private"]["host"] == "nextcloud.test.internal"
 assert rendered_values["nextcloud"]["ingress"]["public"]["host"] == "nextcloud.example.com"
 assert rendered_values["nextcloud"]["smtp"]["host"] == "platform-stack-postfix-relay"

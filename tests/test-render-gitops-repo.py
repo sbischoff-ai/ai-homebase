@@ -27,6 +27,9 @@ username = "coder-bot"
 [openclaw.agents.architect]
 model = "anthropic/claude-opus-4-6"
 
+[openclaw.agents.watchdog]
+model = "anthropic/claude-haiku-4-5"
+
 [hosts]
 openclaw = "openclaw.test.internal"
 nextcloud = "nextcloud.test.internal"
@@ -100,12 +103,19 @@ project = "platform-stack"
         assert '"models"' in bootstrap_values
         assert '"coder"' in bootstrap_values
         assert '"architect"' in bootstrap_values
+        assert '"watchdog"' in bootstrap_values
         assert 'claude-opus-4-6' in bootstrap_values
+        assert 'claude-haiku-4-5' in bootstrap_values
         assert '"mcp"' in bootstrap_values
         assert '"servers"' in bootstrap_values
         assert '"nextcloud"' in bootstrap_values
+        assert '"bootstrapProjectContent"' in bootstrap_values
+        assert '/Projects/ai-homebase/' in bootstrap_values
+        assert 'multi-agent-topology.md' in bootstrap_values
         assert '"workspaceBootstrap"' in bootstrap_values
         assert '"BOOTSTRAP.md"' in bootstrap_values
+        assert 'Treat larger efforts as projects' in bootstrap_values
+        assert 'Think in projects rather than isolated requests' in bootstrap_values
         assert "Authorization=${OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER}" in bootstrap_values
         assert "${OPENCLAW_NEXTCLOUD_MCP_INTERNAL_URL}" in bootstrap_values
         assert "${OPENCLAW_NEXTCLOUD_MCP_EXTERNAL_URL}" in bootstrap_values

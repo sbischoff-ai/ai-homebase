@@ -26,6 +26,8 @@ Fill in:
 
 This local bootstrap now creates a shared OpenClaw state directory on the host, bind-mounts it into the k3d nodes, and mounts the same directory into the Incus sandbox VM so remote Docker sandboxes see the same `/home/node/.openclaw` tree as the gateway pod.
 
+That means local OpenClaw state is host-backed rather than cluster-owned. Recreating the cluster alone does not reset it.
+
 If you reuse an older k3d cluster that was created before this shared-state bind mount existed, the bootstrap now fails fast with a clear message. In that case, recreate the cluster with:
 
 ```bash
@@ -72,6 +74,14 @@ kubectl --kubeconfig ~/.kube/k3d-ai-homebase-dev.yaml -n ai-homebase exec -it de
 ```bash
 ./scripts/k3d-local-teardown.sh --cluster-name ai-homebase-dev --vm-name openclaw-sandbox
 ```
+
+By default this now removes:
+
+- the `k3d` cluster
+- the Incus sandbox VM
+- the shared local OpenClaw state directory at `~/.local/state/ai-homebase/openclaw-state`
+
+Use `--keep-openclaw-state` when you intentionally want to preserve the local OpenClaw state across rebuilds.
 
 ## 6. GitOps Handoff
 
