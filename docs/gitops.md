@@ -22,6 +22,8 @@ The script performs five steps:
 
 The generated repo uses an app-of-apps shape, but the child app is the single `platform-stack` application. Argo CD is therefore self-managed through the umbrella chart instead of through a second standalone Argo CD release.
 
+The generated repo is a snapshot of the local `charts/` tree plus cluster-specific values at bootstrap time. A chart fix in this repo does not reach the running cluster until `bootstrap-gitops.sh` is rerun and the updated commit is pushed into the in-cluster GitOps repo.
+
 ## Bootstrap Config Inputs
 
 The GitOps handoff reads these values from `bootstrap.local.toml`:

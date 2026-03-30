@@ -36,24 +36,6 @@ spec:
         {{- end }}
       {{- end }}
       initContainers:
-        - name: recover-incomplete-bootstrap
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command:
-            - /bin/sh
-            - -ceu
-            - |
-              if [ ! -f /var/www/html/config/config.php ]; then
-                exit 0
-              fi
-              if su -s /bin/sh www-data -c 'cd /var/www/html && php occ status --output=json 2>/dev/null | grep -q "\"installed\":true"'; then
-                exit 0
-              fi
-              echo "removing incomplete Nextcloud bootstrap state"
-              rm -f /var/www/html/config/config.php /var/www/html/nextcloud-init-sync.lock
-          volumeMounts:
-            - name: data
-              mountPath: /var/www/html
         - name: wait-for-shared-postgresql-bootstrap
           image: "{{ .Values.bootstrapWait.image.repository }}:{{ .Values.bootstrapWait.image.tag }}"
           imagePullPolicy: {{ .Values.bootstrapWait.image.pullPolicy }}

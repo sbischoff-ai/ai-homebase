@@ -10,6 +10,7 @@ This chart deploys Nextcloud as a single primary web workload plus a dedicated c
 - **Bootstrap apps:** optional `bootstrapApps[]` renders a post-install/post-upgrade Job that waits for Nextcloud readiness, then converges the requested app set through `occ app:install` and `occ app:enable`.
 - **Bootstrap users:** optional `bootstrapUsers[]` renders a post-install/post-upgrade Job that waits for Nextcloud readiness, then creates listed local users if missing, reconciles their display names, and resets their passwords through `occ`.
 - **Bootstrap project content:** optional `bootstrapProjectContent[]` renders a post-install/post-upgrade Job that creates managed project content under `/Projects/<slug>/` and `/Notes/<slug>/` for a target user, then rescans those paths into Nextcloud.
+- **Restart safety:** startup checks never delete persisted Nextcloud state based on `occ status`; restart failures remain inspectable instead of mutating the PVC-backed runtime.
 
 ## Required secrets
 
@@ -71,6 +72,16 @@ Before each major step:
 3. Verify restore procedures (database + PVC) in a non-production environment.
 
 After upgrade, validate app health, background jobs, and external integrations before proceeding to the next major.
+
+## Failure handling
+
+The chart treats `php occ status` as a readiness signal only.
+
+If a restart finds broken or incomplete persisted state:
+
+- the pod may stay unready or fail;
+- bootstrap Jobs keep waiting for a healthy installed instance;
+- operator inspection or restore is required instead of chart-managed deletion of `config/config.php`.
 
 ## App bootstrap model
 
