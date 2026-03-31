@@ -12,6 +12,8 @@ global:
     openclaw: openclaw.homebase.local
     nextcloud: cloud.homebase.local
     nextcloudMcp: nextcloud-mcp.homebase.local
+    qdrant: qdrant.homebase.local
+    qdrantMcp: qdrant-mcp.homebase.local
     gitea: gitea.vpn.homebase.internal
     registry: registry.homebase.local
     argocd: argocd.vpn.homebase.internal
@@ -190,7 +192,7 @@ openclaw:
           HEARTBEAT.md: |
             Check whether any reminders, calendar items, or lightweight coordination notes should be written to Nextcloud instead of living only in transient chat history.
           MEMORY.md: |
-            Keep user-facing coordination state tidy. Prefer Nextcloud for reminders, calendar items, todos, and lightweight notes the user may need to access or share later.
+            Keep durable user-facing coordination state tidy. Prefer Nextcloud for reminders, calendar items, todos, lightweight notes, and shared artifacts the user may need to access or share later. For cross-agent memory and retrieval, store reusable context in Qdrant via the qdrant MCP tools.
           BOOTSTRAP.md: |
             Start a normal first-use bootstrap conversation with the user.
 
@@ -323,7 +325,7 @@ openclaw:
           HEARTBEAT.md: |
             Before finishing, check whether the implementation is validated enough for main to rely on it.
           MEMORY.md: |
-            Keep durable implementation context focused on codebase conventions, execution constraints, and known repo workflows.
+            Keep durable implementation context focused on codebase conventions, execution constraints, and known repo workflows. Store reusable engineering memories in Qdrant via qdrant MCP tools so other agents can retrieve them later.
       architect:
         workspace: /home/node/.openclaw/workspace-architect
         files:
@@ -605,6 +607,14 @@ openclaw:
             - ${OPENCLAW_NEXTCLOUD_MCP_EXTERNAL_URL}
             - --header
             - Authorization=${OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER}
+        qdrant:
+          command: node
+          args:
+            - /opt/openclaw-runtime/mcp/mcp-http-bridge.mjs
+            - --url
+            - ${OPENCLAW_QDRANT_MCP_INTERNAL_URL}
+            - --url
+            - ${OPENCLAW_QDRANT_MCP_EXTERNAL_URL}
     plugins:
       entries: {}
   podDisruptionBudget:
@@ -908,6 +918,61 @@ nextcloudMcp:
     - sharing
     - tables
     - calendar
+
+qdrant:
+  enabled: true
+  image:
+    repository: qdrant/qdrant
+    tag: "v1.17.1"
+    pullPolicy: IfNotPresent
+  ingress:
+    enabled: true
+    className: internal-nginx
+    annotations:
+      cert-manager.io/cluster-issuer: platform-stack-root-ca
+    hosts:
+      - host: qdrant.homebase.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: qdrant-tls
+        hosts:
+          - qdrant.homebase.local
+  persistence:
+    enabled: true
+    size: 100Gi
+
+qdrantMcp:
+  enabled: true
+  image:
+    repository: ghcr.io/qdrant/mcp-server-qdrant
+    tag: "v0.8.1"
+    pullPolicy: IfNotPresent
+  ingress:
+    enabled: true
+    className: internal-nginx
+    annotations:
+      cert-manager.io/cluster-issuer: platform-stack-root-ca
+    hosts:
+      - host: qdrant-mcp.homebase.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: qdrant-mcp-tls
+        hosts:
+          - qdrant-mcp.homebase.local
+  qdrant:
+    url: http://platform-stack-qdrant:6333
+    collectionName: openclaw-memory
+  embedding:
+    provider: openai
+    model: text-embedding-3-large
+  secretRefs:
+    - name: openclaw-app-secrets
+      key: OPENAI_API_KEY
+      envVar: OPENAI_API_KEY
 
 gitea:
   enabled: false

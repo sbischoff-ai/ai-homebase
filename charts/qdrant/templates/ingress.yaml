@@ -1,0 +1,39 @@
+{{- if and .Values.ingress.enabled (eq (coalesce .Values.ingress.defaultHost .Values.global.hosts.qdrant "") "") }}
+{{- fail "ingress.enabled=true requires ingress.defaultHost, global.hosts.qdrant, or ingress.hosts[*].host" }}
+{{- end }}
+{{- if .Values.ingress.enabled }}
+{{- $defaultHost := coalesce .Values.ingress.defaultHost .Values.global.hosts.qdrant }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "qdrant.fullname" . }}
+  labels:
+    {{- include "qdrant.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  rules:
+    {{- range .Values.ingress.hosts }}
+    - host: {{ default $defaultHost .host | quote }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}
+            pathType: {{ .pathType }}
+            backend:
+              service:
+                name: {{ include "qdrant.fullname" $ }}
+                port:
+                  number: {{ $.Values.service.port }}
+          {{- end }}
+    {{- end }}
+  {{- with .Values.ingress.tls }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}

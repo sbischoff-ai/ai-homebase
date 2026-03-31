@@ -5,6 +5,8 @@ global:
     openclaw: <openclaw-k3s-hostname>
     nextcloud: <nextcloud-k3s-hostname>
     nextcloudMcp: <nextcloud-mcp-k3s-hostname>
+    qdrant: <qdrant-k3s-hostname>
+    qdrantMcp: <qdrant-mcp-k3s-hostname>
     gitea: <gitea-k3s-hostname>
     registry: <registry-k3s-hostname>
     vaultwarden: <vaultwarden-k3s-hostname>

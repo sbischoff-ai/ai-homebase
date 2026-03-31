@@ -1,6 +1,6 @@
 # ai-homebase
 
-`ai-homebase` is an opinionated homelab platform for running OpenClaw as the center of a personal AI control plane. It combines a multi-agent OpenClaw setup with supporting services such as Nextcloud, a dedicated Nextcloud MCP gateway, Gitea, an in-cluster Docker registry, Paperless-ngx, Vaultwarden, shared PostgreSQL/Redis, and an in-cluster Postfix relay for application email.
+`ai-homebase` is an opinionated homelab platform for running OpenClaw as the center of a personal AI control plane. It combines a multi-agent OpenClaw setup with supporting services such as Nextcloud, a dedicated Nextcloud MCP gateway, Gitea, an in-cluster Docker registry, Paperless-ngx, Vaultwarden, shared PostgreSQL/Redis, an in-cluster Postfix relay for application email, and shared Qdrant/Qdrant MCP memory services for cross-agent RAG context.
 
 The point of the repo is not just “a pile of charts.” It gives you one coherent platform shape that works in two places: `k3d` for fast local iteration and `k3s` for the long-running homelab deployment. The bootstrap flow, secrets model, hostnames, multi-agent topology, MCP posture, and service contracts stay aligned between those targets so local validation is actually useful before you touch the real server.
 
