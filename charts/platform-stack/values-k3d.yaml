@@ -7,6 +7,8 @@ global:
     openclaw: openclaw.localtest.me
     nextcloud: nextcloud.localtest.me
     nextcloudMcp: nextcloud-mcp.localtest.me
+    qdrant: qdrant.localtest.me
+    qdrantMcp: qdrant-mcp.localtest.me
     gitea: gitea.localtest.me
     registry: registry.localtest.me
     argocd: argocd.localtest.me
@@ -114,6 +116,40 @@ nextcloudMcp:
       - secretName: nextcloud-mcp-tls
         hosts:
           - nextcloud-mcp.localtest.me
+
+qdrant:
+  enabled: true
+  ingress:
+    enabled: true
+    className: nginx
+    hosts:
+      - host: qdrant.localtest.me
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: qdrant-tls
+        hosts:
+          - qdrant.localtest.me
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: local-path
+
+qdrantMcp:
+  enabled: true
+  ingress:
+    enabled: true
+    className: nginx
+    hosts:
+      - host: qdrant-mcp.localtest.me
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: qdrant-mcp-tls
+        hosts:
+          - qdrant-mcp.localtest.me
 
 argoCd:
   enabled: false

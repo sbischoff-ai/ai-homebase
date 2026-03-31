@@ -2,6 +2,8 @@
 openclaw = "openclaw.localtest.me"
 nextcloud = "nextcloud.localtest.me"
 nextcloud_mcp = "nextcloud-mcp.localtest.me"
+qdrant = "qdrant.localtest.me"
+qdrant_mcp = "qdrant-mcp.localtest.me"
 nextcloud_public = ""
 gitea = "gitea.localtest.me"
 registry = "registry.localtest.me"

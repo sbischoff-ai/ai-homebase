@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "qdrant-mcp values",
+  "additionalProperties": true,
+  "required": ["image", "service", "qdrant", "embedding"],
+  "properties": {
+    "image": {
+      "type": "object",
+      "required": ["repository", "pullPolicy"],
+      "additionalProperties": true,
+      "properties": {
+        "repository": {"type": "string", "minLength": 1},
+        "tag": {"type": "string"},
+        "pullPolicy": {"type": "string", "enum": ["Always", "IfNotPresent", "Never"], "default": "IfNotPresent"}
+      }
+    },
+    "service": {
+      "type": "object",
+      "required": ["type", "port", "targetPort"],
+      "additionalProperties": true,
+      "properties": {
+        "type": {"type": "string", "enum": ["ClusterIP", "NodePort", "LoadBalancer", "ExternalName"], "default": "ClusterIP"},
+        "port": {"type": "integer", "minimum": 1, "maximum": 65535},
+        "targetPort": {"oneOf": [{"type": "integer", "minimum": 1, "maximum": 65535}, {"type": "string", "minLength": 1}]}
+      }
+    },
+    "qdrant": {
+      "type": "object",
+      "required": ["url", "collectionName"],
+      "additionalProperties": true,
+      "properties": {
+        "url": {"type": "string", "minLength": 1},
+        "collectionName": {"type": "string", "minLength": 1}
+      }
+    },
+    "embedding": {
+      "type": "object",
+      "required": ["provider", "model"],
+      "additionalProperties": true,
+      "properties": {
+        "provider": {"type": "string", "minLength": 1},
+        "model": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

@@ -29,6 +29,7 @@ REGISTRY_HOST_VALUE="registry.localtest.me"
 VAULTWARDEN_HOST_VALUE="vaultwarden.localtest.me"
 PAPERLESS_HOST_VALUE="paperless.localtest.me"
 NEXTCLOUD_MCP_HOST_VALUE="nextcloud-mcp.localtest.me"
+QDRANT_MCP_HOST_VALUE="qdrant-mcp.localtest.me"
 
 usage() {
   cat <<USAGE
@@ -101,6 +102,7 @@ REGISTRY_HOST_VALUE="${REGISTRY_HOST:-${REGISTRY_HOST_VALUE}}"
 VAULTWARDEN_HOST_VALUE="${VAULTWARDEN_HOST:-${VAULTWARDEN_HOST_VALUE}}"
 PAPERLESS_HOST_VALUE="${PAPERLESS_HOST:-${PAPERLESS_HOST_VALUE}}"
 NEXTCLOUD_MCP_HOST_VALUE="${NEXTCLOUD_MCP_HOST:-${NEXTCLOUD_MCP_HOST_VALUE}}"
+QDRANT_MCP_HOST_VALUE="${QDRANT_MCP_HOST:-${QDRANT_MCP_HOST_VALUE}}"
 
 step "Bootstrapping k3d cluster and ingress"
 K3D_UP_CMD=(
@@ -121,6 +123,7 @@ run_quiet ./scripts/incus-vm-up.sh \
   --shared-openclaw-state-target "$SHARED_OPENCLAW_STATE_VM_PATH" \
   --resolve-host "$OPENCLAW_HOST_VALUE" \
   --resolve-host "$NEXTCLOUD_MCP_HOST_VALUE" \
+  --resolve-host "$QDRANT_MCP_HOST_VALUE" \
   --resolve-host "$GITEA_HOST_VALUE" \
   --resolve-host "$REGISTRY_HOST_VALUE"
 ok "Incus sandbox VM is ready"

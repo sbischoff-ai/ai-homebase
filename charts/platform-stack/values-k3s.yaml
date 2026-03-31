@@ -19,6 +19,8 @@ global:
     openclaw: openclaw.vpn.homebase.internal
     nextcloud: cloud.homebase.internal
     nextcloudMcp: nextcloud-mcp.vpn.homebase.internal
+    qdrant: qdrant.vpn.homebase.internal
+    qdrantMcp: qdrant-mcp.vpn.homebase.internal
     gitea: gitea.vpn.homebase.internal
     registry: registry.vpn.homebase.internal
     argocd: argocd.vpn.homebase.internal
@@ -122,6 +124,54 @@ nextcloudMcp:
       - secretName: nextcloud-mcp-tls
         hosts:
           - nextcloud-mcp.vpn.homebase.internal
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+qdrant:
+  enabled: true
+  ingress:
+    enabled: true
+    className: nginx
+    hosts:
+      - host: qdrant.vpn.homebase.internal
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: qdrant-tls
+        hosts:
+          - qdrant.vpn.homebase.internal
+  persistence:
+    enabled: true
+    size: 100Gi
+    storageClass: local-path
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: "2"
+      memory: 4Gi
+
+qdrantMcp:
+  enabled: true
+  ingress:
+    enabled: true
+    className: nginx
+    hosts:
+      - host: qdrant-mcp.vpn.homebase.internal
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: qdrant-mcp-tls
+        hosts:
+          - qdrant-mcp.vpn.homebase.internal
   resources:
     requests:
       cpu: 200m

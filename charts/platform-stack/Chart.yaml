@@ -49,6 +49,15 @@ dependencies:
     repository: file://../paperless-ngx
     alias: paperlessNgx
     condition: paperlessNgx.enabled
+  - name: qdrant
+    version: 0.1.0
+    repository: file://../qdrant
+    condition: qdrant.enabled
+  - name: qdrant-mcp
+    version: 0.1.0
+    repository: file://../qdrant-mcp
+    alias: qdrantMcp
+    condition: qdrantMcp.enabled
   - name: shared-postgresql
     version: 0.1.0
     repository: file://../shared-postgresql

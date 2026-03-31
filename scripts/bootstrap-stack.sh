@@ -55,6 +55,8 @@ normalize_service_key() {
   case "$1" in
     openclaw|nextcloud|gitea|registry|vaultwarden) echo "$1" ;;
     nextcloud-mcp|nextcloudMcp) echo "nextcloudMcp" ;;
+    qdrant|qdrantMcp|qdrant-mcp)
+      if [[ "$1" == qdrant-mcp || "$1" == qdrantMcp ]]; then echo "qdrantMcp"; else echo "qdrant"; fi ;;
     postfix-relay|postfixRelay) echo "postfixRelay" ;;
     argo-cd|argocd|argoCd) echo "argoCd" ;;
     paperless-ngx|paperlessNgx) echo "paperlessNgx" ;;
@@ -156,7 +158,7 @@ Options:
   --verbose                    Stream full command output
   -h, --help                   Show this help message
 
-Supported services: openclaw, nextcloud, nextcloud-mcp, gitea, registry, argo-cd, vaultwarden, postfix-relay, paperless-ngx
+Supported services: openclaw, nextcloud, nextcloud-mcp, gitea, registry, argo-cd, vaultwarden, postfix-relay, paperless-ngx, qdrant, qdrant-mcp
 USAGE
 }
 

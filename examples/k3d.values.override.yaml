@@ -35,6 +35,8 @@ openclaw:
 # global:
 #   hosts:
 #     nextcloudMcp: nextcloud-mcp.example.internal
+#     qdrant: qdrant.example.internal
+#     qdrantMcp: qdrant-mcp.example.internal
 
 # Example: override the standard OpenClaw remote Docker sandbox endpoint or images.
 # Layer examples/openclaw.remote-docker.values.yaml after the target overlay when the default
