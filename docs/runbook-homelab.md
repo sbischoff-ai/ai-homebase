@@ -63,20 +63,17 @@ This runs the shared secret/bootstrap/apply path:
 1. create or refresh bootstrap-managed Secrets
 2. render the bootstrap-generated values layer from `bootstrap.local.toml`
 3. install or upgrade the Helm release
+4. hand the cluster over to the in-cluster GitOps repo, trigger the initial Argo sync, and validate the Argo application states
 
 Before expecting mail delivery from Nextcloud or Vaultwarden on `k3s`, complete the DNS and reverse-DNS steps in [networking.md](./networking.md) for the `[mail]` domain and SMTP hostname.
 
 The shipped `k3s` overlay now carries more explicit resource requests and limits than the local target because this homelab posture is expected to consolidate several stateful services on one host while still leaving room for future additions.
 
-## 5. Hand Off to GitOps
+## 5. GitOps Rerun
 
-After the normal `k3s` bootstrap is healthy, the regular next step is to add Argo CD and switch day-two changes to the GitOps repo:
+The normal `k3s` bootstrap now already adds Argo CD and completes the first GitOps sync/validation pass.
 
-```bash
-./scripts/bootstrap-gitops.sh --profile k3s --bootstrap-config bootstrap.local.toml
-```
-
-If you created the homelab sandbox VM with the default Incus state path, `bootstrap-gitops.sh` now reuses the same remote-Docker connection info and SSH key path as `bootstrap-stack.sh`. You only need to pass `--remote-docker-key` explicitly when you diverged from the standard key location.
+Re-run `./scripts/bootstrap-gitops.sh --profile k3s --bootstrap-config bootstrap.local.toml` only when you intentionally need to refresh the in-cluster GitOps repo snapshot from the current working tree without re-running the full bootstrap flow. If you created the homelab sandbox VM with the default Incus state path, `bootstrap-gitops.sh` reuses the same remote-Docker connection info and SSH key path as `bootstrap-stack.sh`. You only need to pass `--remote-docker-key` explicitly when you diverged from the standard key location.
 
 ## 6. Verify the Cluster
 
