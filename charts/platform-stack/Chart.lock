@@ -29,11 +29,17 @@ dependencies:
 - name: paperless-ngx
   repository: file://../paperless-ngx
   version: 0.1.0
+- name: qdrant
+  repository: file://../qdrant
+  version: 0.1.0
+- name: qdrant-mcp
+  repository: file://../qdrant-mcp
+  version: 0.1.0
 - name: shared-postgresql
   repository: file://../shared-postgresql
   version: 0.1.0
 - name: shared-redis
   repository: file://../shared-redis
   version: 0.1.0
-digest: sha256:a52acf39388551a29826b90c1d7acce81f0b2ebc1e362834995ed856ebf60283
-generated: "2026-03-29T17:36:06.421162229+02:00"
+digest: sha256:db5dd2c733f666a91d32f18c2565659ac3360cb5563f74dd5d4cac2c5990dca7
+generated: "2026-03-31T08:14:39.860321709+02:00"

@@ -13,9 +13,13 @@
 {{- $launcherDir := dir $launcherPath }}
 {{- $remoteDockerCliInstallPath := .Values.remoteDocker.cli.installPath | default "/opt/openclaw-tools/bin" }}
 {{- $nextcloudMcpHost := .Values.global.hosts.nextcloudMcp | default "" }}
+{{- $qdrantMcpHost := .Values.global.hosts.qdrantMcp | default "" }}
 {{- $nextcloudMcpExternalScheme := ternary "http" "https" (hasSuffix ".localtest.me" $nextcloudMcpHost) }}
 {{- $nextcloudMcpExternalUrl := ternary (printf "%s://%s/mcp" $nextcloudMcpExternalScheme $nextcloudMcpHost) "" (ne $nextcloudMcpHost "") }}
 {{- $nextcloudMcpInternalUrl := printf "http://%s-nextcloud-mcp.%s.svc.cluster.local:8000/mcp" .Release.Name .Release.Namespace }}
+{{- $qdrantMcpExternalScheme := ternary "http" "https" (hasSuffix ".localtest.me" $qdrantMcpHost) }}
+{{- $qdrantMcpExternalUrl := ternary (printf "%s://%s/mcp" $qdrantMcpExternalScheme $qdrantMcpHost) "" (ne $qdrantMcpHost "") }}
+{{- $qdrantMcpInternalUrl := printf "http://%s-qdrant-mcp.%s.svc.cluster.local:8000/mcp" .Release.Name .Release.Namespace }}
 {{- if and (eq $gatewayAuthMode "token") (not .Values.existingSecret) }}
 {{- fail "openclaw.existingSecret is required when openclaw.gateway.auth.mode=token" }}
 {{- end }}
@@ -371,6 +375,10 @@ spec:
               value: {{ $nextcloudMcpInternalUrl | quote }}
             - name: OPENCLAW_NEXTCLOUD_MCP_EXTERNAL_URL
               value: {{ $nextcloudMcpExternalUrl | quote }}
+            - name: OPENCLAW_QDRANT_MCP_INTERNAL_URL
+              value: {{ $qdrantMcpInternalUrl | quote }}
+            - name: OPENCLAW_QDRANT_MCP_EXTERNAL_URL
+              value: {{ $qdrantMcpExternalUrl | quote }}
             {{- if $remoteDockerEnabled }}
             - name: DOCKER_HOST
               value: {{ .Values.remoteDocker.dockerHost | quote }}

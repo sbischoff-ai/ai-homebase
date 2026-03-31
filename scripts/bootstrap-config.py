@@ -57,6 +57,8 @@ HOST_KEYS = {
     "openclaw": ("hosts", "openclaw"),
     "nextcloud": ("hosts", "nextcloud"),
     "nextcloud_mcp": ("hosts", "nextcloud_mcp"),
+    "qdrant": ("hosts", "qdrant"),
+    "qdrant_mcp": ("hosts", "qdrant_mcp"),
     "nextcloud_public": ("hosts", "nextcloud_public"),
     "gitea": ("hosts", "gitea"),
     "registry": ("hosts", "registry"),
@@ -394,7 +396,7 @@ def workspace_bootstrap_values(
                     ),
                     "MEMORY.md": normalize_markdown(
                         """
-                        Keep user-facing coordination state tidy. Prefer Nextcloud for reminders, calendar items, todos, and lightweight notes the user may need to access or share later.
+                        Keep durable user-facing coordination state tidy. Prefer Nextcloud for reminders, calendar items, todos, lightweight notes, and shared artifacts the user may need to access or share later. For cross-agent memory and retrieval, store reusable context in Qdrant via the qdrant MCP tools.
                         """
                     ),
                     "BOOTSTRAP.md": normalize_markdown(
@@ -554,7 +556,7 @@ def workspace_bootstrap_values(
                     ),
                     "MEMORY.md": normalize_markdown(
                         """
-                        Keep durable implementation context focused on codebase conventions, execution constraints, and known repo workflows.
+                        Keep durable implementation context focused on codebase conventions, execution constraints, and known repo workflows. Store reusable engineering memories in Qdrant via qdrant MCP tools so other agents can retrieve them later.
                         """
                     ),
                 },
@@ -873,6 +875,8 @@ def resolved_values(data: dict[str, object]) -> dict[str, str]:
         "NEXTCLOUD_MCP_HOST": nested_string(data, HOST_KEYS["nextcloud_mcp"]),
         "NEXTCLOUD_PUBLIC_HOST": nested_string(data, HOST_KEYS["nextcloud_public"]),
         "GITEA_HOST": nested_string(data, HOST_KEYS["gitea"]),
+        "QDRANT_HOST": nested_string(data, HOST_KEYS["qdrant"]),
+        "QDRANT_MCP_HOST": nested_string(data, HOST_KEYS["qdrant_mcp"]),
         "REGISTRY_HOST": nested_string(data, HOST_KEYS["registry"]),
         "ARGOCD_HOST": nested_string(data, HOST_KEYS["argocd"]),
         "VAULTWARDEN_HOST": nested_string(data, HOST_KEYS["vaultwarden"]),
@@ -954,6 +958,8 @@ def command_render_values(args: argparse.Namespace) -> int:
         "openclaw": values["OPENCLAW_HOST"],
         "nextcloud": values["NEXTCLOUD_HOST"],
         "nextcloudMcp": values["NEXTCLOUD_MCP_HOST"],
+        "qdrant": values["QDRANT_HOST"],
+        "qdrantMcp": values["QDRANT_MCP_HOST"],
         "gitea": values["GITEA_HOST"],
         "registry": values["REGISTRY_HOST"],
         "argocd": values["ARGOCD_HOST"],
@@ -1085,23 +1091,33 @@ def command_render_values(args: argparse.Namespace) -> int:
     if values["GITHUB_TOKEN"]:
         openclaw["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["GITHUB_TOKEN"] = "${GITHUB_TOKEN}"
     openclaw.setdefault("openclaw", {}).setdefault("commands", {})["mcp"] = True
+    mcp_servers: dict[str, object] = {}
     if values["NEXTCLOUD_MCP_HOST"]:
-        openclaw["openclaw"]["mcp"] = {
-            "servers": {
-                "nextcloud": {
-                    "command": "node",
-                    "args": [
-                        SHARED_MCP_BRIDGE_PATH,
-                        "--url",
-                        "${OPENCLAW_NEXTCLOUD_MCP_INTERNAL_URL}",
-                        "--url",
-                        "${OPENCLAW_NEXTCLOUD_MCP_EXTERNAL_URL}",
-                        "--header",
-                        "Authorization=${OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER}",
-                    ],
-                }
-            }
+        mcp_servers["nextcloud"] = {
+            "command": "node",
+            "args": [
+                SHARED_MCP_BRIDGE_PATH,
+                "--url",
+                "${OPENCLAW_NEXTCLOUD_MCP_INTERNAL_URL}",
+                "--url",
+                "${OPENCLAW_NEXTCLOUD_MCP_EXTERNAL_URL}",
+                "--header",
+                "Authorization=${OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER}",
+            ],
         }
+    if values["QDRANT_MCP_HOST"]:
+        mcp_servers["qdrant"] = {
+            "command": "node",
+            "args": [
+                SHARED_MCP_BRIDGE_PATH,
+                "--url",
+                "${OPENCLAW_QDRANT_MCP_INTERNAL_URL}",
+                "--url",
+                "${OPENCLAW_QDRANT_MCP_EXTERNAL_URL}",
+            ],
+        }
+    if mcp_servers:
+        openclaw["openclaw"]["mcp"] = {"servers": mcp_servers}
     if values["OPENCLAW_HOST"]:
         openclaw.setdefault("ingress", {})
         openclaw["ingress"]["hosts"] = [
@@ -1252,6 +1268,46 @@ def command_render_values(args: argparse.Namespace) -> int:
                     ],
                 }
                 if values["NEXTCLOUD_MCP_HOST"]
+                else {}
+            ),
+        },
+        "qdrant": {
+            "ingress": (
+                {
+                    "hosts": [
+                        {
+                            "host": values["QDRANT_HOST"],
+                            "paths": [{"path": "/", "pathType": "Prefix"}],
+                        }
+                    ],
+                    "tls": [
+                        {
+                            "secretName": "qdrant-tls",
+                            "hosts": [values["QDRANT_HOST"]],
+                        }
+                    ],
+                }
+                if values["QDRANT_HOST"]
+                else {}
+            ),
+        },
+        "qdrantMcp": {
+            "ingress": (
+                {
+                    "hosts": [
+                        {
+                            "host": values["QDRANT_MCP_HOST"],
+                            "paths": [{"path": "/", "pathType": "Prefix"}],
+                        }
+                    ],
+                    "tls": [
+                        {
+                            "secretName": "qdrant-mcp-tls",
+                            "hosts": [values["QDRANT_MCP_HOST"]],
+                        }
+                    ],
+                }
+                if values["QDRANT_MCP_HOST"]
                 else {}
             ),
         },

@@ -1,0 +1,100 @@
+nameOverride: ""
+fullnameOverride: ""
+
+replicaCount: 1
+
+image:
+  repository: ghcr.io/qdrant/mcp-server-qdrant
+  tag: "v0.8.1"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+global:
+  imagePullSecrets: []
+  hosts:
+    qdrantMcp: ""
+  commonLabels: {}
+
+service:
+  type: ClusterIP
+  port: 8000
+  targetPort: 8000
+  annotations: {}
+
+ingress:
+  enabled: true
+  className: ""
+  annotations: {}
+  defaultHost: qdrant-mcp.example.com
+  hosts:
+    - host: ""
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+qdrant:
+  url: http://platform-stack-qdrant:6333
+  collectionName: openclaw-memory
+
+embedding:
+  provider: openai
+  model: text-embedding-3-large
+
+command:
+  - mcp-server-qdrant
+  - --transport
+  - streamable-http
+
+podAnnotations: {}
+podLabels: {}
+
+env:
+  - name: FASTMCP_HOST
+    value: "0.0.0.0"
+envFromSecrets: []
+existingSecret: ""
+secretRefs:
+  - name: openclaw-app-secrets
+    key: OPENAI_API_KEY
+    envVar: OPENAI_API_KEY
+
+podSecurityContext:
+  fsGroup: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi
+
+probes:
+  readiness:
+    enabled: true
+    path: /health
+    initialDelaySeconds: 10
+    periodSeconds: 10
+  liveness:
+    enabled: true
+    path: /health
+    initialDelaySeconds: 20
+    periodSeconds: 15
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
