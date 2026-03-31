@@ -170,7 +170,7 @@ assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["id"] == "co
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["workspace"] == "/home/node/.openclaw/workspace-coder"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["model"]["primary"] == "anthropic/claude-sonnet-4-5"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["mode"] == "all"
-assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["image"] == "openclaw-sandbox-coder:bookworm-slim"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["image"] == "registry.test.internal/coder-bot/openclaw-sandbox-coder:bookworm-slim"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["CODER_GITEA_USERNAME"] == "coder-bot"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["CODER_GITEA_HOST"] == "gitea.test.internal"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["CODER_GITEA_BASE_URL"] == "https://gitea.test.internal"
@@ -182,8 +182,9 @@ assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["CODER_REGISTRY_NAMESPACE"] == "coder-bot"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["OPENAI_API_KEY"] == "${OPENAI_API_KEY}"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["GITHUB_TOKEN"] == "${GITHUB_TOKEN}"
-assert "export HOME=/workspace" in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["setupCommand"]
-assert 'mkdir -p "${XDG_CONFIG_HOME}/tea" "${XDG_CACHE_HOME}" "${XDG_STATE_HOME}" "${HOME}/.docker"' in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["setupCommand"]
+assert 'export HOME=/workspace/.home' in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["setupCommand"]
+assert 'export CODEX_HOME="${HOME}/.codex"' in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["setupCommand"]
+assert 'mkdir -p "${CODEX_HOME}" "${XDG_CONFIG_HOME}/tea" "${XDG_CACHE_HOME}" "${XDG_STATE_HOME}" "${HOME}/.docker"' in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["setupCommand"]
 assert "git config --global user.name" in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["setupCommand"]
 assert "machine gitea.test.internal" in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["setupCommand"]
 assert "tea login add --name coder" in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["setupCommand"]
@@ -205,16 +206,13 @@ assert rendered_values["openclaw"]["workspaceBootstrap"]["enabled"] is True
 assert rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["workspace"] == "/home/node/.openclaw/workspace"
 assert "openclaw" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["TOOLS.md"]
 assert "test-admin" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["USER.md"]
-assert "set up direct channels for architect and coder" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["TOOLS.md"]
-assert "agent:coder:main" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["TOOLS.md"]
-assert "agent:watchdog:main" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["TOOLS.md"]
-assert "Handle ordinary non-coding tasks yourself when they do not cross a specialist boundary." in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["TOOLS.md"]
-assert "create project folders or project documentation structures" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["TOOLS.md"]
-assert "coding-agent` or `github" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["TOOLS.md"]
-assert "sessions_spawn" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["AGENTS.md"]
-assert "Handle ordinary non-coding tasks directly when they do not cross a specialist boundary." in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["AGENTS.md"]
-assert "external repository access belong with coder" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["AGENTS.md"]
-assert "Do not create project folders, write specifications, break work into formal task breakdowns" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["AGENTS.md"]
+assert "### Nextcloud Usage - Main" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["TOOLS.md"]
+assert "Before routing work to a specialist" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["TOOLS.md"]
+assert "store a Qdrant memory summarizing it" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["TOOLS.md"]
+assert "## Task Classification Gate (mandatory)" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["AGENTS.md"]
+assert "## Handoff Protocol" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["AGENTS.md"]
+assert "## Task Handoff" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["AGENTS.md"]
+assert "Main is the only agent that spawns sub-agents." in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["AGENTS.md"]
 assert "what the user wants to call you" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
 assert "sessions_send" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
 assert "watchdog monitors" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
@@ -222,19 +220,22 @@ assert "ordinary non-coding tasks stay with you" in rendered_values["openclaw"][
 assert "project setup, specifications, task breakdowns, and durable project documentation belong with architect" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
 assert "/Projects/ai-homebase/" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
 assert "share `/Projects/` and `/Notes/` with that user" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
+assert "# Memory - Main Agent" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["MEMORY.md"]
+assert '[domain] [kind] Complete statement here.' in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["MEMORY.md"]
+assert '"agent": "main"' in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["MEMORY.md"]
 assert "planning and design specialist" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["AGENTS.md"]
-assert "Good fits include `summarize`, `session-logs`, `healthcheck`, `node-connect`, and `skill-creator`." in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["AGENTS.md"]
-assert "Think in projects rather than isolated requests" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["AGENTS.md"]
-assert "programming domain" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["AGENTS.md"]
-assert "Delegate substantial coding work to Codex" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["AGENTS.md"]
-assert "low-cost monitoring and triage specialist" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["watchdog"]["files"]["AGENTS.md"]
-assert "Never execute when you should escalate" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["watchdog"]["files"]["AGENTS.md"]
-assert "agent:main:main" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["watchdog"]["files"]["TOOLS.md"]
-assert "Route most findings to main" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["watchdog"]["files"]["TOOLS.md"]
+assert "## Task Classification Gate (mandatory)" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["AGENTS.md"]
+assert "## Handoff Complete" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["AGENTS.md"]
+assert "implementation and execution specialist" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["AGENTS.md"]
+assert "If the spec or plan has gaps that require design decisions, stop" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["AGENTS.md"]
+assert "monitoring and triage specialist" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["watchdog"]["files"]["AGENTS.md"]
+assert "## Watchdog Alert" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["watchdog"]["files"]["AGENTS.md"]
+assert "/Projects/ai-homebase/incidents/" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["watchdog"]["files"]["TOOLS.md"]
+assert "/Projects/ai-homebase/baselines.md" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["watchdog"]["files"]["TOOLS.md"]
 assert "coder-bot" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
 assert "test-admin" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["USER.md"]
-assert "Tag your shared notes with `#coder`" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
-assert "Main owns the shared calendar" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
+assert "append the decision and rationale to `/Projects/<slug>/decisions.md`" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
+assert "Code, configs, and scripts stay in repositories" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
 assert "agent:main:main" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
 assert "Use `tea` for repository creation" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
 assert "If `GITHUB_TOKEN` is present" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
@@ -242,19 +243,24 @@ assert "Your primary coding execution path is the `coding-agent` flow backed by 
 assert "Treat the GitOps repository as a deployment-definition repo" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
 assert "Default new cluster-bound images to the in-cluster registry" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
 assert "Common tools available include `bash`" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
+assert "/workspace` is your repo working tree; persistent tool state lives under `/workspace/.home`" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
+assert "`HOME`, `CODEX_HOME`, and XDG directories are preconfigured inside `/workspace/.home`" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
 assert "The Gitea ingress hostname `gitea.test.internal` should resolve from your sandbox runtime." in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
 assert "The registry hostname `registry.test.internal` should resolve from your sandbox runtime" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
 assert "skills/gitea-tea/SKILL.md" not in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]
 assert "skills/gitops-homebase/SKILL.md" not in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]
-assert "Tag your shared notes with `#architect`" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["TOOLS.md"]
-assert "Keep project material in predictable documentation folders per project" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["TOOLS.md"]
-assert "/Projects/<project-slug>/" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["TOOLS.md"]
-assert "/Notes/<project-slug>/" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["TOOLS.md"]
-assert "agent:main:main" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["TOOLS.md"]
-assert "make sure `/Projects/` and `/Notes/` are shared with them as whole top-level folders" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["TOOLS.md"]
+assert "Decision records should be appended to `/Projects/<slug>/decisions.md`." in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["TOOLS.md"]
+assert "archive it with an `-archived-YYYY-MM-DD` suffix" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["TOOLS.md"]
+assert "store a Qdrant memory summarizing the key decisions" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["TOOLS.md"]
 assert "Existing seeded project:" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["MEMORY.md"]
 assert "/Projects/ai-homebase/" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["MEMORY.md"]
 assert "/Notes/ai-homebase/" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["MEMORY.md"]
+assert '[domain] [kind] Complete statement here.' in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["MEMORY.md"]
+assert '"agent": "architect"' in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["MEMORY.md"]
+assert '# Memory - Coder Agent' in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["MEMORY.md"]
+assert '"agent": "coder"' in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["MEMORY.md"]
+assert '# Memory - Watchdog Agent' in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["watchdog"]["files"]["MEMORY.md"]
+assert '"agent": "watchdog"' in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["watchdog"]["files"]["MEMORY.md"]
 assert rendered_values["openclaw"]["ingress"]["hosts"][0]["host"] == "openclaw.test.internal"
 assert rendered_values["gitea"]["gitea"]["gitea"]["admin"]["existingSecret"] == "gitea-admin-secret"
 assert rendered_values["gitea"]["gitea"]["ingress"]["hosts"][0]["host"] == "gitea.test.internal"
@@ -269,6 +275,11 @@ assert rendered_values["nextcloud"]["bootstrapProjectContent"][0]["slug"] == "ai
 assert rendered_values["nextcloud"]["bootstrapProjectContent"][0]["ownerUsername"] == "openclaw"
 assert rendered_values["nextcloud"]["bootstrapProjectContent"][0]["projectsFiles"][0]["path"] == "overview.md"
 assert "running AI homebase cluster" in rendered_values["nextcloud"]["bootstrapProjectContent"][0]["projectsFiles"][0]["content"]
+assert rendered_values["nextcloud"]["bootstrapProjectContent"][0]["projectsFiles"][5]["path"] == "qdrant-memory-schema.md"
+assert "Qdrant Semantic Memory Schema" in rendered_values["nextcloud"]["bootstrapProjectContent"][0]["projectsFiles"][5]["content"]
+assert rendered_values["nextcloud"]["bootstrapProjectContent"][0]["projectsFiles"][6]["path"] == "incidents/README.md"
+assert rendered_values["nextcloud"]["bootstrapProjectContent"][0]["projectsFiles"][7]["path"] == "baselines.md"
+assert rendered_values["nextcloud"]["bootstrapProjectContent"][0]["projectsFiles"][8]["path"] == "escalation-rules.md"
 assert rendered_values["nextcloud"]["bootstrapProjectContent"][0]["notes"][0]["path"] == "project-brief.md"
 assert "standing project for documenting and improving the cluster itself" in rendered_values["nextcloud"]["bootstrapProjectContent"][0]["notes"][0]["content"]
 assert rendered_values["nextcloud"]["ingress"]["private"]["host"] == "nextcloud.test.internal"
@@ -297,11 +308,16 @@ assert rendered_values["global"]["mail"]["smtpHost"] == "smtp.example.com"
 assert rendered_values["global"]["hosts"]["registry"] == "registry.test.internal"
 
 coder_dockerfile = (REPO_ROOT / "images" / "openclaw-sandbox-coder" / "Dockerfile").read_text(encoding="utf-8")
-assert "usermod --home /workspace sandbox" in coder_dockerfile
-assert "ENV HOME=/workspace" in coder_dockerfile
+qdrant_mcp_values = (REPO_ROOT / "charts" / "qdrant-mcp" / "values.yaml").read_text(encoding="utf-8")
+assert "usermod --home /home/sandbox sandbox" in coder_dockerfile
+assert "mkdir -p /home/sandbox /workspace" in coder_dockerfile
+assert "ENV HOME=/workspace" not in coder_dockerfile
 assert "WORKDIR /workspace" in coder_dockerfile
 assert "tmux" in coder_dockerfile
 assert "@openai/codex" in coder_dockerfile
+assert "toolDescriptions:" in qdrant_mcp_values
+assert "Store a memory for cross-agent recall." in qdrant_mcp_values
+assert "Search shared semantic memory across all agents." in qdrant_mcp_values
 
 invalid_config = write_config(
     """

@@ -54,6 +54,10 @@ spec:
               value: {{ .Values.embedding.provider | quote }}
             - name: EMBEDDING_MODEL
               value: {{ .Values.embedding.model | quote }}
+            - name: TOOL_STORE_DESCRIPTION
+              value: {{ .Values.toolDescriptions.store | quote }}
+            - name: TOOL_FIND_DESCRIPTION
+              value: {{ .Values.toolDescriptions.find | quote }}
             {{- range .Values.env }}
             - name: {{ .name }}
               value: {{ .value | quote }}

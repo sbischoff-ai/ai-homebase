@@ -50,11 +50,9 @@ RUN npm install -g @openai/codex && \
 RUN curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash && \
     helm version --short
 
-RUN usermod --home /workspace sandbox && \
-    mkdir -p /workspace && \
-    chown sandbox:sandbox /workspace
-
-ENV HOME=/workspace
+RUN usermod --home /home/sandbox sandbox && \
+    mkdir -p /home/sandbox /workspace && \
+    chown sandbox:sandbox /home/sandbox /workspace
 
 USER sandbox
 WORKDIR /workspace
