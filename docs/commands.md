@@ -141,7 +141,7 @@ source ~/.local/state/ai-homebase/incus/openclaw-sandbox.env
 ./scripts/build-openclaw-sandbox-images.sh
 ```
 
-`bootstrap-stack.sh` now auto-builds the repo-managed coder sandbox image and auto-loads it to the remote Docker host when the rendered OpenClaw config references that image. The manual commands above remain useful for debugging or preloading images explicitly.
+`bootstrap-stack.sh` now auto-builds the repo-managed OpenClaw gateway image for local `k3d`, rebuilds the regular and coder sandbox images, remote-loads those sandbox images onto the Incus-backed Docker host, and publishes the regular/coder images to the in-cluster registry under their canonical runtime tags when the rendered OpenClaw config references them. The manual commands above remain useful for debugging or preloading images explicitly.
 
 ## Fresh Ubuntu 24.04 `k3s` host prep
 

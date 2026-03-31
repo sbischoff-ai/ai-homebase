@@ -430,21 +430,23 @@ stringData:
 PY
 }
 
-push_gitops_repo() {
+push_bootstrap_repo() {
   local repo_dir="$1"
   local remote_url="$2"
   local askpass_script="$3"
+  local repo_branch="$4"
+  local commit_message="$5"
 
   (
     cd "$repo_dir"
-    git init -b "$GITOPS_REPO_BRANCH" >/dev/null
+    git init -b "$repo_branch" >/dev/null
     git add .
-    git -c user.name="$CODER_GITEA_USERNAME" -c user.email="$CODER_GITEA_EMAIL" commit -m "Bootstrap GitOps repo" >/dev/null
+    git -c user.name="$CODER_GITEA_USERNAME" -c user.email="$CODER_GITEA_EMAIL" commit -m "$commit_message" >/dev/null
     git remote add origin "$remote_url"
     GIT_TERMINAL_PROMPT=0 \
     GIT_USERNAME="$CODER_GITEA_USERNAME" \
     GIT_PASSWORD="$CODER_GITEA_PASSWORD" \
-    git -c core.askPass="$askpass_script" push --force origin "HEAD:${GITOPS_REPO_BRANCH}" >/dev/null
+    git -c core.askPass="$askpass_script" push --force origin "HEAD:${repo_branch}" >/dev/null
   )
 }
 
@@ -590,14 +592,30 @@ elif [[ "$REPO_STATUS" != "200" ]]; then
   exit 1
 fi
 
+step "Creating or updating the sandbox-images repo in Gitea"
+SANDBOX_REPO_STATUS="$(
+  curl -sS -u "${CODER_GITEA_USERNAME}:${CODER_GITEA_PASSWORD}" \
+    -o /dev/null -w '%{http_code}' \
+    "${GITEA_API_URL}/repos/${CODER_GITEA_USERNAME}/${SANDBOX_IMAGES_REPO_NAME}"
+)"
+if [[ "$SANDBOX_REPO_STATUS" == "404" ]]; then
+  SANDBOX_REPO_PAYLOAD="$(build_repo_payload "$SANDBOX_IMAGES_REPO_NAME" "$GITOPS_REPO_BRANCH" "$GITOPS_REPO_PRIVATE")"
+  gitea_api_json POST "${GITEA_API_URL}/user/repos" "$CODER_GITEA_USERNAME" "$CODER_GITEA_PASSWORD" "$SANDBOX_REPO_PAYLOAD" >/dev/null
+elif [[ "$SANDBOX_REPO_STATUS" != "200" ]]; then
+  echo "Unexpected sandbox-images Gitea repo lookup status: ${SANDBOX_REPO_STATUS}" >&2
+  exit 1
+fi
+
 EXTERNAL_REPO_URL="${GITEA_BASE_URL}/${CODER_GITEA_USERNAME}/${GITOPS_REPO_NAME}.git"
 INTERNAL_REPO_URL="http://${RELEASE_NAME}-gitea-http.${NAMESPACE}.svc.cluster.local:3000/${CODER_GITEA_USERNAME}/${GITOPS_REPO_NAME}.git"
+SANDBOX_IMAGES_EXTERNAL_REPO_URL="${GITEA_BASE_URL}/${CODER_GITEA_USERNAME}/${SANDBOX_IMAGES_REPO_NAME}.git"
 
 step "Rendering and pushing the GitOps repo snapshot"
 REPO_WORK_DIR="$(mktemp -d /tmp/ai-homebase-gitops-repo.XXXXXX)"
+SANDBOX_IMAGES_REPO_WORK_DIR="$(mktemp -d /tmp/ai-homebase-sandbox-images-repo.XXXXXX)"
 ASKPASS_SCRIPT="$(mktemp /tmp/ai-homebase-gitops-askpass.XXXXXX)"
 ARGOCD_REPO_SECRET_MANIFEST="$(mktemp /tmp/ai-homebase-argocd-repo-secret.XXXXXX.yaml)"
-trap 'rm -rf "$REPO_WORK_DIR" "$ASKPASS_SCRIPT" "$ARGOCD_REPO_SECRET_MANIFEST"' EXIT
+trap 'rm -rf "$REPO_WORK_DIR" "$SANDBOX_IMAGES_REPO_WORK_DIR" "$ASKPASS_SCRIPT" "$ARGOCD_REPO_SECRET_MANIFEST"' EXIT
 
 cat >"$ASKPASS_SCRIPT" <<'SH'
 #!/usr/bin/env bash
@@ -628,7 +646,14 @@ if [[ -n "$REMOTE_DOCKER_PORT" ]]; then
 fi
 "${RENDER_GITOPS_CMD[@]}"
 
-push_gitops_repo "$REPO_WORK_DIR" "$EXTERNAL_REPO_URL" "$ASKPASS_SCRIPT"
+python3 ./scripts/render-sandbox-images-repo.py \
+  --output-dir "$SANDBOX_IMAGES_REPO_WORK_DIR" \
+  --registry-host "$REGISTRY_HOST" \
+  --repo-owner "$CODER_GITEA_USERNAME" \
+  --gitops-repo-name "$GITOPS_REPO_NAME"
+
+push_bootstrap_repo "$REPO_WORK_DIR" "$EXTERNAL_REPO_URL" "$ASKPASS_SCRIPT" "$GITOPS_REPO_BRANCH" "Bootstrap GitOps repo"
+push_bootstrap_repo "$SANDBOX_IMAGES_REPO_WORK_DIR" "$SANDBOX_IMAGES_EXTERNAL_REPO_URL" "$ASKPASS_SCRIPT" "$GITOPS_REPO_BRANCH" "Bootstrap sandbox images repo"
 
 step "Persisting GitOps bootstrap credentials"
 create_and_apply_secret "$GITOPS_SECRET_NAME" \
@@ -636,6 +661,7 @@ create_and_apply_secret "$GITOPS_SECRET_NAME" \
   --from-literal=CODER_GITEA_EMAIL="$CODER_GITEA_EMAIL" \
   --from-literal=CODER_GITEA_PASSWORD="$CODER_GITEA_PASSWORD" \
   --from-literal=GITOPS_REPO_NAME="$GITOPS_REPO_NAME" \
+  --from-literal=SANDBOX_IMAGES_REPO_NAME="$SANDBOX_IMAGES_REPO_NAME" \
   --from-literal=GITOPS_REPO_BRANCH="$GITOPS_REPO_BRANCH" \
   --from-literal=GITOPS_PROJECT="$GITOPS_PROJECT"
 
@@ -654,5 +680,6 @@ sync_and_validate_argocd_apps "${ARGOCD_ADMIN_USER:-admin}" "${ARGOCD_ADMIN_PASS
 printf 'GitOps bootstrap complete.\n'
 printf '  Argo CD URL: http://%s\n' "$ARGOCD_HOST"
 printf '  Gitea GitOps repo: %s\n' "$EXTERNAL_REPO_URL"
+printf '  Gitea sandbox images repo: %s\n' "$SANDBOX_IMAGES_EXTERNAL_REPO_URL"
 printf '  Argo CD repository URL: %s\n' "$INTERNAL_REPO_URL"
 printf '  Argo CD project: %s\n' "$GITOPS_PROJECT"

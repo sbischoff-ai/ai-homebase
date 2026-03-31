@@ -87,6 +87,7 @@ password = ""
 [gitops]
 cluster_name = ""
 repo_name = "cluster-gitops"
+sandbox_images_repo_name = "openclaw-sandbox-images"
 repo_branch = "main"
 repo_private = true
 project = "platform-stack"

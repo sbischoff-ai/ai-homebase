@@ -28,9 +28,9 @@ DEFAULT_ARCHITECT_MODEL = "anthropic/claude-opus-4-6"
 DEFAULT_WATCHDOG_MODEL = "anthropic/claude-haiku-4-5"
 SHARED_MCP_BRIDGE_PATH = "/opt/openclaw-runtime/mcp/mcp-http-bridge.mjs"
 NEXTCLOUD_MCP_USERNAME = "openclaw"
-DEFAULT_CODER_SANDBOX_IMAGE = "openclaw-sandbox-coder:bookworm-slim"
 DEFAULT_CODER_GITEA_USERNAME = "coder"
 DEFAULT_REGISTRY_USERNAME = "coder"
+DEFAULT_SANDBOX_IMAGES_REPO_NAME = "openclaw-sandbox-images"
 BUNDLED_SKILLS = [
     "weather",
     "healthcheck",
@@ -114,6 +114,12 @@ def normalize_markdown(text: str) -> str:
     return textwrap.dedent(text).strip() + "\n"
 
 
+def registry_image_ref(registry_host: str, namespace: str, image_name: str, tag: str = "bookworm-slim") -> str:
+    if not registry_host or not namespace:
+        return f"{image_name}:{tag}"
+    return f"{registry_host}/{namespace}/{image_name}:{tag}"
+
+
 def seeded_nextcloud_project_content() -> list[dict[str, object]]:
     return [
         {
@@ -169,13 +175,15 @@ def seeded_nextcloud_project_content() -> list[dict[str, object]]:
                         """
                         # GitOps Workflow
 
-                        This stack is designed to evolve through repository changes and GitOps handoff.
+                        This stack is designed to evolve through repository changes, image publishing, and GitOps handoff.
 
                         Core flow:
                         - `architect` defines plans, design direction, and task decomposition.
                         - `coder` applies cluster and application changes in the repository.
+                        - `coder` maintains the OpenClaw sandbox image source repo and publishes the resulting images to the in-cluster registry.
                         - `coder` validates changes with the documented lint and render commands.
-                        - GitOps changes are pushed to the cluster repo.
+                        - cluster-definition changes are pushed to the GitOps repo.
+                        - sandbox runtime changes are pushed to the sandbox-images repo and published to the registry before those tags are referenced from cluster config.
                         - the user reviews the diff and syncs Argo CD manually.
 
                         Important constraint:
@@ -195,14 +203,15 @@ def seeded_nextcloud_project_content() -> list[dict[str, object]]:
                         Important components:
                         - OpenClaw for multi-agent coordination
                         - Nextcloud for durable shared storage and project documentation
-                        - Gitea for source control and GitOps repositories
+                        - Gitea for source control, the GitOps repo, and the sandbox-images repo
+                        - the in-cluster registry for canonical OpenClaw sandbox image distribution
                         - Argo CD for GitOps application delivery
                         - shared PostgreSQL and Redis for stateful services
 
                         Runtime model:
                         - the OpenClaw gateway owns durable state;
                         - specialist execution happens through standing agents;
-                        - coder can use the remote Docker sandbox path for implementation work;
+                        - coder can use the remote Docker sandbox path for implementation work and owns the sandbox image source/publish workflow;
                         - watchdog stays in the gateway for low-cost observation and triage.
                         """
                     ),
@@ -289,6 +298,8 @@ def workspace_bootstrap_values(
     gitea_host: str,
     registry_host: str,
     registry_namespace: str,
+    gitops_repo_name: str,
+    sandbox_images_repo_name: str,
 ) -> dict[str, object]:
     gitea_scheme = "http" if gitea_host.endswith(".localtest.me") else "https"
     gitea_base_url = f"{gitea_scheme}://{gitea_host}"
@@ -418,6 +429,7 @@ def workspace_bootstrap_values(
                         - once the user's real Nextcloud username is confirmed, share `/Projects/` and `/Notes/` with that user so they can access the pre-seeded cluster documentation, working notes, and future project material from the start;
                         - remind the user to set up direct channels for architect and coder if they want to workshop plans or coordinate implementation with them directly;
                         - capture that ordinary non-coding tasks stay with you, coding belongs with coder, planning or design belongs with architect, and heartbeat-driven monitoring belongs with watchdog;
+                        - explain that watchdog already has bootstrapped cron jobs for heartbeat checks, platform sweeps, and the daily digest;
                         - explain that project setup, specifications, task breakdowns, and durable project documentation belong with architect rather than with you.
 
                         Update the workspace files as needed and remove this file when bootstrap is complete.
@@ -487,7 +499,9 @@ def workspace_bootstrap_values(
                         Gitea guidance:
                         - Your Gitea username is `{coder_gitea_username}` on `{gitea_base_url}`.
                         - Use git and tea with that identity for repository work.
+                        - Your two default in-cluster repos are `{gitops_repo_name}` for cluster definitions and `{sandbox_images_repo_name}` for OpenClaw sandbox image source.
                         - The GitOps repository is one of your execution targets. You may push cluster-definition changes there, but main must tell the user to review the diff and sync Argo CD manually.
+                        - The sandbox-images repository is the canonical source repo for the regular and coder OpenClaw sandbox images. Commit sandbox image definition changes there before publishing new tags to the in-cluster registry.
                         - When you create a new repository for a project, invite the user `{user_gitea_username}` as a collaborator.
                         - When you work on repositories owned by the user or shared with the user, create pull requests and tell main that the user needs to review and merge them.
                         - If direct discussion with the user would materially improve implementation, remind main that you need a dedicated user channel.
@@ -513,6 +527,7 @@ def workspace_bootstrap_values(
                         Registry guidance:
                         - Default new cluster-bound images to the in-cluster registry rather than to a public registry when you build images for apps that this stack will run.
                         - Use image names in the form `<registry-host>/<namespace>/<app>:<tag>`, with `{registry_namespace}` as the default namespace unless the task requires another one.
+                        - Treat the in-cluster registry as the canonical runtime source for OpenClaw sandbox images, not local mutable Docker tags.
                         - Push images before opening or updating GitOps changes that reference them.
                         - If registry login, push, or pull fails because of TLS trust, tell main that the operator needs the platform internal CA installed for the sandbox Docker runtime and the cluster node container runtime.
 
@@ -684,6 +699,12 @@ def workspace_bootstrap_values(
                         - Do not use `sessions_spawn`; main owns sub-agent spawning.
                         - Never execute when you should escalate, delegate, or alert.
                         - Do not use coding, messaging, repository, or personal-assistant tools even if they are visible.
+                        - Treat the bootstrapped cron jobs as your standing operating contract:
+                          - `watchdog-heartbeat`
+                          - `watchdog-platform-sweep`
+                          - `watchdog-daily-digest`
+                        - Keep durable monitoring summaries in Nextcloud at `/Projects/ai-homebase/watchdog-status-log.md`.
+                        - For alerts to main, prefix messages with `[WATCHDOG OK]`, `[WATCHDOG WARNING]`, or `[WATCHDOG CRITICAL]`.
                         """
                     ),
                     "SOUL.md": normalize_markdown(
@@ -702,6 +723,9 @@ def workspace_bootstrap_values(
                         - Do not reason deeply about what you see unless a minimal triage decision requires it.
                         - Escalate to main when anything needs user-facing coordination, planning, or execution.
                         - Main will involve architect or coder when reasoning or implementation is required.
+                        - Use `session-logs` only for lightweight inspection and concise summaries.
+                        - Assume the gateway runtime includes `jq` and `rg` for `session-logs` and simple triage commands.
+                        - Write durable status summaries to `/Projects/ai-homebase/watchdog-status-log.md` when the monitoring run calls for it.
 
                         Agent communication:
                         - Your normal coordination target is `agent:main:main`.
@@ -887,6 +911,9 @@ def resolved_values(data: dict[str, object]) -> dict[str, str]:
         "MAIL_FROM_NAME": mail_from_name,
         "GITOPS_CLUSTER_NAME": nested_string(data, ("gitops", "cluster_name")),
         "GITOPS_REPO_NAME": nested_string(data, ("gitops", "repo_name"), "cluster-gitops"),
+        "SANDBOX_IMAGES_REPO_NAME": nested_string(
+            data, ("gitops", "sandbox_images_repo_name"), DEFAULT_SANDBOX_IMAGES_REPO_NAME
+        ),
         "GITOPS_REPO_BRANCH": nested_string(data, ("gitops", "repo_branch"), "main"),
         "GITOPS_REPO_PRIVATE": "true",
         "GITOPS_PROJECT": nested_string(data, ("gitops", "project"), "platform-stack"),
@@ -895,7 +922,6 @@ def resolved_values(data: dict[str, object]) -> dict[str, str]:
         "CODER_GITEA_PASSWORD": coder_gitea_password,
         "REGISTRY_USERNAME": registry_username,
         "REGISTRY_PASSWORD": registry_password,
-        "OPENCLAW_CODER_SANDBOX_IMAGE": DEFAULT_CODER_SANDBOX_IMAGE,
         "OPENCLAW_MAIN_MODEL": main_model,
         "OPENCLAW_CODER_MODEL": coder_model,
         "OPENCLAW_ARCHITECT_MODEL": architect_model,
@@ -908,6 +934,12 @@ def resolved_values(data: dict[str, object]) -> dict[str, str]:
         values["GITOPS_REPO_PRIVATE"] = "true" if gitops_table["repo_private"] else "false"
     if not values["CODER_GITEA_EMAIL"]:
         values["CODER_GITEA_EMAIL"] = f"{values['CODER_GITEA_USERNAME']}@example.invalid"
+    values["OPENCLAW_DEFAULT_SANDBOX_IMAGE"] = registry_image_ref(
+        values["REGISTRY_HOST"], values["CODER_GITEA_USERNAME"], "openclaw-sandbox"
+    )
+    values["OPENCLAW_CODER_SANDBOX_IMAGE"] = registry_image_ref(
+        values["REGISTRY_HOST"], values["CODER_GITEA_USERNAME"], "openclaw-sandbox-coder"
+    )
     return values
 
 
@@ -933,6 +965,8 @@ def command_render_values(args: argparse.Namespace) -> int:
         values["GITEA_HOST"],
         values["REGISTRY_HOST"],
         values["CODER_GITEA_USERNAME"],
+        values["GITOPS_REPO_NAME"],
+        values["SANDBOX_IMAGES_REPO_NAME"],
     )
     allowed_models = {
         model_id: {"alias": alias}
@@ -1008,6 +1042,11 @@ def command_render_values(args: argparse.Namespace) -> int:
             "defaults": {
                 "workspace": "/home/node/.openclaw/workspace",
                 "models": allowed_models,
+                "sandbox": {
+                    "docker": {
+                        "image": values["OPENCLAW_DEFAULT_SANDBOX_IMAGE"],
+                    },
+                },
             },
             "list": [
                 {
@@ -1040,6 +1079,7 @@ def command_render_values(args: argparse.Namespace) -> int:
                                 "CODER_GITEA_EMAIL": values["CODER_GITEA_EMAIL"],
                                 "CODER_GITEA_PASSWORD": values["CODER_GITEA_PASSWORD"],
                                 "CODER_GITOPS_REPO_NAME": values["GITOPS_REPO_NAME"],
+                                "CODER_SANDBOX_IMAGES_REPO_NAME": values["SANDBOX_IMAGES_REPO_NAME"],
                                 "CODER_GITOPS_REPO_BRANCH": values["GITOPS_REPO_BRANCH"],
                                 "CODER_GITOPS_PROJECT": values["GITOPS_PROJECT"],
                                 "CODER_GITEA_TEA_LOGIN_NAME": "coder",
@@ -1088,6 +1128,68 @@ def command_render_values(args: argparse.Namespace) -> int:
             }
         },
     }
+    openclaw["openclaw"]["cron"] = [
+        {
+            "id": "watchdog-heartbeat",
+            "schedule": {"every": "5m"},
+            "payload": {
+                "kind": "agentTurn",
+                "agent": "watchdog",
+                "session": "isolated",
+                "message": (
+                    "Run heartbeat check. Verify the local OpenClaw gateway readiness endpoint responds at "
+                    "http://127.0.0.1:18789/readyz. Confirm the standing main sessions exist and accept a brief "
+                    "ping for agents main, architect, coder, and watchdog. Use the status log at "
+                    "/Projects/ai-homebase/watchdog-status-log.md to determine whether this is a repeated failure; "
+                    "require at least 2 consecutive heartbeat failures before escalating as CRITICAL. If all checks "
+                    "are healthy, append a short OK line to the status log and stay quiet. If a check fails, append "
+                    "a short failure note to the status log when possible and send a concise alert to session "
+                    "agent:main:main via sessions_send with a [WATCHDOG WARNING] prefix for the first failure or a "
+                    "[WATCHDOG CRITICAL] prefix once the same heartbeat path has failed twice in a row."
+                ),
+            },
+            "enabled": True,
+        },
+        {
+            "id": "watchdog-platform-sweep",
+            "schedule": {"cron": "15 */6 * * *"},
+            "payload": {
+                "kind": "agentTurn",
+                "agent": "watchdog",
+                "session": "isolated",
+                "message": (
+                    "Run platform sweep. Check the local OpenClaw gateway readiness endpoint, confirm the standing "
+                    "main sessions for main, architect, coder, and watchdog still exist and respond, inspect recent "
+                    "session behavior with the session-logs skill when that helps confirm whether failures are "
+                    "transient or recurring, and inspect TLS expiry for the core ingress hosts you can reach from "
+                    "the gateway with openssl, including OpenClaw and the MCP endpoints. Summarize findings "
+                    "concisely, append the result to /Projects/ai-homebase/watchdog-status-log.md, and send a short "
+                    "report to session agent:main:main via sessions_send with [WATCHDOG WARNING] or "
+                    "[WATCHDOG CRITICAL] when issues are found. If everything is clear, append a one-line all-clear "
+                    "and do not escalate."
+                ),
+            },
+            "enabled": True,
+        },
+        {
+            "id": "watchdog-daily-digest",
+            "schedule": {"cron": "0 7 * * *"},
+            "payload": {
+                "kind": "agentTurn",
+                "agent": "watchdog",
+                "session": "isolated",
+                "message": (
+                    "Run daily health digest. Read /Projects/ai-homebase/watchdog-status-log.md and summarize the "
+                    "last 24 hours of heartbeat and platform-sweep results. Call out repeated failures, inability "
+                    "to reach main, or upcoming TLS expiry if present. Produce a concise daily report for main, "
+                    "send it to session agent:main:main via sessions_send with a [WATCHDOG OK] prefix when healthy "
+                    "or [WATCHDOG WARNING] when attention is needed, and append the digest summary to the same "
+                    "status log while trimming older material so the log stays focused on roughly the last 7 days."
+                ),
+            },
+            "enabled": True,
+        },
+    ]
     if values["GITHUB_TOKEN"]:
         openclaw["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["GITHUB_TOKEN"] = "${GITHUB_TOKEN}"
     openclaw.setdefault("openclaw", {}).setdefault("commands", {})["mcp"] = True

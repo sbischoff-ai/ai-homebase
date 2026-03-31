@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+GATEWAY_IMAGE="${GATEWAY_IMAGE:-openclaw-remote-docker:bookworm-slim}"
+GATEWAY_DOCKERFILE="${GATEWAY_DOCKERFILE:-images/openclaw-remote-docker/Dockerfile}"
 BASE_IMAGE="${BASE_IMAGE:-openclaw-sandbox:bookworm-slim}"
 BASE_DOCKERFILE="${BASE_DOCKERFILE:-images/openclaw-sandbox-base/Dockerfile}"
 CODER_IMAGE="${CODER_IMAGE:-openclaw-sandbox-coder:bookworm-slim}"
@@ -13,6 +15,8 @@ Usage: $0 [options]
 Build repo-managed OpenClaw sandbox images needed by this stack.
 
 Options:
+  --gateway-image <image[:tag]> Override the gateway image tag (default: ${GATEWAY_IMAGE})
+  --gateway-dockerfile <path>   Override the gateway Dockerfile path (default: ${GATEWAY_DOCKERFILE})
   --base-image <image[:tag]>    Override the base sandbox image tag (default: ${BASE_IMAGE})
   --base-dockerfile <path>      Override the base sandbox Dockerfile path (default: ${BASE_DOCKERFILE})
   --coder-image <image[:tag]>   Override the coder sandbox image tag (default: ${CODER_IMAGE})
@@ -23,6 +27,8 @@ USAGE
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --gateway-image) GATEWAY_IMAGE="$2"; shift 2 ;;
+    --gateway-dockerfile) GATEWAY_DOCKERFILE="$2"; shift 2 ;;
     --base-image) BASE_IMAGE="$2"; shift 2 ;;
     --base-dockerfile) BASE_DOCKERFILE="$2"; shift 2 ;;
     --coder-image) CODER_IMAGE="$2"; shift 2 ;;
@@ -37,12 +43,11 @@ if ! command -v docker >/dev/null 2>&1; then
   exit 1
 fi
 
-if ! docker image inspect "${BASE_IMAGE}" >/dev/null 2>&1; then
-  echo "Building ${BASE_IMAGE} from ${BASE_DOCKERFILE}"
-  docker build -f "${BASE_DOCKERFILE}" -t "${BASE_IMAGE}" .
-else
-  echo "Reusing existing ${BASE_IMAGE}"
-fi
+echo "Building ${GATEWAY_IMAGE} from ${GATEWAY_DOCKERFILE}"
+docker build -f "${GATEWAY_DOCKERFILE}" -t "${GATEWAY_IMAGE}" .
+
+echo "Building ${BASE_IMAGE} from ${BASE_DOCKERFILE}"
+docker build -f "${BASE_DOCKERFILE}" -t "${BASE_IMAGE}" .
 
 echo "Building ${CODER_IMAGE} from ${CODER_DOCKERFILE}"
 docker build -f "${CODER_DOCKERFILE}" -t "${CODER_IMAGE}" .
