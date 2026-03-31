@@ -3,4 +3,4 @@ name: qdrant-mcp
 description: Qdrant MCP companion service
 type: application
 version: 0.1.0
-appVersion: "0.8.1"
+appVersion: "0.8.0"
