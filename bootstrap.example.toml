@@ -4,6 +4,8 @@ nextcloud = "nextcloud.localtest.me"
 nextcloud_mcp = "nextcloud-mcp.localtest.me"
 qdrant = "qdrant.localtest.me"
 qdrant_mcp = "qdrant-mcp.localtest.me"
+memgraph = "memgraph.localtest.me"
+memgraph_lab = "memgraph-lab.localtest.me"
 nextcloud_public = ""
 gitea = "gitea.localtest.me"
 registry = "registry.localtest.me"
@@ -39,6 +41,9 @@ password = ""
 
 [openclaw.agents.architect]
 model = "anthropic/claude-opus-4-6"
+
+[openclaw.agents.archivist]
+model = "anthropic/claude-sonnet-4-6"
 
 [openclaw.agents.watchdog]
 model = "anthropic/claude-haiku-4-5"

@@ -30,6 +30,8 @@ VAULTWARDEN_HOST_VALUE="vaultwarden.localtest.me"
 PAPERLESS_HOST_VALUE="paperless.localtest.me"
 NEXTCLOUD_MCP_HOST_VALUE="nextcloud-mcp.localtest.me"
 QDRANT_MCP_HOST_VALUE="qdrant-mcp.localtest.me"
+MEMGRAPH_HOST_VALUE="memgraph.localtest.me"
+MEMGRAPH_LAB_HOST_VALUE="memgraph-lab.localtest.me"
 
 usage() {
   cat <<USAGE
@@ -103,6 +105,8 @@ VAULTWARDEN_HOST_VALUE="${VAULTWARDEN_HOST:-${VAULTWARDEN_HOST_VALUE}}"
 PAPERLESS_HOST_VALUE="${PAPERLESS_HOST:-${PAPERLESS_HOST_VALUE}}"
 NEXTCLOUD_MCP_HOST_VALUE="${NEXTCLOUD_MCP_HOST:-${NEXTCLOUD_MCP_HOST_VALUE}}"
 QDRANT_MCP_HOST_VALUE="${QDRANT_MCP_HOST:-${QDRANT_MCP_HOST_VALUE}}"
+MEMGRAPH_HOST_VALUE="${MEMGRAPH_HOST:-${MEMGRAPH_HOST_VALUE}}"
+MEMGRAPH_LAB_HOST_VALUE="${MEMGRAPH_LAB_HOST:-${MEMGRAPH_LAB_HOST_VALUE}}"
 
 step "Bootstrapping k3d cluster and ingress"
 K3D_UP_CMD=(
@@ -124,6 +128,8 @@ run_quiet ./scripts/incus-vm-up.sh \
   --resolve-host "$OPENCLAW_HOST_VALUE" \
   --resolve-host "$NEXTCLOUD_MCP_HOST_VALUE" \
   --resolve-host "$QDRANT_MCP_HOST_VALUE" \
+  --resolve-host "$MEMGRAPH_HOST_VALUE" \
+  --resolve-host "$MEMGRAPH_LAB_HOST_VALUE" \
   --resolve-host "$GITEA_HOST_VALUE" \
   --resolve-host "$REGISTRY_HOST_VALUE"
 ok "Incus sandbox VM is ready"
@@ -180,6 +186,8 @@ echo "  OpenClaw gateway token: ${OPENCLAW_GATEWAY_TOKEN_VALUE}"
 echo "  OpenClaw URL: http://${OPENCLAW_HOST_VALUE}"
 echo "  Nextcloud URL: http://${NEXTCLOUD_HOST_VALUE}"
 echo "  Nextcloud MCP URL: http://${NEXTCLOUD_MCP_HOST_VALUE}"
+echo "  Memgraph URL: http://${MEMGRAPH_HOST_VALUE}"
+echo "  Memgraph Lab URL: http://${MEMGRAPH_LAB_HOST_VALUE}"
 echo "  OpenClaw main model: ${OPENCLAW_MAIN_MODEL}"
 echo "  OpenClaw architect model: ${OPENCLAW_ARCHITECT_MODEL}"
 echo "  OpenClaw coder model: ${OPENCLAW_CODER_MODEL}"

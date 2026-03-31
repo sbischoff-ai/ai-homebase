@@ -58,6 +58,15 @@ dependencies:
     repository: file://../qdrant-mcp
     alias: qdrantMcp
     condition: qdrantMcp.enabled
+  - name: memgraph
+    version: 0.1.0
+    repository: file://../memgraph
+    condition: memgraph.enabled
+  - name: memgraph-lab
+    version: 0.1.0
+    repository: file://../memgraph-lab
+    alias: memgraphLab
+    condition: memgraphLab.enabled
   - name: shared-postgresql
     version: 0.1.0
     repository: file://../shared-postgresql

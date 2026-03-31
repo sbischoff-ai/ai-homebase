@@ -17,6 +17,8 @@ RUN --mount=type=cache,id=openclaw-sandbox-bookworm-apt-cache,target=/var/cache/
     python3 \
     ripgrep
 
+RUN curl -sSf "https://install.memgraph.com" | sh
+
 RUN useradd --create-home --shell /bin/bash sandbox
 USER sandbox
 WORKDIR /home/sandbox

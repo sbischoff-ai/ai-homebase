@@ -9,6 +9,8 @@ global:
     nextcloudMcp: nextcloud-mcp.localtest.me
     qdrant: qdrant.localtest.me
     qdrantMcp: qdrant-mcp.localtest.me
+    memgraph: memgraph.localtest.me
+    memgraphLab: memgraph-lab.localtest.me
     gitea: gitea.localtest.me
     registry: registry.localtest.me
     argocd: argocd.localtest.me
@@ -154,6 +156,40 @@ qdrantMcp:
       - secretName: qdrant-mcp-tls
         hosts:
           - qdrant-mcp.localtest.me
+
+memgraph:
+  enabled: true
+  ingress:
+    enabled: true
+    className: nginx
+    hosts:
+      - host: memgraph.localtest.me
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: memgraph-tls
+        hosts:
+          - memgraph.localtest.me
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: local-path
+
+memgraphLab:
+  enabled: true
+  ingress:
+    enabled: true
+    className: nginx
+    hosts:
+      - host: memgraph-lab.localtest.me
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: memgraph-lab-tls
+        hosts:
+          - memgraph-lab.localtest.me
 
 argoCd:
   enabled: false

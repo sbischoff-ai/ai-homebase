@@ -117,6 +117,8 @@ EOF
   assert_contains "${output}" "  OpenClaw coder model: anthropic/claude-sonnet-4-5"
   assert_contains "${output}" "  Gitea URL: http://gitea.test.internal"
   assert_contains "${output}" "  Registry URL: https://registry.test.internal"
+  assert_contains "${output}" "  Memgraph URL: http://memgraph.localtest.me"
+  assert_contains "${output}" "  Memgraph Lab URL: http://memgraph-lab.localtest.me"
 
   case "${case_name}" in
     default-token) assert_contains "${output}" "  OpenClaw gateway token: local-dev-token" ;;
@@ -129,7 +131,7 @@ EOF
   assert_contains "${commands}" "--remote-docker-port 2222"
   assert_contains "${commands}" "test-local-k3d.sh --release-name test-release --namespace test-namespace --kubeconfig ${kubeconfig_path} --skip-install"
   assert_contains "${commands}" "k3d-up.sh --cluster-name test-cluster --kubeconfig ${kubeconfig_path} --shared-openclaw-state-source ${shared_state_source} --shared-openclaw-state-target /var/lib/ai-homebase/openclaw-state"
-  assert_contains "${commands}" "incus-vm-up.sh --vm-name openclaw-sandbox --shared-openclaw-state-source ${shared_state_source} --shared-openclaw-state-target /home/node/.openclaw --resolve-host openclaw.test.internal --resolve-host nextcloud-mcp.localtest.me --resolve-host qdrant-mcp.localtest.me --resolve-host gitea.test.internal --resolve-host registry.test.internal"
+  assert_contains "${commands}" "incus-vm-up.sh --vm-name openclaw-sandbox --shared-openclaw-state-source ${shared_state_source} --shared-openclaw-state-target /home/node/.openclaw --resolve-host openclaw.test.internal --resolve-host nextcloud-mcp.localtest.me --resolve-host qdrant-mcp.localtest.me --resolve-host memgraph.localtest.me --resolve-host memgraph-lab.localtest.me --resolve-host gitea.test.internal --resolve-host registry.test.internal"
 
   trap - RETURN
   rm -rf "${sandbox_dir}"

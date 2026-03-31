@@ -30,7 +30,7 @@ data:
     # Multi-Agent Topology
 
 
-    The cluster bootstraps four standing OpenClaw agents:
+    The cluster bootstraps five standing OpenClaw agents:
 
 
     - `main`: user-facing coordinator and manager of work
@@ -38,6 +38,8 @@ data:
     - `architect`: project planner, designer, and documentation owner
 
     - `coder`: implementation and GitOps executor
+
+    - `archivist`: long-horizon knowledge graph curator and memory steward
 
     - `watchdog`: low-cost monitoring, polling, heartbeat, and triage specialist
 
@@ -51,9 +53,13 @@ data:
     - projects go to `architect` first for planning, design, decomposition, and durable
     project documentation.
 
+    - work goes to `archivist` when it needs durable graph curation, cross-domain
+    context synthesis, or stable long-term memory structure.
+
     - `architect` returns actionable work items to `main`.
 
-    - `main` then routes those items to the user, `coder`, `watchdog`, or itself.
+    - `main` then routes those items to the user, `coder`, `archivist`, `watchdog`,
+    or itself.
 
     '
   project-0-file-2: '
@@ -114,6 +120,8 @@ data:
 
     - shared PostgreSQL and Redis for stateful services
 
+    - Qdrant for semantic memory and Memgraph for graph-structured long-term knowledge
+
 
     Runtime model:
 
@@ -123,6 +131,8 @@ data:
 
     - coder can use the remote Docker sandbox path for implementation work and owns
     the sandbox image source/publish workflow;
+
+    - archivist curates Memgraph and the graph-linked Qdrant memory layer;
 
     - watchdog stays in the gateway for low-cost observation and triage.
 
@@ -270,6 +280,75 @@ data:
     '
   project-0-file-6: '
 
+    # Knowledge Graph Schema
+
+
+    This document defines the initial canonical Memgraph schema for long-term OpenClaw
+    knowledge.
+
+
+    Stable label vocabulary:
+
+    - `Entity`
+
+    - `Person`
+
+    - `User`
+
+    - `Agent`
+
+    - `Service`
+
+    - `System`
+
+    - `Project`
+
+    - `Repository`
+
+    - `MemoryEntry`
+
+
+    Stable relationship vocabulary:
+
+    - `HAS_USER`
+
+    - `USES_SERVICE`
+
+    - `USES_REPOSITORY`
+
+    - `COORDINATES`
+
+    - `CURATES`
+
+    - `GROOMS`
+
+    - `MAINTAINS_SCHEMA_FOR`
+
+    - `VISUALIZES`
+
+    - `REFERS_TO`
+
+    - `RELATES_TO`
+
+    - `DERIVED_FROM`
+
+
+    Rules:
+
+    - prefer existing labels and relationships over inventing new ones;
+
+    - use multiple labels when an entity belongs to several stable types;
+
+    - attach type-specific metadata but keep canonical fields stable;
+
+    - represent Qdrant memories as `MemoryEntry` nodes with their Qdrant ID in metadata;
+
+    - connect memory nodes to entities so graph traversal and semantic search can
+    be composed.
+
+    '
+  project-0-file-7: '
+
     # Incident Reports
 
 
@@ -294,7 +373,7 @@ data:
     - follow-up actions
 
     '
-  project-0-file-7: '
+  project-0-file-8: '
 
     # Monitoring Baselines
 
@@ -306,7 +385,7 @@ data:
     one changes.
 
     '
-  project-0-file-8: '
+  project-0-file-9: '
 
     # Escalation Rules
 
@@ -454,13 +533,13 @@ data:
     \ = false;\n  }\n}\n\nprocess.stdin.setEncoding(\"utf8\");\nprocess.stdin.on(\"\
     data\", (chunk) => {\n  stdinBuffer += chunk;\n  void scheduleDrain();\n});\n"
   openclaw.json: "{\n  \"commands\": {\"mcp\":true},\n  \"tools\": {\"agentToAgent\"\
-    :{\"allow\":[\"main\",\"coder\",\"architect\",\"watchdog\"],\"enabled\":true},\"\
-    sessions\":{\"visibility\":\"all\"}},\n  \"cron\": [{\"enabled\":true,\"id\":\"\
-    watchdog-heartbeat\",\"payload\":{\"agent\":\"watchdog\",\"kind\":\"agentTurn\"\
+    :{\"allow\":[\"main\",\"coder\",\"architect\",\"archivist\",\"watchdog\"],\"enabled\"\
+    :true},\"sessions\":{\"visibility\":\"all\"}},\n  \"cron\": [{\"enabled\":true,\"\
+    id\":\"watchdog-heartbeat\",\"payload\":{\"agent\":\"watchdog\",\"kind\":\"agentTurn\"\
     ,\"message\":\"Run heartbeat check. Verify the local OpenClaw gateway readiness\
     \ endpoint responds at http://127.0.0.1:18789/readyz. Confirm the standing main\
-    \ sessions exist and accept a brief ping for agents main, architect, coder, and\
-    \ watchdog. Use the status log at /Projects/ai-homebase/watchdog-status-log.md\
+    \ sessions exist and accept a brief ping for agents main, architect, coder, archivist,\
+    \ and watchdog. Use the status log at /Projects/ai-homebase/watchdog-status-log.md\
     \ to determine whether this is a repeated failure; require at least 2 consecutive\
     \ heartbeat failures before escalating as CRITICAL. If all checks are healthy,\
     \ append a short OK line to the status log and stay quiet. If a check fails, append\
@@ -471,45 +550,57 @@ data:
     every\":\"5m\"}},{\"enabled\":true,\"id\":\"watchdog-platform-sweep\",\"payload\"\
     :{\"agent\":\"watchdog\",\"kind\":\"agentTurn\",\"message\":\"Run platform sweep.\
     \ Check the local OpenClaw gateway readiness endpoint, confirm the standing main\
-    \ sessions for main, architect, coder, and watchdog still exist and respond, inspect\
-    \ recent session behavior with the session-logs skill when that helps confirm\
-    \ whether failures are transient or recurring, and inspect TLS expiry for the\
-    \ core ingress hosts you can reach from the gateway with openssl, including OpenClaw\
-    \ and the MCP endpoints. Summarize findings concisely, append the result to /Projects/ai-homebase/watchdog-status-log.md,\
-    \ and send a short report to session agent:main:main via sessions_send with [WATCHDOG\
-    \ WARNING] or [WATCHDOG CRITICAL] when issues are found. If everything is clear,\
-    \ append a one-line all-clear and do not escalate.\",\"session\":\"isolated\"\
-    },\"schedule\":{\"cron\":\"15 */6 * * *\"}},{\"enabled\":true,\"id\":\"watchdog-daily-digest\"\
-    ,\"payload\":{\"agent\":\"watchdog\",\"kind\":\"agentTurn\",\"message\":\"Run\
-    \ daily health digest. Read /Projects/ai-homebase/watchdog-status-log.md and summarize\
-    \ the last 24 hours of heartbeat and platform-sweep results. Call out repeated\
-    \ failures, inability to reach main, or upcoming TLS expiry if present. Produce\
-    \ a concise daily report for main, send it to session agent:main:main via sessions_send\
-    \ with a [WATCHDOG OK] prefix when healthy or [WATCHDOG WARNING] when attention\
-    \ is needed, and append the digest summary to the same status log while trimming\
-    \ older material so the log stays focused on roughly the last 7 days.\",\"session\"\
-    :\"isolated\"},\"schedule\":{\"cron\":\"0 7 * * *\"}}],\n  \"gateway\": {\n  \
-    \  \"mode\": \"local\",\n    \"bind\": \"lan\",\n    \"port\": 18789,\n    \"\
-    auth\": {\n      \"mode\": \"token\",\n      \"token\": \"${OPENCLAW_GATEWAY_TOKEN}\"\
+    \ sessions for main, architect, coder, archivist, and watchdog still exist and\
+    \ respond, inspect recent session behavior with the session-logs skill when that\
+    \ helps confirm whether failures are transient or recurring, and inspect TLS expiry\
+    \ for the core ingress hosts you can reach from the gateway with openssl, including\
+    \ OpenClaw and the MCP endpoints. Summarize findings concisely, append the result\
+    \ to /Projects/ai-homebase/watchdog-status-log.md, and send a short report to\
+    \ session agent:main:main via sessions_send with [WATCHDOG WARNING] or [WATCHDOG\
+    \ CRITICAL] when issues are found. If everything is clear, append a one-line all-clear\
+    \ and do not escalate.\",\"session\":\"isolated\"},\"schedule\":{\"cron\":\"15\
+    \ */6 * * *\"}},{\"enabled\":true,\"id\":\"archivist-nightly-grooming\",\"payload\"\
+    :{\"agent\":\"archivist\",\"kind\":\"agentTurn\",\"message\":\"Run nightly knowledge\
+    \ graph grooming. Review durable Qdrant memories that are new, weakly linked,\
+    \ or likely to deserve graph structure. Review relevant Nextcloud project material,\
+    \ especially /Projects/ai-homebase/knowledge-graph-schema.md and related cluster\
+    \ docs, for durable entities and relationships not yet represented in Memgraph.\
+    \ Use mgconsole and reusable Cypher queries to add or update only canonical graph\
+    \ structure, preferring existing labels and relationship types over inventing\
+    \ new ones. Keep Qdrant-linked graph nodes annotated with the Qdrant ID and provenance\
+    \ metadata. Summarize important schema or knowledge changes to session agent:main:main\
+    \ via sessions_send only when the changes matter for other agents or the user.\"\
+    ,\"session\":\"isolated\"},\"schedule\":{\"cron\":\"30 2 * * *\"}},{\"enabled\"\
+    :true,\"id\":\"watchdog-daily-digest\",\"payload\":{\"agent\":\"watchdog\",\"\
+    kind\":\"agentTurn\",\"message\":\"Run daily health digest. Read /Projects/ai-homebase/watchdog-status-log.md\
+    \ and summarize the last 24 hours of heartbeat and platform-sweep results. Call\
+    \ out repeated failures, inability to reach main, or upcoming TLS expiry if present.\
+    \ Produce a concise daily report for main, send it to session agent:main:main\
+    \ via sessions_send with a [WATCHDOG OK] prefix when healthy or [WATCHDOG WARNING]\
+    \ when attention is needed, and append the digest summary to the same status log\
+    \ while trimming older material so the log stays focused on roughly the last 7\
+    \ days.\",\"session\":\"isolated\"},\"schedule\":{\"cron\":\"0 7 * * *\"}}],\n\
+    \  \"gateway\": {\n    \"mode\": \"local\",\n    \"bind\": \"lan\",\n    \"port\"\
+    : 18789,\n    \"auth\": {\n      \"mode\": \"token\",\n      \"token\": \"${OPENCLAW_GATEWAY_TOKEN}\"\
     \n    },\n    \"controlUi\": {\n      \"enabled\": true,\n      \"allowedOrigins\"\
     : [\"https://openclaw.homebase.local\"]\n    },\n    \"trustedProxies\": []\n\
     \  },\n  \"agents\": {\n    \"defaults\": {\"models\":{\"anthropic/claude-haiku-4-5\"\
     :{\"alias\":\"Watchdog\"},\"anthropic/claude-opus-4-6\":{\"alias\":\"Architect\"\
     },\"anthropic/claude-sonnet-4-5\":{\"alias\":\"Coder\"},\"anthropic/claude-sonnet-4-6\"\
-    :{\"alias\":\"Main\"}},\"sandbox\":{\"backend\":\"docker\",\"browser\":{\"cdpPort\"\
-    :9222,\"cdpSourceRange\":\"\",\"enableNoVnc\":true,\"enabled\":true,\"headless\"\
-    :false,\"image\":\"openclaw-sandbox-browser:bookworm-slim\",\"network\":\"bridge\"\
-    ,\"noVncPort\":6080,\"vncPort\":5900},\"docker\":{\"capDrop\":[\"ALL\"],\"cpus\"\
-    :1,\"image\":\"registry.homebase.local/coder/openclaw-sandbox:bookworm-slim\"\
+    :{\"alias\":\"Main / Archivist\"}},\"sandbox\":{\"backend\":\"docker\",\"browser\"\
+    :{\"cdpPort\":9222,\"cdpSourceRange\":\"\",\"enableNoVnc\":true,\"enabled\":true,\"\
+    headless\":false,\"image\":\"openclaw-sandbox-browser:bookworm-slim\",\"network\"\
+    :\"bridge\",\"noVncPort\":6080,\"vncPort\":5900},\"docker\":{\"capDrop\":[\"ALL\"\
+    ],\"cpus\":1,\"image\":\"registry.homebase.local/coder/openclaw-sandbox:bookworm-slim\"\
     ,\"memory\":\"1g\",\"memorySwap\":\"2g\",\"network\":\"bridge\",\"pidsLimit\"\
     :256,\"readOnlyRoot\":true,\"tmpfs\":[\"/tmp\",\"/var/tmp\",\"/run\"],\"user\"\
     :\"1000:1000\",\"workdir\":\"/workspace\"},\"mode\":\"non-main\",\"scope\":\"\
     agent\"},\"workspace\":\"/home/node/.openclaw/workspace\"},\n    \"list\": [{\"\
     default\":true,\"id\":\"main\",\"model\":{\"primary\":\"anthropic/claude-sonnet-4-6\"\
     },\"name\":\"OpenClaw Assistant\",\"subagents\":{\"allowAgents\":[\"coder\",\"\
-    architect\"]},\"workspace\":\"/home/node/.openclaw/workspace\"},{\"id\":\"coder\"\
-    ,\"model\":{\"primary\":\"anthropic/claude-sonnet-4-5\"},\"name\":\"Coder\",\"\
-    sandbox\":{\"docker\":{\"env\":{\"CODER_GITEA_BASE_URL\":\"https://gitea.homebase.local\"\
+    architect\",\"archivist\"]},\"workspace\":\"/home/node/.openclaw/workspace\"},{\"\
+    id\":\"coder\",\"model\":{\"primary\":\"anthropic/claude-sonnet-4-5\"},\"name\"\
+    :\"Coder\",\"sandbox\":{\"docker\":{\"env\":{\"CODER_GITEA_BASE_URL\":\"https://gitea.homebase.local\"\
     ,\"CODER_GITEA_EMAIL\":\"coder@example.invalid\",\"CODER_GITEA_HOST\":\"gitea.homebase.local\"\
     ,\"CODER_GITEA_PASSWORD\":\"change-me\",\"CODER_GITEA_TEA_LOGIN_NAME\":\"coder\"\
     ,\"CODER_GITEA_TEA_TOKEN_NAME\":\"openclaw-coder-sandbox\",\"CODER_GITEA_USERNAME\"\
@@ -545,6 +636,8 @@ data:
     \ 2\\u003e\\u00261 || true\\nfi\"},\"mode\":\"all\"},\"workspace\":\"/home/node/.openclaw/workspace-coder\"\
     },{\"id\":\"architect\",\"model\":{\"primary\":\"anthropic/claude-opus-4-6\"},\"\
     name\":\"Architect\",\"workspace\":\"/home/node/.openclaw/workspace-architect\"\
+    },{\"id\":\"archivist\",\"model\":{\"primary\":\"anthropic/claude-sonnet-4-6\"\
+    },\"name\":\"Archivist\",\"workspace\":\"/home/node/.openclaw/workspace-archivist\"\
     },{\"id\":\"watchdog\",\"model\":{\"primary\":\"anthropic/claude-haiku-4-5\"},\"\
     name\":\"Watchdog\",\"sandbox\":{\"mode\":false},\"workspace\":\"/home/node/.openclaw/workspace-watchdog\"\
     }]\n  },\n  \"skills\": {\"allowBundled\":[\"weather\",\"healthcheck\",\"node-connect\"\
@@ -562,7 +655,9 @@ data:
     \ handle only the parts within your role and return the rest through main.\n \
     \  - If NO, explain which agent should own it and why.\n2. **Recall check:** Could\
     \ prior context improve my response?\n   - Search Qdrant for relevant memories.\n\
-    \   - Read existing project docs from Nextcloud `/Projects/<slug>/`.\n3. **Persistence\
+    \   - Read existing project docs from Nextcloud `/Projects/<slug>/`.\n   - If\
+    \ the work depends on many durable relationships, prior entities, or long-running\
+    \ cross-project context, consult archivist before finalizing the plan.\n3. **Persistence\
     \ check:** Will this task produce knowledge or artifacts that should outlive this\
     \ session?\n   - Design documents, specs, and plans go to Nextcloud.\n   - Distilled\
     \ decisions and patterns go to Qdrant.\n   - If both matter, do both.\n\n## Role\n\
@@ -573,7 +668,8 @@ data:
     \ analysis, task decomposition, project structure, concept documents, design reviews.\n\
     \n**Not my domain:**\n- Code execution, repo changes, GitOps -> coder\n- User-facing\
     \ communication, scheduling, routing -> main\n- Monitoring, polling, health checks\
-    \ -> watchdog\n- Spawning sub-agents -> main owns `sessions_spawn`\n\n**Boundary\
+    \ -> watchdog\n- Long-term graph curation and cross-domain knowledge stewardship\
+    \ -> archivist\n- Spawning sub-agents -> main owns `sessions_spawn`\n\n**Boundary\
     \ rule:** If you are about to execute code, modify a repository, or directly manage\
     \ user-facing interactions, you have crossed a boundary. Stop and route back through\
     \ main.\n\n## Handoff Protocol\n\nWhen main sends a task handoff:\n1. Read the\
@@ -610,7 +706,7 @@ data:
     # Memory - Architect Agent
 
 
-    All four agents share one Qdrant collection for durable semantic memory.
+    All five agents share one Qdrant collection for durable semantic memory.
 
 
     Search Qdrant before planning, designing, or specifying work that may have prior
@@ -717,6 +813,171 @@ data:
     can hand it back cleanly.
 
     '
+  workspace-archivist-AGENTS.md: "\n# Archivist\n\nYou are the long-horizon knowledge\
+    \ graph curator for this OpenClaw setup.\n\n## Task Classification Gate (mandatory)\n\
+    \nBefore acting on any substantive request, classify it:\n1. **Domain check:**\
+    \ Does this task belong to my role?\n   - If YES, proceed.\n   - If PARTIALLY,\
+    \ handle the knowledge curation part and route the rest through main.\n   - If\
+    \ NO, explain which agent should own it and why.\n2. **Recall check:** Could graph\
+    \ or semantic memory improve this task?\n   - Search Qdrant for relevant durable\
+    \ memories.\n   - Traverse Memgraph for related entities, repositories, services,\
+    \ projects, and memory nodes.\n   - Read authoritative Nextcloud project docs\
+    \ when the graph points to them.\n3. **Persistence check:** Should this result\
+    \ become durable shared knowledge?\n   - If YES, update Memgraph and Qdrant in\
+    \ a coordinated way.\n\n## Role\n\nMaintain the canonical knowledge graph, curate\
+    \ durable cross-domain context, connect Qdrant memory entries to graph entities,\
+    \ groom long-term memory quality, and serve as the gatekeeper for graph schema\
+    \ evolution.\n\n## Domain\n\n**My domain:** knowledge graph schema, graph curation,\
+    \ long-horizon memory stewardship, entity modeling, relationship modeling, cross-project\
+    \ context synthesis, reusable Cypher queries, Qdrant grooming.\n\n**Not my domain:**\n\
+    - User-facing coordination -> main\n- Project planning and specifications -> architect\n\
+    - Code execution and GitOps -> coder\n- Monitoring and triage -> watchdog\n\n\
+    **Boundary rule:** If the task is mainly design, coding, or monitoring rather\
+    \ than durable knowledge curation, route it back through main.\n\n## Operating\
+    \ rules\n\n- Prefer an existing label or relationship type over inventing a new\
+    \ one.\n- Use multiple labels when several stable types apply.\n- Keep canonical\
+    \ schema notes current in your workspace docs.\n- Represent Qdrant memories as\
+    \ graph nodes with the Qdrant ID in metadata when they belong in the graph.\n\
+    - Connect memory nodes to entity nodes so graph traversal and semantic retrieval\
+    \ can be composed.\n- Accept proposed additions from other agents, but refuse\
+    \ schema drift that is not justified.\n\n## Handoff Protocol\n\nReturn results\
+    \ to `agent:main:main` in this format:\n~~~\n## Handoff Complete\n**Task:** [brief\
+    \ restatement]\n**Status:** [complete | partial - needs X | blocked - needs Y]\n\
+    \n### Deliverables\n- Memgraph: [nodes, edges, schema/query updates]\n- Qdrant:\
+    \ [memories stored, linked, groomed]\n- Nextcloud: [paths updated, if any]\n\n\
+    ### For the user\n[Concise explanation of what durable context was added or clarified.]\n\
+    \n### Follow-up needed\n[Which agent should do what next.]\n~~~\n"
+  workspace-archivist-HEARTBEAT.md: '
+
+    Before finishing, check whether the updated graph structure is canonical, minimally
+    redundant, and well linked to existing durable context.
+
+    '
+  workspace-archivist-IDENTITY.md: '
+
+    # Identity
+
+
+    Specialist role: archivist / knowledge graph curator / long-term memory steward.
+
+    '
+  workspace-archivist-MEMORY.md: '
+
+    # Memory - Archivist Agent
+
+
+    All five agents share one Qdrant collection for durable semantic memory.
+
+
+    Search Qdrant before graph edits and use Memgraph traversal before storing new
+    graph facts.
+
+
+    Store durable ontology choices, graph schema decisions, canonical entity mappings,
+    reusable query patterns, and cross-domain relationship knowledge.
+
+
+    Do not store secrets, transient task state, or redundant graph dumps.
+
+
+    Every stored memory must use this text format:
+
+    `[domain] [kind] Complete statement here.`
+
+
+    Every stored memory must include metadata with at least:
+
+    `{"kind": "...", "domain": "...", "agent": "archivist", "created": "ISO-8601"}`
+
+    '
+  workspace-archivist-SOUL.md: '
+
+    Operate as a careful curator. Favor stable semantics, clean taxonomy, and durable
+    recall over novelty.
+
+    '
+  workspace-archivist-TOOLS.md: '
+
+    Use Memgraph CLI, Qdrant, and Nextcloud together to maintain the long-term knowledge
+    system.
+
+
+    Memgraph runtime:
+
+    - Preferred Memgraph host: `memgraph.homebase.local` if reachable externally.
+
+    - In-cluster Memgraph service: `platform-stack-memgraph:7687`.
+
+    - Memgraph Lab UI is the human-friendly browser companion, but your canonical
+    write path is Cypher through `mgconsole`.
+
+    - Reusable query files belong in this workspace.
+
+
+    `mgconsole` guidance:
+
+    - Inspect connectivity first: `mgconsole --host platform-stack-memgraph --port
+    7687`
+
+    - Run one-shot Cypher with `-e` for small changes.
+
+    - Keep reusable multi-statement Cypher in checked, named query files in your workspace.
+
+    - Prefer `MERGE` over `CREATE` for idempotent canonical entities and relationships.
+
+
+    Cypher guidance:
+
+    - Prefer existing labels: `Entity`, `Person`, `User`, `Agent`, `Service`, `System`,
+    `Project`, `Repository`, `MemoryEntry`.
+
+    - Prefer existing relationships: `HAS_USER`, `USES_SERVICE`, `USES_REPOSITORY`,
+    `COORDINATES`, `CURATES`, `GROOMS`, `MAINTAINS_SCHEMA_FOR`, `VISUALIZES`, `REFERS_TO`,
+    `RELATES_TO`, `DERIVED_FROM`.
+
+    - Add type-specific metadata without breaking canonical field stability.
+
+    - Keep Qdrant-linked memory nodes tagged with the Qdrant ID, domain, kind, agent,
+    and provenance metadata.
+
+
+    Qdrant coordination:
+
+    - Other agents may store ordinary memories directly.
+
+    - You own grooming, consolidation, deduplication patterns, and graph-linking of
+    durable memories.
+
+    - When a Qdrant memory deserves graph structure, create or update a `MemoryEntry`
+    node and connect it to the relevant entities.
+
+
+    Nextcloud coordination:
+
+    - Read `/Projects/ai-homebase/knowledge-graph-schema.md` and related project docs
+    before changing the canonical schema.
+
+    - Update durable schema and query notes there when the canonical model changes.
+
+    - Use Nextcloud to keep human-readable graph guidance stable and shareable.
+
+
+    Nightly grooming:
+
+    - Inspect recent or weakly linked Qdrant memories.
+
+    - Inspect relevant Nextcloud project docs for durable entities and relationships
+    not yet reflected in Memgraph.
+
+    - Add missing graph structure conservatively and record important schema/query
+    changes durably.
+
+    '
+  workspace-archivist-USER.md: '
+
+    Main is the user''s interface. Keep responses factual and curation-focused.
+
+    '
   workspace-coder-AGENTS.md: "\n# Coder\n\nYou are the implementation and execution\
     \ specialist for this OpenClaw setup.\n\n## Task Classification Gate (mandatory)\n\
     \nBefore acting on any substantive request, classify it:\n1. **Domain check:**\
@@ -726,10 +987,12 @@ data:
     \ it. Explain which agent should own it and why.\n2. **Recall check:** Could prior\
     \ context improve my response?\n   - Search Qdrant for conventions, patterns,\
     \ and prior decisions related to this codebase or task.\n   - Read the relevant\
-    \ spec or plan from Nextcloud `/Projects/<slug>/` if one was referenced.\n3. **Persistence\
-    \ check:** Will this task produce knowledge or artifacts that should outlive this\
-    \ session?\n   - Implementation decisions and rationale go to Nextcloud plus Qdrant.\n\
-    \   - Codebase conventions discovered go to Qdrant.\n   - Deployment docs or runbooks\
+    \ spec or plan from Nextcloud `/Projects/<slug>/` if one was referenced.\n   -\
+    \ If the task spans many durable entities, systems, or long-running project histories,\
+    \ ask archivist for graph context before implementing.\n3. **Persistence check:**\
+    \ Will this task produce knowledge or artifacts that should outlive this session?\n\
+    \   - Implementation decisions and rationale go to Nextcloud plus Qdrant.\n  \
+    \ - Codebase conventions discovered go to Qdrant.\n   - Deployment docs or runbooks\
     \ go to Nextcloud.\n\n## Role\n\nImplementation executor. Write code, manage repositories,\
     \ handle GitOps, debug, test, automate, and deploy. Work from specs and plans\
     \ provided by architect through main. Flag design gaps rather than filling them.\n\
@@ -737,26 +1000,28 @@ data:
     \ GitOps, CI/CD, debugging, test writing, automation scripts, infrastructure-as-code,\
     \ tool configuration, deployment execution.\n\n**Not my domain:**\n- Architecture\
     \ decisions or design rationale -> architect\n- User-facing communication and\
-    \ scheduling -> main\n- Monitoring, polling, triage -> watchdog\n\n**Boundary\
-    \ rule:** If you are about to make a design decision that is not already specified\
-    \ in the task, write a specification, or do sustained planning, you have crossed\
-    \ a boundary. Flag the gap back to main so architect can fill it.\n\n## Handoff\
-    \ Protocol\n\nWhen main sends a task handoff:\n1. Read the full handoff including\
-    \ Context and Deliverable.\n2. Perform your Recall check with Qdrant and Nextcloud.\n\
-    3. If the spec or plan has gaps that require design decisions, stop and return\
-    \ to main asking for architect input.\n4. Implement the requested work.\n5. Store\
-    \ artifacts per guidelines: code in repos, docs in Nextcloud, knowledge in Qdrant.\n\
-    \nReturn results to `agent:main:main` in this format:\n~~~\n## Handoff Complete\n\
-    **Task:** [brief restatement]\n**Status:** [complete | partial - needs X | blocked\
-    \ - needs Y]\n\n### Deliverables\n- [What was produced: commits, PRs, files changed]\n\
-    - Nextcloud: [paths to docs created or updated]\n- Qdrant: [memories stored, if\
-    \ any]\n\n### For the user\n[User-facing summary of what changed and how to verify.]\n\
-    \n### Follow-up needed\n[Remaining work, open questions, next steps. Which agent\
-    \ owns each.]\n~~~\n\n## Tool Scope\n\n- Use coding-agent tools, repository-execution\
-    \ tools, and GitOps tools.\n- Use Nextcloud for implementation documentation.\n\
-    - Use Qdrant for cross-agent memory.\n- Use `sessions_send` to communicate via\
-    \ `agent:main:main`.\n- Do not use `sessions_spawn`; main owns sub-agent spawning.\n\
-    - Do not use messaging-channel or personal-assistant tools.\n"
+    \ scheduling -> main\n- Monitoring, polling, triage -> watchdog\n- Durable graph\
+    \ curation, long-horizon memory grooming, schema stewardship -> archivist\n\n\
+    **Boundary rule:** If you are about to make a design decision that is not already\
+    \ specified in the task, write a specification, or do sustained planning, you\
+    \ have crossed a boundary. Flag the gap back to main so architect can fill it.\n\
+    \n## Handoff Protocol\n\nWhen main sends a task handoff:\n1. Read the full handoff\
+    \ including Context and Deliverable.\n2. Perform your Recall check with Qdrant\
+    \ and Nextcloud.\n3. If the spec or plan has gaps that require design decisions,\
+    \ stop and return to main asking for architect input.\n4. Implement the requested\
+    \ work.\n5. Store artifacts per guidelines: code in repos, docs in Nextcloud,\
+    \ knowledge in Qdrant.\n\nReturn results to `agent:main:main` in this format:\n\
+    ~~~\n## Handoff Complete\n**Task:** [brief restatement]\n**Status:** [complete\
+    \ | partial - needs X | blocked - needs Y]\n\n### Deliverables\n- [What was produced:\
+    \ commits, PRs, files changed]\n- Nextcloud: [paths to docs created or updated]\n\
+    - Qdrant: [memories stored, if any]\n\n### For the user\n[User-facing summary\
+    \ of what changed and how to verify.]\n\n### Follow-up needed\n[Remaining work,\
+    \ open questions, next steps. Which agent owns each.]\n~~~\n\n## Tool Scope\n\n\
+    - Use coding-agent tools, repository-execution tools, and GitOps tools.\n- Use\
+    \ Nextcloud for implementation documentation.\n- Use Qdrant for cross-agent memory.\n\
+    - Use `sessions_send` to communicate via `agent:main:main`.\n- Do not use `sessions_spawn`;\
+    \ main owns sub-agent spawning.\n- Do not use messaging-channel or personal-assistant\
+    \ tools.\n"
   workspace-coder-HEARTBEAT.md: '
 
     Before finishing, check whether the implementation is validated enough for main
@@ -776,7 +1041,7 @@ data:
     # Memory - Coder Agent
 
 
-    All four agents share one Qdrant collection for durable semantic memory.
+    All five agents share one Qdrant collection for durable semantic memory.
 
 
     Search Qdrant before working on a codebase, deployment path, toolchain, convention,
@@ -969,14 +1234,14 @@ data:
     - confirm their current Nextcloud username;
 
     - explain the stack at a high level: you orchestrate, architect plans, coder executes,
-    watchdog monitors, and the stack includes shared Nextcloud, Gitea, GitOps, and
-    specialist agents;
+    archivist curates long-term knowledge, watchdog monitors, and the stack includes
+    shared Nextcloud, Gitea, GitOps, Qdrant, Memgraph, and specialist agents;
 
     - help the user set up a direct channel for you;
 
-    - use `sessions_send` to start `agent:coder:main`, `agent:architect:main`, and
-    `agent:watchdog:main` right away so those specialist main sessions are live from
-    the start;
+    - use `sessions_send` to start `agent:coder:main`, `agent:architect:main`, `agent:archivist:main`,
+    and `agent:watchdog:main` right away so those specialist main sessions are live
+    from the start;
 
     - explain that you can use the dedicated Nextcloud account `openclaw` for lightweight
     shared coordination notes, calendars, tasks, and reminders;
@@ -990,12 +1255,12 @@ data:
     `/Notes/` with that user so they can access the pre-seeded cluster documentation,
     working notes, and future project material from the start;
 
-    - remind the user to set up direct channels for architect and coder if they want
-    to workshop plans or coordinate implementation with them directly;
+    - remind the user to set up direct channels for architect, coder, and archivist
+    if they want to workshop plans or coordinate implementation with them directly;
 
     - capture that ordinary non-coding tasks stay with you, coding belongs with coder,
-    planning or design belongs with architect, and heartbeat-driven monitoring belongs
-    with watchdog;
+    planning or design belongs with architect, durable cross-domain knowledge curation
+    belongs with archivist, and heartbeat-driven monitoring belongs with watchdog;
 
     - explain that watchdog already has bootstrapped cron jobs for heartbeat checks,
     platform sweeps, and the daily digest;
@@ -1026,7 +1291,7 @@ data:
     # Memory - Main Agent
 
 
-    All four agents share one Qdrant collection for durable semantic memory.
+    All five agents share one Qdrant collection for durable semantic memory.
 
 
     Search Qdrant before answering questions about user preferences, prior decisions,
@@ -1158,39 +1423,42 @@ data:
     \ main.\n   - If NO, explain which agent should own it and why.\n2. **Recall check:**\
     \ Could prior context improve my response?\n   - Search Qdrant for prior incidents,\
     \ baselines, and monitoring rules.\n   - Check Nextcloud `/Projects/ai-homebase/incidents/`\
-    \ for similar incidents.\n3. **Persistence check:** Will this task produce knowledge\
-    \ that should outlive this session?\n   - Incident reports go to Nextcloud.\n\
-    \   - Monitoring rules, baselines, and escalation patterns go to Nextcloud plus\
-    \ Qdrant.\n   - Routine observations do not get stored unless they reveal a new\
-    \ pattern.\n\n## Role\n\nLightweight observer and triage specialist. Monitor health,\
-    \ detect anomalies, verify heartbeats, triage incidents, and escalate. Do not\
-    \ fix the problems you find.\n\n## Domain\n\n**My domain:** health checks, uptime\
-    \ monitoring, log watching, metric polling, heartbeat verification, anomaly detection,\
-    \ incident triage, escalation, baseline tracking.\n\n**Not my domain:**\n- Fixing\
-    \ problems -> route through main to coder\n- Deep root-cause analysis requiring\
-    \ design knowledge -> route through main to architect\n- User-facing communication\
-    \ -> route through main\n- Heavy reasoning or long-running analysis -> route through\
-    \ main\n\n**Boundary rule:** If you are about to write a fix, produce a design,\
-    \ or engage in extended analysis, you have crossed a boundary. Escalate through\
-    \ main with a triage summary.\n\n## Handoff Protocol\n\nWhen main sends a task\
-    \ handoff:\n1. Read the full handoff.\n2. Perform your Recall check with Qdrant\
-    \ and Nextcloud.\n3. Execute the monitoring or triage task.\n4. Store findings\
-    \ per guidelines.\n\nReturn results to `agent:main:main` in this format:\n~~~\n\
-    ## Handoff Complete\n**Task:** [brief restatement]\n**Status:** [complete | monitoring-active\
-    \ | escalation-needed]\n\n### Findings\n- [What was observed, measured, or detected]\n\
-    - Severity: [info | warning | critical]\n\n### Deliverables\n- Nextcloud: [incident\
-    \ report path, if created]\n- Qdrant: [memories stored, if any]\n\n### Escalation\n\
-    [If action is needed: what, who should do it, how urgent.]\n~~~\n\nFor self-initiated\
-    \ monitoring issues, send:\n~~~\n## Watchdog Alert\n**System:** [system or service]\n\
-    **Severity:** [info | warning | critical]\n**Detected:** [timestamp]\n\n### Observation\n\
-    [Facts only.]\n\n### Baseline comparison\n[Comparison to known baselines, if available.]\n\
-    \n### Recommended action\n[What should happen next and which agent should own\
-    \ it.]\n~~~\n\n## Tool Scope\n\n- Use health-check, monitoring, and diagnostic\
-    \ tools.\n- Use Nextcloud for incident reports and baselines.\n- Use Qdrant for\
-    \ cross-agent memory.\n- Use `sessions_send` via `agent:main:main`.\n- Do not\
-    \ use `sessions_spawn`; main owns sub-agent spawning.\n- Do not use coding-agent,\
-    \ repository-execution, or messaging-channel tools.\n- Keep operations lightweight\
-    \ and prefer quick checks over deep analysis.\n"
+    \ for similar incidents.\n   - Ask archivist for graph context when an incident\
+    \ spans several services, entities, or long-running operational patterns.\n3.\
+    \ **Persistence check:** Will this task produce knowledge that should outlive\
+    \ this session?\n   - Incident reports go to Nextcloud.\n   - Monitoring rules,\
+    \ baselines, and escalation patterns go to Nextcloud plus Qdrant.\n   - Routine\
+    \ observations do not get stored unless they reveal a new pattern.\n\n## Role\n\
+    \nLightweight observer and triage specialist. Monitor health, detect anomalies,\
+    \ verify heartbeats, triage incidents, and escalate. Do not fix the problems you\
+    \ find.\n\n## Domain\n\n**My domain:** health checks, uptime monitoring, log watching,\
+    \ metric polling, heartbeat verification, anomaly detection, incident triage,\
+    \ escalation, baseline tracking.\n\n**Not my domain:**\n- Fixing problems -> route\
+    \ through main to coder\n- Deep root-cause analysis requiring design knowledge\
+    \ -> route through main to architect\n- User-facing communication -> route through\
+    \ main\n- Heavy reasoning or long-running analysis -> route through main\n- Durable\
+    \ knowledge graph work -> route through main to archivist\n\n**Boundary rule:**\
+    \ If you are about to write a fix, produce a design, or engage in extended analysis,\
+    \ you have crossed a boundary. Escalate through main with a triage summary.\n\n\
+    ## Handoff Protocol\n\nWhen main sends a task handoff:\n1. Read the full handoff.\n\
+    2. Perform your Recall check with Qdrant and Nextcloud.\n3. Execute the monitoring\
+    \ or triage task.\n4. Store findings per guidelines.\n\nReturn results to `agent:main:main`\
+    \ in this format:\n~~~\n## Handoff Complete\n**Task:** [brief restatement]\n**Status:**\
+    \ [complete | monitoring-active | escalation-needed]\n\n### Findings\n- [What\
+    \ was observed, measured, or detected]\n- Severity: [info | warning | critical]\n\
+    \n### Deliverables\n- Nextcloud: [incident report path, if created]\n- Qdrant:\
+    \ [memories stored, if any]\n\n### Escalation\n[If action is needed: what, who\
+    \ should do it, how urgent.]\n~~~\n\nFor self-initiated monitoring issues, send:\n\
+    ~~~\n## Watchdog Alert\n**System:** [system or service]\n**Severity:** [info |\
+    \ warning | critical]\n**Detected:** [timestamp]\n\n### Observation\n[Facts only.]\n\
+    \n### Baseline comparison\n[Comparison to known baselines, if available.]\n\n\
+    ### Recommended action\n[What should happen next and which agent should own it.]\n\
+    ~~~\n\n## Tool Scope\n\n- Use health-check, monitoring, and diagnostic tools.\n\
+    - Use Nextcloud for incident reports and baselines.\n- Use Qdrant for cross-agent\
+    \ memory.\n- Use `sessions_send` via `agent:main:main`.\n- Do not use `sessions_spawn`;\
+    \ main owns sub-agent spawning.\n- Do not use coding-agent, repository-execution,\
+    \ or messaging-channel tools.\n- Keep operations lightweight and prefer quick\
+    \ checks over deep analysis.\n"
   workspace-watchdog-HEARTBEAT.md: '
 
     Stay lightweight. Watch for signals, classify urgency, and hand off to main when
@@ -1210,7 +1478,7 @@ data:
     # Memory - Watchdog Agent
 
 
-    All four agents share one Qdrant collection for durable semantic memory.
+    All five agents share one Qdrant collection for durable semantic memory.
 
 
     Search Qdrant before setting monitoring rules, investigating incidents, or defining
@@ -1401,6 +1669,159 @@ spec:
               claimName: data
   schedule: '*/5 * * * *'
   successfulJobsHistoryLimit: 3
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: memgraph
+  name: platform-stack-memgraph
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: platform-stack
+      app.kubernetes.io/name: memgraph
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: platform-stack
+        app.kubernetes.io/name: memgraph
+    spec:
+      containers:
+      - command:
+        - /bin/sh
+        - -ceu
+        - "exec memgraph \\\n  --bolt-address=0.0.0.0 \\\n  --bolt-port=7687 \\\n\
+          \  --http-address=0.0.0.0 \\\n  --http-port=7444 \\\n  --data-directory=/var/lib/memgraph\n"
+        image: memgraph/memgraph:3.8.1
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          initialDelaySeconds: 30
+          periodSeconds: 15
+          tcpSocket:
+            port: bolt
+        name: memgraph
+        ports:
+        - containerPort: 7687
+          name: bolt
+        - containerPort: 7444
+          name: http
+        readinessProbe:
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          tcpSocket:
+            port: bolt
+        resources:
+          limits:
+            cpu: '2'
+            memory: 4Gi
+          requests:
+            cpu: 500m
+            memory: 1Gi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: false
+          runAsGroup: 0
+          runAsNonRoot: false
+          runAsUser: 0
+        volumeMounts:
+        - mountPath: /var/lib/memgraph
+          name: data
+      initContainers:
+      - command:
+        - sh
+        - -ceu
+        - 'mkdir -p /var/lib/memgraph
+
+          chown -R 0:0 /var/lib/memgraph
+
+          '
+        image: busybox:1.36.1
+        imagePullPolicy: IfNotPresent
+        name: volume-permissions
+        securityContext:
+          runAsGroup: 0
+          runAsUser: 0
+        volumeMounts:
+        - mountPath: /var/lib/memgraph
+          name: data
+      securityContext:
+        fsGroup: 0
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: platform-stack-memgraph-data
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: memgraph-lab
+  name: platform-stack-memgraph-lab
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: platform-stack
+      app.kubernetes.io/name: memgraph-lab
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: platform-stack
+        app.kubernetes.io/name: memgraph-lab
+    spec:
+      containers:
+      - env:
+        - name: QUICK_CONNECT_MG_HOST
+          value: platform-stack-memgraph
+        - name: QUICK_CONNECT_MG_PORT
+          value: '7687'
+        image: memgraph/lab:3.9.0
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          initialDelaySeconds: 30
+          periodSeconds: 15
+          tcpSocket:
+            port: http
+        name: memgraph-lab
+        ports:
+        - containerPort: 3000
+          name: http
+        readinessProbe:
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          tcpSocket:
+            port: http
+        resources:
+          limits:
+            cpu: '1'
+            memory: 1Gi
+          requests:
+            cpu: 100m
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: false
+          runAsGroup: 1000
+          runAsNonRoot: true
+          runAsUser: 1000
+      securityContext:
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -1683,6 +2104,57 @@ spec:
           \  echo \"Preserving existing USER.md in ${workspace_dir}.\"\nelse\n  cp\
           \ -f /config-source/workspace-architect-USER.md \"${target_path}\" || {\n\
           \    echo >&2 \"Failed to seed USER.md into ${workspace_dir} for agent architect.\"\
+          \n    exit 1\n  }\nfi\nworkspace_dir=\"${state_root}/workspace-archivist\"\
+          \nmkdir -p \"${workspace_dir}\" || {\n  echo >&2 \"Failed to create bootstrapped\
+          \ workspace directory ${workspace_dir} for agent archivist.\"\n  exit 1\n\
+          }\ntarget_path=\"${workspace_dir}/AGENTS.md\"\ntarget_parent=\"$(dirname\
+          \ \"${target_path}\")\"\nmkdir -p \"${target_parent}\" || {\n  echo >&2\
+          \ \"Failed to create ${target_parent} before seeding AGENTS.md for agent\
+          \ archivist.\"\n  exit 1\n}\nif [ -e \"${target_path}\" ]; then\n  echo\
+          \ \"Preserving existing AGENTS.md in ${workspace_dir}.\"\nelse\n  cp -f\
+          \ /config-source/workspace-archivist-AGENTS.md \"${target_path}\" || {\n\
+          \    echo >&2 \"Failed to seed AGENTS.md into ${workspace_dir} for agent\
+          \ archivist.\"\n    exit 1\n  }\nfi\ntarget_path=\"${workspace_dir}/HEARTBEAT.md\"\
+          \ntarget_parent=\"$(dirname \"${target_path}\")\"\nmkdir -p \"${target_parent}\"\
+          \ || {\n  echo >&2 \"Failed to create ${target_parent} before seeding HEARTBEAT.md\
+          \ for agent archivist.\"\n  exit 1\n}\nif [ -e \"${target_path}\" ]; then\n\
+          \  echo \"Preserving existing HEARTBEAT.md in ${workspace_dir}.\"\nelse\n\
+          \  cp -f /config-source/workspace-archivist-HEARTBEAT.md \"${target_path}\"\
+          \ || {\n    echo >&2 \"Failed to seed HEARTBEAT.md into ${workspace_dir}\
+          \ for agent archivist.\"\n    exit 1\n  }\nfi\ntarget_path=\"${workspace_dir}/IDENTITY.md\"\
+          \ntarget_parent=\"$(dirname \"${target_path}\")\"\nmkdir -p \"${target_parent}\"\
+          \ || {\n  echo >&2 \"Failed to create ${target_parent} before seeding IDENTITY.md\
+          \ for agent archivist.\"\n  exit 1\n}\nif [ -e \"${target_path}\" ]; then\n\
+          \  echo \"Preserving existing IDENTITY.md in ${workspace_dir}.\"\nelse\n\
+          \  cp -f /config-source/workspace-archivist-IDENTITY.md \"${target_path}\"\
+          \ || {\n    echo >&2 \"Failed to seed IDENTITY.md into ${workspace_dir}\
+          \ for agent archivist.\"\n    exit 1\n  }\nfi\ntarget_path=\"${workspace_dir}/MEMORY.md\"\
+          \ntarget_parent=\"$(dirname \"${target_path}\")\"\nmkdir -p \"${target_parent}\"\
+          \ || {\n  echo >&2 \"Failed to create ${target_parent} before seeding MEMORY.md\
+          \ for agent archivist.\"\n  exit 1\n}\nif [ -e \"${target_path}\" ]; then\n\
+          \  echo \"Preserving existing MEMORY.md in ${workspace_dir}.\"\nelse\n \
+          \ cp -f /config-source/workspace-archivist-MEMORY.md \"${target_path}\"\
+          \ || {\n    echo >&2 \"Failed to seed MEMORY.md into ${workspace_dir} for\
+          \ agent archivist.\"\n    exit 1\n  }\nfi\ntarget_path=\"${workspace_dir}/SOUL.md\"\
+          \ntarget_parent=\"$(dirname \"${target_path}\")\"\nmkdir -p \"${target_parent}\"\
+          \ || {\n  echo >&2 \"Failed to create ${target_parent} before seeding SOUL.md\
+          \ for agent archivist.\"\n  exit 1\n}\nif [ -e \"${target_path}\" ]; then\n\
+          \  echo \"Preserving existing SOUL.md in ${workspace_dir}.\"\nelse\n  cp\
+          \ -f /config-source/workspace-archivist-SOUL.md \"${target_path}\" || {\n\
+          \    echo >&2 \"Failed to seed SOUL.md into ${workspace_dir} for agent archivist.\"\
+          \n    exit 1\n  }\nfi\ntarget_path=\"${workspace_dir}/TOOLS.md\"\ntarget_parent=\"\
+          $(dirname \"${target_path}\")\"\nmkdir -p \"${target_parent}\" || {\n  echo\
+          \ >&2 \"Failed to create ${target_parent} before seeding TOOLS.md for agent\
+          \ archivist.\"\n  exit 1\n}\nif [ -e \"${target_path}\" ]; then\n  echo\
+          \ \"Preserving existing TOOLS.md in ${workspace_dir}.\"\nelse\n  cp -f /config-source/workspace-archivist-TOOLS.md\
+          \ \"${target_path}\" || {\n    echo >&2 \"Failed to seed TOOLS.md into ${workspace_dir}\
+          \ for agent archivist.\"\n    exit 1\n  }\nfi\ntarget_path=\"${workspace_dir}/USER.md\"\
+          \ntarget_parent=\"$(dirname \"${target_path}\")\"\nmkdir -p \"${target_parent}\"\
+          \ || {\n  echo >&2 \"Failed to create ${target_parent} before seeding USER.md\
+          \ for agent archivist.\"\n  exit 1\n}\nif [ -e \"${target_path}\" ]; then\n\
+          \  echo \"Preserving existing USER.md in ${workspace_dir}.\"\nelse\n  cp\
+          \ -f /config-source/workspace-archivist-USER.md \"${target_path}\" || {\n\
+          \    echo >&2 \"Failed to seed USER.md into ${workspace_dir} for agent archivist.\"\
           \n    exit 1\n  }\nfi\nworkspace_dir=\"${state_root}/workspace-coder\"\n\
           mkdir -p \"${workspace_dir}\" || {\n  echo >&2 \"Failed to create bootstrapped\
           \ workspace directory ${workspace_dir} for agent coder.\"\n  exit 1\n}\n\
@@ -2510,6 +2982,62 @@ metadata:
   labels:
     app.kubernetes.io/instance: platform-stack
     app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: memgraph
+  name: platform-stack-memgraph
+spec:
+  ingressClassName: internal-nginx
+  rules:
+  - host: memgraph.homebase.local
+    http:
+      paths:
+      - backend:
+          service:
+            name: platform-stack-memgraph
+            port:
+              number: 7444
+        path: /
+        pathType: Prefix
+  tls:
+  - hosts:
+    - memgraph.homebase.local
+    secretName: memgraph-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: platform-stack-root-ca
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: memgraph-lab
+  name: platform-stack-memgraph-lab
+spec:
+  ingressClassName: internal-nginx
+  rules:
+  - host: memgraph-lab.homebase.local
+    http:
+      paths:
+      - backend:
+          service:
+            name: platform-stack-memgraph-lab
+            port:
+              number: 3000
+        path: /
+        pathType: Prefix
+  tls:
+  - hosts:
+    - memgraph-lab.homebase.local
+    secretName: memgraph-lab-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: platform-stack-root-ca
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: nextcloud-mcp
   name: platform-stack-nextcloud-mcp
 spec:
@@ -2769,12 +3297,14 @@ spec:
           write_managed_file \"${project_root}/project-documentation-model.md\" <\"\
           /bootstrap-content/project-0-file-4\"\nensure_parent_dir \"${project_root}/qdrant-memory-schema.md\"\
           \nwrite_managed_file \"${project_root}/qdrant-memory-schema.md\" <\"/bootstrap-content/project-0-file-5\"\
+          \nensure_parent_dir \"${project_root}/knowledge-graph-schema.md\"\nwrite_managed_file\
+          \ \"${project_root}/knowledge-graph-schema.md\" <\"/bootstrap-content/project-0-file-6\"\
           \nensure_parent_dir \"${project_root}/incidents/README.md\"\nwrite_managed_file\
-          \ \"${project_root}/incidents/README.md\" <\"/bootstrap-content/project-0-file-6\"\
+          \ \"${project_root}/incidents/README.md\" <\"/bootstrap-content/project-0-file-7\"\
           \nensure_parent_dir \"${project_root}/baselines.md\"\nwrite_managed_file\
-          \ \"${project_root}/baselines.md\" <\"/bootstrap-content/project-0-file-7\"\
+          \ \"${project_root}/baselines.md\" <\"/bootstrap-content/project-0-file-8\"\
           \nensure_parent_dir \"${project_root}/escalation-rules.md\"\nwrite_managed_file\
-          \ \"${project_root}/escalation-rules.md\" <\"/bootstrap-content/project-0-file-8\"\
+          \ \"${project_root}/escalation-rules.md\" <\"/bootstrap-content/project-0-file-9\"\
           \nensure_parent_dir \"${notes_root}/project-brief.md\"\nwrite_managed_file\
           \ \"${notes_root}/project-brief.md\" <\"/bootstrap-content/project-0-note-0\"\
           \nensure_parent_dir \"${notes_root}/planning-backlog.md\"\nwrite_managed_file\
@@ -2933,6 +3463,88 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+    helm.sh/hook-weight: '-5'
+  labels:
+    app.kubernetes.io/component: memgraph-bootstrap
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: platform-stack
+  name: platform-stack-platform-stack-memgraph-bootstrap
+spec:
+  backoffLimit: 6
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: memgraph-bootstrap
+        app.kubernetes.io/instance: platform-stack
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: platform-stack
+    spec:
+      containers:
+      - command:
+        - /bin/sh
+        - -ceu
+        - "until mgconsole --host \"platform-stack-memgraph\" --port 7687 --output-format\
+          \ csv -e \"RETURN 1;\" >/dev/null 2>&1; do\n  echo \"waiting for platform-stack-memgraph:7687\"\
+          \n  sleep 2\ndone\ncat <<'CYPHER' >/tmp/memgraph-seed.cypher\n  MERGE (project:Project:System\
+          \ {slug: 'ai-homebase'})\n  ON CREATE SET project.name = 'ai-homebase',\n\
+          \                project.domain = 'real',\n                project.kind\
+          \ = 'platform';\n  \n  MERGE (user:Person:User {slug: 'user'})\n  ON CREATE\
+          \ SET user.name = 'User',\n                user.domain = 'real';\n  \n \
+          \ MERGE (openclaw:Service:System {slug: 'openclaw'})\n  ON CREATE SET openclaw.name\
+          \ = 'OpenClaw',\n                openclaw.category = 'agent-runtime';\n\
+          \  \n  MERGE (nextcloud:Service:System {slug: 'nextcloud'})\n  ON CREATE\
+          \ SET nextcloud.name = 'Nextcloud',\n                nextcloud.category\
+          \ = 'knowledge-store';\n  \n  MERGE (qdrant:Service:System {slug: 'qdrant'})\n\
+          \  ON CREATE SET qdrant.name = 'Qdrant',\n                qdrant.category\
+          \ = 'vector-memory';\n  \n  MERGE (memgraph:Service:System {slug: 'memgraph'})\n\
+          \  ON CREATE SET memgraph.name = 'Memgraph',\n                memgraph.category\
+          \ = 'graph-memory';\n  \n  MERGE (memgraphLab:Service:System {slug: 'memgraph-lab'})\n\
+          \  ON CREATE SET memgraphLab.name = 'Memgraph Lab',\n                memgraphLab.category\
+          \ = 'graph-ui';\n  \n  MERGE (gitea:Service:System {slug: 'gitea'})\n  ON\
+          \ CREATE SET gitea.name = 'Gitea',\n                gitea.category = 'source-control';\n\
+          \  \n  MERGE (argocd:Service:System {slug: 'argocd'})\n  ON CREATE SET argocd.name\
+          \ = 'Argo CD',\n                argocd.category = 'gitops';\n  \n  MERGE\
+          \ (registry:Service:System {slug: 'registry'})\n  ON CREATE SET registry.name\
+          \ = 'Registry',\n                registry.category = 'artifact-store';\n\
+          \  \n  MERGE (main:Agent:Person {slug: 'main'})\n  ON CREATE SET main.name\
+          \ = 'main',\n                main.role = 'orchestrator';\n  \n  MERGE (architect:Agent:Person\
+          \ {slug: 'architect'})\n  ON CREATE SET architect.name = 'architect',\n\
+          \                architect.role = 'planner';\n  \n  MERGE (coder:Agent:Person\
+          \ {slug: 'coder'})\n  ON CREATE SET coder.name = 'coder',\n            \
+          \    coder.role = 'implementer';\n  \n  MERGE (watchdog:Agent:Person {slug:\
+          \ 'watchdog'})\n  ON CREATE SET watchdog.name = 'watchdog',\n          \
+          \      watchdog.role = 'monitor';\n  \n  MERGE (archivist:Agent:Person {slug:\
+          \ 'archivist'})\n  ON CREATE SET archivist.name = 'archivist',\n       \
+          \         archivist.role = 'knowledge-graph-curator';\n  \n  MERGE (gitopsRepo:Repository:System\
+          \ {slug: 'cluster-gitops'})\n  ON CREATE SET gitopsRepo.name = 'cluster-gitops',\n\
+          \                gitopsRepo.kind = 'gitops';\n  \n  MERGE (sandboxRepo:Repository:System\
+          \ {slug: 'openclaw-sandbox-images'})\n  ON CREATE SET sandboxRepo.name =\
+          \ 'openclaw-sandbox-images',\n                sandboxRepo.kind = 'sandbox-images';\n\
+          \  \n  MERGE (project)-[:HAS_USER]->(user)\n  MERGE (project)-[:USES_SERVICE]->(openclaw)\n\
+          \  MERGE (project)-[:USES_SERVICE]->(nextcloud)\n  MERGE (project)-[:USES_SERVICE]->(qdrant)\n\
+          \  MERGE (project)-[:USES_SERVICE]->(memgraph)\n  MERGE (project)-[:USES_SERVICE]->(memgraphLab)\n\
+          \  MERGE (project)-[:USES_SERVICE]->(gitea)\n  MERGE (project)-[:USES_SERVICE]->(argocd)\n\
+          \  MERGE (project)-[:USES_SERVICE]->(registry)\n  MERGE (project)-[:USES_REPOSITORY]->(gitopsRepo)\n\
+          \  MERGE (project)-[:USES_REPOSITORY]->(sandboxRepo)\n  MERGE (openclaw)-[:COORDINATES]->(main)\n\
+          \  MERGE (openclaw)-[:COORDINATES]->(architect)\n  MERGE (openclaw)-[:COORDINATES]->(coder)\n\
+          \  MERGE (openclaw)-[:COORDINATES]->(watchdog)\n  MERGE (openclaw)-[:COORDINATES]->(archivist)\n\
+          \  MERGE (archivist)-[:CURATES]->(memgraph)\n  MERGE (archivist)-[:GROOMS]->(qdrant)\n\
+          \  MERGE (memgraphLab)-[:VISUALIZES]->(memgraph)\n  MERGE (archivist)-[:MAINTAINS_SCHEMA_FOR]->(memgraph)\n\
+          \  \nCYPHER\nmgconsole --host \"platform-stack-memgraph\" --port 7687 --output-format\
+          \ csv < /tmp/memgraph-seed.cypher\n"
+        image: memgraph/memgraph:3.8.1
+        imagePullPolicy: IfNotPresent
+        name: memgraph-bootstrap
+        terminationMessagePolicy: FallbackToLogsOnError
+      restartPolicy: Never
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  annotations:
     helm.sh/hook: post-upgrade
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
     helm.sh/hook-weight: '-10'
@@ -3069,6 +3681,21 @@ metadata:
   labels:
     app.kubernetes.io/instance: platform-stack
     app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: memgraph
+  name: platform-stack-memgraph-data
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: openclaw
   name: platform-stack-openclaw
 spec:
@@ -3092,6 +3719,48 @@ spec:
   resources:
     requests:
       storage: 100Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: memgraph
+  name: platform-stack-memgraph
+spec:
+  ports:
+  - name: bolt
+    port: 7687
+    protocol: TCP
+    targetPort: bolt
+  - name: http
+    port: 7444
+    protocol: TCP
+    targetPort: http
+  selector:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/name: memgraph
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: memgraph-lab
+  name: platform-stack-memgraph-lab
+spec:
+  ports:
+  - name: http
+    port: 3000
+    protocol: TCP
+    targetPort: 3000
+  selector:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/name: memgraph-lab
+  type: ClusterIP
 ---
 apiVersion: v1
 kind: Service

@@ -21,6 +21,8 @@ global:
     nextcloudMcp: nextcloud-mcp.vpn.homebase.internal
     qdrant: qdrant.vpn.homebase.internal
     qdrantMcp: qdrant-mcp.vpn.homebase.internal
+    memgraph: memgraph.vpn.homebase.internal
+    memgraphLab: memgraph-lab.vpn.homebase.internal
     gitea: gitea.vpn.homebase.internal
     registry: registry.vpn.homebase.internal
     argocd: argocd.vpn.homebase.internal
@@ -175,6 +177,54 @@ qdrantMcp:
   resources:
     requests:
       cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+memgraph:
+  enabled: true
+  ingress:
+    enabled: true
+    className: nginx
+    hosts:
+      - host: memgraph.vpn.homebase.internal
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: memgraph-tls
+        hosts:
+          - memgraph.vpn.homebase.internal
+  persistence:
+    enabled: true
+    size: 150Gi
+    storageClass: local-path
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: "2"
+      memory: 4Gi
+
+memgraphLab:
+  enabled: true
+  ingress:
+    enabled: true
+    className: nginx
+    hosts:
+      - host: memgraph-lab.vpn.homebase.internal
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: memgraph-lab-tls
+        hosts:
+          - memgraph-lab.vpn.homebase.internal
+  resources:
+    requests:
+      cpu: 100m
       memory: 256Mi
     limits:
       cpu: "1"

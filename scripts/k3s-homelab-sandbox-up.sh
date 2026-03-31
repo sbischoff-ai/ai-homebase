@@ -55,6 +55,8 @@ QDRANT_MCP_HOST=""
 GITEA_HOST=""
 REGISTRY_HOST=""
 OPENCLAW_HOST=""
+MEMGRAPH_HOST=""
+MEMGRAPH_LAB_HOST=""
 if [[ -f "$BOOTSTRAP_CONFIG_PATH" ]]; then
   BOOTSTRAP_SHELL_VARS="$(python3 ./scripts/bootstrap-config.py shell-vars --config "$BOOTSTRAP_CONFIG_PATH")" || exit 1
   eval "$BOOTSTRAP_SHELL_VARS"
@@ -63,6 +65,8 @@ if [[ -f "$BOOTSTRAP_CONFIG_PATH" ]]; then
   GITEA_HOST="${GITEA_HOST:-}"
   REGISTRY_HOST="${REGISTRY_HOST:-}"
   OPENCLAW_HOST="${OPENCLAW_HOST:-}"
+  MEMGRAPH_HOST="${MEMGRAPH_HOST:-}"
+  MEMGRAPH_LAB_HOST="${MEMGRAPH_LAB_HOST:-}"
 fi
 
 INCUS_VM_CMD=(
@@ -87,6 +91,12 @@ if [[ -n "$REGISTRY_HOST" ]]; then
 fi
 if [[ -n "$OPENCLAW_HOST" ]]; then
   INCUS_VM_CMD+=(--resolve-host "$OPENCLAW_HOST")
+fi
+if [[ -n "$MEMGRAPH_HOST" ]]; then
+  INCUS_VM_CMD+=(--resolve-host "$MEMGRAPH_HOST")
+fi
+if [[ -n "$MEMGRAPH_LAB_HOST" ]]; then
+  INCUS_VM_CMD+=(--resolve-host "$MEMGRAPH_LAB_HOST")
 fi
 
 for resolve_host in "${EXTRA_RESOLVE_HOSTS[@]}"; do
@@ -114,5 +124,11 @@ if [[ -n "$REGISTRY_HOST" ]]; then
 fi
 if [[ -n "$OPENCLAW_HOST" ]]; then
   echo "  OpenClaw host override inside sandbox: ${OPENCLAW_HOST}"
+fi
+if [[ -n "$MEMGRAPH_HOST" ]]; then
+  echo "  Memgraph host override inside sandbox: ${MEMGRAPH_HOST}"
+fi
+if [[ -n "$MEMGRAPH_LAB_HOST" ]]; then
+  echo "  Memgraph Lab host override inside sandbox: ${MEMGRAPH_LAB_HOST}"
 fi
 echo "  Incus connection info: ${INCUS_CONNECTION_INFO_PATH}"

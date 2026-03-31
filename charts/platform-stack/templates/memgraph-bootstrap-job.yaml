@@ -1,0 +1,46 @@
+{{- if and (.Values.memgraph.enabled | default false) (.Values.memgraphBootstrap.enabled | default false) }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ printf "%s-memgraph-bootstrap" (include "platform-stack.fullname" .) }}
+  labels:
+    {{- include "platform-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: memgraph-bootstrap
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 6
+  template:
+    metadata:
+      labels:
+        {{- include "platform-stack.labels" . | nindent 8 }}
+        app.kubernetes.io/component: memgraph-bootstrap
+    spec:
+      restartPolicy: Never
+      {{- $pullSecrets := .Values.global.imagePullSecrets | default (list) }}
+      {{- if $pullSecrets }}
+      imagePullSecrets:
+        {{- range $pullSecrets }}
+        - name: {{ .name | default . }}
+        {{- end }}
+      {{- end }}
+      containers:
+        - name: memgraph-bootstrap
+          image: "{{ .Values.memgraph.image.repository }}:{{ .Values.memgraph.image.tag }}"
+          imagePullPolicy: {{ .Values.memgraph.image.pullPolicy }}
+          terminationMessagePolicy: FallbackToLogsOnError
+          command:
+            - /bin/sh
+            - -ceu
+            - |
+              until mgconsole --host {{ include "platform-stack.memgraphServiceHost" . | quote }} --port {{ .Values.memgraph.service.boltPort }} --output-format csv -e "RETURN 1;" >/dev/null 2>&1; do
+                echo "waiting for {{ include "platform-stack.memgraphServiceHost" . }}:{{ .Values.memgraph.service.boltPort }}"
+                sleep 2
+              done
+              cat <<'CYPHER' >/tmp/memgraph-seed.cypher
+{{ .Values.memgraphBootstrap.seedCypher | indent 16 }}
+              CYPHER
+              mgconsole --host {{ include "platform-stack.memgraphServiceHost" . | quote }} --port {{ .Values.memgraph.service.boltPort }} --output-format csv < /tmp/memgraph-seed.cypher
+{{- end }}
