@@ -31,6 +31,8 @@ DEPENDENCY_UPDATE_PATHS = (
     "charts/gitea",
     "charts/platform-stack",
 )
+NESTED_DEPENDENCY_UPDATE_PATHS = DEPENDENCY_UPDATE_PATHS[:-1]
+UMBRELLA_DEPENDENCY_UPDATE_PATH = DEPENDENCY_UPDATE_PATHS[-1]
 
 _DEPENDENCIES_READY = False
 
@@ -125,13 +127,22 @@ def ensure_chart_dependencies() -> None:
     if _DEPENDENCIES_READY:
         return
 
-    for chart_path in DEPENDENCY_UPDATE_PATHS:
+    nested_dependencies_updated = False
+    for chart_path in NESTED_DEPENDENCY_UPDATE_PATHS:
         charts_dir = Path(chart_path) / "charts"
         if charts_dir.is_dir() and any(charts_dir.iterdir()):
             continue
         run_command(
             ["helm", "dependency", "update", chart_path],
             context=f"failed to update Helm dependencies for {chart_path}",
+        )
+        nested_dependencies_updated = True
+
+    umbrella_charts_dir = Path(UMBRELLA_DEPENDENCY_UPDATE_PATH) / "charts"
+    if nested_dependencies_updated or not (umbrella_charts_dir.is_dir() and any(umbrella_charts_dir.iterdir())):
+        run_command(
+            ["helm", "dependency", "update", UMBRELLA_DEPENDENCY_UPDATE_PATH],
+            context=f"failed to update Helm dependencies for {UMBRELLA_DEPENDENCY_UPDATE_PATH}",
         )
 
     _DEPENDENCIES_READY = True
