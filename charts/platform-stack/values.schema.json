@@ -134,6 +134,12 @@
             "qdrantMcp": {
               "$ref": "#/definitions/hostname"
             },
+            "memgraph": {
+              "$ref": "#/definitions/hostname"
+            },
+            "memgraphLab": {
+              "$ref": "#/definitions/hostname"
+            },
             "gitea": {
               "$ref": "#/definitions/hostname"
             },

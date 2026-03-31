@@ -4,7 +4,7 @@ This document defines the repo-managed memory contract for the shared OpenClaw Q
 
 ## Summary
 
-All four OpenClaw agents share one Qdrant collection for durable semantic memory. The `qdrant-find` tool currently relies on semantic retrieval, so the stored text itself must carry the structural signals needed to separate factual, speculative, and creative memories.
+All five OpenClaw agents share one Qdrant collection for durable semantic memory. The `qdrant-find` tool currently relies on semantic retrieval, so the stored text itself must carry the structural signals needed to separate factual, speculative, and creative memories.
 
 Metadata remains required for auditability, later filtering, and cleanup, but text prefixes are part of the retrieval contract today.
 
@@ -14,7 +14,7 @@ Every `qdrant-store` call must include a `metadata` object with:
 
 - `kind`: memory category
 - `domain`: reality domain
-- `agent`: one of `main`, `coder`, `architect`, `watchdog`
+- `agent`: one of `main`, `coder`, `architect`, `archivist`, `watchdog`
 - `created`: ISO 8601 timestamp such as `2026-03-31T10:00:00Z`
 
 ## Optional metadata

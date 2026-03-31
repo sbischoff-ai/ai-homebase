@@ -27,6 +27,9 @@ username = "coder-bot"
 [openclaw.agents.architect]
 model = "anthropic/claude-opus-4-6"
 
+[openclaw.agents.archivist]
+model = "anthropic/claude-sonnet-4-6"
+
 [openclaw.agents.watchdog]
 model = "anthropic/claude-haiku-4-5"
 
@@ -34,6 +37,10 @@ model = "anthropic/claude-haiku-4-5"
 openclaw = "openclaw.test.internal"
 nextcloud = "nextcloud.test.internal"
 nextcloud_mcp = "nextcloud-mcp.test.internal"
+qdrant = "qdrant.test.internal"
+qdrant_mcp = "qdrant-mcp.test.internal"
+memgraph = "memgraph.test.internal"
+memgraph_lab = "memgraph-lab.test.internal"
 gitea = "gitea.test.internal"
 argocd = "argocd.test.internal"
 vaultwarden = "vaultwarden.test.internal"
@@ -104,8 +111,11 @@ project = "platform-stack"
         assert '"coder"' in bootstrap_values
         assert '"architect"' in bootstrap_values
         assert '"watchdog"' in bootstrap_values
+        assert '"archivist"' in bootstrap_values
         assert 'claude-opus-4-6' in bootstrap_values
         assert 'claude-haiku-4-5' in bootstrap_values
+        assert 'memgraph.test.internal' in bootstrap_values
+        assert 'memgraph-lab.test.internal' in bootstrap_values
         assert '"mcp"' in bootstrap_values
         assert '"servers"' in bootstrap_values
         assert '"nextcloud"' in bootstrap_values
@@ -113,6 +123,7 @@ project = "platform-stack"
         assert '/Projects/ai-homebase/' in bootstrap_values
         assert 'multi-agent-topology.md' in bootstrap_values
         assert 'qdrant-memory-schema.md' in bootstrap_values
+        assert 'knowledge-graph-schema.md' in bootstrap_values
         assert 'incidents/README.md' in bootstrap_values
         assert 'baselines.md' in bootstrap_values
         assert 'escalation-rules.md' in bootstrap_values

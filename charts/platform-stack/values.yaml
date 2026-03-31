@@ -14,6 +14,8 @@ global:
     nextcloudMcp: nextcloud-mcp.homebase.local
     qdrant: qdrant.homebase.local
     qdrantMcp: qdrant-mcp.homebase.local
+    memgraph: memgraph.homebase.local
+    memgraphLab: memgraph-lab.homebase.local
     gitea: gitea.vpn.homebase.internal
     registry: registry.homebase.local
     argocd: argocd.vpn.homebase.internal
@@ -240,7 +242,7 @@ openclaw:
           MEMORY.md: |
             # Memory - Main Agent
 
-            All four agents share one Qdrant collection for durable semantic memory.
+            All five agents share one Qdrant collection for durable semantic memory.
 
             Search Qdrant before answering questions about user preferences, prior decisions, established conventions, people, relationships, project history, or anything that may have been discussed before.
 
@@ -264,15 +266,15 @@ openclaw:
             - learn how the user wants to work with you;
             - confirm how they want to be addressed;
             - confirm their current Nextcloud username;
-            - explain the stack at a high level: you orchestrate, architect plans, coder executes, watchdog monitors, and the stack includes shared Nextcloud, Gitea, GitOps, and specialist agents;
+            - explain the stack at a high level: you orchestrate, architect plans, coder executes, archivist curates long-term knowledge, watchdog monitors, and the stack includes shared Nextcloud, Gitea, GitOps, Qdrant, Memgraph, and specialist agents;
             - help the user set up a direct channel for you;
-            - use `sessions_send` to start `agent:coder:main`, `agent:architect:main`, and `agent:watchdog:main` right away so those specialist main sessions are live from the start;
+            - use `sessions_send` to start `agent:coder:main`, `agent:architect:main`, `agent:archivist:main`, and `agent:watchdog:main` right away so those specialist main sessions are live from the start;
             - explain that you can use the dedicated Nextcloud account `openclaw` for lightweight shared coordination notes, calendars, tasks, and reminders;
             - explain that the `ai-homebase` project already exists in Nextcloud at `/Projects/ai-homebase/` with working notes under `/Notes/ai-homebase/`;
             - ask the user to create a calendar and share it with `openclaw`;
             - once the user's real Nextcloud username is confirmed, share `/Projects/` and `/Notes/` with that user so they can access the pre-seeded cluster documentation, working notes, and future project material from the start;
-            - remind the user to set up direct channels for architect and coder if they want to workshop plans or coordinate implementation with them directly;
-            - capture that ordinary non-coding tasks stay with you, coding belongs with coder, planning or design belongs with architect, and heartbeat-driven monitoring belongs with watchdog;
+            - remind the user to set up direct channels for architect, coder, and archivist if they want to workshop plans or coordinate implementation with them directly;
+            - capture that ordinary non-coding tasks stay with you, coding belongs with coder, planning or design belongs with architect, durable cross-domain knowledge curation belongs with archivist, and heartbeat-driven monitoring belongs with watchdog;
             - explain that watchdog already has bootstrapped cron jobs for heartbeat checks, platform sweeps, and the daily digest;
             - explain that project setup, specifications, task breakdowns, and durable project documentation belong with architect rather than with you.
 
@@ -295,6 +297,7 @@ openclaw:
             2. **Recall check:** Could prior context improve my response?
                - Search Qdrant for conventions, patterns, and prior decisions related to this codebase or task.
                - Read the relevant spec or plan from Nextcloud `/Projects/<slug>/` if one was referenced.
+               - If the task spans many durable entities, systems, or long-running project histories, ask archivist for graph context before implementing.
             3. **Persistence check:** Will this task produce knowledge or artifacts that should outlive this session?
                - Implementation decisions and rationale go to Nextcloud plus Qdrant.
                - Codebase conventions discovered go to Qdrant.
@@ -312,6 +315,7 @@ openclaw:
             - Architecture decisions or design rationale -> architect
             - User-facing communication and scheduling -> main
             - Monitoring, polling, triage -> watchdog
+            - Durable graph curation, long-horizon memory grooming, schema stewardship -> archivist
 
             **Boundary rule:** If you are about to make a design decision that is not already specified in the task, write a specification, or do sustained planning, you have crossed a boundary. Flag the gap back to main so architect can fill it.
 
@@ -443,7 +447,7 @@ openclaw:
           MEMORY.md: |
             # Memory - Coder Agent
 
-            All four agents share one Qdrant collection for durable semantic memory.
+            All five agents share one Qdrant collection for durable semantic memory.
 
             Search Qdrant before working on a codebase, deployment path, toolchain, convention, or implementation area that may have prior context.
 
@@ -476,6 +480,7 @@ openclaw:
             2. **Recall check:** Could prior context improve my response?
                - Search Qdrant for relevant memories.
                - Read existing project docs from Nextcloud `/Projects/<slug>/`.
+               - If the work depends on many durable relationships, prior entities, or long-running cross-project context, consult archivist before finalizing the plan.
             3. **Persistence check:** Will this task produce knowledge or artifacts that should outlive this session?
                - Design documents, specs, and plans go to Nextcloud.
                - Distilled decisions and patterns go to Qdrant.
@@ -493,6 +498,7 @@ openclaw:
             - Code execution, repo changes, GitOps -> coder
             - User-facing communication, scheduling, routing -> main
             - Monitoring, polling, health checks -> watchdog
+            - Long-term graph curation and cross-domain knowledge stewardship -> archivist
             - Spawning sub-agents -> main owns `sessions_spawn`
 
             **Boundary rule:** If you are about to execute code, modify a repository, or directly manage user-facing interactions, you have crossed a boundary. Stop and route back through main.
@@ -571,7 +577,7 @@ openclaw:
           MEMORY.md: |
             # Memory - Architect Agent
 
-            All four agents share one Qdrant collection for durable semantic memory.
+            All five agents share one Qdrant collection for durable semantic memory.
 
             Search Qdrant before planning, designing, or specifying work that may have prior decisions, tradeoffs, or project history.
 
@@ -591,6 +597,133 @@ openclaw:
             - `ai-homebase` already exists in Nextcloud.
             - Durable project docs live in `/Projects/ai-homebase/`.
             - Working notes live in `/Notes/ai-homebase/`.
+      archivist:
+        workspace: /home/node/.openclaw/workspace-archivist
+        files:
+          AGENTS.md: |
+            # Archivist
+
+            You are the long-horizon knowledge graph curator for this OpenClaw setup.
+
+            ## Task Classification Gate (mandatory)
+
+            Before acting on any substantive request, classify it:
+            1. **Domain check:** Does this task belong to my role?
+               - If YES, proceed.
+               - If PARTIALLY, handle the knowledge curation part and route the rest through main.
+               - If NO, explain which agent should own it and why.
+            2. **Recall check:** Could graph or semantic memory improve this task?
+               - Search Qdrant for relevant durable memories.
+               - Traverse Memgraph for related entities, repositories, services, projects, and memory nodes.
+               - Read authoritative Nextcloud project docs when the graph points to them.
+            3. **Persistence check:** Should this result become durable shared knowledge?
+               - If YES, update Memgraph and Qdrant in a coordinated way.
+
+            ## Role
+
+            Maintain the canonical knowledge graph, curate durable cross-domain context, connect Qdrant memory entries to graph entities, groom long-term memory quality, and serve as the gatekeeper for graph schema evolution.
+
+            ## Domain
+
+            **My domain:** knowledge graph schema, graph curation, long-horizon memory stewardship, entity modeling, relationship modeling, cross-project context synthesis, reusable Cypher queries, Qdrant grooming.
+
+            **Not my domain:**
+            - User-facing coordination -> main
+            - Project planning and specifications -> architect
+            - Code execution and GitOps -> coder
+            - Monitoring and triage -> watchdog
+
+            **Boundary rule:** If the task is mainly design, coding, or monitoring rather than durable knowledge curation, route it back through main.
+
+            ## Operating rules
+
+            - Prefer an existing label or relationship type over inventing a new one.
+            - Use multiple labels when several stable types apply.
+            - Keep canonical schema notes current in your workspace docs.
+            - Represent Qdrant memories as graph nodes with the Qdrant ID in metadata when they belong in the graph.
+            - Connect memory nodes to entity nodes so graph traversal and semantic retrieval can be composed.
+            - Accept proposed additions from other agents, but refuse schema drift that is not justified.
+
+            ## Handoff Protocol
+
+            Return results to `agent:main:main` in this format:
+            ~~~
+            ## Handoff Complete
+            **Task:** [brief restatement]
+            **Status:** [complete | partial - needs X | blocked - needs Y]
+
+            ### Deliverables
+            - Memgraph: [nodes, edges, schema/query updates]
+            - Qdrant: [memories stored, linked, groomed]
+            - Nextcloud: [paths updated, if any]
+
+            ### For the user
+            [Concise explanation of what durable context was added or clarified.]
+
+            ### Follow-up needed
+            [Which agent should do what next.]
+            ~~~
+          TOOLS.md: |
+            Use Memgraph CLI, Qdrant, and Nextcloud together to maintain the long-term knowledge system.
+
+            Memgraph runtime:
+            - Preferred Memgraph host: `memgraph.homebase.local` if reachable externally.
+            - In-cluster Memgraph service: `platform-stack-memgraph:7687`.
+            - Memgraph Lab UI is the human-friendly browser companion, but your canonical write path is Cypher through `mgconsole`.
+            - Reusable query files belong in this workspace.
+
+            `mgconsole` guidance:
+            - Inspect connectivity first: `mgconsole --host platform-stack-memgraph --port 7687`
+            - Run one-shot Cypher with `-e` for small changes.
+            - Keep reusable multi-statement Cypher in checked, named query files in your workspace.
+            - Prefer `MERGE` over `CREATE` for idempotent canonical entities and relationships.
+
+            Cypher guidance:
+            - Prefer existing labels: `Entity`, `Person`, `User`, `Agent`, `Service`, `System`, `Project`, `Repository`, `MemoryEntry`.
+            - Prefer existing relationships: `HAS_USER`, `USES_SERVICE`, `USES_REPOSITORY`, `COORDINATES`, `CURATES`, `GROOMS`, `MAINTAINS_SCHEMA_FOR`, `VISUALIZES`, `REFERS_TO`, `RELATES_TO`, `DERIVED_FROM`.
+            - Add type-specific metadata without breaking canonical field stability.
+            - Keep Qdrant-linked memory nodes tagged with the Qdrant ID, domain, kind, agent, and provenance metadata.
+
+            Qdrant coordination:
+            - Other agents may store ordinary memories directly.
+            - You own grooming, consolidation, deduplication patterns, and graph-linking of durable memories.
+            - When a Qdrant memory deserves graph structure, create or update a `MemoryEntry` node and connect it to the relevant entities.
+
+            Nextcloud coordination:
+            - Read `/Projects/ai-homebase/knowledge-graph-schema.md` and related project docs before changing the canonical schema.
+            - Update durable schema and query notes there when the canonical model changes.
+            - Use Nextcloud to keep human-readable graph guidance stable and shareable.
+
+            Nightly grooming:
+            - Inspect recent or weakly linked Qdrant memories.
+            - Inspect relevant Nextcloud project docs for durable entities and relationships not yet reflected in Memgraph.
+            - Add missing graph structure conservatively and record important schema/query changes durably.
+          MEMORY.md: |
+            # Memory - Archivist Agent
+
+            All five agents share one Qdrant collection for durable semantic memory.
+
+            Search Qdrant before graph edits and use Memgraph traversal before storing new graph facts.
+
+            Store durable ontology choices, graph schema decisions, canonical entity mappings, reusable query patterns, and cross-domain relationship knowledge.
+
+            Do not store secrets, transient task state, or redundant graph dumps.
+
+            Every stored memory must use this text format:
+            `[domain] [kind] Complete statement here.`
+
+            Every stored memory must include metadata with at least:
+            `{"kind": "...", "domain": "...", "agent": "archivist", "created": "ISO-8601"}`
+          SOUL.md: |
+            Operate as a careful curator. Favor stable semantics, clean taxonomy, and durable recall over novelty.
+          USER.md: |
+            Main is the user's interface. Keep responses factual and curation-focused.
+          IDENTITY.md: |
+            # Identity
+
+            Specialist role: archivist / knowledge graph curator / long-term memory steward.
+          HEARTBEAT.md: |
+            Before finishing, check whether the updated graph structure is canonical, minimally redundant, and well linked to existing durable context.
       watchdog:
         workspace: /home/node/.openclaw/workspace-watchdog
         files:
@@ -609,6 +742,7 @@ openclaw:
             2. **Recall check:** Could prior context improve my response?
                - Search Qdrant for prior incidents, baselines, and monitoring rules.
                - Check Nextcloud `/Projects/ai-homebase/incidents/` for similar incidents.
+               - Ask archivist for graph context when an incident spans several services, entities, or long-running operational patterns.
             3. **Persistence check:** Will this task produce knowledge that should outlive this session?
                - Incident reports go to Nextcloud.
                - Monitoring rules, baselines, and escalation patterns go to Nextcloud plus Qdrant.
@@ -627,6 +761,7 @@ openclaw:
             - Deep root-cause analysis requiring design knowledge -> route through main to architect
             - User-facing communication -> route through main
             - Heavy reasoning or long-running analysis -> route through main
+            - Durable knowledge graph work -> route through main to archivist
 
             **Boundary rule:** If you are about to write a fix, produce a design, or engage in extended analysis, you have crossed a boundary. Escalate through main with a triage summary.
 
@@ -723,7 +858,7 @@ openclaw:
           MEMORY.md: |
             # Memory - Watchdog Agent
 
-            All four agents share one Qdrant collection for durable semantic memory.
+            All five agents share one Qdrant collection for durable semantic memory.
 
             Search Qdrant before setting monitoring rules, investigating incidents, or defining escalation behavior that may have prior history.
 
@@ -748,7 +883,7 @@ openclaw:
           message: >-
             Run heartbeat check. Verify the local OpenClaw gateway readiness endpoint responds at
             http://127.0.0.1:18789/readyz. Confirm the standing main sessions exist and accept a brief
-            ping for agents main, architect, coder, and watchdog. Use the status log at
+            ping for agents main, architect, coder, archivist, and watchdog. Use the status log at
             /Projects/ai-homebase/watchdog-status-log.md to determine whether this is a repeated failure;
             require at least 2 consecutive heartbeat failures before escalating as CRITICAL. If all
             checks are healthy, append a short OK line to the status log and stay quiet. If a check
@@ -765,7 +900,7 @@ openclaw:
           session: isolated
           message: >-
             Run platform sweep. Check the local OpenClaw gateway readiness endpoint, confirm the standing
-            main sessions for main, architect, coder, and watchdog still exist and respond, inspect
+            main sessions for main, architect, coder, archivist, and watchdog still exist and respond, inspect
             recent session behavior with the session-logs skill when that helps confirm whether failures
             are transient or recurring, and inspect TLS expiry for the core ingress hosts you can reach
             from the gateway with openssl, including OpenClaw and the MCP endpoints. Summarize findings
@@ -773,6 +908,23 @@ openclaw:
             report to session agent:main:main via sessions_send with [WATCHDOG WARNING] or
             [WATCHDOG CRITICAL] when issues are found. If everything is clear, append a one-line
             all-clear and do not escalate.
+        enabled: true
+      - id: archivist-nightly-grooming
+        schedule:
+          cron: 30 2 * * *
+        payload:
+          kind: agentTurn
+          agent: archivist
+          session: isolated
+          message: >-
+            Run nightly knowledge graph grooming. Review durable Qdrant memories that are new, weakly linked,
+            or likely to deserve graph structure. Review relevant Nextcloud project material, especially
+            /Projects/ai-homebase/knowledge-graph-schema.md and related cluster docs, for durable entities
+            and relationships not yet represented in Memgraph. Use mgconsole and reusable Cypher queries
+            to add or update only canonical graph structure, preferring existing labels and relationship
+            types over inventing new ones. Keep Qdrant-linked graph nodes annotated with the Qdrant ID
+            and provenance metadata. Summarize important schema or knowledge changes to session
+            agent:main:main via sessions_send only when the changes matter for other agents or the user.
         enabled: true
       - id: watchdog-daily-digest
         schedule:
@@ -799,7 +951,7 @@ openclaw:
         workspace: /home/node/.openclaw/workspace
         models:
           anthropic/claude-sonnet-4-6:
-            alias: Main
+            alias: Main / Archivist
           anthropic/claude-sonnet-4-5:
             alias: Coder
           anthropic/claude-opus-4-6:
@@ -847,6 +999,7 @@ openclaw:
             allowAgents:
               - coder
               - architect
+              - archivist
         - id: coder
           name: Coder
           workspace: /home/node/.openclaw/workspace-coder
@@ -909,6 +1062,11 @@ openclaw:
           workspace: /home/node/.openclaw/workspace-architect
           model:
             primary: anthropic/claude-opus-4-6
+        - id: archivist
+          name: Archivist
+          workspace: /home/node/.openclaw/workspace-archivist
+          model:
+            primary: anthropic/claude-sonnet-4-6
         - id: watchdog
           name: Watchdog
           workspace: /home/node/.openclaw/workspace-watchdog
@@ -925,6 +1083,7 @@ openclaw:
           - main
           - coder
           - architect
+          - archivist
           - watchdog
     skills:
       allowBundled:
@@ -1110,19 +1269,21 @@ nextcloud:
           content: |
             # Multi-Agent Topology
 
-            The cluster bootstraps four standing OpenClaw agents:
+            The cluster bootstraps five standing OpenClaw agents:
 
             - `main`: user-facing coordinator and manager of work
             - `architect`: project planner, designer, and documentation owner
             - `coder`: implementation and GitOps executor
+            - `archivist`: long-horizon knowledge graph curator and memory steward
             - `watchdog`: low-cost monitoring, polling, heartbeat, and triage specialist
 
             Coordination model:
             - `main` decides whether work is a small task or a larger project.
             - small tasks may be handled directly by `main` when lightweight and low-risk.
             - projects go to `architect` first for planning, design, decomposition, and durable project documentation.
+            - work goes to `archivist` when it needs durable graph curation, cross-domain context synthesis, or stable long-term memory structure.
             - `architect` returns actionable work items to `main`.
-            - `main` then routes those items to the user, `coder`, `watchdog`, or itself.
+            - `main` then routes those items to the user, `coder`, `archivist`, `watchdog`, or itself.
         - path: gitops-workflow.md
           content: |
             # GitOps Workflow
@@ -1154,11 +1315,13 @@ nextcloud:
             - the in-cluster registry for canonical OpenClaw sandbox image distribution
             - Argo CD for GitOps application delivery
             - shared PostgreSQL and Redis for stateful services
+            - Qdrant for semantic memory and Memgraph for graph-structured long-term knowledge
 
             Runtime model:
             - the OpenClaw gateway owns durable state;
             - specialist execution happens through standing agents;
             - coder can use the remote Docker sandbox path for implementation work and owns the sandbox image source/publish workflow;
+            - archivist curates Memgraph and the graph-linked Qdrant memory layer;
             - watchdog stays in the gateway for low-cost observation and triage.
         - path: project-documentation-model.md
           content: |
@@ -1238,6 +1401,42 @@ nextcloud:
             - do not store secrets;
             - use `fictional` for creative content;
             - include Nextcloud references in both text and `nc_refs` when relevant.
+        - path: knowledge-graph-schema.md
+          content: |
+            # Knowledge Graph Schema
+
+            This document defines the initial canonical Memgraph schema for long-term OpenClaw knowledge.
+
+            Stable label vocabulary:
+            - `Entity`
+            - `Person`
+            - `User`
+            - `Agent`
+            - `Service`
+            - `System`
+            - `Project`
+            - `Repository`
+            - `MemoryEntry`
+
+            Stable relationship vocabulary:
+            - `HAS_USER`
+            - `USES_SERVICE`
+            - `USES_REPOSITORY`
+            - `COORDINATES`
+            - `CURATES`
+            - `GROOMS`
+            - `MAINTAINS_SCHEMA_FOR`
+            - `VISUALIZES`
+            - `REFERS_TO`
+            - `RELATES_TO`
+            - `DERIVED_FROM`
+
+            Rules:
+            - prefer existing labels and relationships over inventing new ones;
+            - use multiple labels when an entity belongs to several stable types;
+            - attach type-specific metadata but keep canonical fields stable;
+            - represent Qdrant memories as `MemoryEntry` nodes with their Qdrant ID in metadata;
+            - connect memory nodes to entities so graph traversal and semantic search can be composed.
         - path: incidents/README.md
           content: |
             # Incident Reports
@@ -1439,6 +1638,147 @@ qdrantMcp:
       - Returned memories include metadata such as kind, domain, agent, confidence, and Nextcloud references.
       - Treat speculative or low-confidence results cautiously.
       - Treat expired memories as potentially stale.
+
+memgraph:
+  enabled: true
+  image:
+    repository: memgraph/memgraph
+    tag: "3.8.1"
+    pullPolicy: IfNotPresent
+  ingress:
+    enabled: true
+    className: internal-nginx
+    annotations:
+      cert-manager.io/cluster-issuer: platform-stack-root-ca
+    hosts:
+      - host: memgraph.homebase.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: memgraph-tls
+        hosts:
+          - memgraph.homebase.local
+  persistence:
+    enabled: true
+    size: 100Gi
+
+memgraphLab:
+  enabled: true
+  image:
+    repository: memgraph/lab
+    tag: "3.9.0"
+    pullPolicy: IfNotPresent
+  ingress:
+    enabled: true
+    className: internal-nginx
+    annotations:
+      cert-manager.io/cluster-issuer: platform-stack-root-ca
+    hosts:
+      - host: memgraph-lab.homebase.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: memgraph-lab-tls
+        hosts:
+          - memgraph-lab.homebase.local
+  memgraph:
+    host: platform-stack-memgraph
+    port: 7687
+
+memgraphBootstrap:
+  enabled: true
+  seedCypher: |
+    MERGE (project:Project:System {slug: 'ai-homebase'})
+    ON CREATE SET project.name = 'ai-homebase',
+                  project.domain = 'real',
+                  project.kind = 'platform';
+
+    MERGE (user:Person:User {slug: 'user'})
+    ON CREATE SET user.name = 'User',
+                  user.domain = 'real';
+
+    MERGE (openclaw:Service:System {slug: 'openclaw'})
+    ON CREATE SET openclaw.name = 'OpenClaw',
+                  openclaw.category = 'agent-runtime';
+
+    MERGE (nextcloud:Service:System {slug: 'nextcloud'})
+    ON CREATE SET nextcloud.name = 'Nextcloud',
+                  nextcloud.category = 'knowledge-store';
+
+    MERGE (qdrant:Service:System {slug: 'qdrant'})
+    ON CREATE SET qdrant.name = 'Qdrant',
+                  qdrant.category = 'vector-memory';
+
+    MERGE (memgraph:Service:System {slug: 'memgraph'})
+    ON CREATE SET memgraph.name = 'Memgraph',
+                  memgraph.category = 'graph-memory';
+
+    MERGE (memgraphLab:Service:System {slug: 'memgraph-lab'})
+    ON CREATE SET memgraphLab.name = 'Memgraph Lab',
+                  memgraphLab.category = 'graph-ui';
+
+    MERGE (gitea:Service:System {slug: 'gitea'})
+    ON CREATE SET gitea.name = 'Gitea',
+                  gitea.category = 'source-control';
+
+    MERGE (argocd:Service:System {slug: 'argocd'})
+    ON CREATE SET argocd.name = 'Argo CD',
+                  argocd.category = 'gitops';
+
+    MERGE (registry:Service:System {slug: 'registry'})
+    ON CREATE SET registry.name = 'Registry',
+                  registry.category = 'artifact-store';
+
+    MERGE (main:Agent:Person {slug: 'main'})
+    ON CREATE SET main.name = 'main',
+                  main.role = 'orchestrator';
+
+    MERGE (architect:Agent:Person {slug: 'architect'})
+    ON CREATE SET architect.name = 'architect',
+                  architect.role = 'planner';
+
+    MERGE (coder:Agent:Person {slug: 'coder'})
+    ON CREATE SET coder.name = 'coder',
+                  coder.role = 'implementer';
+
+    MERGE (watchdog:Agent:Person {slug: 'watchdog'})
+    ON CREATE SET watchdog.name = 'watchdog',
+                  watchdog.role = 'monitor';
+
+    MERGE (archivist:Agent:Person {slug: 'archivist'})
+    ON CREATE SET archivist.name = 'archivist',
+                  archivist.role = 'knowledge-graph-curator';
+
+    MERGE (gitopsRepo:Repository:System {slug: 'cluster-gitops'})
+    ON CREATE SET gitopsRepo.name = 'cluster-gitops',
+                  gitopsRepo.kind = 'gitops';
+
+    MERGE (sandboxRepo:Repository:System {slug: 'openclaw-sandbox-images'})
+    ON CREATE SET sandboxRepo.name = 'openclaw-sandbox-images',
+                  sandboxRepo.kind = 'sandbox-images';
+
+    MERGE (project)-[:HAS_USER]->(user)
+    MERGE (project)-[:USES_SERVICE]->(openclaw)
+    MERGE (project)-[:USES_SERVICE]->(nextcloud)
+    MERGE (project)-[:USES_SERVICE]->(qdrant)
+    MERGE (project)-[:USES_SERVICE]->(memgraph)
+    MERGE (project)-[:USES_SERVICE]->(memgraphLab)
+    MERGE (project)-[:USES_SERVICE]->(gitea)
+    MERGE (project)-[:USES_SERVICE]->(argocd)
+    MERGE (project)-[:USES_SERVICE]->(registry)
+    MERGE (project)-[:USES_REPOSITORY]->(gitopsRepo)
+    MERGE (project)-[:USES_REPOSITORY]->(sandboxRepo)
+    MERGE (openclaw)-[:COORDINATES]->(main)
+    MERGE (openclaw)-[:COORDINATES]->(architect)
+    MERGE (openclaw)-[:COORDINATES]->(coder)
+    MERGE (openclaw)-[:COORDINATES]->(watchdog)
+    MERGE (openclaw)-[:COORDINATES]->(archivist)
+    MERGE (archivist)-[:CURATES]->(memgraph)
+    MERGE (archivist)-[:GROOMS]->(qdrant)
+    MERGE (memgraphLab)-[:VISUALIZES]->(memgraph)
+    MERGE (archivist)-[:MAINTAINS_SCHEMA_FOR]->(memgraph)
 
 gitea:
   enabled: false

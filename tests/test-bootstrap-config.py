@@ -37,6 +37,9 @@ password = "coder-password"
 [openclaw.agents.architect]
 model = "anthropic/claude-opus-4-6"
 
+[openclaw.agents.archivist]
+model = "anthropic/claude-sonnet-4-6"
+
 [openclaw.agents.watchdog]
 model = "anthropic/claude-haiku-4-5"
 
@@ -44,6 +47,10 @@ model = "anthropic/claude-haiku-4-5"
 openclaw = "openclaw.test.internal"
 nextcloud = "nextcloud.test.internal"
 nextcloud_mcp = "nextcloud-mcp.test.internal"
+qdrant = "qdrant.test.internal"
+qdrant_mcp = "qdrant-mcp.test.internal"
+memgraph = "memgraph.test.internal"
+memgraph_lab = "memgraph-lab.test.internal"
 nextcloud_public = "nextcloud.example.com"
 gitea = "gitea.test.internal"
 registry = "registry.test.internal"
@@ -109,6 +116,7 @@ assert "OPENCLAW_MAIN_MODEL=anthropic/claude-sonnet-4-6" in shell_vars
 assert "OPENCLAW_CODER_MODEL=anthropic/claude-sonnet-4-5" in shell_vars
 assert "GITHUB_TOKEN=github-token" in shell_vars
 assert "OPENCLAW_ARCHITECT_MODEL=anthropic/claude-opus-4-6" in shell_vars
+assert "OPENCLAW_ARCHIVIST_MODEL=anthropic/claude-sonnet-4-6" in shell_vars
 assert "OPENCLAW_WATCHDOG_MODEL=anthropic/claude-haiku-4-5" in shell_vars
 assert "GITEA_ADMIN_EMAIL=git@example.invalid" in shell_vars
 assert "NEXTCLOUD_ADMIN_USER=test-admin" in shell_vars
@@ -117,6 +125,8 @@ assert "PAPERLESS_ADMIN_MAIL=admin@example.invalid" in shell_vars
 assert "OPENCLAW_HOST=openclaw.test.internal" in shell_vars
 assert "NEXTCLOUD_PUBLIC_HOST=nextcloud.example.com" in shell_vars
 assert "REGISTRY_HOST=registry.test.internal" in shell_vars
+assert "MEMGRAPH_HOST=memgraph.test.internal" in shell_vars
+assert "MEMGRAPH_LAB_HOST=memgraph-lab.test.internal" in shell_vars
 assert "ARGOCD_HOST=argocd.test.internal" in shell_vars
 assert "PAPERLESS_HOST=paperless.test.internal" in shell_vars
 assert "MAIL_DOMAIN=example.com" in shell_vars
@@ -158,7 +168,7 @@ assert rendered_values["openclaw"]["openclaw"]["skills"]["allowBundled"] == [
     "github",
 ]
 assert rendered_values["openclaw"]["openclaw"]["agents"]["defaults"]["models"] == {
-    "anthropic/claude-sonnet-4-6": {"alias": "Main"},
+    "anthropic/claude-sonnet-4-6": {"alias": "Main / Archivist"},
     "anthropic/claude-sonnet-4-5": {"alias": "Coder"},
     "anthropic/claude-opus-4-6": {"alias": "Architect"},
     "anthropic/claude-haiku-4-5": {"alias": "Watchdog"},
@@ -194,13 +204,16 @@ assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["id"] == "ar
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["workspace"] == "/home/node/.openclaw/workspace-architect"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["model"]["primary"] == "anthropic/claude-opus-4-6"
 assert "tools" not in rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]
-assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][3]["id"] == "watchdog"
-assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][3]["workspace"] == "/home/node/.openclaw/workspace-watchdog"
-assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][3]["model"]["primary"] == "anthropic/claude-haiku-4-5"
-assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][3]["sandbox"]["mode"] == "off"
-assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][0]["subagents"]["allowAgents"] == ["coder", "architect"]
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][3]["id"] == "archivist"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][3]["workspace"] == "/home/node/.openclaw/workspace-archivist"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][3]["model"]["primary"] == "anthropic/claude-sonnet-4-6"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][4]["id"] == "watchdog"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][4]["workspace"] == "/home/node/.openclaw/workspace-watchdog"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][4]["model"]["primary"] == "anthropic/claude-haiku-4-5"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][4]["sandbox"]["mode"] == "off"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][0]["subagents"]["allowAgents"] == ["coder", "architect", "archivist"]
 assert rendered_values["openclaw"]["openclaw"]["tools"]["agentToAgent"]["enabled"] is True
-assert rendered_values["openclaw"]["openclaw"]["tools"]["agentToAgent"]["allow"] == ["main", "coder", "architect", "watchdog"]
+assert rendered_values["openclaw"]["openclaw"]["tools"]["agentToAgent"]["allow"] == ["main", "coder", "architect", "archivist", "watchdog"]
 assert rendered_values["openclaw"]["openclaw"]["tools"]["sessions"]["visibility"] == "all"
 assert rendered_values["openclaw"]["workspaceBootstrap"]["enabled"] is True
 assert rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["workspace"] == "/home/node/.openclaw/workspace"
@@ -215,7 +228,7 @@ assert "## Task Handoff" in rendered_values["openclaw"]["workspaceBootstrap"]["a
 assert "Main is the only agent that spawns sub-agents." in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["AGENTS.md"]
 assert "what the user wants to call you" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
 assert "sessions_send" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
-assert "watchdog monitors" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
+assert "archivist curates long-term knowledge" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
 assert "ordinary non-coding tasks stay with you" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
 assert "project setup, specifications, task breakdowns, and durable project documentation belong with architect" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
 assert "/Projects/ai-homebase/" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
@@ -229,6 +242,9 @@ assert "## Handoff Complete" in rendered_values["openclaw"]["workspaceBootstrap"
 assert "implementation and execution specialist" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["AGENTS.md"]
 assert "If the spec or plan has gaps that require design decisions, stop" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["AGENTS.md"]
 assert "monitoring and triage specialist" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["watchdog"]["files"]["AGENTS.md"]
+assert "knowledge graph curator" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["archivist"]["files"]["AGENTS.md"]
+assert "mgconsole" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["archivist"]["files"]["TOOLS.md"]
+assert "/Projects/ai-homebase/knowledge-graph-schema.md" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["archivist"]["files"]["TOOLS.md"]
 assert "## Watchdog Alert" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["watchdog"]["files"]["AGENTS.md"]
 assert "/Projects/ai-homebase/incidents/" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["watchdog"]["files"]["TOOLS.md"]
 assert "/Projects/ai-homebase/baselines.md" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["watchdog"]["files"]["TOOLS.md"]
@@ -258,6 +274,9 @@ assert "/Notes/ai-homebase/" in rendered_values["openclaw"]["workspaceBootstrap"
 assert '[domain] [kind] Complete statement here.' in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["MEMORY.md"]
 assert '"agent": "architect"' in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["MEMORY.md"]
 assert '# Memory - Coder Agent' in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["MEMORY.md"]
+assert "knowledge-graph-schema.md" in json.dumps(rendered_values["nextcloud"]["bootstrapProjectContent"])
+assert rendered_values["memgraph"]["ingress"]["hosts"][0]["host"] == "memgraph.test.internal"
+assert rendered_values["memgraphLab"]["ingress"]["hosts"][0]["host"] == "memgraph-lab.test.internal"
 assert '"agent": "coder"' in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["MEMORY.md"]
 assert '# Memory - Watchdog Agent' in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["watchdog"]["files"]["MEMORY.md"]
 assert '"agent": "watchdog"' in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["watchdog"]["files"]["MEMORY.md"]
@@ -275,11 +294,12 @@ assert rendered_values["nextcloud"]["bootstrapProjectContent"][0]["slug"] == "ai
 assert rendered_values["nextcloud"]["bootstrapProjectContent"][0]["ownerUsername"] == "openclaw"
 assert rendered_values["nextcloud"]["bootstrapProjectContent"][0]["projectsFiles"][0]["path"] == "overview.md"
 assert "running AI homebase cluster" in rendered_values["nextcloud"]["bootstrapProjectContent"][0]["projectsFiles"][0]["content"]
-assert rendered_values["nextcloud"]["bootstrapProjectContent"][0]["projectsFiles"][5]["path"] == "qdrant-memory-schema.md"
-assert "Qdrant Semantic Memory Schema" in rendered_values["nextcloud"]["bootstrapProjectContent"][0]["projectsFiles"][5]["content"]
-assert rendered_values["nextcloud"]["bootstrapProjectContent"][0]["projectsFiles"][6]["path"] == "incidents/README.md"
-assert rendered_values["nextcloud"]["bootstrapProjectContent"][0]["projectsFiles"][7]["path"] == "baselines.md"
-assert rendered_values["nextcloud"]["bootstrapProjectContent"][0]["projectsFiles"][8]["path"] == "escalation-rules.md"
+project_files = rendered_values["nextcloud"]["bootstrapProjectContent"][0]["projectsFiles"]
+assert any(item["path"] == "qdrant-memory-schema.md" and "Qdrant Semantic Memory Schema" in item["content"] for item in project_files)
+assert any(item["path"] == "knowledge-graph-schema.md" and "Knowledge Graph Schema" in item["content"] for item in project_files)
+assert any(item["path"] == "incidents/README.md" for item in project_files)
+assert any(item["path"] == "baselines.md" for item in project_files)
+assert any(item["path"] == "escalation-rules.md" for item in project_files)
 assert rendered_values["nextcloud"]["bootstrapProjectContent"][0]["notes"][0]["path"] == "project-brief.md"
 assert "standing project for documenting and improving the cluster itself" in rendered_values["nextcloud"]["bootstrapProjectContent"][0]["notes"][0]["content"]
 assert rendered_values["nextcloud"]["ingress"]["private"]["host"] == "nextcloud.test.internal"

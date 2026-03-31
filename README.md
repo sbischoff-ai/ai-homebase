@@ -1,12 +1,12 @@
 # ai-homebase
 
-`ai-homebase` is an opinionated homelab platform for running OpenClaw as the center of a personal AI control plane. It combines a multi-agent OpenClaw setup with supporting services such as Nextcloud, a dedicated Nextcloud MCP gateway, Gitea, an in-cluster Docker registry, Paperless-ngx, Vaultwarden, shared PostgreSQL/Redis, an in-cluster Postfix relay for application email, and shared Qdrant/Qdrant MCP memory services for cross-agent RAG context.
+`ai-homebase` is an opinionated homelab platform for running OpenClaw as the center of a personal AI control plane. It combines a multi-agent OpenClaw setup with supporting services such as Nextcloud, a dedicated Nextcloud MCP gateway, Gitea, an in-cluster Docker registry, Paperless-ngx, Vaultwarden, shared PostgreSQL/Redis, an in-cluster Postfix relay for application email, shared Qdrant/Qdrant MCP memory services for cross-agent RAG context, and Memgraph plus Memgraph Lab for graph-structured long-term knowledge.
 
 The point of the repo is not just “a pile of charts.” It gives you one coherent platform shape that works in two places: `k3d` for fast local iteration and `k3s` for the long-running homelab deployment. The bootstrap flow, secrets model, hostnames, multi-agent topology, MCP posture, and service contracts stay aligned between those targets so local validation is actually useful before you touch the real server.
 
 Characteristic features of this stack:
 
-- OpenClaw bootstrapped as a multi-agent system with `main`, `architect`, `coder`, and `watchdog`
+- OpenClaw bootstrapped as a multi-agent system with `main`, `architect`, `coder`, `archivist`, and `watchdog`
 - Architect-oriented project documentation seeded into Nextcloud so the cluster can document and evolve itself from day one
 - remote Docker sandboxes for specialist agents, including a coder-specific sandbox image with developer tooling
 - Nextcloud shared with OpenClaw through a dedicated MCP gateway and shared-account operating conventions
@@ -44,7 +44,7 @@ cp bootstrap.example.toml bootstrap.local.toml
 
 Use [docs/runbook-homelab.md](./docs/runbook-homelab.md) for the full Ubuntu host-prep and integrated bootstrap path.
 
-In both cases, fill in the new `[mail]` section and the per-agent model sections in `bootstrap.local.toml` before bootstrapping so Nextcloud/Vaultwarden mail and the bootstrapped OpenClaw `main`, `architect`, `coder`, and `watchdog` agents are configured correctly. The default coder posture now assumes a Claude-based orchestrator delegating substantial coding to Codex, so the standard bootstrap expects both `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` in `[providers]`. The same bootstrap flow also creates a dedicated `openclaw` Nextcloud user, seeds the OpenClaw gateway config with the standard Nextcloud MCP server definition, and pre-seeds specialist workspace files for the multi-agent topology.
+In both cases, fill in the new `[mail]` section and the per-agent model sections in `bootstrap.local.toml` before bootstrapping so Nextcloud/Vaultwarden mail and the bootstrapped OpenClaw `main`, `architect`, `coder`, `archivist`, and `watchdog` agents are configured correctly. The default coder posture now assumes a Claude-based orchestrator delegating substantial coding to Codex, so the standard bootstrap expects both `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` in `[providers]`. The same bootstrap flow also creates a dedicated `openclaw` Nextcloud user, seeds the OpenClaw gateway config with the standard Nextcloud MCP server definition, pre-seeds specialist workspace files for the multi-agent topology, and seeds the initial Memgraph knowledge graph baseline for the cluster.
 
 ## Documentation Map
 

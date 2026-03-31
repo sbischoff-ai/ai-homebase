@@ -219,7 +219,7 @@ workspaceBootstrap:
         MEMORY.md: |
           # Memory - Main Agent
 
-          All four agents share one Qdrant collection for durable semantic memory.
+          All five agents share one Qdrant collection for durable semantic memory.
 
           Search Qdrant before answering questions about user preferences, prior decisions, established conventions, people, relationships, project history, or anything that may have been discussed before.
 
@@ -422,7 +422,7 @@ workspaceBootstrap:
         MEMORY.md: |
           # Memory - Coder Agent
 
-          All four agents share one Qdrant collection for durable semantic memory.
+          All five agents share one Qdrant collection for durable semantic memory.
 
           Search Qdrant before working on a codebase, deployment path, toolchain, convention, or implementation area that may have prior context.
 
@@ -550,7 +550,7 @@ workspaceBootstrap:
         MEMORY.md: |
           # Memory - Architect Agent
 
-          All four agents share one Qdrant collection for durable semantic memory.
+          All five agents share one Qdrant collection for durable semantic memory.
 
           Search Qdrant before planning, designing, or specifying work that may have prior decisions, tradeoffs, or project history.
 
@@ -702,7 +702,7 @@ workspaceBootstrap:
         MEMORY.md: |
           # Memory - Watchdog Agent
 
-          All four agents share one Qdrant collection for durable semantic memory.
+          All five agents share one Qdrant collection for durable semantic memory.
 
           Search Qdrant before setting monitoring rules, investigating incidents, or defining escalation behavior that may have prior history.
 
@@ -728,7 +728,7 @@ openclaw:
         message: >-
           Run heartbeat check. Verify the local OpenClaw gateway readiness endpoint responds at
           http://127.0.0.1:18789/readyz. Confirm the standing main sessions exist and accept a brief
-          ping for agents main, architect, coder, and watchdog. Use the status log at
+          ping for agents main, architect, coder, archivist, and watchdog. Use the status log at
           /Projects/ai-homebase/watchdog-status-log.md to determine whether this is a repeated failure;
           require at least 2 consecutive heartbeat failures before escalating as CRITICAL. If all checks
           are healthy, append a short OK line to the status log and stay quiet. If a check fails, append
@@ -745,7 +745,7 @@ openclaw:
         session: isolated
         message: >-
           Run platform sweep. Check the local OpenClaw gateway readiness endpoint, confirm the standing
-          main sessions for main, architect, coder, and watchdog still exist and respond, inspect recent
+          main sessions for main, architect, coder, archivist, and watchdog still exist and respond, inspect recent
           session behavior with the session-logs skill when that helps confirm whether failures are
           transient or recurring, and inspect TLS expiry for the core ingress hosts you can reach from
           the gateway with openssl, including OpenClaw and the MCP endpoints. Summarize findings

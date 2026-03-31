@@ -61,3 +61,11 @@ helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
 {{- define "platform-stack.sharedPostgresqlBootstrapJobName" -}}
 {{- printf "%s-bootstrap" (include "platform-stack.sharedPostgresqlFullname" .) | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
+
+{{- define "platform-stack.memgraphServiceHost" -}}
+{{- if .Values.memgraph.fullnameOverride -}}
+{{- .Values.memgraph.fullnameOverride | trunc 63 | trimSuffix "-" -}}
+{{- else -}}
+{{- printf "%s-memgraph" .Release.Name | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+{{- end -}}

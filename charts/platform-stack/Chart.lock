@@ -35,11 +35,17 @@ dependencies:
 - name: qdrant-mcp
   repository: file://../qdrant-mcp
   version: 0.1.0
+- name: memgraph
+  repository: file://../memgraph
+  version: 0.1.0
+- name: memgraph-lab
+  repository: file://../memgraph-lab
+  version: 0.1.0
 - name: shared-postgresql
   repository: file://../shared-postgresql
   version: 0.1.0
 - name: shared-redis
   repository: file://../shared-redis
   version: 0.1.0
-digest: sha256:db5dd2c733f666a91d32f18c2565659ac3360cb5563f74dd5d4cac2c5990dca7
-generated: "2026-03-31T08:14:39.860321709+02:00"
+digest: sha256:eea49f8cb7a99daf797d164722a90693e4ce418057fecb1d437fcc241136855a
+generated: "2026-03-31T19:14:58.512835917+02:00"

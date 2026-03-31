@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "memgraph-lab values",
+  "additionalProperties": true,
+  "required": ["image", "service", "memgraph"],
+  "properties": {
+    "image": {
+      "type": "object",
+      "required": ["repository", "pullPolicy"],
+      "additionalProperties": true,
+      "properties": {
+        "repository": {"type": "string", "minLength": 1},
+        "tag": {"type": "string"},
+        "pullPolicy": {"type": "string", "enum": ["Always", "IfNotPresent", "Never"], "default": "IfNotPresent"}
+      }
+    },
+    "service": {
+      "type": "object",
+      "required": ["type", "port", "targetPort"],
+      "additionalProperties": true,
+      "properties": {
+        "type": {"type": "string", "enum": ["ClusterIP", "NodePort", "LoadBalancer", "ExternalName"], "default": "ClusterIP"},
+        "port": {"type": "integer", "minimum": 1, "maximum": 65535},
+        "targetPort": {"oneOf": [{"type": "integer", "minimum": 1, "maximum": 65535}, {"type": "string", "minLength": 1}]}
+      }
+    },
+    "memgraph": {
+      "type": "object",
+      "required": ["host", "port"],
+      "additionalProperties": true,
+      "properties": {
+        "host": {"type": "string", "minLength": 1},
+        "port": {"type": "integer", "minimum": 1, "maximum": 65535}
+      }
+    }
+  }
+}
