@@ -456,6 +456,13 @@ spec:
                   name: {{ $.Values.existingSecret }}
                   key: {{ . }}
             {{- end }}
+            {{- with $.Values.secretKeys.githubToken }}
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.existingSecret }}
+                  key: {{ . }}
+            {{- end }}
             {{- with $.Values.secretKeys.googleApiKey }}
             - name: GOOGLE_API_KEY
               valueFrom:

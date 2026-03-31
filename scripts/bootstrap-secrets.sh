@@ -31,6 +31,7 @@ PAPERLESS_ADMIN_PASSWORD=""
 PAPERLESS_ADMIN_USER=""
 PAPERLESS_ADMIN_MAIL=""
 PAPERLESS_SECRET_KEY=""
+GITHUB_TOKEN=""
 REGISTRY_USERNAME=""
 REGISTRY_PASSWORD=""
 REMOTE_DOCKER_SECRET_NAME="${REMOTE_DOCKER_SECRET_NAME:-openclaw-remote-docker-ssh}"
@@ -416,6 +417,9 @@ for env_var in "${OPENCLAW_PROVIDER_ENV_VARS[@]}"; do
     OPENCLAW_SECRET_ARGS+=(--from-literal="${env_var}=${!env_var}")
   fi
 done
+if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+  OPENCLAW_SECRET_ARGS+=(--from-literal="GITHUB_TOKEN=${GITHUB_TOKEN}")
+fi
 create_and_apply_secret openclaw-app-secrets \
   "${OPENCLAW_SECRET_ARGS[@]}"
 

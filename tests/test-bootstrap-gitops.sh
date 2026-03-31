@@ -38,7 +38,7 @@ anthropic_api_key = "test-anthropic-key"
 model = "anthropic/claude-sonnet-4-6"
 
 [openclaw.agents.coder]
-model = "openai/gpt-5.4"
+model = "anthropic/claude-sonnet-4-5"
 
 [openclaw.agents.coder.gitea]
 username = "coder-bot"
