@@ -32,6 +32,25 @@ spec:
         - name: {{ . }}
         {{- end }}
       {{- end }}
+      {{- if .Values.volumePermissions.enabled }}
+      initContainers:
+        - name: volume-permissions
+          image: "{{ .Values.volumePermissions.image.repository }}:{{ .Values.volumePermissions.image.tag }}"
+          imagePullPolicy: {{ .Values.volumePermissions.image.pullPolicy }}
+          command:
+            - sh
+            - -ceu
+            - |
+              mkdir -p /qdrant/storage/storage /qdrant/storage/snapshots /qdrant/storage/tmp
+              chown -R {{ .Values.securityContext.runAsUser }}:{{ .Values.securityContext.runAsGroup }} /qdrant/storage
+          resources:
+            {{- toYaml .Values.volumePermissions.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.volumePermissions.securityContext | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /qdrant/storage
+      {{- end }}
       containers:
         - name: qdrant
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"

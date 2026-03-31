@@ -78,26 +78,42 @@ spec:
           {{- end }}
           {{- if .Values.probes.readiness.enabled }}
           readinessProbe:
+            {{- if eq (.Values.probes.readiness.type | default "http") "tcp" }}
+            tcpSocket:
+              port: http
+            {{- else }}
             httpGet:
               path: {{ .Values.probes.readiness.path }}
               port: http
+            {{- end }}
             initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
             periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
           {{- end }}
           {{- if .Values.probes.liveness.enabled }}
           livenessProbe:
+            {{- if eq (.Values.probes.liveness.type | default "http") "tcp" }}
+            tcpSocket:
+              port: http
+            {{- else }}
             httpGet:
               path: {{ .Values.probes.liveness.path }}
               port: http
+            {{- end }}
             initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
             periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
           {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
           {{- with .Values.securityContext }}
           securityContext:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+      volumes:
+        - name: tmp
+          emptyDir: {}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

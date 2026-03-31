@@ -24,6 +24,8 @@ GITEA_WAIT_TIMEOUT="${GITEA_WAIT_TIMEOUT:-1200s}"
 VAULTWARDEN_WAIT_TIMEOUT="${VAULTWARDEN_WAIT_TIMEOUT:-900s}"
 POSTFIX_RELAY_WAIT_TIMEOUT="${POSTFIX_RELAY_WAIT_TIMEOUT:-600s}"
 PAPERLESS_WAIT_TIMEOUT="${PAPERLESS_WAIT_TIMEOUT:-1200s}"
+QDRANT_WAIT_TIMEOUT="${QDRANT_WAIT_TIMEOUT:-900s}"
+QDRANT_MCP_WAIT_TIMEOUT="${QDRANT_MCP_WAIT_TIMEOUT:-1200s}"
 INGRESS_ENDPOINT_RETRIES="${INGRESS_ENDPOINT_RETRIES:-60}"
 INGRESS_ENDPOINT_RETRY_DELAY_SECONDS="${INGRESS_ENDPOINT_RETRY_DELAY_SECONDS:-2}"
 
@@ -382,6 +384,14 @@ is_paperless_enabled() {
   effective_bool_value "paperlessNgx.enabled"
 }
 
+is_qdrant_enabled() {
+  effective_bool_value "qdrant.enabled"
+}
+
+is_qdrant_mcp_enabled() {
+  effective_bool_value "qdrantMcp.enabled"
+}
+
 manifest_named_resources() {
   local kind_filter="$1"
   helm get manifest "$RELEASE_NAME" \
@@ -663,6 +673,8 @@ VAULTWARDEN_INGRESS_HOST="$(effective_value "vaultwarden.ingress.hosts.0.host")"
 PAPERLESS_INGRESS_HOST="$(effective_value "paperlessNgx.ingress.hosts.0.host")"
 OPENCLAW_INGRESS_HOST="$(effective_value "openclaw.ingress.hosts.0.host")"
 REGISTRY_INGRESS_HOST="$(effective_value "registry.ingress.hosts.0.host")"
+QDRANT_INGRESS_HOST="$(effective_value "qdrant.ingress.hosts.0.host")"
+QDRANT_MCP_INGRESS_HOST="$(effective_value "qdrantMcp.ingress.hosts.0.host")"
 HOST_LISTEN_ADDRESS_VALUE=""
 if [[ -f "$INCUS_CONNECTION_INFO_PATH" ]]; then
   # shellcheck disable=SC1090
@@ -748,6 +760,31 @@ if [[ "$(is_paperless_enabled)" == "true" ]]; then
   wait_for_http_endpoint "${PAPERLESS_INGRESS_HOST}" "http://127.0.0.1/api/health/" "Paperless"
 else
   warn "Skipping Paperless workload/service/ingress checks because paperlessNgx.enabled=false in effective values"
+fi
+
+if [[ "$(is_qdrant_enabled)" == "true" ]]; then
+  wait_for_workload qdrant "$QDRANT_WAIT_TIMEOUT"
+  verify_labeled_service qdrant
+  step "Checking qdrant ingress endpoint"
+  CURRENT_COMMAND="curl --silent --show-error --fail -H Host: ${QDRANT_INGRESS_HOST} http://127.0.0.1/readyz"
+  wait_for_http_endpoint "${QDRANT_INGRESS_HOST}" "http://127.0.0.1/readyz" "Qdrant"
+else
+  warn "Skipping Qdrant workload/service/ingress checks because qdrant.enabled=false in effective values"
+fi
+
+if [[ "$(is_qdrant_mcp_enabled)" == "true" ]]; then
+  wait_for_workload qdrant-mcp "$QDRANT_MCP_WAIT_TIMEOUT"
+  verify_labeled_service qdrant-mcp
+  if [[ -n "$HOST_LISTEN_ADDRESS_VALUE" ]]; then
+    verify_incus_hostname_resolution "$QDRANT_MCP_INGRESS_HOST" "$HOST_LISTEN_ADDRESS_VALUE" "/mcp" "Qdrant MCP" "200|308"
+  else
+    warn "Skipping Incus sandbox DNS checks for Qdrant MCP because ${INCUS_CONNECTION_INFO_PATH} is missing or does not define HOST_LISTEN_ADDRESS"
+  fi
+  step "Checking qdrant-mcp ingress endpoint"
+  CURRENT_COMMAND="curl --silent --show-error --fail -H Host: ${QDRANT_MCP_INGRESS_HOST} http://127.0.0.1/mcp"
+  wait_for_http_endpoint "${QDRANT_MCP_INGRESS_HOST}" "http://127.0.0.1/mcp" "Qdrant MCP"
+else
+  warn "Skipping Qdrant MCP workload/service/ingress checks because qdrantMcp.enabled=false in effective values"
 fi
 
 if [[ "$(is_openclaw_ingress_enabled)" == "true" ]]; then

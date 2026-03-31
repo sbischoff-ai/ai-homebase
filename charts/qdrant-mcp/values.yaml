@@ -4,8 +4,8 @@ fullnameOverride: ""
 replicaCount: 1
 
 image:
-  repository: ghcr.io/qdrant/mcp-server-qdrant
-  tag: "v0.8.1"
+  repository: python
+  tag: "3.12-slim"
   pullPolicy: IfNotPresent
 
 imagePullSecrets: []
@@ -39,26 +39,36 @@ qdrant:
   collectionName: openclaw-memory
 
 embedding:
-  provider: openai
-  model: text-embedding-3-large
+  provider: fastembed
+  model: sentence-transformers/all-MiniLM-L6-v2
 
 command:
-  - mcp-server-qdrant
-  - --transport
-  - streamable-http
+  - /bin/sh
+  - -ceu
+  - |
+    if [ ! -x /tmp/qdrant-mcp/bin/mcp-server-qdrant ]; then
+      python -m venv /tmp/qdrant-mcp
+      /tmp/qdrant-mcp/bin/pip install --no-cache-dir "mcp-server-qdrant==0.8.0"
+    fi
+    exec /tmp/qdrant-mcp/bin/mcp-server-qdrant --transport streamable-http
 
 podAnnotations: {}
 podLabels: {}
 
 env:
+  - name: HOME
+    value: /tmp
+  - name: XDG_CACHE_HOME
+    value: /tmp/.cache
+  - name: HF_HOME
+    value: /tmp/.cache/huggingface
+  - name: HUGGINGFACE_HUB_CACHE
+    value: /tmp/.cache/huggingface/hub
   - name: FASTMCP_HOST
     value: "0.0.0.0"
 envFromSecrets: []
 existingSecret: ""
-secretRefs:
-  - name: openclaw-app-secrets
-    key: OPENAI_API_KEY
-    envVar: OPENAI_API_KEY
+secretRefs: []
 
 podSecurityContext:
   fsGroup: 1000
@@ -86,13 +96,13 @@ resources:
 probes:
   readiness:
     enabled: true
-    path: /health
-    initialDelaySeconds: 10
+    type: tcp
+    initialDelaySeconds: 180
     periodSeconds: 10
   liveness:
     enabled: true
-    path: /health
-    initialDelaySeconds: 20
+    type: tcp
+    initialDelaySeconds: 300
     periodSeconds: 15
 
 nodeSelector: {}

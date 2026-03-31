@@ -39,10 +39,27 @@ persistence:
   size: 100Gi
   storageClass: ""
 
+volumePermissions:
+  enabled: true
+  image:
+    repository: busybox
+    tag: "1.36.1"
+    pullPolicy: IfNotPresent
+  resources: {}
+  securityContext:
+    runAsUser: 0
+    runAsGroup: 0
+
 podAnnotations: {}
 podLabels: {}
 
-env: []
+env:
+  - name: QDRANT__STORAGE__STORAGE_PATH
+    value: /qdrant/storage/storage
+  - name: QDRANT__STORAGE__SNAPSHOTS_PATH
+    value: /qdrant/storage/snapshots
+  - name: QDRANT__STORAGE__TEMP_PATH
+    value: /qdrant/storage/tmp
 envFromSecrets: []
 existingSecret: ""
 secretRefs: []
@@ -53,9 +70,9 @@ podSecurityContext:
     type: RuntimeDefault
 
 securityContext:
-  runAsNonRoot: true
-  runAsUser: 1000
-  runAsGroup: 1000
+  runAsNonRoot: false
+  runAsUser: 0
+  runAsGroup: 0
   allowPrivilegeEscalation: false
   readOnlyRootFilesystem: false
   capabilities:
