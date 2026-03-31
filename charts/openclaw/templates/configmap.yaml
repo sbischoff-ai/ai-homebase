@@ -28,6 +28,7 @@ data:
         "defaults": {{ toJson .Values.openclaw.agents.defaults }},
         "list": {{ toJson .Values.openclaw.agents.list }}
       },
+      "skills": {{ toJson (.Values.openclaw.skills | default (dict)) }},
       "mcp": {{ toJson (.Values.openclaw.mcp | default (dict)) }},
       "plugins": {{ toJson .Values.openclaw.plugins }}
     }

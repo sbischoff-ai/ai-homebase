@@ -45,7 +45,7 @@ anthropic_api_key = "test-anthropic-key"
 model = "anthropic/claude-sonnet-4-6"
 
 [openclaw.agents.coder]
-model = "openai/gpt-5.4"
+model = "anthropic/claude-sonnet-4-5"
 
 [openclaw.agents.architect]
 model = "anthropic/claude-opus-4-6"
@@ -114,7 +114,7 @@ EOF
   assert_contains "${output}" "  Kubeconfig path: ${kubeconfig_path}"
   assert_contains "${output}" "  OpenClaw URL: http://openclaw.test.internal"
   assert_contains "${output}" "  OpenClaw main model: anthropic/claude-sonnet-4-6"
-  assert_contains "${output}" "  OpenClaw coder model: openai/gpt-5.4"
+  assert_contains "${output}" "  OpenClaw coder model: anthropic/claude-sonnet-4-5"
   assert_contains "${output}" "  Gitea URL: http://gitea.test.internal"
   assert_contains "${output}" "  Registry URL: https://registry.test.internal"
 

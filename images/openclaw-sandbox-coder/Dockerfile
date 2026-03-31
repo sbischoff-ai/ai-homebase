@@ -29,6 +29,7 @@ RUN apt-get update && \
       python3-pip \
       python3-venv \
       ripgrep \
+      tmux \
       unzip \
       xz-utils \
       yq \
@@ -42,6 +43,9 @@ RUN curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal && \
 
 RUN GOBIN=/usr/local/bin go install code.gitea.io/tea@latest && \
     tea --version
+
+RUN npm install -g @openai/codex && \
+    codex --version
 
 RUN curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash && \
     helm version --short

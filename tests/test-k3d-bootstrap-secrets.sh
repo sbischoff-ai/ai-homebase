@@ -273,7 +273,7 @@ moonshot_api_key = ""
 model = "anthropic/claude-sonnet-4-6"
 
 [openclaw.agents.coder]
-model = "openai/gpt-5.4"
+model = "anthropic/claude-sonnet-4-5"
 
 [openclaw.agents.architect]
 model = "anthropic/claude-opus-4-6"

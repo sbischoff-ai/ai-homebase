@@ -28,7 +28,7 @@ brave_api_key = "test-brave-key"
 model = "anthropic/claude-sonnet-4-6"
 
 [openclaw.agents.coder]
-model = "openai/gpt-5.4"
+model = "anthropic/claude-sonnet-4-5"
 
 [openclaw.agents.coder.gitea]
 username = "coder-bot"
@@ -77,6 +77,7 @@ password = "argocd-admin-password"
 [secrets]
 vaultwarden_admin_token = "vaultwarden-admin-token"
 openclaw_nextcloud_mcp_password = "nextcloud-mcp-password"
+github_token = "github-token"
 
 [gitops]
 cluster_name = "lab-cluster"
@@ -105,7 +106,8 @@ assert "OPENAI_API_KEY=test-openai-key" in shell_vars
 assert "ANTHROPIC_API_KEY=test-anthropic-key" in shell_vars
 assert "BRAVE_API_KEY=test-brave-key" in shell_vars
 assert "OPENCLAW_MAIN_MODEL=anthropic/claude-sonnet-4-6" in shell_vars
-assert "OPENCLAW_CODER_MODEL=openai/gpt-5.4" in shell_vars
+assert "OPENCLAW_CODER_MODEL=anthropic/claude-sonnet-4-5" in shell_vars
+assert "GITHUB_TOKEN=github-token" in shell_vars
 assert "OPENCLAW_ARCHITECT_MODEL=anthropic/claude-opus-4-6" in shell_vars
 assert "OPENCLAW_WATCHDOG_MODEL=anthropic/claude-haiku-4-5" in shell_vars
 assert "GITEA_ADMIN_EMAIL=git@example.invalid" in shell_vars
@@ -142,10 +144,22 @@ rendered_values = json.loads(
 )
 assert rendered_values["openclaw"]["secretKeys"]["openaiApiKey"] == "OPENAI_API_KEY"
 assert rendered_values["openclaw"]["secretKeys"]["anthropicApiKey"] == "ANTHROPIC_API_KEY"
+assert rendered_values["openclaw"]["secretKeys"]["githubToken"] == "GITHUB_TOKEN"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["defaults"]["workspace"] == "/home/node/.openclaw/workspace"
+assert rendered_values["openclaw"]["openclaw"]["skills"]["allowBundled"] == [
+    "weather",
+    "healthcheck",
+    "node-connect",
+    "skill-creator",
+    "session-logs",
+    "coding-agent",
+    "tmux",
+    "summarize",
+    "github",
+]
 assert rendered_values["openclaw"]["openclaw"]["agents"]["defaults"]["models"] == {
     "anthropic/claude-sonnet-4-6": {"alias": "Main"},
-    "openai/gpt-5.4": {"alias": "Coder"},
+    "anthropic/claude-sonnet-4-5": {"alias": "Coder"},
     "anthropic/claude-opus-4-6": {"alias": "Architect"},
     "anthropic/claude-haiku-4-5": {"alias": "Watchdog"},
 }
@@ -154,7 +168,7 @@ assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][0]["default"] i
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][0]["model"]["primary"] == "anthropic/claude-sonnet-4-6"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["id"] == "coder"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["workspace"] == "/home/node/.openclaw/workspace-coder"
-assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["model"]["primary"] == "openai/gpt-5.4"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["model"]["primary"] == "anthropic/claude-sonnet-4-5"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["mode"] == "all"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["image"] == "openclaw-sandbox-coder:bookworm-slim"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["CODER_GITEA_USERNAME"] == "coder-bot"
@@ -166,6 +180,8 @@ assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["CODER_REGISTRY_BASE_URL"] == "https://registry.test.internal"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["CODER_REGISTRY_USERNAME"] == "coder"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["CODER_REGISTRY_NAMESPACE"] == "coder-bot"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["OPENAI_API_KEY"] == "${OPENAI_API_KEY}"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["GITHUB_TOKEN"] == "${GITHUB_TOKEN}"
 assert "export HOME=/workspace" in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["setupCommand"]
 assert 'mkdir -p "${XDG_CONFIG_HOME}/tea" "${XDG_CACHE_HOME}" "${XDG_STATE_HOME}" "${HOME}/.docker"' in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["setupCommand"]
 assert "git config --global user.name" in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["setupCommand"]
@@ -192,19 +208,27 @@ assert "test-admin" in rendered_values["openclaw"]["workspaceBootstrap"]["agents
 assert "set up direct channels for architect and coder" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["TOOLS.md"]
 assert "agent:coder:main" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["TOOLS.md"]
 assert "agent:watchdog:main" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["TOOLS.md"]
-assert "Treat larger efforts as projects and route them to architect first." in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["TOOLS.md"]
+assert "Handle ordinary non-coding tasks yourself when they do not cross a specialist boundary." in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["TOOLS.md"]
+assert "create project folders or project documentation structures" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["TOOLS.md"]
+assert "coding-agent` or `github" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["TOOLS.md"]
 assert "sessions_spawn" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["AGENTS.md"]
-assert "Distinguish between small tasks and larger projects" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["AGENTS.md"]
+assert "Handle ordinary non-coding tasks directly when they do not cross a specialist boundary." in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["AGENTS.md"]
+assert "external repository access belong with coder" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["AGENTS.md"]
+assert "Do not create project folders, write specifications, break work into formal task breakdowns" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["AGENTS.md"]
 assert "what the user wants to call you" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
 assert "sessions_send" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
 assert "watchdog monitors" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
-assert "treated as projects and sent to architect" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
+assert "ordinary non-coding tasks stay with you" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
+assert "project setup, specifications, task breakdowns, and durable project documentation belong with architect" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
 assert "/Projects/ai-homebase/" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
 assert "share `/Projects/` and `/Notes/` with that user" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
 assert "planning and design specialist" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["AGENTS.md"]
+assert "Good fits include `summarize`, `session-logs`, `healthcheck`, `node-connect`, and `skill-creator`." in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["AGENTS.md"]
 assert "Think in projects rather than isolated requests" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["AGENTS.md"]
 assert "programming domain" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["AGENTS.md"]
+assert "Delegate substantial coding work to Codex" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["AGENTS.md"]
 assert "low-cost monitoring and triage specialist" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["watchdog"]["files"]["AGENTS.md"]
+assert "Never execute when you should escalate" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["watchdog"]["files"]["AGENTS.md"]
 assert "agent:main:main" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["watchdog"]["files"]["TOOLS.md"]
 assert "Route most findings to main" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["watchdog"]["files"]["TOOLS.md"]
 assert "coder-bot" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
@@ -213,6 +237,8 @@ assert "Tag your shared notes with `#coder`" in rendered_values["openclaw"]["wor
 assert "Main owns the shared calendar" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
 assert "agent:main:main" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
 assert "Use `tea` for repository creation" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
+assert "If `GITHUB_TOKEN` is present" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
+assert "Your primary coding execution path is the `coding-agent` flow backed by Codex CLI." in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
 assert "Treat the GitOps repository as a deployment-definition repo" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
 assert "Default new cluster-bound images to the in-cluster registry" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
 assert "Common tools available include `bash`" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
@@ -274,6 +300,8 @@ coder_dockerfile = (REPO_ROOT / "images" / "openclaw-sandbox-coder" / "Dockerfil
 assert "usermod --home /workspace sandbox" in coder_dockerfile
 assert "ENV HOME=/workspace" in coder_dockerfile
 assert "WORKDIR /workspace" in coder_dockerfile
+assert "tmux" in coder_dockerfile
+assert "@openai/codex" in coder_dockerfile
 
 invalid_config = write_config(
     """
@@ -296,6 +324,36 @@ failed = subprocess.run(
 assert failed.returncode != 0
 assert "At least one supported OpenClaw provider/search key is required" in failed.stderr
 
+missing_openai_for_coder_config = write_config(
+    """
+[providers]
+openai_api_key = ""
+anthropic_api_key = "test-anthropic-key"
+
+[openclaw.agents.main]
+model = "anthropic/claude-sonnet-4-6"
+
+[openclaw.agents.coder]
+model = "anthropic/claude-sonnet-4-5"
+
+[openclaw.agents.architect]
+model = "anthropic/claude-opus-4-6"
+
+[mail]
+domain = "example.com"
+smtp_host = "smtp.example.com"
+"""
+)
+
+failed = subprocess.run(
+    ["python3", str(SCRIPT), "validate", "--config", str(missing_openai_for_coder_config)],
+    check=False,
+    capture_output=True,
+    text=True,
+)
+assert failed.returncode != 0
+assert "OPENAI_API_KEY is required in [providers] for the bootstrapped coder Codex workflow." in failed.stderr
+
 invalid_argocd_user_config = write_config(
     """
 [providers]
@@ -306,7 +364,7 @@ anthropic_api_key = "test-anthropic-key"
 model = "anthropic/claude-sonnet-4-6"
 
 [openclaw.agents.coder]
-model = "openai/gpt-5.4"
+model = "anthropic/claude-sonnet-4-5"
 
 [openclaw.agents.architect]
 model = "anthropic/claude-opus-4-6"
@@ -340,7 +398,7 @@ anthropic_api_key = "test-anthropic-key"
 model = "anthropic/claude-sonnet-4-6"
 
 [openclaw.agents.coder]
-model = "openai/gpt-5.4"
+model = "anthropic/claude-sonnet-4-5"
 
 [openclaw.agents.architect]
 model = "anthropic/claude-opus-4-6"
@@ -376,7 +434,7 @@ anthropic_api_key = "test-anthropic-key"
 model = "anthropic/claude-sonnet-4-6"
 
 [openclaw.agents.coder]
-model = "openai/gpt-5.4"
+model = "anthropic/claude-sonnet-4-5"
 
 [openclaw.agents.architect]
 model = "anthropic/claude-opus-4-6"
@@ -422,7 +480,7 @@ openai_api_key = "test-openai-key"
 model = "anthropic/claude-sonnet-4-6"
 
 [openclaw.agents.coder]
-model = "openai/gpt-5.4"
+model = "anthropic/claude-sonnet-4-5"
 
 [openclaw.agents.architect]
 model = "anthropic/claude-opus-4-6"
@@ -449,10 +507,10 @@ openai_api_key = "test-openai-key"
 anthropic_api_key = ""
 
 [openclaw.agents.main]
-model = "openai/gpt-5.4"
+model = "anthropic/claude-sonnet-4-5"
 
 [openclaw.agents.coder]
-model = "openai/gpt-5.4"
+model = "anthropic/claude-sonnet-4-5"
 
 [openclaw.agents.architect]
 model = "anthropic/claude-opus-4-6"
@@ -470,6 +528,6 @@ failed = subprocess.run(
     text=True,
 )
 assert failed.returncode != 0
-assert "openclaw.agents.architect.model='anthropic/claude-opus-4-6' requires ANTHROPIC_API_KEY in [providers]." in failed.stderr
+assert "requires ANTHROPIC_API_KEY in [providers]." in failed.stderr
 
 print("bootstrap config tests passed")

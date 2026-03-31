@@ -245,6 +245,17 @@
         "secretRefs": {
           "$ref": "#/definitions/secretRefs"
         },
+        "skills": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "allowBundled": {
+              "type": "array",
+              "default": [],
+              "items": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
         "secretKeys": {
           "$ref": "#/definitions/openclawSecretKeys"
         }
@@ -548,6 +559,10 @@
           "default": ""
         },
         "xaiApiKey": {
+          "type": "string",
+          "default": ""
+        },
+        "githubToken": {
           "type": "string",
           "default": ""
         },

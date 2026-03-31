@@ -19,7 +19,7 @@ anthropic_api_key = "test-anthropic-key"
 model = "anthropic/claude-sonnet-4-6"
 
 [openclaw.agents.coder]
-model = "openai/gpt-5.4"
+model = "anthropic/claude-sonnet-4-5"
 
 [openclaw.agents.coder.gitea]
 username = "coder-bot"
@@ -114,8 +114,9 @@ project = "platform-stack"
         assert 'multi-agent-topology.md' in bootstrap_values
         assert '"workspaceBootstrap"' in bootstrap_values
         assert '"BOOTSTRAP.md"' in bootstrap_values
-        assert 'Treat larger efforts as projects' in bootstrap_values
+        assert 'Handle ordinary non-coding tasks directly when they do not cross a specialist boundary.' in bootstrap_values
         assert 'Think in projects rather than isolated requests' in bootstrap_values
+        assert '"allowBundled"' in bootstrap_values
         assert "Authorization=${OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER}" in bootstrap_values
         assert "${OPENCLAW_NEXTCLOUD_MCP_INTERNAL_URL}" in bootstrap_values
         assert "${OPENCLAW_NEXTCLOUD_MCP_EXTERNAL_URL}" in bootstrap_values

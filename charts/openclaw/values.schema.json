@@ -180,6 +180,17 @@
           "type": "object",
           "additionalProperties": true
         },
+        "skills": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "allowBundled": {
+              "type": "array",
+              "default": [],
+              "items": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
         "gateway": {
           "type": "object",
           "additionalProperties": true,
