@@ -3,7 +3,7 @@
   "type": "object",
   "title": "qdrant-mcp values",
   "additionalProperties": true,
-  "required": ["image", "service", "qdrant", "embedding"],
+  "required": ["image", "service", "qdrant", "embedding", "toolDescriptions"],
   "properties": {
     "image": {
       "type": "object",
@@ -41,6 +41,15 @@
       "properties": {
         "provider": {"type": "string", "minLength": 1},
         "model": {"type": "string", "minLength": 1}
+      }
+    },
+    "toolDescriptions": {
+      "type": "object",
+      "required": ["store", "find"],
+      "additionalProperties": false,
+      "properties": {
+        "store": {"type": "string", "minLength": 1},
+        "find": {"type": "string", "minLength": 1}
       }
     }
   }

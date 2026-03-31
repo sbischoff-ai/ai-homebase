@@ -9,6 +9,7 @@ This chart deploys the official Qdrant MCP server as a dedicated MCP companion s
 - Connects to in-cluster Qdrant by default (`http://platform-stack-qdrant:6333`)
 - Bootstraps `mcp-server-qdrant==0.8.0` into a runtime venv on container start
 - Uses `EMBEDDING_PROVIDER=fastembed` and `EMBEDDING_MODEL=BAAI/bge-base-en-v1.5`
+- Sets repo-managed `TOOL_STORE_DESCRIPTION` and `TOOL_FIND_DESCRIPTION` defaults that enforce the shared memory schema
 
 ## Required values
 
@@ -16,3 +17,5 @@ This chart deploys the official Qdrant MCP server as a dedicated MCP companion s
 - `qdrant.collectionName`: default collection used by the memory tools
 - `embedding.provider`: embedding provider name
 - `embedding.model`: embedding model name
+- `toolDescriptions.store`: MCP store tool instructions shown to the model
+- `toolDescriptions.find`: MCP find tool instructions shown to the model

@@ -112,20 +112,33 @@ project = "platform-stack"
         assert '"bootstrapProjectContent"' in bootstrap_values
         assert '/Projects/ai-homebase/' in bootstrap_values
         assert 'multi-agent-topology.md' in bootstrap_values
+        assert 'qdrant-memory-schema.md' in bootstrap_values
+        assert 'incidents/README.md' in bootstrap_values
+        assert 'baselines.md' in bootstrap_values
+        assert 'escalation-rules.md' in bootstrap_values
         assert '"workspaceBootstrap"' in bootstrap_values
         assert '"BOOTSTRAP.md"' in bootstrap_values
-        assert 'Handle ordinary non-coding tasks directly when they do not cross a specialist boundary.' in bootstrap_values
-        assert 'Think in projects rather than isolated requests' in bootstrap_values
+        assert '# Memory - Main Agent' in bootstrap_values
+        assert '[domain] [kind] Complete statement here.' in bootstrap_values
+        assert '## Task Classification Gate (mandatory)' in bootstrap_values
+        assert '## Task Handoff' in bootstrap_values
+        assert '## Watchdog Alert' in bootstrap_values
         assert '"allowBundled"' in bootstrap_values
         assert "Authorization=${OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER}" in bootstrap_values
         assert "${OPENCLAW_NEXTCLOUD_MCP_INTERNAL_URL}" in bootstrap_values
         assert "${OPENCLAW_NEXTCLOUD_MCP_EXTERNAL_URL}" in bootstrap_values
         assert "/opt/openclaw-runtime/mcp/mcp-http-bridge.mjs" in bootstrap_values
         assert "openclaw-sandbox-coder:bookworm-slim" in bootstrap_values
+        assert 'export HOME=/workspace/.home' in bootstrap_values
+        assert 'CODEX_HOME' in bootstrap_values
+        assert '/.codex' in bootstrap_values
+        assert '/workspace` is your repo working tree; persistent tool state lives under `/workspace/.home`' in bootstrap_values
         assert '"skills/gitea-tea/SKILL.md"' not in bootstrap_values
         assert '"skills/gitops-homebase/SKILL.md"' not in bootstrap_values
         assert 'Use `tea` for repository creation' in bootstrap_values
         assert 'Treat the GitOps repository as a deployment-definition repo' in bootstrap_values
+        assert "toolDescriptions:" in (REPO_ROOT / "charts" / "platform-stack" / "values.yaml").read_text()
+        assert "Store a memory for cross-agent recall." in (REPO_ROOT / "charts" / "platform-stack" / "values.yaml").read_text()
         assert "argoCd:" in gitops_values
         assert "enabled: true" in gitops_values
         assert "dockerHost: ssh://docker-remote@10.10.0.1:2222" in gitops_values
