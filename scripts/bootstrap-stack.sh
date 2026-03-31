@@ -37,6 +37,13 @@ CERT_MANAGER_DEPLOYMENTS=(
   cert-manager-webhook
 )
 CODER_SANDBOX_IMAGE_TAG="${CODER_SANDBOX_IMAGE_TAG:-openclaw-sandbox-coder:bookworm-slim}"
+DEFAULT_SANDBOX_IMAGE_TAG="${DEFAULT_SANDBOX_IMAGE_TAG:-openclaw-sandbox:bookworm-slim}"
+GATEWAY_IMAGE_TAG="${GATEWAY_IMAGE_TAG:-openclaw-remote-docker:bookworm-slim}"
+CANONICAL_DEFAULT_SANDBOX_IMAGE="${CANONICAL_DEFAULT_SANDBOX_IMAGE:-}"
+CANONICAL_CODER_SANDBOX_IMAGE="${CANONICAL_CODER_SANDBOX_IMAGE:-}"
+REGISTRY_HOST_VALUE="${REGISTRY_HOST_VALUE:-}"
+REGISTRY_USERNAME_VALUE="${REGISTRY_USERNAME_VALUE:-}"
+REGISTRY_PASSWORD_VALUE="${REGISTRY_PASSWORD_VALUE:-}"
 
 normalize_kubeconfig_path() {
   local candidate="${1:-}"
@@ -89,21 +96,110 @@ helm_upgrade_install() {
     "${SET_ARGS[@]}"
 }
 
-prepare_openclaw_sandbox_images() {
+current_kube_context() {
+  if [[ -n "$KUBE_CONTEXT" ]]; then
+    printf '%s\n' "$KUBE_CONTEXT"
+    return 0
+  fi
+  kubectl "${KUBECTL_CONTEXT_ARGS[@]}" config current-context
+}
+
+values_reference() {
+  local needle="$1"
+  local file=""
+
+  for file in "${VALUES_FILES[@]}"; do
+    if [[ -n "$file" && -f "$file" ]] && grep -q "$needle" "$file"; then
+      return 0
+    fi
+  done
+
+  if [[ -n "$BOOTSTRAP_VALUES_FILE" && -f "$BOOTSTRAP_VALUES_FILE" ]] && grep -q "$needle" "$BOOTSTRAP_VALUES_FILE"; then
+    return 0
+  fi
+
+  return 1
+}
+
+import_image_into_k3d_cluster() {
+  local image="$1"
+  local current_context cluster_name
+
+  current_context="$(current_kube_context)"
+  if [[ "$current_context" != k3d-* ]]; then
+    echo "Skipping k3d image import for ${image}; current context ${current_context} is not a k3d context."
+    return 0
+  fi
+
+  cluster_name="${current_context#k3d-}"
+  k3d image import -c "$cluster_name" "$image"
+}
+
+prepare_openclaw_runtime_images() {
   local docker_host=""
-  if [[ -n "$BOOTSTRAP_VALUES_FILE" ]] && grep -q "$CODER_SANDBOX_IMAGE_TAG" "$BOOTSTRAP_VALUES_FILE"; then
-    ./scripts/build-openclaw-sandbox-images.sh --coder-image "$CODER_SANDBOX_IMAGE_TAG"
-    if [[ -n "$REMOTE_DOCKER_HOST" && -n "$REMOTE_DOCKER_PORT" ]]; then
-      docker_host="ssh://docker-remote@${REMOTE_DOCKER_HOST}:${REMOTE_DOCKER_PORT}"
-      load_cmd=(
-        ./scripts/openclaw-remote-docker-load-images.sh
+  local build_args=()
+  local gateway_image_needed=0
+  local default_image_needed=0
+  local coder_image_needed=0
+
+  if values_reference "$GATEWAY_IMAGE_TAG"; then
+    gateway_image_needed=1
+    build_args+=(--gateway-image "$GATEWAY_IMAGE_TAG")
+  fi
+  if values_reference "openclaw-sandbox:"; then
+    default_image_needed=1
+    build_args+=(--base-image "$DEFAULT_SANDBOX_IMAGE_TAG")
+  fi
+  if values_reference "openclaw-sandbox-coder:"; then
+    coder_image_needed=1
+    build_args+=(--coder-image "$CODER_SANDBOX_IMAGE_TAG")
+  fi
+
+  if [[ ${#build_args[@]} -eq 0 ]]; then
+    return 0
+  fi
+
+  ./scripts/build-openclaw-sandbox-images.sh "${build_args[@]}"
+
+  if [[ "$PROFILE" == "k3d" && "$gateway_image_needed" -eq 1 ]]; then
+    import_image_into_k3d_cluster "$GATEWAY_IMAGE_TAG"
+  fi
+
+  if [[ ( "$default_image_needed" -eq 1 || "$coder_image_needed" -eq 1 ) && -n "$REMOTE_DOCKER_HOST" && -n "$REMOTE_DOCKER_PORT" ]]; then
+    docker_host="ssh://docker-remote@${REMOTE_DOCKER_HOST}:${REMOTE_DOCKER_PORT}"
+    load_cmd=(
+      ./scripts/openclaw-remote-docker-load-images.sh
+      --docker-host "$docker_host"
+    )
+    if [[ -n "$REMOTE_DOCKER_KEY_PATH" ]]; then
+      load_cmd+=(--identity-file "$REMOTE_DOCKER_KEY_PATH")
+    fi
+    if [[ "$default_image_needed" -eq 1 ]]; then
+      load_cmd+=(--image "$DEFAULT_SANDBOX_IMAGE_TAG")
+    fi
+    if [[ "$coder_image_needed" -eq 1 ]]; then
+      load_cmd+=(--image "$CODER_SANDBOX_IMAGE_TAG")
+    fi
+    "${load_cmd[@]}"
+
+    if [[ -n "$REGISTRY_HOST_VALUE" && -n "$REGISTRY_USERNAME_VALUE" && -n "$REGISTRY_PASSWORD_VALUE" ]]; then
+      publish_cmd=(
+        ./scripts/openclaw-remote-docker-publish-images.sh
         --docker-host "$docker_host"
+        --registry-host "$REGISTRY_HOST_VALUE"
+        --registry-username "$REGISTRY_USERNAME_VALUE"
+        --registry-password "$REGISTRY_PASSWORD_VALUE"
       )
       if [[ -n "$REMOTE_DOCKER_KEY_PATH" ]]; then
-        load_cmd+=(--identity-file "$REMOTE_DOCKER_KEY_PATH")
+        publish_cmd+=(--identity-file "$REMOTE_DOCKER_KEY_PATH")
       fi
-      load_cmd+=(--image "$CODER_SANDBOX_IMAGE_TAG")
-      "${load_cmd[@]}"
+      if [[ "$default_image_needed" -eq 1 && -n "$CANONICAL_DEFAULT_SANDBOX_IMAGE" ]]; then
+        publish_cmd+=(--source-image "$DEFAULT_SANDBOX_IMAGE_TAG" --target-image "$CANONICAL_DEFAULT_SANDBOX_IMAGE")
+      fi
+      if [[ "$coder_image_needed" -eq 1 && -n "$CANONICAL_CODER_SANDBOX_IMAGE" ]]; then
+        publish_cmd+=(--source-image "$CODER_SANDBOX_IMAGE_TAG" --target-image "$CANONICAL_CODER_SANDBOX_IMAGE")
+      fi
+      "${publish_cmd[@]}"
     fi
   fi
 }
@@ -242,6 +338,12 @@ if [[ -n "$BOOTSTRAP_CONFIG_PATH" ]]; then
   BOOTSTRAP_VALUES_FILE="$(mktemp /tmp/ai-homebase-bootstrap-install-values.XXXXXX.yaml)"
   trap 'rm -f "$BOOTSTRAP_VALUES_FILE" "$REMOTE_DOCKER_OVERRIDE_VALUES_FILE"' EXIT
   python3 ./scripts/bootstrap-config.py render-values --config "$BOOTSTRAP_CONFIG_PATH" >"$BOOTSTRAP_VALUES_FILE"
+  eval "$(python3 ./scripts/bootstrap-config.py shell-vars --config "$BOOTSTRAP_CONFIG_PATH")"
+  CANONICAL_DEFAULT_SANDBOX_IMAGE="${OPENCLAW_DEFAULT_SANDBOX_IMAGE:-$CANONICAL_DEFAULT_SANDBOX_IMAGE}"
+  CANONICAL_CODER_SANDBOX_IMAGE="${OPENCLAW_CODER_SANDBOX_IMAGE:-$CANONICAL_CODER_SANDBOX_IMAGE}"
+  REGISTRY_HOST_VALUE="${REGISTRY_HOST:-$REGISTRY_HOST_VALUE}"
+  REGISTRY_USERNAME_VALUE="${REGISTRY_USERNAME:-$REGISTRY_USERNAME_VALUE}"
+  REGISTRY_PASSWORD_VALUE="${REGISTRY_PASSWORD:-$REGISTRY_PASSWORD_VALUE}"
   VALUES_ARGS+=(--values "$BOOTSTRAP_VALUES_FILE")
 fi
 
@@ -299,7 +401,7 @@ if [[ "$SKIP_SECRETS" -eq 0 ]]; then
   "${BOOTSTRAP_SECRETS_CMD[@]}"
 fi
 
-prepare_openclaw_sandbox_images
+prepare_openclaw_runtime_images
 
 helm dependency update charts/platform-stack
 

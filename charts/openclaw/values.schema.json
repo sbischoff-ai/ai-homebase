@@ -180,6 +180,21 @@
           "type": "object",
           "additionalProperties": true
         },
+        "cron": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "object",
+            "required": ["id", "schedule", "payload", "enabled"],
+            "additionalProperties": true,
+            "properties": {
+              "id": { "type": "string", "minLength": 1 },
+              "schedule": { "type": "object", "minProperties": 1, "additionalProperties": true },
+              "payload": { "type": "object", "minProperties": 1, "additionalProperties": true },
+              "enabled": { "type": "boolean" }
+            }
+          }
+        },
         "skills": {
           "type": "object",
           "additionalProperties": true,
@@ -224,7 +239,7 @@
                       "type": "object",
                       "additionalProperties": true,
                       "properties": {
-                        "image": { "type": "string", "default": "openclaw-sandbox:bookworm-slim" },
+                        "image": { "type": "string", "default": "registry.example.com/coder/openclaw-sandbox:bookworm-slim" },
                         "workdir": { "type": "string", "default": "/workspace" },
                         "readOnlyRoot": { "type": "boolean", "default": true },
                         "tmpfs": {

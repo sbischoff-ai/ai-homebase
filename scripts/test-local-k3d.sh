@@ -579,6 +579,17 @@ verify_openclaw_remote_docker() {
   "
 }
 
+verify_openclaw_gateway_tooling() {
+  local deployment_name="$1"
+
+  step "Checking OpenClaw gateway tooling for watchdog/session-logs"
+  CURRENT_COMMAND="kubectl exec deployment/${deployment_name} -- sh -ceu 'command -v jq && command -v rg'"
+  run_checked kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" exec "deployment/${deployment_name}" -- sh -ceu "
+    command -v jq >/dev/null
+    command -v rg >/dev/null
+  "
+}
+
 verify_openclaw_mcp_bootstrap_config() {
   local configmap_name="$1"
   local openclaw_json=""
@@ -594,6 +605,26 @@ verify_openclaw_mcp_bootstrap_config() {
 
   if [[ "$openclaw_json" != *'${OPENCLAW_NEXTCLOUD_MCP_EXTERNAL_URL}'* ]]; then
     fail "OpenClaw bootstrap config in ConfigMap/${configmap_name} is missing the external Nextcloud MCP URL placeholder"
+    exit 1
+  fi
+
+  if [[ "$openclaw_json" != *'"id":"watchdog-heartbeat"'* ]]; then
+    fail "OpenClaw bootstrap config in ConfigMap/${configmap_name} is missing the watchdog heartbeat cron job"
+    exit 1
+  fi
+
+  if [[ "$openclaw_json" != *'/Projects/ai-homebase/watchdog-status-log.md'* ]]; then
+    fail "OpenClaw bootstrap config in ConfigMap/${configmap_name} is missing the watchdog status-log path"
+    exit 1
+  fi
+
+  if [[ "$openclaw_json" != *'registry.localtest.me/coder/openclaw-sandbox:bookworm-slim'* ]]; then
+    fail "OpenClaw bootstrap config in ConfigMap/${configmap_name} is not using the canonical registry-backed default sandbox image"
+    exit 1
+  fi
+
+  if [[ "$openclaw_json" != *'registry.localtest.me/coder/openclaw-sandbox-coder:bookworm-slim'* ]]; then
+    fail "OpenClaw bootstrap config in ConfigMap/${configmap_name} is not using the canonical registry-backed coder sandbox image"
     exit 1
   fi
 }
@@ -685,6 +716,7 @@ fi
 wait_for_workload openclaw "$OPENCLAW_WAIT_TIMEOUT"
 OPENCLAW_DEPLOYMENT_NAME="$(resolve_deployment_name openclaw)"
 verify_openclaw_mcp_bootstrap_config "$OPENCLAW_DEPLOYMENT_NAME"
+verify_openclaw_gateway_tooling "$OPENCLAW_DEPLOYMENT_NAME"
 
 if [[ "$(is_openclaw_remote_docker_enabled)" == "true" ]]; then
   verify_openclaw_remote_docker "$OPENCLAW_DEPLOYMENT_NAME"

@@ -18,6 +18,10 @@ global:
 openclaw:
   enabled: true
   replicaCount: 1
+  image:
+    repository: openclaw-remote-docker
+    tag: "bookworm-slim"
+    pullPolicy: IfNotPresent
   ingress:
     enabled: true
     className: nginx
