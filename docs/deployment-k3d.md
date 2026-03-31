@@ -34,11 +34,12 @@ If you reuse an older k3d cluster that was created before this shared-state bind
 ./scripts/k3d-down.sh --cluster-name ai-homebase-dev
 ```
 
-This does three things in order:
+This does four things in order:
 
 1. creates or reuses the local `k3d` cluster
 2. boots the Incus-backed remote Docker VM for OpenClaw
-3. runs the shared bootstrap/apply flow, then local smoke checks
+3. runs the shared bootstrap/apply flow, including the GitOps handoff, initial Argo sync, and Argo application validation
+4. runs local smoke checks
 
 If you keep the standard Nextcloud MCP service enabled, `scripts/incus-vm-up.sh` now configures the Incus VM and its Docker containers to resolve that MCP ingress hostname to the Incus host listener address automatically. You should only need extra host-side work when the k3d ingress listener itself is not reachable on the Incus bridge address.
 
@@ -83,13 +84,11 @@ By default this now removes:
 
 Use `--keep-openclaw-state` when you intentionally want to preserve the local OpenClaw state across rebuilds.
 
-## 6. GitOps Handoff
+## 6. GitOps Rerun
 
-After the normal local bootstrap succeeds, the regular next step is to add Argo CD and hand the cluster over to GitOps:
+The normal local bootstrap now already adds Argo CD, pushes the GitOps repo snapshot, triggers the initial sync, and waits for the Argo applications to reach `Synced` and `Healthy`.
 
-```bash
-./scripts/bootstrap-gitops.sh --profile k3d --bootstrap-config bootstrap.local.toml
-```
+Re-run `./scripts/bootstrap-gitops.sh --profile k3d --bootstrap-config bootstrap.local.toml` only when you intentionally want to refresh the in-cluster GitOps repo snapshot from the current working tree without re-running the full local bootstrap helper.
 
 ## See Also
 

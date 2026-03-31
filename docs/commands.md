@@ -99,12 +99,12 @@ scripts/ci/check_golden.sh
 ```bash
 python3 scripts/bootstrap-config.py validate --config bootstrap.local.toml
 ./scripts/k3d-local-bootstrap.sh --cluster-name ai-homebase-dev --bootstrap-config bootstrap.local.toml
-./scripts/bootstrap-gitops.sh --profile k3d --bootstrap-config bootstrap.local.toml
 sudo ./scripts/install-k3s-ubuntu-2404.sh
 ./scripts/k3s-homelab-sandbox-up.sh --bootstrap-config bootstrap.local.toml
 ./scripts/bootstrap-stack.sh --profile k3s --bootstrap-config bootstrap.local.toml
-./scripts/bootstrap-gitops.sh --profile k3s --bootstrap-config bootstrap.local.toml
 ```
+
+`bootstrap-stack.sh` now includes the GitOps handoff, initial Argo sync, and Argo application validation by default. Re-run `bootstrap-gitops.sh` only when you want to refresh the in-cluster GitOps repo snapshot separately from the main bootstrap flow.
 
 ## Local bootstrap and Incus sandbox helpers
 
@@ -127,7 +127,8 @@ source ~/.local/state/ai-homebase/incus/openclaw-sandbox.env
   --remote-docker-host "$HOST_LISTEN_ADDRESS" \
   --remote-docker-port "$SSH_HOST_PORT" \
   --remote-docker-key ~/.local/state/ai-homebase/incus/openclaw-sandbox-id_ed25519
-# Re-running bootstrap-stack refreshes the app secrets and then reapplies the chart-managed install flow.
+# Re-running bootstrap-stack refreshes the app secrets, reapplies the chart-managed install flow,
+# refreshes the GitOps snapshot, triggers the initial/manual sync step, and validates Argo app state.
 # Change bootstrap.local.toml when you intentionally need new hostnames, DB passwords, or admin passwords.
 ./scripts/incus-vm-down.sh --vm-name openclaw-sandbox
 ./scripts/k3d-local-teardown.sh --cluster-name ai-homebase-dev --vm-name openclaw-sandbox

@@ -18,7 +18,10 @@ GITOPS_SECRET_NAME="${GITOPS_SECRET_NAME:-gitops-config-secrets}"
 ARGOCD_REPO_SECRET_NAME="${ARGOCD_REPO_SECRET_NAME:-argocd-repo-gitea-gitops}"
 GITEA_WAIT_TIMEOUT="${GITEA_WAIT_TIMEOUT:-300s}"
 ARGOCD_WAIT_TIMEOUT="${ARGOCD_WAIT_TIMEOUT:-300s}"
+ARGOCD_APP_SYNC_TIMEOUT="${ARGOCD_APP_SYNC_TIMEOUT:-300}"
+ARGOCD_APP_WAIT_TIMEOUT="${ARGOCD_APP_WAIT_TIMEOUT:-300}"
 ARGOCD_SERVER_DEPLOYMENT="${ARGOCD_SERVER_DEPLOYMENT:-${RELEASE_NAME}-argocd-server}"
+SKIP_INSTALL=0
 
 usage() {
   cat <<USAGE
@@ -39,6 +42,7 @@ Options:
   --remote-docker-key <path> Optional SSH private key for the remote Docker image sync step
   --incus-vm-name <name>     Incus VM name for k3d remote Docker auto-discovery (default: ${INCUS_VM_NAME})
   --incus-connection-info <p> Incus VM env file for k3d remote Docker auto-discovery
+  --skip-install             Skip the internal Argo CD enable/install step and run only the GitOps handoff
   -h, --help                 Show this help message
 USAGE
 }
@@ -71,6 +75,7 @@ while [[ $# -gt 0 ]]; do
     --remote-docker-key) REMOTE_DOCKER_KEY_PATH="$2"; shift 2 ;;
     --incus-vm-name) INCUS_VM_NAME="$2"; shift 2 ;;
     --incus-connection-info) INCUS_CONNECTION_INFO_PATH="$2"; shift 2 ;;
+    --skip-install) SKIP_INSTALL=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
   esac
@@ -302,6 +307,76 @@ configure_argocd_admin_account() {
     '
 }
 
+argocd_application_exists() {
+  local app_name="$1"
+  kubectl "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" get application "$app_name" >/dev/null 2>&1
+}
+
+wait_for_argocd_application() {
+  local app_name="$1"
+  local waited=0
+  while ! argocd_application_exists "$app_name"; do
+    if (( waited >= ARGOCD_APP_WAIT_TIMEOUT )); then
+      echo "Timed out waiting for Argo CD application ${app_name} to be created." >&2
+      exit 1
+    fi
+    sleep 2
+    waited=$(( waited + 2 ))
+  done
+}
+
+sync_and_validate_argocd_apps() {
+  local username="$1"
+  local password="$2"
+  local root_app="${RELEASE_NAME}-gitops-root"
+  local platform_app="${RELEASE_NAME}-platform-stack"
+
+  wait_for_argocd_application "$root_app"
+  wait_for_argocd_application "$platform_app"
+
+  step "Triggering the initial Argo CD sync"
+  argocd_exec env \
+    ARGOCD_USERNAME="$username" \
+    ARGOCD_PASSWORD="$password" \
+    ROOT_APP="$root_app" \
+    PLATFORM_APP="$platform_app" \
+    ARGOCD_APP_SYNC_TIMEOUT="$ARGOCD_APP_SYNC_TIMEOUT" \
+    sh -ceu '
+      cfg="$(mktemp)"
+      trap "rm -f \"$cfg\"" EXIT
+      argocd --config "$cfg" login 127.0.0.1:8080 \
+        --username "$ARGOCD_USERNAME" \
+        --password "$ARGOCD_PASSWORD" \
+        --plaintext >/dev/null
+      argocd --config "$cfg" app sync \
+        "$ROOT_APP" \
+        "$PLATFORM_APP" \
+        --timeout "$ARGOCD_APP_SYNC_TIMEOUT"
+    '
+
+  step "Waiting for Argo CD applications to become Synced and Healthy"
+  argocd_exec env \
+    ARGOCD_USERNAME="$username" \
+    ARGOCD_PASSWORD="$password" \
+    ROOT_APP="$root_app" \
+    PLATFORM_APP="$platform_app" \
+    ARGOCD_APP_WAIT_TIMEOUT="$ARGOCD_APP_WAIT_TIMEOUT" \
+    sh -ceu '
+      cfg="$(mktemp)"
+      trap "rm -f \"$cfg\"" EXIT
+      argocd --config "$cfg" login 127.0.0.1:8080 \
+        --username "$ARGOCD_USERNAME" \
+        --password "$ARGOCD_PASSWORD" \
+        --plaintext >/dev/null
+      argocd --config "$cfg" app wait \
+        "$ROOT_APP" \
+        "$PLATFORM_APP" \
+        --sync \
+        --health \
+        --timeout "$ARGOCD_APP_WAIT_TIMEOUT"
+    '
+}
+
 build_admin_user_payload() {
   python3 - "$@" <<'PY'
 import json
@@ -443,35 +518,38 @@ if [[ -n "$REMOTE_DOCKER_KEY_PATH" ]]; then
 fi
 "${BOOTSTRAP_SECRETS_CMD[@]}"
 
-step "Installing Argo CD through the existing Helm path"
-INSTALL_CMD=(
-  ./scripts/bootstrap-stack.sh
-  --profile "$PROFILE"
-  --bootstrap-config "$BOOTSTRAP_CONFIG_PATH"
-  --release-name "$RELEASE_NAME"
-  --namespace "$NAMESPACE"
-  --skip-secrets
-  --enable-service argo-cd
-)
-if [[ -n "$KUBECONFIG_PATH" ]]; then
-  INSTALL_CMD+=(--kubeconfig "$KUBECONFIG_PATH")
+if [[ "$SKIP_INSTALL" -eq 0 ]]; then
+  step "Installing Argo CD through the existing Helm path"
+  INSTALL_CMD=(
+    ./scripts/bootstrap-stack.sh
+    --profile "$PROFILE"
+    --bootstrap-config "$BOOTSTRAP_CONFIG_PATH"
+    --release-name "$RELEASE_NAME"
+    --namespace "$NAMESPACE"
+    --skip-secrets
+    --skip-gitops
+    --enable-service argo-cd
+  )
+  if [[ -n "$KUBECONFIG_PATH" ]]; then
+    INSTALL_CMD+=(--kubeconfig "$KUBECONFIG_PATH")
+  fi
+  if [[ -n "$KUBE_CONTEXT" ]]; then
+    INSTALL_CMD+=(--kube-context "$KUBE_CONTEXT")
+  fi
+  if [[ -n "$REMOTE_DOCKER_HOST" ]]; then
+    INSTALL_CMD+=(--remote-docker-host "$REMOTE_DOCKER_HOST")
+  fi
+  if [[ -n "$REMOTE_DOCKER_PORT" ]]; then
+    INSTALL_CMD+=(--remote-docker-port "$REMOTE_DOCKER_PORT")
+  fi
+  if [[ -n "$REMOTE_DOCKER_KEY_PATH" ]]; then
+    INSTALL_CMD+=(--remote-docker-key "$REMOTE_DOCKER_KEY_PATH")
+  fi
+  if [[ -n "$INCUS_CONNECTION_INFO_PATH" ]]; then
+    INSTALL_CMD+=(--incus-connection-info "$INCUS_CONNECTION_INFO_PATH")
+  fi
+  "${INSTALL_CMD[@]}"
 fi
-if [[ -n "$KUBE_CONTEXT" ]]; then
-  INSTALL_CMD+=(--kube-context "$KUBE_CONTEXT")
-fi
-if [[ -n "$REMOTE_DOCKER_HOST" ]]; then
-  INSTALL_CMD+=(--remote-docker-host "$REMOTE_DOCKER_HOST")
-fi
-if [[ -n "$REMOTE_DOCKER_PORT" ]]; then
-  INSTALL_CMD+=(--remote-docker-port "$REMOTE_DOCKER_PORT")
-fi
-if [[ -n "$REMOTE_DOCKER_KEY_PATH" ]]; then
-  INSTALL_CMD+=(--remote-docker-key "$REMOTE_DOCKER_KEY_PATH")
-fi
-if [[ -n "$INCUS_CONNECTION_INFO_PATH" ]]; then
-  INSTALL_CMD+=(--incus-connection-info "$INCUS_CONNECTION_INFO_PATH")
-fi
-"${INSTALL_CMD[@]}"
 
 step "Waiting for Gitea and Argo CD"
 wait_for_gitea
@@ -570,6 +648,8 @@ step "Applying the Argo CD project and applications"
 kubectl "${KUBECTL_CONTEXT_ARGS[@]}" apply -f "${REPO_WORK_DIR}/gitops/clusters/${GITOPS_CLUSTER_NAME}/project.yaml"
 kubectl "${KUBECTL_CONTEXT_ARGS[@]}" apply -f "${REPO_WORK_DIR}/gitops/clusters/${GITOPS_CLUSTER_NAME}/applications/platform-stack.yaml"
 kubectl "${KUBECTL_CONTEXT_ARGS[@]}" apply -f "${REPO_WORK_DIR}/gitops/clusters/${GITOPS_CLUSTER_NAME}/root-application.yaml"
+
+sync_and_validate_argocd_apps "${ARGOCD_ADMIN_USER:-admin}" "${ARGOCD_ADMIN_PASSWORD:-}"
 
 printf 'GitOps bootstrap complete.\n'
 printf '  Argo CD URL: http://%s\n' "$ARGOCD_HOST"

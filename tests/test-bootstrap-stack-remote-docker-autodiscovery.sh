@@ -91,6 +91,13 @@ printf 'bootstrap-coder-gitea.sh %s\n' "$*" >>"${FAKE_COMMAND_LOG:?}"
 SH
 chmod +x "${repo_dir}/scripts/bootstrap-coder-gitea.sh"
 
+cat >"${repo_dir}/scripts/bootstrap-gitops.sh" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'bootstrap-gitops.sh %s\n' "$*" >>"${FAKE_COMMAND_LOG:?}"
+SH
+chmod +x "${repo_dir}/scripts/bootstrap-gitops.sh"
+
 cat >"${sandbox_dir}/bin/helm" <<'SH'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -146,6 +153,7 @@ assert_contains "${commands}" "--remote-docker-port 2222"
 assert_contains "${commands}" "build-openclaw-sandbox-images.sh --coder-image openclaw-sandbox-coder:bookworm-slim"
 assert_contains "${commands}" "openclaw-remote-docker-load-images.sh --docker-host ssh://docker-remote@10.10.10.1:2222 --image openclaw-sandbox-coder:bookworm-slim"
 assert_contains "${commands}" "bootstrap-coder-gitea.sh --bootstrap-config ${sandbox_dir}/bootstrap.local.toml --release-name platform-stack --namespace ai-homebase"
+assert_contains "${commands}" "bootstrap-gitops.sh --profile k3s --bootstrap-config ${sandbox_dir}/bootstrap.local.toml --release-name platform-stack --namespace ai-homebase --skip-install --kubeconfig /home/sbischoff/.kube/config --remote-docker-host 10.10.10.1 --remote-docker-port 2222 --incus-connection-info ${sandbox_dir}/incus/openclaw-sandbox.env"
 assert_contains "${helm_log}" "dockerHost: ssh://docker-remote@10.10.10.1:2222"
 
 echo "bootstrap stack remote docker autodiscovery tests passed"

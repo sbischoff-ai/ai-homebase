@@ -10,7 +10,7 @@ Characteristic features of this stack:
 - Architect-oriented project documentation seeded into Nextcloud so the cluster can document and evolve itself from day one
 - remote Docker sandboxes for specialist agents, including a coder-specific sandbox image with developer tooling
 - Nextcloud shared with OpenClaw through a dedicated MCP gateway and shared-account operating conventions
-- GitOps handoff into an in-cluster Gitea repository with Argo CD kept in manual-sync mode
+- GitOps handoff into an in-cluster Gitea repository with Argo CD bootstrapped, initially synced, and then kept in manual-sync mode
 - an in-cluster authenticated registry for coder-built application images
 - one bootstrap input model for both local and homelab targets through `bootstrap.local.toml`
 
@@ -30,10 +30,9 @@ The intended long-running target today is a single-node `k3s` install on a Hetzn
 ```bash
 cp bootstrap.example.toml bootstrap.local.toml
 ./scripts/k3d-local-bootstrap.sh --cluster-name ai-homebase-dev --bootstrap-config bootstrap.local.toml
-./scripts/bootstrap-gitops.sh --profile k3d --bootstrap-config bootstrap.local.toml
 ```
 
-Use [docs/deployment-k3d.md](./docs/deployment-k3d.md) for the full local workflow, including the required NixOS host preparation and the GitOps handoff that normally follows a healthy local bootstrap.
+Use [docs/deployment-k3d.md](./docs/deployment-k3d.md) for the full local workflow, including the required NixOS host preparation and the integrated GitOps handoff that now completes before the bootstrap returns.
 
 ### Homelab `k3s`
 
@@ -41,10 +40,9 @@ Use [docs/deployment-k3d.md](./docs/deployment-k3d.md) for the full local workfl
 sudo ./scripts/install-k3s-ubuntu-2404.sh
 cp bootstrap.example.toml bootstrap.local.toml
 ./scripts/bootstrap-stack.sh --profile k3s --bootstrap-config bootstrap.local.toml
-./scripts/bootstrap-gitops.sh --profile k3s --bootstrap-config bootstrap.local.toml
 ```
 
-Use [docs/runbook-homelab.md](./docs/runbook-homelab.md) for the full Ubuntu host-prep, bootstrap, and GitOps handoff path.
+Use [docs/runbook-homelab.md](./docs/runbook-homelab.md) for the full Ubuntu host-prep and integrated bootstrap path.
 
 In both cases, fill in the new `[mail]` section and the per-agent model sections in `bootstrap.local.toml` before bootstrapping so Nextcloud/Vaultwarden mail and the bootstrapped OpenClaw `main`, `architect`, `coder`, and `watchdog` agents are configured correctly. The default coder posture now assumes a Claude-based orchestrator delegating substantial coding to Codex, so the standard bootstrap expects both `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` in `[providers]`. The same bootstrap flow also creates a dedicated `openclaw` Nextcloud user, seeds the OpenClaw gateway config with the standard Nextcloud MCP server definition, and pre-seeds specialist workspace files for the multi-agent topology.
 

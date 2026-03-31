@@ -129,7 +129,7 @@ EOF
   assert_contains "${commands}" "--remote-docker-port 2222"
   assert_contains "${commands}" "test-local-k3d.sh --release-name test-release --namespace test-namespace --kubeconfig ${kubeconfig_path} --skip-install"
   assert_contains "${commands}" "k3d-up.sh --cluster-name test-cluster --kubeconfig ${kubeconfig_path} --shared-openclaw-state-source ${shared_state_source} --shared-openclaw-state-target /var/lib/ai-homebase/openclaw-state"
-  assert_contains "${commands}" "incus-vm-up.sh --vm-name openclaw-sandbox --shared-openclaw-state-source ${shared_state_source} --shared-openclaw-state-target /home/node/.openclaw --resolve-host openclaw.test.internal --resolve-host nextcloud-mcp.localtest.me --resolve-host gitea.test.internal --resolve-host registry.test.internal"
+  assert_contains "${commands}" "incus-vm-up.sh --vm-name openclaw-sandbox --shared-openclaw-state-source ${shared_state_source} --shared-openclaw-state-target /home/node/.openclaw --resolve-host openclaw.test.internal --resolve-host nextcloud-mcp.localtest.me --resolve-host qdrant-mcp.localtest.me --resolve-host gitea.test.internal --resolve-host registry.test.internal"
 
   trap - RETURN
   rm -rf "${sandbox_dir}"

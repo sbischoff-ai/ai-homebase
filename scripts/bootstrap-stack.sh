@@ -19,6 +19,7 @@ INCUS_CONNECTION_INFO_PATH="${INCUS_CONNECTION_INFO_PATH:-}"
 BOOTSTRAP_VALUES_FILE=""
 REMOTE_DOCKER_OVERRIDE_VALUES_FILE=""
 SKIP_SECRETS=0
+SKIP_GITOPS=0
 VERBOSE=0
 CERT_MANAGER_CRD_WAIT_TIMEOUT="${CERT_MANAGER_CRD_WAIT_TIMEOUT:-180s}"
 CERT_MANAGER_DEPLOYMENT_WAIT_TIMEOUT="${CERT_MANAGER_DEPLOYMENT_WAIT_TIMEOUT:-180s}"
@@ -149,6 +150,7 @@ Options:
   --enable-service <name>      Enable a service (repeatable)
   --disable-service <name>     Disable a service (repeatable)
   --skip-secrets               Skip bootstrap-secrets.sh and only apply the Helm release
+  --skip-gitops                Skip the integrated GitOps handoff and Argo CD validation
   --remote-docker-secret <n>   Override SSH secret name for OpenClaw remote Docker bootstrap
   --remote-docker-host <host>  Override OpenClaw remote Docker SSH host
   --remote-docker-port <port>  Override OpenClaw remote Docker SSH port
@@ -182,6 +184,7 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     --skip-secrets) SKIP_SECRETS=1; shift ;;
+    --skip-gitops) SKIP_GITOPS=1; shift ;;
     --remote-docker-secret) REMOTE_DOCKER_SECRET_NAME="$2"; shift 2 ;;
     --remote-docker-host) REMOTE_DOCKER_HOST="$2"; shift 2 ;;
     --remote-docker-port) REMOTE_DOCKER_PORT="$2"; shift 2 ;;
@@ -322,4 +325,34 @@ if [[ -n "$BOOTSTRAP_CONFIG_PATH" ]]; then
     CODER_GITEA_CMD+=(--kubeconfig "$KUBECONFIG_PATH")
   fi
   "${CODER_GITEA_CMD[@]}"
+fi
+
+if [[ -n "$BOOTSTRAP_CONFIG_PATH" && "$SKIP_GITOPS" -eq 0 ]]; then
+  GITOPS_CMD=(
+    ./scripts/bootstrap-gitops.sh
+    --profile "$PROFILE"
+    --bootstrap-config "$BOOTSTRAP_CONFIG_PATH"
+    --release-name "$RELEASE_NAME"
+    --namespace "$NAMESPACE"
+    --skip-install
+  )
+  if [[ -n "$KUBECONFIG_PATH" ]]; then
+    GITOPS_CMD+=(--kubeconfig "$KUBECONFIG_PATH")
+  fi
+  if [[ -n "$KUBE_CONTEXT" ]]; then
+    GITOPS_CMD+=(--kube-context "$KUBE_CONTEXT")
+  fi
+  if [[ -n "$REMOTE_DOCKER_HOST" ]]; then
+    GITOPS_CMD+=(--remote-docker-host "$REMOTE_DOCKER_HOST")
+  fi
+  if [[ -n "$REMOTE_DOCKER_PORT" ]]; then
+    GITOPS_CMD+=(--remote-docker-port "$REMOTE_DOCKER_PORT")
+  fi
+  if [[ -n "$REMOTE_DOCKER_KEY_PATH" ]]; then
+    GITOPS_CMD+=(--remote-docker-key "$REMOTE_DOCKER_KEY_PATH")
+  fi
+  if [[ -n "$INCUS_CONNECTION_INFO_PATH" ]]; then
+    GITOPS_CMD+=(--incus-connection-info "$INCUS_CONNECTION_INFO_PATH")
+  fi
+  "${GITOPS_CMD[@]}"
 fi
