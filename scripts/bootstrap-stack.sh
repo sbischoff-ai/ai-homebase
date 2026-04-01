@@ -44,6 +44,8 @@ CANONICAL_CODER_SANDBOX_IMAGE="${CANONICAL_CODER_SANDBOX_IMAGE:-}"
 REGISTRY_HOST_VALUE="${REGISTRY_HOST_VALUE:-}"
 REGISTRY_USERNAME_VALUE="${REGISTRY_USERNAME_VALUE:-}"
 REGISTRY_PASSWORD_VALUE="${REGISTRY_PASSWORD_VALUE:-}"
+PUBLISH_SOURCE_IMAGES=()
+PUBLISH_TARGET_IMAGES=()
 
 normalize_kubeconfig_path() {
   local candidate="${1:-}"
@@ -142,7 +144,7 @@ prepare_openclaw_runtime_images() {
   local default_image_needed=0
   local coder_image_needed=0
 
-  if values_reference "$GATEWAY_IMAGE_TAG"; then
+  if values_reference "repository: ${GATEWAY_IMAGE_TAG%%:*}" || values_reference "$GATEWAY_IMAGE_TAG"; then
     gateway_image_needed=1
     build_args+=(--gateway-image "$GATEWAY_IMAGE_TAG")
   fi
@@ -182,26 +184,107 @@ prepare_openclaw_runtime_images() {
     fi
     "${load_cmd[@]}"
 
-    if [[ -n "$REGISTRY_HOST_VALUE" && -n "$REGISTRY_USERNAME_VALUE" && -n "$REGISTRY_PASSWORD_VALUE" ]]; then
-      publish_cmd=(
+    publish_cmd=(
         ./scripts/openclaw-remote-docker-publish-images.sh
+        --tag-only
         --docker-host "$docker_host"
-        --registry-host "$REGISTRY_HOST_VALUE"
-        --registry-username "$REGISTRY_USERNAME_VALUE"
-        --registry-password "$REGISTRY_PASSWORD_VALUE"
-      )
-      if [[ -n "$REMOTE_DOCKER_KEY_PATH" ]]; then
-        publish_cmd+=(--identity-file "$REMOTE_DOCKER_KEY_PATH")
-      fi
-      if [[ "$default_image_needed" -eq 1 && -n "$CANONICAL_DEFAULT_SANDBOX_IMAGE" ]]; then
-        publish_cmd+=(--source-image "$DEFAULT_SANDBOX_IMAGE_TAG" --target-image "$CANONICAL_DEFAULT_SANDBOX_IMAGE")
-      fi
-      if [[ "$coder_image_needed" -eq 1 && -n "$CANONICAL_CODER_SANDBOX_IMAGE" ]]; then
-        publish_cmd+=(--source-image "$CODER_SANDBOX_IMAGE_TAG" --target-image "$CANONICAL_CODER_SANDBOX_IMAGE")
-      fi
+    )
+    if [[ -n "$REMOTE_DOCKER_KEY_PATH" ]]; then
+      publish_cmd+=(--identity-file "$REMOTE_DOCKER_KEY_PATH")
+    fi
+    if [[ "$default_image_needed" -eq 1 && -n "$CANONICAL_DEFAULT_SANDBOX_IMAGE" ]]; then
+      publish_cmd+=(--source-image "$DEFAULT_SANDBOX_IMAGE_TAG" --target-image "$CANONICAL_DEFAULT_SANDBOX_IMAGE")
+      PUBLISH_SOURCE_IMAGES+=("$DEFAULT_SANDBOX_IMAGE_TAG")
+      PUBLISH_TARGET_IMAGES+=("$CANONICAL_DEFAULT_SANDBOX_IMAGE")
+    fi
+    if [[ "$coder_image_needed" -eq 1 && -n "$CANONICAL_CODER_SANDBOX_IMAGE" ]]; then
+      publish_cmd+=(--source-image "$CODER_SANDBOX_IMAGE_TAG" --target-image "$CANONICAL_CODER_SANDBOX_IMAGE")
+      PUBLISH_SOURCE_IMAGES+=("$CODER_SANDBOX_IMAGE_TAG")
+      PUBLISH_TARGET_IMAGES+=("$CANONICAL_CODER_SANDBOX_IMAGE")
+    fi
+    if [[ ${#publish_cmd[@]} -gt 4 ]]; then
       "${publish_cmd[@]}"
     fi
   fi
+}
+
+publish_runtime_images_to_registry() {
+  local registry_deployment="${RELEASE_NAME}-registry"
+  local registry_service="${RELEASE_NAME}-registry"
+  local registry_secret="registry-auth-secret"
+  local port_forward_log=""
+  local port_forward_pid=""
+  local target_image=""
+  local source_image=""
+  local local_registry_host="127.0.0.1:5000"
+  local local_target_image=""
+  local effective_registry_username="${REGISTRY_USERNAME_VALUE:-}"
+  local effective_registry_password="${REGISTRY_PASSWORD_VALUE:-}"
+
+  if [[ ${#PUBLISH_SOURCE_IMAGES[@]} -eq 0 ]]; then
+    return 0
+  fi
+  if kubectl "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" get secret "$registry_secret" >/dev/null 2>&1; then
+    effective_registry_username="$(kubectl "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" get secret "$registry_secret" -o jsonpath='{.data.username}' | base64 -d)"
+    effective_registry_password="$(kubectl "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" get secret "$registry_secret" -o jsonpath='{.data.password}' | base64 -d)"
+  fi
+  if [[ -z "$REGISTRY_HOST_VALUE" || -z "$effective_registry_username" || -z "$effective_registry_password" ]]; then
+    return 0
+  fi
+
+  kubectl "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" rollout status "deployment/${registry_deployment}" --timeout 300s
+
+  port_forward_log="$(mktemp /tmp/ai-homebase-registry-port-forward.XXXXXX.log)"
+  kubectl "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" port-forward "service/${registry_service}" 5000:5000 >"$port_forward_log" 2>&1 &
+  port_forward_pid=$!
+  cleanup_registry_port_forward() {
+    if [[ -n "${port_forward_pid:-}" ]] && kill -0 "${port_forward_pid}" >/dev/null 2>&1; then
+      kill "${port_forward_pid}" >/dev/null 2>&1 || true
+      wait "${port_forward_pid}" >/dev/null 2>&1 || true
+    fi
+    rm -f "${port_forward_log:-}"
+  }
+  trap 'cleanup_registry_port_forward; rm -f "$BOOTSTRAP_VALUES_FILE" "$REMOTE_DOCKER_OVERRIDE_VALUES_FILE"' EXIT
+
+  for _ in {1..30}; do
+    if [[ "$(curl --silent --output /dev/null --write-out '%{http_code}' http://${local_registry_host}/v2/ 2>/dev/null || true)" =~ ^(200|401)$ ]]; then
+      break
+    fi
+    sleep 1
+  done
+  if [[ ! "$(curl --silent --output /dev/null --write-out '%{http_code}' http://${local_registry_host}/v2/ 2>/dev/null || true)" =~ ^(200|401)$ ]]; then
+    echo "Registry port-forward did not become ready. Log:" >&2
+    cat "$port_forward_log" >&2
+    exit 1
+  fi
+
+  printf '%s' "$effective_registry_password" | docker login "$local_registry_host" --username "$effective_registry_username" --password-stdin >/dev/null
+
+  for i in "${!PUBLISH_SOURCE_IMAGES[@]}"; do
+    source_image="${PUBLISH_SOURCE_IMAGES[$i]}"
+    target_image="${PUBLISH_TARGET_IMAGES[$i]}"
+    local_target_image="${local_registry_host}/${target_image#*/}"
+    docker tag "$source_image" "$local_target_image"
+    docker push "$local_target_image" >/dev/null
+  done
+
+  cleanup_registry_port_forward
+  trap 'rm -f "$BOOTSTRAP_VALUES_FILE" "$REMOTE_DOCKER_OVERRIDE_VALUES_FILE"' EXIT
+}
+
+seed_openclaw_cron_jobs() {
+  local seed_cmd=(
+    ./scripts/bootstrap-openclaw-cron.sh
+    --release-name "$RELEASE_NAME"
+    --namespace "$NAMESPACE"
+  )
+  if [[ -n "$KUBECONFIG_PATH" ]]; then
+    seed_cmd+=(--kubeconfig "$KUBECONFIG_PATH")
+  fi
+  if [[ -n "$KUBE_CONTEXT" ]]; then
+    seed_cmd+=(--kube-context "$KUBE_CONTEXT")
+  fi
+  "${seed_cmd[@]}"
 }
 
 cert_manager_install_enabled() {
@@ -347,6 +430,13 @@ if [[ -n "$BOOTSTRAP_CONFIG_PATH" ]]; then
   VALUES_ARGS+=(--values "$BOOTSTRAP_VALUES_FILE")
 fi
 
+if [[ -z "$INCUS_CONNECTION_INFO_PATH" ]]; then
+  INCUS_CONNECTION_INFO_PATH="${HOME}/.local/state/ai-homebase/incus/${INCUS_VM_NAME}.env"
+fi
+if [[ -z "$REMOTE_DOCKER_KEY_PATH" ]]; then
+  REMOTE_DOCKER_KEY_PATH="${HOME}/.local/state/ai-homebase/incus/${INCUS_VM_NAME}-id_ed25519"
+fi
+
 if [[ -f "$INCUS_CONNECTION_INFO_PATH" ]]; then
   # shellcheck disable=SC1090
   source "$INCUS_CONNECTION_INFO_PATH"
@@ -416,6 +506,9 @@ else
   helm_upgrade_install
 fi
 
+publish_runtime_images_to_registry
+seed_openclaw_cron_jobs
+
 if [[ -n "$BOOTSTRAP_CONFIG_PATH" ]]; then
   CODER_GITEA_CMD=(
     ./scripts/bootstrap-coder-gitea.sh
@@ -436,7 +529,6 @@ if [[ -n "$BOOTSTRAP_CONFIG_PATH" && "$SKIP_GITOPS" -eq 0 ]]; then
     --bootstrap-config "$BOOTSTRAP_CONFIG_PATH"
     --release-name "$RELEASE_NAME"
     --namespace "$NAMESPACE"
-    --skip-install
   )
   if [[ -n "$KUBECONFIG_PATH" ]]; then
     GITOPS_CMD+=(--kubeconfig "$KUBECONFIG_PATH")

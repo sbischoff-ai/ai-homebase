@@ -32,7 +32,7 @@ Use this page when the concise workflow in [`docs/deployment-k3d.md`](./deployme
 ### Incus and guest bootstrap
 
 - `scripts/incus-vm-up.sh` waits up to 600 seconds by default for SSH readiness on first boot.
-- If your machine is slower than that default, pass `--ssh-ready-timeout-seconds <seconds>` or export `SSH_READY_TIMEOUT_SECONDS`.
+- The default Incus first-boot timeout is now `1800` seconds because the fresh Debian cloud image installs Docker and related packages before the sandbox is considered ready. If your machine is slower than that, pass `--ssh-ready-timeout-seconds <seconds>` or export `SSH_READY_TIMEOUT_SECONDS`.
 - If cloud-init reaches a terminal failure state inside the guest, the helper stops waiting and records diagnostics such as `cloud-init status --long`, `journalctl -u cloud-init --no-pager`, and the Incus console log.
 - If the VM never reaches readiness, inspect the generated host-side env file, the helper logs, and the guest diagnostics before re-running the bootstrap.
 

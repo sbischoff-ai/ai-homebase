@@ -535,6 +535,7 @@ def workspace_bootstrap_values(
                         ## Tool Scope
 
                         - Use `sessions_spawn` and `sessions_send` for agent coordination. Main is the only agent that spawns sub-agents.
+                        - When you call `sessions_send`, targets like `agent:main:main`, `agent:coder:main`, and `agent:archivist:main` are literal session IDs, not labels.
                         - Use Nextcloud for user-facing data management.
                         - Use Qdrant for cross-agent memory.
                         - Do not use coding-agent or repository-execution tools beyond trivial config lookups.
@@ -639,7 +640,7 @@ def workspace_bootstrap_values(
                         - confirm that their Nextcloud username is `{user_nextcloud_username}`;
                         - explain the stack at a high level: you orchestrate, architect plans, coder executes, archivist curates long-term knowledge, watchdog monitors, and the stack includes shared Nextcloud, Gitea, GitOps, Qdrant, Memgraph, and specialist agents;
                         - help the user set up a direct channel for you;
-                        - use `sessions_send` to start `agent:coder:main`, `agent:architect:main`, `agent:archivist:main`, and `agent:watchdog:main` right away so those specialist main sessions are live from the start;
+                        - use `sessions_send` to start `agent:coder:main`, `agent:architect:main`, `agent:archivist:main`, and `agent:watchdog:main` right away so those specialist main sessions are live from the start; treat those `agent:<name>:main` targets as session IDs, not labels;
                         - explain that you can use the dedicated Nextcloud account `{NEXTCLOUD_MCP_USERNAME}` for lightweight shared coordination notes, calendars, tasks, and reminders;
                         - explain that the `ai-homebase` project already exists in Nextcloud at `/Projects/ai-homebase/` with working notes under `/Notes/ai-homebase/`;
                         - ask the user to create a calendar and share it with `{NEXTCLOUD_MCP_USERNAME}`;
@@ -728,6 +729,7 @@ def workspace_bootstrap_values(
                         - Use Nextcloud for implementation documentation.
                         - Use Qdrant for cross-agent memory.
                         - Use `sessions_send` to communicate via `agent:main:main`.
+                        - Treat `agent:main:main` as a session ID, not a label.
                         - Do not use `sessions_spawn`; main owns sub-agent spawning.
                         - Do not use messaging-channel or personal-assistant tools.
                         """
@@ -813,6 +815,7 @@ def workspace_bootstrap_values(
 
                         Agent communication:
                         - Use `sessions_send` to communicate with other agents through their main sessions.
+                        - Session targets like `agent:main:main`, `agent:architect:main`, and `agent:watchdog:main` are session IDs, not labels.
                         - Your normal coordination target is `agent:main:main`.
                         - If work is mainly recurring monitoring, polling, or watch duty, route that need back through main so watchdog can own it.
                         - Do not use `sessions_spawn`; main owns sub-agent spawning.
@@ -936,6 +939,7 @@ def workspace_bootstrap_values(
                         - Use Nextcloud extensively for project artifacts.
                         - Use Qdrant for cross-agent memory.
                         - Use `sessions_send` via `agent:main:main`.
+                        - Treat `agent:main:main` as a session ID, not a label.
                         - Do not use `sessions_spawn`; main owns sub-agent spawning.
                         - Do not use coding-agent, repository-execution, messaging-channel, or personal-assistant tools.
                         """
@@ -1262,6 +1266,7 @@ def workspace_bootstrap_values(
                         - Use Nextcloud for incident reports and baselines.
                         - Use Qdrant for cross-agent memory.
                         - Use `sessions_send` via `agent:main:main`.
+                        - Treat `agent:main:main` as a session ID, not a label.
                         - Do not use `sessions_spawn`; main owns sub-agent spawning.
                         - Do not use coding-agent, repository-execution, or messaging-channel tools.
                         - Keep operations lightweight and prefer quick checks over deep analysis.
@@ -1604,31 +1609,31 @@ def command_render_values(args: argparse.Namespace) -> int:
         f"""
         set -eu
         export HOME=/workspace/.home
-        export CODEX_HOME="${{HOME}}/.codex"
-        export XDG_CONFIG_HOME="${{HOME}}/.config"
-        export XDG_CACHE_HOME="${{HOME}}/.cache"
-        export XDG_STATE_HOME="${{HOME}}/.local/state"
-        mkdir -p "${{CODEX_HOME}}" "${{XDG_CONFIG_HOME}}/tea" "${{XDG_CACHE_HOME}}" "${{XDG_STATE_HOME}}" "${{HOME}}/.docker"
+        export CODEX_HOME="$HOME/.codex"
+        export XDG_CONFIG_HOME="$HOME/.config"
+        export XDG_CACHE_HOME="$HOME/.cache"
+        export XDG_STATE_HOME="$HOME/.local/state"
+        mkdir -p "$CODEX_HOME" "$XDG_CONFIG_HOME/tea" "$XDG_CACHE_HOME" "$XDG_STATE_HOME" "$HOME/.docker"
         git config --global user.name {shlex.quote(values["CODER_GITEA_USERNAME"])}
         git config --global user.email {shlex.quote(values["CODER_GITEA_EMAIL"])}
-        cat > "${{HOME}}/.netrc" <<'EOF'
+        cat > "$HOME/.netrc" <<'EOF'
         machine {values["GITEA_HOST"]}
           login {values["CODER_GITEA_USERNAME"]}
           password {values["CODER_GITEA_PASSWORD"]}
         EOF
-        chmod 0600 "${{HOME}}/.netrc"
+        chmod 0600 "$HOME/.netrc"
         existing_token_ids="$(curl -fsS -u {shlex.quote(values["CODER_GITEA_USERNAME"] + ":" + values["CODER_GITEA_PASSWORD"])} {shlex.quote(gitea_base_url + f"/api/v1/users/{values['CODER_GITEA_USERNAME']}/tokens")} | jq -r '.[] | select(.name == "openclaw-coder-sandbox") | .id' || true)"
-        if [ -n "${{existing_token_ids}}" ]; then
+        if [ -n "$existing_token_ids" ]; then
           for token_id in $existing_token_ids; do
-            curl -fsS -X DELETE -u {shlex.quote(values["CODER_GITEA_USERNAME"] + ":" + values["CODER_GITEA_PASSWORD"])} {shlex.quote(gitea_base_url + f"/api/v1/users/{values['CODER_GITEA_USERNAME']}/tokens/")}${{token_id}} >/dev/null || true
+            curl -fsS -X DELETE -u {shlex.quote(values["CODER_GITEA_USERNAME"] + ":" + values["CODER_GITEA_PASSWORD"])} {shlex.quote(gitea_base_url + f"/api/v1/users/{values['CODER_GITEA_USERNAME']}/tokens/")}$token_id >/dev/null || true
           done
         fi
         token="$(curl -fsS -u {shlex.quote(values["CODER_GITEA_USERNAME"] + ":" + values["CODER_GITEA_PASSWORD"])} -H 'Content-Type: application/json' -d '{{"name":"openclaw-coder-sandbox","scopes":["all"]}}' {shlex.quote(gitea_base_url + f"/api/v1/users/{values['CODER_GITEA_USERNAME']}/tokens")} 2>/dev/null | jq -r '.sha1 // empty' || true)"
-        if [ -n "${{token}}" ]; then
-          tea login add --name coder --url {shlex.quote(gitea_base_url)} --token "${{token}}" >/dev/null 2>&1 || true
+        if [ -n "$token" ]; then
+          tea login add --name coder --url {shlex.quote(gitea_base_url)} --token "$token" >/dev/null 2>&1 || true
         fi
         if [ -n "${{CODER_REGISTRY_HOST:-}}" ] && [ -n "${{CODER_REGISTRY_USERNAME:-}}" ] && [ -n "${{CODER_REGISTRY_PASSWORD:-}}" ]; then
-          printf '%s' "${{CODER_REGISTRY_PASSWORD}}" | docker login "${{CODER_REGISTRY_HOST}}" --username "${{CODER_REGISTRY_USERNAME}}" --password-stdin >/dev/null 2>&1 || true
+          printf '%s' "$CODER_REGISTRY_PASSWORD" | docker login "$CODER_REGISTRY_HOST" --username "$CODER_REGISTRY_USERNAME" --password-stdin >/dev/null 2>&1 || true
         fi
         """
     ).strip()
@@ -1734,86 +1739,16 @@ def command_render_values(args: argparse.Namespace) -> int:
             }
         },
     }
-    openclaw["openclaw"]["cron"] = [
-        {
-            "id": "watchdog-heartbeat",
-            "schedule": {"every": "5m"},
-            "payload": {
-                "kind": "agentTurn",
-                "agent": "watchdog",
-                "session": "isolated",
-                "message": (
-                    "Run heartbeat check. Verify the local OpenClaw gateway readiness endpoint responds at "
-                    "http://127.0.0.1:18789/readyz. Confirm the standing main sessions exist and accept a brief "
-                    "ping for agents main, architect, coder, archivist, and watchdog. Use the status log at "
-                    "/Projects/ai-homebase/watchdog-status-log.md to determine whether this is a repeated failure; "
-                    "require at least 2 consecutive heartbeat failures before escalating as CRITICAL. If all checks "
-                    "are healthy, append a short OK line to the status log and stay quiet. If a check fails, append "
-                    "a short failure note to the status log when possible and send a concise alert to session "
-                    "agent:main:main via sessions_send with a [WATCHDOG WARNING] prefix for the first failure or a "
-                    "[WATCHDOG CRITICAL] prefix once the same heartbeat path has failed twice in a row."
-                ),
-            },
-            "enabled": True,
+    openclaw["openclaw"]["cron"] = {
+        "enabled": True,
+        "store": "~/.openclaw/cron/jobs.json",
+        "maxConcurrentRuns": 1,
+        "sessionRetention": "24h",
+        "runLog": {
+            "maxBytes": "2mb",
+            "keepLines": 2000,
         },
-        {
-            "id": "watchdog-platform-sweep",
-            "schedule": {"cron": "15 */6 * * *"},
-            "payload": {
-                "kind": "agentTurn",
-                "agent": "watchdog",
-                "session": "isolated",
-                "message": (
-                    "Run platform sweep. Check the local OpenClaw gateway readiness endpoint, confirm the standing "
-                    "main sessions for main, architect, coder, archivist, and watchdog still exist and respond, inspect recent "
-                    "session behavior with the session-logs skill when that helps confirm whether failures are "
-                    "transient or recurring, and inspect TLS expiry for the core ingress hosts you can reach from "
-                    "the gateway with openssl, including OpenClaw and the MCP endpoints. Summarize findings "
-                    "concisely, append the result to /Projects/ai-homebase/watchdog-status-log.md, and send a short "
-                    "report to session agent:main:main via sessions_send with [WATCHDOG WARNING] or "
-                    "[WATCHDOG CRITICAL] when issues are found. If everything is clear, append a one-line all-clear "
-                    "and do not escalate."
-                ),
-            },
-            "enabled": True,
-        },
-        {
-            "id": "archivist-nightly-grooming",
-            "schedule": {"cron": "30 2 * * *"},
-            "payload": {
-                "kind": "agentTurn",
-                "agent": "archivist",
-                "session": "isolated",
-                "message": (
-                    "Run nightly knowledge graph grooming. Review durable Qdrant memories that are new, weakly linked, or likely to deserve graph structure. "
-                    "Review relevant Nextcloud project material, especially /Projects/ai-homebase/knowledge-graph-schema.md and related cluster docs, for durable "
-                    "entities and relationships not yet represented in Memgraph. Use mgconsole and reusable Cypher queries to add or update only canonical graph "
-                    "structure, preferring existing labels and relationship types over inventing new ones. Keep Qdrant-linked graph nodes annotated with the Qdrant "
-                    "ID and provenance metadata. Summarize important schema or knowledge changes to session agent:main:main via sessions_send only when the changes "
-                    "matter for other agents or the user."
-                ),
-            },
-            "enabled": True,
-        },
-        {
-            "id": "watchdog-daily-digest",
-            "schedule": {"cron": "0 7 * * *"},
-            "payload": {
-                "kind": "agentTurn",
-                "agent": "watchdog",
-                "session": "isolated",
-                "message": (
-                    "Run daily health digest. Read /Projects/ai-homebase/watchdog-status-log.md and summarize the "
-                    "last 24 hours of heartbeat and platform-sweep results. Call out repeated failures, inability "
-                    "to reach main, or upcoming TLS expiry if present. Produce a concise daily report for main, "
-                    "send it to session agent:main:main via sessions_send with a [WATCHDOG OK] prefix when healthy "
-                    "or [WATCHDOG WARNING] when attention is needed, and append the digest summary to the same "
-                    "status log while trimming older material so the log stays focused on roughly the last 7 days."
-                ),
-            },
-            "enabled": True,
-        },
-    ]
+    }
     if values["GITHUB_TOKEN"]:
         openclaw["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["GITHUB_TOKEN"] = "${GITHUB_TOKEN}"
     openclaw.setdefault("openclaw", {}).setdefault("commands", {})["mcp"] = True
@@ -2154,6 +2089,23 @@ def command_render_values(args: argparse.Namespace) -> int:
                 ON CREATE SET sandboxRepo.name = 'openclaw-sandbox-images',
                               sandboxRepo.kind = 'sandbox-images';
 
+                MATCH (project:Project:System {slug: 'ai-homebase'})
+                MATCH (user:Person:User {slug: 'user'})
+                MATCH (openclaw:Service:System {slug: 'openclaw'})
+                MATCH (nextcloud:Service:System {slug: 'nextcloud'})
+                MATCH (qdrant:Service:System {slug: 'qdrant'})
+                MATCH (memgraph:Service:System {slug: 'memgraph'})
+                MATCH (memgraphLab:Service:System {slug: 'memgraph-lab'})
+                MATCH (gitea:Service:System {slug: 'gitea'})
+                MATCH (argocd:Service:System {slug: 'argocd'})
+                MATCH (registry:Service:System {slug: 'registry'})
+                MATCH (main:Agent:Person {slug: 'main'})
+                MATCH (architect:Agent:Person {slug: 'architect'})
+                MATCH (coder:Agent:Person {slug: 'coder'})
+                MATCH (watchdog:Agent:Person {slug: 'watchdog'})
+                MATCH (archivist:Agent:Person {slug: 'archivist'})
+                MATCH (gitopsRepo:Repository:System {slug: 'cluster-gitops'})
+                MATCH (sandboxRepo:Repository:System {slug: 'openclaw-sandbox-images'})
                 MERGE (project)-[:HAS_USER]->(user)
                 MERGE (project)-[:USES_SERVICE]->(openclaw)
                 MERGE (project)-[:USES_SERVICE]->(nextcloud)
@@ -2174,8 +2126,8 @@ def command_render_values(args: argparse.Namespace) -> int:
                 MERGE (archivist)-[:GROOMS]->(qdrant)
                 MERGE (memgraphLab)-[:VISUALIZES]->(memgraph)
                 MERGE (archivist)-[:MAINTAINS_SCHEMA_FOR]->(memgraph)
-                """
-            ).strip(),
+            """
+        ).strip(),
         },
         "vaultwarden": {
             "existingSecret": "vaultwarden-config-secrets",

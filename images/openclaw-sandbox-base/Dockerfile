@@ -1,5 +1,7 @@
 # syntax=docker/dockerfile:1.7
 
+FROM memgraph/memgraph:3.8.1 AS memgraph-tools
+
 FROM debian:bookworm-slim@sha256:98f4b71de414932439ac6ac690d7060df1f27161073c5036a7553723881bffbe
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -17,7 +19,7 @@ RUN --mount=type=cache,id=openclaw-sandbox-bookworm-apt-cache,target=/var/cache/
     python3 \
     ripgrep
 
-RUN curl -sSf "https://install.memgraph.com" | sh
+COPY --from=memgraph-tools /usr/bin/mgconsole /usr/local/bin/mgconsole
 
 RUN useradd --create-home --shell /bin/bash sandbox
 USER sandbox
