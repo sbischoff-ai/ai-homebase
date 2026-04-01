@@ -208,3 +208,57 @@ Suggested later test sequence:
 4. Exercise one request per agent with both providers healthy to confirm the primaries are selected as intended.
 5. Simulate or induce provider unavailability one provider at a time and confirm cross-provider fallback works for each affected agent.
 6. Verify watchdog cron/heartbeat behavior remains acceptable on the new low-cost OpenAI primary.
+
+## 2026-04-01 - Task 6: Main + Architect Workspace Bootstrap Revisions
+
+Status: statically validated only. Do not treat this as first-deploy or live-agent-runtime verified yet.
+
+Scope:
+
+- Updated the seeded `main` workspace `AGENTS.md` in `charts/platform-stack/values.yaml` to describe main as the user-facing coordinator and project manager.
+- Added explicit main-agent routing exclusions for graph work to archivist and expanded the existing routing boundaries for architect, coder, and watchdog.
+- Added a routing heuristics table to main's seeded `AGENTS.md` covering graph, coding/deployment, design/planning, and monitoring/health prompts.
+- Expanded main's boundary rule so graph queries/graph-linking work and sustained monitoring or health investigation are stop-and-route cases.
+- Added a communication-budget section to main instructing conservative inter-agent messaging and a preference for durable Nextcloud artifacts over long handoff threads.
+- Added a budget-management section to main making it the budget manager, defining daily/weekly/monthly thresholds, per-agent soft allocations, delegation rules by priority class, and the `/Projects/ai-homebase/budget-ledger.json` ledger contract.
+- Explicitly instructed main to create `/Projects/ai-homebase/budget-ledger.json` on first use with `{"entries": []}` if it does not yet exist.
+- Added heartbeat-maintenance instructions to main's seeded `AGENTS.md` and `HEARTBEAT.md`, pointing at `/Projects/ai-homebase/heartbeat.json` with the required JSON shape.
+- Added corresponding `TOOLS.md` guidance for main so the seeded Nextcloud file-placement instructions mention both the budget ledger and heartbeat files.
+- Updated the seeded `architect` workspace `AGENTS.md` to explicitly exclude graph queries, graph schema work, Cypher, memory linking, and durable graph curation to archivist.
+- Added a communication-budget section to architect instructing conservative inter-agent messaging and a preference for durable Nextcloud artifacts.
+- Added architect cost-awareness instructions to check `session_status` and or `/Projects/ai-homebase/budget-ledger.json`, to surface over-budget posture to main when near or over the daily soft budget, and to append usage to the ledger at session end.
+- Added a small supporting note to architect's `HEARTBEAT.md` so non-trivial tasks also require checking and surfacing budget posture.
+- Left the other seeded `main` and `architect` workspace files largely intact, only making the minor updates needed to support the new budget and heartbeat behavior.
+
+What to verify later during a real first deploy or live agent-runtime test:
+
+- On a fresh bootstrap, the seeded `main` and `architect` workspaces are created exactly once with the revised `AGENTS.md`, `TOOLS.md`, and `HEARTBEAT.md` contents.
+- The multiline Markdown in `charts/platform-stack/values.yaml` survives OpenClaw bootstrap file seeding without YAML indentation damage, truncation, or formatting corruption.
+- Main can create `/Projects/ai-homebase/budget-ledger.json` on first use when it is absent, and the resulting file contents match the documented JSON contract.
+- Main can append ledger entries in the documented format without breaking later reads or causing malformed JSON.
+- Main can create or update `/Projects/ai-homebase/heartbeat.json` in the documented format after user-facing work or meaningful coordination cycles.
+- Architect can read the shared budget ledger and surface an over-budget status to main in a usable way before continuing non-trivial work.
+- The seeded role boundaries actually improve routing behavior in practice:
+  graph work routes to archivist,
+  implementation and deployment work routes to coder,
+  design/specification work routes to architect,
+  and health/monitoring work routes to watchdog.
+- Main follows the new communication-budget rule by preferring concise handoffs plus durable Nextcloud artifacts instead of verbose inter-agent message threads.
+- The references to `session_status` and Nextcloud ledger files align with the real OpenClaw tool/runtime surface available to the seeded agents.
+- Existing bootstrap behavior that shares `/Projects/` and `/Notes/` with the user still works when the new `budget-ledger.json` and `heartbeat.json` files appear under `/Projects/ai-homebase/`.
+
+Static validation completed:
+
+- `nix-shell --run './scripts/lint.sh --values-file charts/platform-stack/values.yaml'`
+- `nix-shell --run './scripts/lint.sh --values-file charts/platform-stack/values.yaml --values-file charts/platform-stack/values-k3d.yaml'`
+- `nix-shell --run './scripts/lint.sh --values-file charts/platform-stack/values.yaml --values-file charts/platform-stack/values-k3s.yaml'`
+- `nix-shell --run './scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values.yaml > /tmp/platform-stack.yaml'`
+
+Suggested later test sequence:
+
+1. Use a disposable environment, not the long-running local stack.
+2. Bootstrap a fresh OpenClaw install and inspect the seeded `main` and `architect` workspace files on disk.
+3. Confirm the seeded `main` files contain the routing table, budget-management section, and heartbeat instructions exactly as intended.
+4. Confirm the seeded `architect` files contain the graph exclusion, communication-budget guidance, and cost-awareness section.
+5. Exercise one routed request in each category to verify main hands graph, coding, planning, and monitoring work to the intended specialist.
+6. Confirm main can create and later append `/Projects/ai-homebase/budget-ledger.json` and can update `/Projects/ai-homebase/heartbeat.json` without runtime errors.
