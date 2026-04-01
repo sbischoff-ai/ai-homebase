@@ -29,10 +29,12 @@ xai_api_key = ""
 moonshot_api_key = ""
 
 [openclaw.agents.main]
-model = "anthropic/claude-sonnet-4-6"
+model = "openai/gpt-4.1"
+fallback_models = ["anthropic/claude-sonnet-4-6"]
 
 [openclaw.agents.coder]
-model = "anthropic/claude-sonnet-4-5"
+model = "anthropic/claude-sonnet-4-6"
+fallback_models = ["openai/gpt-4.1"]
 
 [openclaw.agents.coder.gitea]
 username = "coder"
@@ -41,12 +43,15 @@ password = ""
 
 [openclaw.agents.architect]
 model = "anthropic/claude-opus-4-6"
+fallback_models = ["openai/o3"]
 
 [openclaw.agents.archivist]
 model = "anthropic/claude-sonnet-4-6"
+fallback_models = ["openai/gpt-4.1-mini"]
 
 [openclaw.agents.watchdog]
-model = "anthropic/claude-haiku-4-5"
+model = "openai/gpt-4.1-nano"
+fallback_models = ["anthropic/claude-haiku-4-5"]
 
 [admin]
 name = "Homebase Admin"
