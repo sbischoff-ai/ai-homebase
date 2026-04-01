@@ -784,8 +784,9 @@ openclaw:
             Cypher guidance:
             - Prefer few, general-purpose labels and relationship types that can span infrastructure, creative projects, personal planning, research, contacts, finances, and future domains the user cares about.
             - Prefer existing labels: `Entity`, `Person`, `User`, `Agent`, `Service`, `System`, `Project`, `Repository`, `MemoryEntry`.
-            - Prefer existing relationships: `HAS_USER`, `USES_SERVICE`, `USES_REPOSITORY`, `COORDINATES`, `CURATES`, `GROOMS`, `MAINTAINS_SCHEMA_FOR`, `VISUALIZES`, `REFERS_TO`, `RELATES_TO`, `DERIVED_FROM`.
+            - Prefer existing relationships: `HAS_MEMBER`, `USES`, `PART_OF`, `MANAGES`, `REFERS_TO`, `RELATES_TO`, `DERIVED_FROM`.
             - Do not proliferate domain-specific labels or relationships when general-purpose ones plus metadata can represent the same fact.
+            - Put specialized semantics on relationship properties such as `role`, `kind`, or `context` before inventing a new relationship type.
             - Add type-specific metadata without breaking canonical field stability.
             - Keep Qdrant-linked memory nodes tagged with the Qdrant ID, domain, kind, agent, and provenance metadata.
 
@@ -1511,14 +1512,10 @@ nextcloud:
             - `MemoryEntry`
 
             Stable relationship vocabulary:
-            - `HAS_USER`
-            - `USES_SERVICE`
-            - `USES_REPOSITORY`
-            - `COORDINATES`
-            - `CURATES`
-            - `GROOMS`
-            - `MAINTAINS_SCHEMA_FOR`
-            - `VISUALIZES`
+            - `HAS_MEMBER`
+            - `USES`
+            - `PART_OF`
+            - `MANAGES`
             - `REFERS_TO`
             - `RELATES_TO`
             - `DERIVED_FROM`
@@ -1527,6 +1524,8 @@ nextcloud:
             - prefer existing labels and relationships over inventing new ones;
             - use multiple labels when an entity belongs to several stable types;
             - attach type-specific metadata but keep canonical fields stable;
+            - add `Entity` to durable nodes unless there is a strong reason not to;
+            - use relationship properties such as `role`, `kind`, or `context` before inventing a new relationship type;
             - represent Qdrant memories as `MemoryEntry` nodes with their Qdrant ID in metadata;
             - connect memory nodes to entities so graph traversal and semantic search can be composed.
         - path: incidents/README.md
@@ -1829,112 +1828,112 @@ memgraphLab:
 memgraphBootstrap:
   enabled: true
   seedCypher: |
-    MERGE (project:Project:System {slug: 'ai-homebase'})
+    MERGE (project:Entity:Project:System {slug: 'ai-homebase'})
     ON CREATE SET project.name = 'ai-homebase',
                   project.domain = 'real',
                   project.kind = 'platform';
 
-    MERGE (user:Person:User {slug: 'user'})
+    MERGE (user:Entity:Person:User {slug: 'user'})
     ON CREATE SET user.name = 'User',
                   user.domain = 'real';
 
-    MERGE (openclaw:Service:System {slug: 'openclaw'})
+    MERGE (openclaw:Entity:Service:System {slug: 'openclaw'})
     ON CREATE SET openclaw.name = 'OpenClaw',
                   openclaw.category = 'agent-runtime';
 
-    MERGE (nextcloud:Service:System {slug: 'nextcloud'})
+    MERGE (nextcloud:Entity:Service:System {slug: 'nextcloud'})
     ON CREATE SET nextcloud.name = 'Nextcloud',
                   nextcloud.category = 'knowledge-store';
 
-    MERGE (qdrant:Service:System {slug: 'qdrant'})
+    MERGE (qdrant:Entity:Service:System {slug: 'qdrant'})
     ON CREATE SET qdrant.name = 'Qdrant',
                   qdrant.category = 'vector-memory';
 
-    MERGE (memgraph:Service:System {slug: 'memgraph'})
+    MERGE (memgraph:Entity:Service:System {slug: 'memgraph'})
     ON CREATE SET memgraph.name = 'Memgraph',
                   memgraph.category = 'graph-memory';
 
-    MERGE (memgraphLab:Service:System {slug: 'memgraph-lab'})
+    MERGE (memgraphLab:Entity:Service:System {slug: 'memgraph-lab'})
     ON CREATE SET memgraphLab.name = 'Memgraph Lab',
                   memgraphLab.category = 'graph-ui';
 
-    MERGE (gitea:Service:System {slug: 'gitea'})
+    MERGE (gitea:Entity:Service:System {slug: 'gitea'})
     ON CREATE SET gitea.name = 'Gitea',
                   gitea.category = 'source-control';
 
-    MERGE (argocd:Service:System {slug: 'argocd'})
+    MERGE (argocd:Entity:Service:System {slug: 'argocd'})
     ON CREATE SET argocd.name = 'Argo CD',
                   argocd.category = 'gitops';
 
-    MERGE (registry:Service:System {slug: 'registry'})
+    MERGE (registry:Entity:Service:System {slug: 'registry'})
     ON CREATE SET registry.name = 'Registry',
                   registry.category = 'artifact-store';
 
-    MERGE (main:Agent:Person {slug: 'main'})
+    MERGE (main:Entity:Agent:Person {slug: 'main'})
     ON CREATE SET main.name = 'main',
                   main.role = 'orchestrator';
 
-    MERGE (architect:Agent:Person {slug: 'architect'})
+    MERGE (architect:Entity:Agent:Person {slug: 'architect'})
     ON CREATE SET architect.name = 'architect',
                   architect.role = 'planner';
 
-    MERGE (coder:Agent:Person {slug: 'coder'})
+    MERGE (coder:Entity:Agent:Person {slug: 'coder'})
     ON CREATE SET coder.name = 'coder',
                   coder.role = 'implementer';
 
-    MERGE (watchdog:Agent:Person {slug: 'watchdog'})
+    MERGE (watchdog:Entity:Agent:Person {slug: 'watchdog'})
     ON CREATE SET watchdog.name = 'watchdog',
                   watchdog.role = 'monitor';
 
-    MERGE (archivist:Agent:Person {slug: 'archivist'})
+    MERGE (archivist:Entity:Agent:Person {slug: 'archivist'})
     ON CREATE SET archivist.name = 'archivist',
                   archivist.role = 'knowledge-graph-curator';
 
-    MERGE (gitopsRepo:Repository:System {slug: 'cluster-gitops'})
+    MERGE (gitopsRepo:Entity:Repository:System {slug: 'cluster-gitops'})
     ON CREATE SET gitopsRepo.name = 'cluster-gitops',
                   gitopsRepo.kind = 'gitops';
 
-    MERGE (sandboxRepo:Repository:System {slug: 'openclaw-sandbox-images'})
+    MERGE (sandboxRepo:Entity:Repository:System {slug: 'openclaw-sandbox-images'})
     ON CREATE SET sandboxRepo.name = 'openclaw-sandbox-images',
                   sandboxRepo.kind = 'sandbox-images';
 
-    MATCH (project:Project:System {slug: 'ai-homebase'})
-    MATCH (user:Person:User {slug: 'user'})
-    MATCH (openclaw:Service:System {slug: 'openclaw'})
-    MATCH (nextcloud:Service:System {slug: 'nextcloud'})
-    MATCH (qdrant:Service:System {slug: 'qdrant'})
-    MATCH (memgraph:Service:System {slug: 'memgraph'})
-    MATCH (memgraphLab:Service:System {slug: 'memgraph-lab'})
-    MATCH (gitea:Service:System {slug: 'gitea'})
-    MATCH (argocd:Service:System {slug: 'argocd'})
-    MATCH (registry:Service:System {slug: 'registry'})
-    MATCH (main:Agent:Person {slug: 'main'})
-    MATCH (architect:Agent:Person {slug: 'architect'})
-    MATCH (coder:Agent:Person {slug: 'coder'})
-    MATCH (watchdog:Agent:Person {slug: 'watchdog'})
-    MATCH (archivist:Agent:Person {slug: 'archivist'})
-    MATCH (gitopsRepo:Repository:System {slug: 'cluster-gitops'})
-    MATCH (sandboxRepo:Repository:System {slug: 'openclaw-sandbox-images'})
-    MERGE (project)-[:HAS_USER]->(user)
-    MERGE (project)-[:USES_SERVICE]->(openclaw)
-    MERGE (project)-[:USES_SERVICE]->(nextcloud)
-    MERGE (project)-[:USES_SERVICE]->(qdrant)
-    MERGE (project)-[:USES_SERVICE]->(memgraph)
-    MERGE (project)-[:USES_SERVICE]->(memgraphLab)
-    MERGE (project)-[:USES_SERVICE]->(gitea)
-    MERGE (project)-[:USES_SERVICE]->(argocd)
-    MERGE (project)-[:USES_SERVICE]->(registry)
-    MERGE (project)-[:USES_REPOSITORY]->(gitopsRepo)
-    MERGE (project)-[:USES_REPOSITORY]->(sandboxRepo)
-    MERGE (openclaw)-[:COORDINATES]->(main)
-    MERGE (openclaw)-[:COORDINATES]->(architect)
-    MERGE (openclaw)-[:COORDINATES]->(coder)
-    MERGE (openclaw)-[:COORDINATES]->(watchdog)
-    MERGE (openclaw)-[:COORDINATES]->(archivist)
-    MERGE (archivist)-[:CURATES]->(memgraph)
-    MERGE (archivist)-[:GROOMS]->(qdrant)
-    MERGE (memgraphLab)-[:VISUALIZES]->(memgraph)
-    MERGE (archivist)-[:MAINTAINS_SCHEMA_FOR]->(memgraph)
+    MATCH (project:Entity:Project:System {slug: 'ai-homebase'})
+    MATCH (user:Entity:Person:User {slug: 'user'})
+    MATCH (openclaw:Entity:Service:System {slug: 'openclaw'})
+    MATCH (nextcloud:Entity:Service:System {slug: 'nextcloud'})
+    MATCH (qdrant:Entity:Service:System {slug: 'qdrant'})
+    MATCH (memgraph:Entity:Service:System {slug: 'memgraph'})
+    MATCH (memgraphLab:Entity:Service:System {slug: 'memgraph-lab'})
+    MATCH (gitea:Entity:Service:System {slug: 'gitea'})
+    MATCH (argocd:Entity:Service:System {slug: 'argocd'})
+    MATCH (registry:Entity:Service:System {slug: 'registry'})
+    MATCH (main:Entity:Agent:Person {slug: 'main'})
+    MATCH (architect:Entity:Agent:Person {slug: 'architect'})
+    MATCH (coder:Entity:Agent:Person {slug: 'coder'})
+    MATCH (watchdog:Entity:Agent:Person {slug: 'watchdog'})
+    MATCH (archivist:Entity:Agent:Person {slug: 'archivist'})
+    MATCH (gitopsRepo:Entity:Repository:System {slug: 'cluster-gitops'})
+    MATCH (sandboxRepo:Entity:Repository:System {slug: 'openclaw-sandbox-images'})
+    MERGE (project)-[:HAS_MEMBER]->(user)
+    MERGE (project)-[:USES]->(openclaw)
+    MERGE (project)-[:USES]->(nextcloud)
+    MERGE (project)-[:USES]->(qdrant)
+    MERGE (project)-[:USES]->(memgraph)
+    MERGE (project)-[:USES]->(memgraphLab)
+    MERGE (project)-[:USES]->(gitea)
+    MERGE (project)-[:USES]->(argocd)
+    MERGE (project)-[:USES]->(registry)
+    MERGE (project)-[:USES]->(gitopsRepo)
+    MERGE (project)-[:USES]->(sandboxRepo)
+    MERGE (main)-[:PART_OF]->(openclaw)
+    MERGE (architect)-[:PART_OF]->(openclaw)
+    MERGE (coder)-[:PART_OF]->(openclaw)
+    MERGE (watchdog)-[:PART_OF]->(openclaw)
+    MERGE (archivist)-[:PART_OF]->(openclaw)
+    MERGE (archivist)-[:MANAGES {role: 'graph-curation'}]->(memgraph)
+    MERGE (archivist)-[:MANAGES {role: 'memory-grooming'}]->(qdrant)
+    MERGE (archivist)-[:MANAGES {role: 'schema-maintenance'}]->(memgraph)
+    MERGE (memgraphLab)-[:USES {role: 'graph-visualization'}]->(memgraph)
 
 gitea:
   enabled: false

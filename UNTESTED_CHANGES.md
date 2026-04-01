@@ -455,3 +455,48 @@ Suggested later test sequence:
 3. Open `heartbeat.json`, `budget-ledger.json`, `baselines.md`, and `escalation-rules.md` through Nextcloud or the MCP bridge and confirm the exact seeded content and formatting.
 4. Exercise one `main` budget-check flow and one `watchdog` baseline/escalation-reference flow to confirm the seeded files are readable and operationally useful.
 5. Decide and document the intended behavior for already-existing bootstrap project files during upgrades or reruns.
+
+## 2026-04-01 - Task 11: Generalized Memgraph Seed Schema
+
+Status: statically validated only. Do not treat this as live Memgraph-bootstrap or Helm-render verified yet.
+
+Scope:
+
+- Rewrote `memgraphBootstrap.seedCypher` in `charts/platform-stack/values.yaml` to replace domain-specific relationship types with the smaller general-purpose set `HAS_MEMBER`, `USES`, `PART_OF`, and `MANAGES`.
+- Kept the seeded bootstrap entities limited to bootstrap-time state only:
+  `ai-homebase`, the user, OpenClaw, Nextcloud, Qdrant, Memgraph, Memgraph Lab, Gitea, Argo CD, the registry, the core agents, and the two seeded repositories.
+- Added `Entity` as a common label on the seeded durable nodes to support a more uniform baseline query shape.
+- Moved specialized semantics from relationship types onto relationship properties, for example:
+  `MANAGES {role: 'graph-curation'}` and `USES {role: 'graph-visualization'}`.
+- Updated the seeded Nextcloud copy of `knowledge-graph-schema.md` inside `bootstrapProjectContent`.
+- Updated the repo copy at `docs/knowledge-graph-schema.md`.
+- Updated the seeded archivist `TOOLS.md` Cypher guidance so runtime instructions match the new canonical relationship vocabulary.
+
+What to verify later during a real bootstrap, reseed, or disposable-environment test:
+
+- The Memgraph bootstrap Job accepts the revised multi-statement Cypher exactly as rendered from `charts/platform-stack/values.yaml`.
+- Memgraph 3.8.x accepts the relationship-property `MERGE` statements exactly as written, especially the `MANAGES {role: ...}` and `USES {role: 'graph-visualization'}` edges.
+- A fresh bootstrap creates only one copy of each seeded node and edge after repeated hook runs, preserving idempotency.
+- The `Entity` label addition does not conflict with any existing archivist queries, graph notes, or later graph-curation workflows.
+- The reduced relationship vocabulary is sufficient for the existing cluster-domain queries without forcing immediate ad hoc relationship-type growth.
+- The seeded Nextcloud `/Projects/ai-homebase/knowledge-graph-schema.md` file matches the updated repo-managed schema guidance after a fresh bootstrap or explicit reseed path.
+- Existing environments are handled intentionally:
+  confirm whether a rerun updates only Memgraph state, only Nextcloud-seeded docs, both, or neither when bootstrap content already exists.
+- Archivist guidance in the seeded workspace remains aligned with the actually bootstrapped schema and does not drift from `docs/knowledge-graph-schema.md`.
+
+Static validation completed:
+
+- Searched the updated schema paths to confirm the old domain-specific relationship names are no longer referenced in the canonical schema doc, seeded schema doc, or seeded Cypher block.
+- Reviewed the resulting diff to confirm the seeded entities stayed restricted to bootstrap-time state and that the relationship vocabulary was consistently reduced across docs and instructions.
+
+Known validation gap:
+
+- The repo's canonical Helm render path could not run in this workspace because `helm` is not installed locally, so `./scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values.yaml` was not executable here.
+
+Suggested later test sequence:
+
+1. Use a disposable environment, not the long-running local stack.
+2. Run the shared render path with Helm available and inspect the rendered Memgraph bootstrap Job payload.
+3. Bootstrap or rerun the Memgraph seed hook once, then query the graph to confirm the expected labels, edges, and relationship properties were created.
+4. Rerun the same bootstrap hook and confirm node and edge counts remain stable.
+5. Inspect the seeded `/Projects/ai-homebase/knowledge-graph-schema.md` file in Nextcloud and confirm it matches the updated canonical vocabulary.
