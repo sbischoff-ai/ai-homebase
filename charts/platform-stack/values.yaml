@@ -894,13 +894,13 @@ openclaw:
       defaults:
         workspace: /home/node/.openclaw/workspace
         models:
+          openai/gpt-4.1:
+            alias: Main
           anthropic/claude-sonnet-4-6:
-            alias: Main / Archivist
-          anthropic/claude-sonnet-4-5:
-            alias: Coder
+            alias: Coder / Archivist
           anthropic/claude-opus-4-6:
             alias: Architect
-          anthropic/claude-haiku-4-5:
+          openai/gpt-4.1-nano:
             alias: Watchdog
         sandbox:
           backend: docker
@@ -939,7 +939,9 @@ openclaw:
           name: OpenClaw Assistant
           workspace: /home/node/.openclaw/workspace
           model:
-            primary: anthropic/claude-sonnet-4-6
+            primary: openai/gpt-4.1
+            fallbacks:
+              - anthropic/claude-sonnet-4-6
           subagents:
             allowAgents:
               - coder
@@ -949,7 +951,9 @@ openclaw:
           name: Coder
           workspace: /home/node/.openclaw/workspace-coder
           model:
-            primary: anthropic/claude-sonnet-4-5
+            primary: anthropic/claude-sonnet-4-6
+            fallbacks:
+              - openai/gpt-4.1
           sandbox:
             mode: all
             docker:
@@ -991,11 +995,15 @@ openclaw:
           workspace: /home/node/.openclaw/workspace-architect
           model:
             primary: anthropic/claude-opus-4-6
+            fallbacks:
+              - openai/o3
         - id: archivist
           name: Archivist
           workspace: /home/node/.openclaw/workspace-archivist
           model:
             primary: anthropic/claude-sonnet-4-6
+            fallbacks:
+              - openai/gpt-4.1-mini
           sandbox:
             mode: non-main
             docker:
@@ -1004,9 +1012,11 @@ openclaw:
           name: Watchdog
           workspace: /home/node/.openclaw/workspace-watchdog
           model:
-            primary: anthropic/claude-haiku-4-5
+            primary: openai/gpt-4.1-nano
+            fallbacks:
+              - anthropic/claude-haiku-4-5
           sandbox:
-            mode: off
+            mode: "off"
     tools:
       sessions:
         visibility: all

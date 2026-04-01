@@ -22,11 +22,16 @@ PROVIDER_ENV_VARS = (
     "MOONSHOT_API_KEY",
 )
 
-DEFAULT_MAIN_MODEL = "anthropic/claude-sonnet-4-6"
-DEFAULT_CODER_MODEL = "anthropic/claude-sonnet-4-5"
+DEFAULT_MAIN_MODEL = "openai/gpt-4.1"
+DEFAULT_MAIN_FALLBACK_MODELS = ["anthropic/claude-sonnet-4-6"]
+DEFAULT_CODER_MODEL = "anthropic/claude-sonnet-4-6"
+DEFAULT_CODER_FALLBACK_MODELS = ["openai/gpt-4.1"]
 DEFAULT_ARCHITECT_MODEL = "anthropic/claude-opus-4-6"
+DEFAULT_ARCHITECT_FALLBACK_MODELS = ["openai/o3"]
 DEFAULT_ARCHIVIST_MODEL = "anthropic/claude-sonnet-4-6"
-DEFAULT_WATCHDOG_MODEL = "anthropic/claude-haiku-4-5"
+DEFAULT_ARCHIVIST_FALLBACK_MODELS = ["openai/gpt-4.1-mini"]
+DEFAULT_WATCHDOG_MODEL = "openai/gpt-4.1-nano"
+DEFAULT_WATCHDOG_FALLBACK_MODELS = ["anthropic/claude-haiku-4-5"]
 SHARED_MCP_BRIDGE_PATH = "/opt/openclaw-runtime/mcp/mcp-http-bridge.mjs"
 NEXTCLOUD_MCP_USERNAME = "openclaw"
 DEFAULT_CODER_GITEA_USERNAME = "coder"
@@ -106,11 +111,37 @@ def nested_string(data: dict[str, object], path: tuple[str, ...], default: str =
     return require_string(cursor, ".".join(path))
 
 
+def nested_value(data: dict[str, object], path: tuple[str, ...], default: object | None = None) -> object | None:
+    cursor: object = data
+    for segment in path:
+        if not isinstance(cursor, dict):
+            return default
+        if segment not in cursor:
+            return default
+        cursor = cursor[segment]
+    return cursor
+
+
 def nested_nonempty_string(data: dict[str, object], path: tuple[str, ...], default: str = "") -> str:
     value = nested_string(data, path, default)
     if value == "":
         return default
     return value
+
+
+def require_string_list(value: object, context: str) -> list[str]:
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise SystemExit(f"{context} must be an array of strings")
+    normalized: list[str] = []
+    for index, item in enumerate(value):
+        item_context = f"{context}[{index}]"
+        item_value = require_string(item, item_context).strip()
+        if item_value == "":
+            raise SystemExit(f"{item_context} must not be empty")
+        normalized.append(item_value)
+    return normalized
 
 
 def normalize_markdown(text: str) -> str:
@@ -1388,19 +1419,71 @@ def provider_env_var_for_model(model: str) -> str:
     )
 
 
+def unique_models(models: list[str]) -> list[str]:
+    seen: set[str] = set()
+    unique: list[str] = []
+    for model in models:
+        if model in seen:
+            continue
+        seen.add(model)
+        unique.append(model)
+    return unique
+
+
+def resolve_agent_model_config(
+    data: dict[str, object],
+    agent_id: str,
+    default_primary: str,
+    default_fallbacks: list[str],
+) -> dict[str, object]:
+    primary = nested_nonempty_string(data, ("openclaw", "agents", agent_id, "model"), default_primary)
+    fallback_value = nested_value(data, ("openclaw", "agents", agent_id, "fallback_models"))
+    if fallback_value is None:
+        fallbacks = list(default_fallbacks)
+    else:
+        fallbacks = require_string_list(fallback_value, f"openclaw.agents.{agent_id}.fallback_models")
+    fallbacks = [model for model in unique_models(fallbacks) if model != primary]
+    return {
+        "primary": primary,
+        "fallbacks": fallbacks,
+    }
+
+
+def resolve_agent_models(data: dict[str, object], providers: dict[str, str]) -> dict[str, dict[str, object]]:
+    agent_models = {
+        "main": resolve_agent_model_config(data, "main", DEFAULT_MAIN_MODEL, DEFAULT_MAIN_FALLBACK_MODELS),
+        "coder": resolve_agent_model_config(data, "coder", DEFAULT_CODER_MODEL, DEFAULT_CODER_FALLBACK_MODELS),
+        "architect": resolve_agent_model_config(
+            data, "architect", DEFAULT_ARCHITECT_MODEL, DEFAULT_ARCHITECT_FALLBACK_MODELS
+        ),
+        "archivist": resolve_agent_model_config(
+            data, "archivist", DEFAULT_ARCHIVIST_MODEL, DEFAULT_ARCHIVIST_FALLBACK_MODELS
+        ),
+        "watchdog": resolve_agent_model_config(data, "watchdog", DEFAULT_WATCHDOG_MODEL, DEFAULT_WATCHDOG_FALLBACK_MODELS),
+    }
+    for agent_id, model_config in agent_models.items():
+        primary = require_string(model_config["primary"], f"openclaw.agents.{agent_id}.model")
+        models_to_validate = [primary, *require_string_list(model_config["fallbacks"], f"openclaw.agents.{agent_id}.fallback_models")]
+        for index, model_value in enumerate(models_to_validate):
+            model_key = f"openclaw.agents.{agent_id}.model" if index == 0 else f"openclaw.agents.{agent_id}.fallback_models[{index - 1}]"
+            if "/" not in model_value:
+                raise SystemExit(
+                    f"{model_key} must use the OpenClaw provider/model form, for example openai/gpt-5.4."
+                )
+            provider_env_var = provider_env_var_for_model(model_value)
+            if not providers.get(provider_env_var, ""):
+                raise SystemExit(f"{model_key}={model_value!r} requires {provider_env_var} in [providers].")
+    return agent_models
+
+
 def resolved_values(data: dict[str, object]) -> dict[str, str]:
     providers = provider_values(data)
-    main_model = nested_nonempty_string(data, ("openclaw", "agents", "main", "model"), DEFAULT_MAIN_MODEL)
-    coder_model = nested_nonempty_string(data, ("openclaw", "agents", "coder", "model"), DEFAULT_CODER_MODEL)
-    architect_model = nested_nonempty_string(
-        data, ("openclaw", "agents", "architect", "model"), DEFAULT_ARCHITECT_MODEL
-    )
-    archivist_model = nested_nonempty_string(
-        data, ("openclaw", "agents", "archivist", "model"), DEFAULT_ARCHIVIST_MODEL
-    )
-    watchdog_model = nested_nonempty_string(
-        data, ("openclaw", "agents", "watchdog", "model"), DEFAULT_WATCHDOG_MODEL
-    )
+    agent_models = resolve_agent_models(data, providers)
+    main_model = require_string(agent_models["main"]["primary"], "openclaw.agents.main.model")
+    coder_model = require_string(agent_models["coder"]["primary"], "openclaw.agents.coder.model")
+    architect_model = require_string(agent_models["architect"]["primary"], "openclaw.agents.architect.model")
+    archivist_model = require_string(agent_models["archivist"]["primary"], "openclaw.agents.archivist.model")
+    watchdog_model = require_string(agent_models["watchdog"]["primary"], "openclaw.agents.watchdog.model")
 
     admin_name = nested_string(data, ("admin", "name"), "Homebase Admin")
     admin_username = nested_string(data, ("admin", "username"), "homebase-admin")
@@ -1444,21 +1527,6 @@ def resolved_values(data: dict[str, object]) -> dict[str, str]:
         raise SystemExit("mail.domain is required so the Postfix relay and application sender addresses can be rendered.")
     if not mail_smtp_host:
         raise SystemExit("mail.smtp_host is required so the Postfix relay can present a stable SMTP hostname.")
-    for model_key, model_value in (
-        ("openclaw.agents.main.model", main_model),
-        ("openclaw.agents.coder.model", coder_model),
-        ("openclaw.agents.architect.model", architect_model),
-        ("openclaw.agents.archivist.model", archivist_model),
-        ("openclaw.agents.watchdog.model", watchdog_model),
-    ):
-        if "/" not in model_value:
-            raise SystemExit(f"{model_key} must use the OpenClaw provider/model form, for example openai/gpt-5.4.")
-        provider_env_var = provider_env_var_for_model(model_value)
-        if not providers.get(provider_env_var, ""):
-            raise SystemExit(
-                f"{model_key}={model_value!r} requires {provider_env_var} in [providers]."
-            )
-
     values = {
         **providers,
         "OPENCLAW_GATEWAY_TOKEN": nested_string(data, ("secrets", "openclaw_gateway_token")),
@@ -1556,7 +1624,9 @@ def command_shell_vars(args: argparse.Namespace) -> int:
 
 
 def command_render_values(args: argparse.Namespace) -> int:
-    values = resolved_values(load_config(args.config))
+    data = load_config(args.config)
+    values = resolved_values(data)
+    agent_models = resolve_agent_models(data, provider_values(data))
     workspace_bootstrap = workspace_bootstrap_values(
         values["NEXTCLOUD_ADMIN_USER"],
         values["GITEA_USER_USERNAME"],
@@ -1569,17 +1639,19 @@ def command_render_values(args: argparse.Namespace) -> int:
         values["SANDBOX_IMAGES_REPO_NAME"],
     )
     allowed_models: dict[str, dict[str, str]] = {}
-    for model_id, alias in (
-        (values["OPENCLAW_MAIN_MODEL"], "Main"),
-        (values["OPENCLAW_CODER_MODEL"], "Coder"),
-        (values["OPENCLAW_ARCHITECT_MODEL"], "Architect"),
-        (values["OPENCLAW_ARCHIVIST_MODEL"], "Archivist"),
-        (values["OPENCLAW_WATCHDOG_MODEL"], "Watchdog"),
+    for agent_id, alias in (
+        ("main", "Main"),
+        ("coder", "Coder"),
+        ("architect", "Architect"),
+        ("archivist", "Archivist"),
+        ("watchdog", "Watchdog"),
     ):
-        if model_id in allowed_models:
-            allowed_models[model_id]["alias"] = f"{allowed_models[model_id]['alias']} / {alias}"
-        else:
-            allowed_models[model_id] = {"alias": alias}
+        model_config = agent_models[agent_id]
+        for model_id in [require_string(model_config["primary"], f"openclaw.agents.{agent_id}.model"), *require_string_list(model_config["fallbacks"], f"openclaw.agents.{agent_id}.fallback_models")]:
+            if model_id in allowed_models:
+                allowed_models[model_id]["alias"] = f"{allowed_models[model_id]['alias']} / {alias}"
+            else:
+                allowed_models[model_id] = {"alias": alias}
     openclaw: dict[str, object] = {
         "secretKeys": {
             "gatewayToken": "OPENCLAW_GATEWAY_TOKEN",
@@ -1661,7 +1733,12 @@ def command_render_values(args: argparse.Namespace) -> int:
                     "name": "OpenClaw Assistant",
                     "workspace": "/home/node/.openclaw/workspace",
                     "model": {
-                        "primary": values["OPENCLAW_MAIN_MODEL"],
+                        "primary": require_string(agent_models["main"]["primary"], "openclaw.agents.main.model"),
+                        **(
+                            {"fallbacks": require_string_list(agent_models["main"]["fallbacks"], "openclaw.agents.main.fallback_models")}
+                            if require_string_list(agent_models["main"]["fallbacks"], "openclaw.agents.main.fallback_models")
+                            else {}
+                        ),
                     },
                     "subagents": {
                         "allowAgents": ["coder", "architect", "archivist"],
@@ -1672,7 +1749,12 @@ def command_render_values(args: argparse.Namespace) -> int:
                     "name": "Coder",
                     "workspace": "/home/node/.openclaw/workspace-coder",
                     "model": {
-                        "primary": values["OPENCLAW_CODER_MODEL"],
+                        "primary": require_string(agent_models["coder"]["primary"], "openclaw.agents.coder.model"),
+                        **(
+                            {"fallbacks": require_string_list(agent_models["coder"]["fallbacks"], "openclaw.agents.coder.fallback_models")}
+                            if require_string_list(agent_models["coder"]["fallbacks"], "openclaw.agents.coder.fallback_models")
+                            else {}
+                        ),
                     },
                     "sandbox": {
                         "mode": "all",
@@ -1708,7 +1790,12 @@ def command_render_values(args: argparse.Namespace) -> int:
                     "name": "Architect",
                     "workspace": "/home/node/.openclaw/workspace-architect",
                     "model": {
-                        "primary": values["OPENCLAW_ARCHITECT_MODEL"],
+                        "primary": require_string(agent_models["architect"]["primary"], "openclaw.agents.architect.model"),
+                        **(
+                            {"fallbacks": require_string_list(agent_models["architect"]["fallbacks"], "openclaw.agents.architect.fallback_models")}
+                            if require_string_list(agent_models["architect"]["fallbacks"], "openclaw.agents.architect.fallback_models")
+                            else {}
+                        ),
                     },
                 },
                 {
@@ -1716,7 +1803,12 @@ def command_render_values(args: argparse.Namespace) -> int:
                     "name": "Archivist",
                     "workspace": "/home/node/.openclaw/workspace-archivist",
                     "model": {
-                        "primary": values["OPENCLAW_ARCHIVIST_MODEL"],
+                        "primary": require_string(agent_models["archivist"]["primary"], "openclaw.agents.archivist.model"),
+                        **(
+                            {"fallbacks": require_string_list(agent_models["archivist"]["fallbacks"], "openclaw.agents.archivist.fallback_models")}
+                            if require_string_list(agent_models["archivist"]["fallbacks"], "openclaw.agents.archivist.fallback_models")
+                            else {}
+                        ),
                     },
                     "sandbox": {
                         "mode": "non-main",
@@ -1730,7 +1822,12 @@ def command_render_values(args: argparse.Namespace) -> int:
                     "name": "Watchdog",
                     "workspace": "/home/node/.openclaw/workspace-watchdog",
                     "model": {
-                        "primary": values["OPENCLAW_WATCHDOG_MODEL"],
+                        "primary": require_string(agent_models["watchdog"]["primary"], "openclaw.agents.watchdog.model"),
+                        **(
+                            {"fallbacks": require_string_list(agent_models["watchdog"]["fallbacks"], "openclaw.agents.watchdog.fallback_models")}
+                            if require_string_list(agent_models["watchdog"]["fallbacks"], "openclaw.agents.watchdog.fallback_models")
+                            else {}
+                        ),
                     },
                     "sandbox": {
                         "mode": "off",

@@ -25,10 +25,12 @@ anthropic_api_key = "test-anthropic-key"
 brave_api_key = "test-brave-key"
 
 [openclaw.agents.main]
-model = "anthropic/claude-sonnet-4-6"
+model = "openai/gpt-4.1"
+fallback_models = ["anthropic/claude-sonnet-4-6"]
 
 [openclaw.agents.coder]
-model = "anthropic/claude-sonnet-4-5"
+model = "anthropic/claude-sonnet-4-6"
+fallback_models = ["openai/gpt-4.1"]
 
 [openclaw.agents.coder.gitea]
 username = "coder-bot"
@@ -36,12 +38,15 @@ password = "coder-password"
 
 [openclaw.agents.architect]
 model = "anthropic/claude-opus-4-6"
+fallback_models = ["openai/o3"]
 
 [openclaw.agents.archivist]
 model = "anthropic/claude-sonnet-4-6"
+fallback_models = ["openai/gpt-4.1-mini"]
 
 [openclaw.agents.watchdog]
-model = "anthropic/claude-haiku-4-5"
+model = "openai/gpt-4.1-nano"
+fallback_models = ["anthropic/claude-haiku-4-5"]
 
 [hosts]
 openclaw = "openclaw.test.internal"
@@ -112,12 +117,12 @@ shell_vars = subprocess.run(
 assert "OPENAI_API_KEY=test-openai-key" in shell_vars
 assert "ANTHROPIC_API_KEY=test-anthropic-key" in shell_vars
 assert "BRAVE_API_KEY=test-brave-key" in shell_vars
-assert "OPENCLAW_MAIN_MODEL=anthropic/claude-sonnet-4-6" in shell_vars
-assert "OPENCLAW_CODER_MODEL=anthropic/claude-sonnet-4-5" in shell_vars
+assert "OPENCLAW_MAIN_MODEL=openai/gpt-4.1" in shell_vars
+assert "OPENCLAW_CODER_MODEL=anthropic/claude-sonnet-4-6" in shell_vars
 assert "GITHUB_TOKEN=github-token" in shell_vars
 assert "OPENCLAW_ARCHITECT_MODEL=anthropic/claude-opus-4-6" in shell_vars
 assert "OPENCLAW_ARCHIVIST_MODEL=anthropic/claude-sonnet-4-6" in shell_vars
-assert "OPENCLAW_WATCHDOG_MODEL=anthropic/claude-haiku-4-5" in shell_vars
+assert "OPENCLAW_WATCHDOG_MODEL=openai/gpt-4.1-nano" in shell_vars
 assert "GITEA_ADMIN_EMAIL=git@example.invalid" in shell_vars
 assert "NEXTCLOUD_ADMIN_USER=test-admin" in shell_vars
 assert "NEXTCLOUD_MCP_HOST=nextcloud-mcp.test.internal" in shell_vars
@@ -168,17 +173,22 @@ assert rendered_values["openclaw"]["openclaw"]["skills"]["allowBundled"] == [
     "github",
 ]
 assert rendered_values["openclaw"]["openclaw"]["agents"]["defaults"]["models"] == {
-    "anthropic/claude-sonnet-4-6": {"alias": "Main / Archivist"},
-    "anthropic/claude-sonnet-4-5": {"alias": "Coder"},
+    "openai/gpt-4.1": {"alias": "Main / Coder"},
+    "anthropic/claude-sonnet-4-6": {"alias": "Main / Coder / Archivist"},
     "anthropic/claude-opus-4-6": {"alias": "Architect"},
+    "openai/o3": {"alias": "Architect"},
+    "openai/gpt-4.1-mini": {"alias": "Archivist"},
+    "openai/gpt-4.1-nano": {"alias": "Watchdog"},
     "anthropic/claude-haiku-4-5": {"alias": "Watchdog"},
 }
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][0]["id"] == "main"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][0]["default"] is True
-assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][0]["model"]["primary"] == "anthropic/claude-sonnet-4-6"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][0]["model"]["primary"] == "openai/gpt-4.1"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][0]["model"]["fallbacks"] == ["anthropic/claude-sonnet-4-6"]
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["id"] == "coder"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["workspace"] == "/home/node/.openclaw/workspace-coder"
-assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["model"]["primary"] == "anthropic/claude-sonnet-4-5"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["model"]["primary"] == "anthropic/claude-sonnet-4-6"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["model"]["fallbacks"] == ["openai/gpt-4.1"]
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["mode"] == "all"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["image"] == "registry.test.internal/coder-bot/openclaw-sandbox-coder:bookworm-slim"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["CODER_GITEA_USERNAME"] == "coder-bot"
@@ -203,13 +213,16 @@ assert "${CODER_GITEA_USERNAME}" not in rendered_values["openclaw"]["openclaw"][
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["id"] == "architect"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["workspace"] == "/home/node/.openclaw/workspace-architect"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["model"]["primary"] == "anthropic/claude-opus-4-6"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["model"]["fallbacks"] == ["openai/o3"]
 assert "tools" not in rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][3]["id"] == "archivist"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][3]["workspace"] == "/home/node/.openclaw/workspace-archivist"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][3]["model"]["primary"] == "anthropic/claude-sonnet-4-6"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][3]["model"]["fallbacks"] == ["openai/gpt-4.1-mini"]
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][4]["id"] == "watchdog"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][4]["workspace"] == "/home/node/.openclaw/workspace-watchdog"
-assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][4]["model"]["primary"] == "anthropic/claude-haiku-4-5"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][4]["model"]["primary"] == "openai/gpt-4.1-nano"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][4]["model"]["fallbacks"] == ["anthropic/claude-haiku-4-5"]
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][4]["sandbox"]["mode"] == "off"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][0]["subagents"]["allowAgents"] == ["coder", "architect", "archivist"]
 assert rendered_values["openclaw"]["openclaw"]["tools"]["agentToAgent"]["enabled"] is True
@@ -540,6 +553,31 @@ failed = subprocess.run(
 )
 assert failed.returncode != 0
 assert "openclaw.agents.main.model='anthropic/claude-sonnet-4-6' requires ANTHROPIC_API_KEY in [providers]." in failed.stderr
+
+missing_provider_for_fallback_config = write_config(
+    """
+[providers]
+openai_api_key = "test-openai-key"
+anthropic_api_key = "test-anthropic-key"
+
+[openclaw.agents.architect]
+model = "anthropic/claude-opus-4-6"
+fallback_models = ["moonshot/kimi-k2"]
+
+[mail]
+domain = "example.com"
+smtp_host = "smtp.example.com"
+"""
+)
+
+failed = subprocess.run(
+    ["python3", str(SCRIPT), "validate", "--config", str(missing_provider_for_fallback_config)],
+    check=False,
+    capture_output=True,
+    text=True,
+)
+assert failed.returncode != 0
+assert "openclaw.agents.architect.fallback_models[0]='moonshot/kimi-k2' requires MOONSHOT_API_KEY in [providers]." in failed.stderr
 
 missing_architect_provider_config = write_config(
     """

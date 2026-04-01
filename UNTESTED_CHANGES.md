@@ -154,3 +154,57 @@ Suggested later test sequence:
 4. Confirm the sandbox resolves the active Memgraph hostname to the expected IPv4 address and can TCP-connect to port `7687`.
 5. Run a trivial Bolt query from the archivist sandbox to confirm end-to-end Memgraph connectivity.
 6. Decide explicitly whether archivist should remain without `mgconsole` or receive a compatible replacement binary.
+
+## 2026-04-01 - Task 5: Model Diversification + API Key Enablement
+
+Status: statically validated only. Do not treat this as live-runtime or provider-failover verified yet.
+
+Scope:
+
+- Changed the shared OpenClaw agent model aliases to the diversified provider mix:
+  `openai/gpt-4.1` as Main, `anthropic/claude-sonnet-4-6` as Coder / Archivist, `anthropic/claude-opus-4-6` as Architect, and `openai/gpt-4.1-nano` as Watchdog.
+- Updated each explicit agent config to use a structured `model` object with `primary` plus `fallbacks`.
+- Extended `bootstrap.local.toml` handling so each agent now supports `model` plus optional `fallback_models`, and updated `bootstrap.example.toml` to the new diversified primary/fallback defaults.
+- Kept architect pinned to `anthropic/claude-opus-4-6` as the primary model.
+- Aligned the standalone `charts/openclaw/values.yaml` defaults with the umbrella chart so the packaged dependency renders the same diversified model posture.
+- Refreshed the vendored umbrella dependency bundle with `helm dependency update charts/platform-stack` so rendered manifests pick up the updated OpenClaw defaults.
+- Confirmed the OpenClaw config template still serializes `agents.defaults` and `agents.list` through `toJson`, so structured model objects render through to `openclaw.json`.
+- Confirmed the bootstrap config renderer validates provider credentials for both primary and fallback models before generating values.
+- Confirmed the deployment template still injects `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, and `GITHUB_TOKEN` from `openclaw-secrets` when the corresponding `secretKeys.*` entries are non-empty.
+- Quoted watchdog `sandbox.mode` as `"off"` so the rendered JSON emits the string value instead of YAML boolean `false`.
+
+What to verify later during a real runtime or bootstrap test:
+
+- OpenClaw accepts the structured `model` object shape with `primary` and `fallbacks` exactly as rendered, rather than expecting a plain string at runtime.
+- Bootstrap-driven renders and live bootstrap flows pick up `fallback_models` from real `bootstrap.local.toml` files exactly as intended, not just in unit tests.
+- Each provider/model identifier is valid for the deployed OpenClaw version and routes to the expected backend without normalization or naming mismatches.
+- The primary/fallback behavior actually works across providers:
+  `main` should fail over from OpenAI to Anthropic,
+  `architect` from Anthropic to OpenAI,
+  `coder` and `archivist` from Anthropic to OpenAI,
+  and `watchdog` from OpenAI to Anthropic.
+- Provider failover preserves the intended agent behavior and does not regress tool access, session handling, or sandbox execution.
+- `openclaw-secrets` exists in the target namespace and contains at least:
+  `OPENCLAW_GATEWAY_TOKEN`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, and `GITHUB_TOKEN`.
+- The gateway pod receives `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, and `GITHUB_TOKEN` in its actual process environment, not just in the rendered Deployment manifest.
+- The coder sandbox still receives `OPENAI_API_KEY` and `GITHUB_TOKEN` through the rendered sandbox env block and can use them successfully for Codex/GitHub-backed workflows.
+- Any environment that previously depended on Anthropic-only agent routing does not hit unexpected provider quota, auth, or rate-limit issues after the split.
+- Watchdog remains low-cost and functional on `openai/gpt-4.1-nano` for its scheduled heartbeat and triage workload.
+- No bootstrap-generated override values or environment-specific overlays silently revert agents back to the previous single-provider defaults.
+
+Static validation completed:
+
+- `nix-shell --run './scripts/lint.sh --values-file charts/platform-stack/values.yaml'`
+- `nix-shell --run './scripts/lint.sh --values-file charts/platform-stack/values.yaml --values-file charts/platform-stack/values-k3d.yaml'`
+- `nix-shell --run './scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values.yaml > /tmp/platform-stack.yaml'`
+- `nix-shell --run './scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values.yaml --values-file charts/platform-stack/values-k3d.yaml > /tmp/platform-stack-k3d.yaml'`
+- `nix-shell --run 'helm dependency update charts/platform-stack'`
+
+Suggested later test sequence:
+
+1. Use a disposable environment, not the long-running local stack.
+2. Confirm the live OpenClaw pod environment contains `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, and `GITHUB_TOKEN`.
+3. Inspect the active `openclaw.json` inside the pod and verify the rendered agent `model` objects match the intended primary/fallback assignments.
+4. Exercise one request per agent with both providers healthy to confirm the primaries are selected as intended.
+5. Simulate or induce provider unavailability one provider at a time and confirm cross-provider fallback works for each affected agent.
+6. Verify watchdog cron/heartbeat behavior remains acceptable on the new low-cost OpenAI primary.
