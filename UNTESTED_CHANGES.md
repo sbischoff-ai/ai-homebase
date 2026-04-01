@@ -218,6 +218,59 @@ Scope:
 - Updated the seeded `main` workspace `AGENTS.md` in `charts/platform-stack/values.yaml` to describe main as the user-facing coordinator and project manager.
 - Added explicit main-agent routing exclusions for graph work to archivist and expanded the existing routing boundaries for architect, coder, and watchdog.
 - Added a routing heuristics table to main's seeded `AGENTS.md` covering graph, coding/deployment, design/planning, and monitoring/health prompts.
+
+## 2026-04-01 - Task 7: Coder + Archivist Workspace Bootstrap Revisions
+
+Status: statically validated only. Do not treat this as first-deploy or live-agent-runtime verified yet.
+
+Scope:
+
+- Updated the seeded `coder` workspace files in `charts/platform-stack/values.yaml` to make the coder and archivist boundary explicit.
+- Added coder exclusions for graph data operations, graph schema work, Cypher, graph migration scripts, knowledge-import pipelines, and Qdrant memory grooming.
+- Added coder grey-zone guidance clarifying that infrastructure automation belongs to coder while graph data work belongs to archivist.
+- Added the coder communication-budget guidance to be conservative with inter-agent messages and prefer durable Nextcloud context.
+- Added the coder Layer 2 cost-awareness check referencing `session_status` and `/Projects/ai-homebase/budget-ledger.json`, with a `$3` daily soft budget and the monthly `$100` hard ceiling.
+- Applied minor supporting updates to the seeded coder `SOUL.md`, `USER.md`, `IDENTITY.md`, `HEARTBEAT.md`, and `MEMORY.md`.
+- Updated the seeded `archivist` workspace files in `charts/platform-stack/values.yaml` to make archivist the explicit owner of all graph data operations.
+- Expanded archivist domain ownership to include knowledge-graph schema evolution, all Cypher/query/mutation work, graph migration scripts, data-import pipelines, Qdrant grooming/linking/deduplication, and cross-project context synthesis.
+- Added archivist grey-zone guidance clarifying that infrastructure and installation work belong to coder while graph data work belongs to archivist.
+- Added the archivist communication-budget guidance to be conservative with inter-agent messages and prefer durable Nextcloud context.
+- Added the archivist Layer 2 cost-awareness check referencing `session_status` and `/Projects/ai-homebase/budget-ledger.json`, with a `$1` daily soft budget and the monthly `$100` hard ceiling.
+- Rewrote the seeded archivist `TOOLS.md` to use `neo4j-driver` for Bolt connections instead of `mgconsole`.
+- Updated archivist tool guidance to target the Memgraph ingress hostname from `global.hosts.memgraph` on port `7687`.
+- Strengthened archivist Cypher/schema guidance so labels and relationship types stay few, general-purpose, and reusable across many domains rather than proliferating domain-specific relationships.
+- Applied minor supporting updates to the seeded archivist `SOUL.md`, `MEMORY.md`, `USER.md`, `IDENTITY.md`, and `HEARTBEAT.md`.
+
+What to verify later during a real first deploy or live-agent sandbox/runtime test:
+
+- Freshly bootstrapped coder and archivist workspaces receive the revised seeded files exactly as rendered from `charts/platform-stack/values.yaml`.
+- Existing long-lived agent workspaces are handled intentionally; confirm whether they should remain unchanged, be manually migrated, or receive an automated reseed path.
+- The seeded markdown renders cleanly inside the agent workspaces with the intended YAML multiline-string formatting preserved.
+- Coder behavior now consistently routes graph data tasks to archivist while still handling graph-tooling installation and infrastructure automation itself.
+- Archivist behavior now consistently accepts graph queries, mutations, imports, migrations, and Qdrant grooming while routing infrastructure changes back to coder.
+- Archivist sandbox runtime actually has globally installed `neo4j-driver` available to Node without extra installation.
+- Archivist can connect successfully to Memgraph over Bolt using the ingress hostname from `global.hosts.memgraph` on port `7687`.
+- No seeded archivist instructions, helper scripts, or runtime assumptions elsewhere still depend on `mgconsole`.
+- The broad-schema guidance is sufficient in practice to prevent domain-specific relationship sprawl while still allowing necessary modeling across very different domains.
+- The budget-ledger path `/Projects/ai-homebase/budget-ledger.json` is reachable from the relevant agent runtime and the agents can append usage in the expected format.
+- The new communication-budget guidance does not conflict with any automation or agent-to-agent workflows that currently assume verbose direct messaging.
+
+Validation completed:
+
+- `nix-shell --run './scripts/lint.sh --values-file charts/platform-stack/values.yaml'`
+
+Known validation gap:
+
+- The reference note `/Projects/ai-homebase/agent-role-revisions-2026-04-01.md` was not available in this local workspace, so the seeded text was updated from the task specification rather than verified against that Nextcloud file.
+
+Suggested later test sequence:
+
+1. Use a disposable environment, not the long-running local stack.
+2. Bootstrap fresh agent workspaces and inspect the seeded coder and archivist files for exact content and formatting.
+3. Exercise one coder task that installs or configures graph infrastructure and confirm it stays within coder's domain.
+4. Exercise one archivist task that performs a real Bolt query or mutation with `neo4j-driver` and confirm it stays within archivist's domain.
+5. Confirm archivist can resolve the Memgraph ingress hostname and connect on `7687`.
+6. Check that the agents can read and append `/Projects/ai-homebase/budget-ledger.json` as described.
 - Expanded main's boundary rule so graph queries/graph-linking work and sustained monitoring or health investigation are stop-and-route cases.
 - Added a communication-budget section to main instructing conservative inter-agent messaging and a preference for durable Nextcloud artifacts over long handoff threads.
 - Added a budget-management section to main making it the budget manager, defining daily/weekly/monthly thresholds, per-agent soft allocations, delegation rules by priority class, and the `/Projects/ai-homebase/budget-ledger.json` ledger contract.
