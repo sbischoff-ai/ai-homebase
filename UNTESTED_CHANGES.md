@@ -315,3 +315,53 @@ Suggested later test sequence:
 4. Confirm the seeded `architect` files contain the graph exclusion, communication-budget guidance, and cost-awareness section.
 5. Exercise one routed request in each category to verify main hands graph, coding, planning, and monitoring work to the intended specialist.
 6. Confirm main can create and later append `/Projects/ai-homebase/budget-ledger.json` and can update `/Projects/ai-homebase/heartbeat.json` without runtime errors.
+
+## 2026-04-01 - Task 8: Watchdog Workspace Files Severity Gates + Anti-False-Positive Rules
+
+Status: statically updated only. Do not treat this as cron-runtime or live-agent behavior verified yet.
+
+Scope:
+
+- Updated the seeded watchdog `AGENTS.md` in `charts/platform-stack/values.yaml`.
+- Added explicit severity gates for `info`, `warning`, and `critical`, including persistence and independent-signal requirements before escalation.
+- Added anti-false-positive rules for cold-start latency, cron-context `sessions_list` isolation, a 30-minute critical re-escalation cooldown, and a baseline-first requirement using `/Projects/ai-homebase/baselines.md`.
+- Added conservative communication-budget guidance telling watchdog to prefer durable Nextcloud notes and minimize inter-agent messaging.
+- Added the watchdog Layer 2 cost-awareness check referencing `session_status` and `/Projects/ai-homebase/budget-ledger.json`, with a `$0.50` daily soft budget and the shared `$100` monthly hard ceiling.
+- Added an explicit cron-behavior note forbidding `sessions_send` and `sessions_list` from cron context and directing cron checks toward the Nextcloud heartbeat file and the local gateway readiness endpoint.
+- Updated the seeded watchdog `TOOLS.md` to document the heartbeat-based monitoring approach via `http://127.0.0.1:18789/readyz` and `/Projects/ai-homebase/heartbeat.json`.
+- Added a `status-log.md` convention at `/Projects/ai-homebase/status-log.md` for severity-gated routine observations and cooldown context.
+
+What to verify later during a real first deploy or live watchdog runtime test:
+
+- A freshly seeded watchdog workspace receives the revised `AGENTS.md` and `TOOLS.md` exactly as rendered from `charts/platform-stack/values.yaml`.
+- Existing watchdog workspaces are handled intentionally; confirm whether they remain unchanged, need manual migration, or require a reseed path.
+- Cron-triggered watchdog sessions actually avoid `sessions_send` and `sessions_list` and instead use the heartbeat file plus `http://127.0.0.1:18789/readyz`.
+- The watchdog agent treats initial session cold-start latency as non-actionable and no longer emits false `critical` alerts for expected first-use startup delay.
+- `sessions_list` returning `0` from cron context is ignored as expected and does not trigger incident escalation.
+- Warning-level conditions only notify main after at least two consecutive checks with a minimum 10-minute separation.
+- Critical-level incidents require at least one independent confirming signal before watchdog escalates to main.
+- The 30-minute cooldown on repeated escalation of the same issue behaves as intended unless new evidence appears.
+- `/Projects/ai-homebase/baselines.md` is readable from the watchdog runtime, and missing baselines cause `info` logging plus baseline proposal behavior rather than escalation.
+- `/Projects/ai-homebase/status-log.md` is writable and useful for observation logging and cooldown context without creating noisy durable artifacts.
+- The heartbeat readiness pair remains reliable in the real runtime:
+  `http://127.0.0.1:18789/readyz` from the gateway,
+  and `/Projects/ai-homebase/heartbeat.json` from Nextcloud.
+- The watchdog agent can read and append `/Projects/ai-homebase/budget-ledger.json` and can surface over-budget posture to main before non-trivial work.
+
+Validation attempted:
+
+- `./scripts/lint.sh --values-file charts/platform-stack/values.yaml`
+- `./scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values.yaml > /tmp/platform-stack.yaml`
+
+Known validation gap:
+
+- Both canonical validation commands failed immediately in this local environment because `helm` is not installed, so no Helm-based lint or render completed for this change.
+
+Suggested later test sequence:
+
+1. Use a disposable environment, not the long-running local stack.
+2. Bootstrap or reseed a fresh watchdog workspace and inspect the seeded `AGENTS.md` and `TOOLS.md` content on disk.
+3. Exercise a cron-style watchdog check and confirm it uses the heartbeat file and `readyz` endpoint instead of inter-session messaging.
+4. Simulate cold-start latency and cron-context `sessions_list = 0` and verify both are treated as exempt, non-critical conditions.
+5. Simulate a warning condition across multiple checks to confirm main is only notified after the persistence gate is met.
+6. Simulate a critical outage with two independent signals and confirm watchdog escalates once, then respects the 30-minute cooldown for repeated alerts.
