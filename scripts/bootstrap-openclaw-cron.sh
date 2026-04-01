@@ -106,19 +106,19 @@ ensure_job() {
 
 ensure_job "Watchdog heartbeat" \
   --name "Watchdog heartbeat" \
-  --every "5m" \
+  --every "15m" \
   --session isolated \
   --agent watchdog \
   --no-deliver \
-  --message "Run heartbeat check. Verify the local OpenClaw gateway readiness endpoint responds at http://127.0.0.1:18789/readyz. Confirm the standing main sessions exist and accept a brief ping for agents main, architect, coder, archivist, and watchdog. Use the status log at /Projects/ai-homebase/watchdog-status-log.md to determine whether this is a repeated failure; require at least 2 consecutive heartbeat failures before escalating as CRITICAL. If all checks are healthy, append a short OK line to the status log and stay quiet. If a check fails, append a short failure note to the status log when possible and send a concise alert to session agent:main:main via sessions_send with a [WATCHDOG WARNING] prefix for the first failure or a [WATCHDOG CRITICAL] prefix once the same heartbeat path has failed twice in a row."
+  --message "Run heartbeat check. Verify the local OpenClaw gateway readiness endpoint responds at http://127.0.0.1:18789/readyz. Read the heartbeat file from Nextcloud at /Projects/ai-homebase/heartbeat.json and check main's last activity timestamp. Do NOT use sessions_send or sessions_list from this cron context; both are unreliable from sandboxed cron sessions and must not be treated as authoritative signals. If the gateway is healthy and main's heartbeat is within the last 30 minutes, append a short OK line to /Projects/ai-homebase/watchdog-status-log.md and do not escalate. If the gateway is down or the heartbeat is stale by more than 30 minutes, append a short failure note to the same status log. Require 2 consecutive failures before escalating beyond the log, and apply the severity gates from AGENTS.md before treating anything as warning or critical."
 
 ensure_job "Watchdog platform sweep" \
   --name "Watchdog platform sweep" \
-  --cron "15 */6 * * *" \
+  --cron "15 */12 * * *" \
   --session isolated \
   --agent watchdog \
   --no-deliver \
-  --message "Run platform sweep. Check the local OpenClaw gateway readiness endpoint, confirm the standing main sessions for main, architect, coder, archivist, and watchdog still exist and respond, inspect recent session behavior with the session-logs skill when that helps confirm whether failures are transient or recurring, and inspect TLS expiry for the core ingress hosts you can reach from the gateway with openssl, including OpenClaw and the MCP endpoints. Summarize findings concisely, append the result to /Projects/ai-homebase/watchdog-status-log.md, and send a short report to session agent:main:main via sessions_send with [WATCHDOG WARNING] or [WATCHDOG CRITICAL] when issues are found. If everything is clear, append a one-line all-clear and do not escalate."
+  --message "Run platform sweep. Check the local OpenClaw gateway readiness endpoint, inspect recent session behavior with the session-logs skill when that helps confirm whether failures are transient or recurring, and inspect TLS expiry for the core ingress hosts you can reach from the gateway with openssl, including OpenClaw and the MCP endpoints. Do NOT use sessions_send or sessions_list from this cron context; they are unreliable here and must not be used as the escalation path. Summarize findings concisely and append the result to /Projects/ai-homebase/watchdog-status-log.md. If issues are found, write a clear warning or critical note to that Nextcloud status log and explicitly flag it for main to pick up from the log; the standing watchdog session can escalate via sessions_send later if main is available there. If everything is clear, append a one-line all-clear and do not escalate."
 
 ensure_job "Archivist nightly grooming" \
   --name "Archivist nightly grooming" \
@@ -126,7 +126,7 @@ ensure_job "Archivist nightly grooming" \
   --session isolated \
   --agent archivist \
   --no-deliver \
-  --message "Run nightly knowledge graph grooming. Review durable Qdrant memories that are new, weakly linked, or likely to deserve graph structure. Review relevant Nextcloud project material, especially /Projects/ai-homebase/knowledge-graph-schema.md and related cluster docs, for durable entities and relationships not yet represented in Memgraph. Use mgconsole and reusable Cypher queries to add or update only canonical graph structure, preferring existing labels and relationship types over inventing new ones. Keep Qdrant-linked graph nodes annotated with the Qdrant ID and provenance metadata. Summarize important schema or knowledge changes to session agent:main:main via sessions_send only when the changes matter for other agents or the user."
+  --message "Run nightly knowledge graph grooming. Review durable Qdrant memories that are new, weakly linked, or likely to deserve graph structure. Review relevant Nextcloud project material, especially /Projects/ai-homebase/knowledge-graph-schema.md and related cluster docs, for durable entities and relationships not yet represented in the graph. Use a Node.js Bolt connection with require('neo4j-driver') and reusable Cypher queries to add or update only canonical graph structure; do not rely on mgconsole. Use few, general-purpose labels and relationships, and do not proliferate domain-specific types when existing structure can carry the meaning. Keep Qdrant-linked graph nodes annotated with the Qdrant ID and provenance metadata. Summarize important schema or knowledge changes to session agent:main:main via sessions_send only when the changes matter for other agents or the user."
 
 ensure_job "Watchdog daily digest" \
   --name "Watchdog daily digest" \
@@ -134,4 +134,4 @@ ensure_job "Watchdog daily digest" \
   --session isolated \
   --agent watchdog \
   --no-deliver \
-  --message "Run daily health digest. Read /Projects/ai-homebase/watchdog-status-log.md and summarize the last 24 hours of heartbeat and platform-sweep results. Call out repeated failures, inability to reach main, or upcoming TLS expiry if present. Produce a concise daily report for main, send it to session agent:main:main via sessions_send with a [WATCHDOG OK] prefix when healthy or [WATCHDOG WARNING] when attention is needed, and append the digest summary to the same status log while trimming older material so the log stays focused on roughly the last 7 days."
+  --message "Run daily health digest. Read /Projects/ai-homebase/watchdog-status-log.md and summarize the last 24 hours of heartbeat and platform-sweep results. Read the budget ledger at /Projects/ai-homebase/budget-ledger.json and add a budget summary covering daily, weekly, and monthly spend per agent, flagging any agents that are approaching their thresholds. Include the budget summary alongside the existing health digest. Call out repeated failures, inability to reach main, or upcoming TLS expiry if present. Produce a concise daily report for main, send it to session agent:main:main via sessions_send with a [WATCHDOG OK] prefix when healthy or [WATCHDOG WARNING] when attention is needed, and append the digest summary to the same status log while trimming older material so the log stays focused on roughly the last 7 days."

@@ -365,3 +365,51 @@ Suggested later test sequence:
 4. Simulate cold-start latency and cron-context `sessions_list = 0` and verify both are treated as exempt, non-critical conditions.
 5. Simulate a warning condition across multiple checks to confirm main is only notified after the persistence gate is met.
 6. Simulate a critical outage with two independent signals and confirm watchdog escalates once, then respects the 30-minute cooldown for repeated alerts.
+
+## 2026-04-01 - Task 9: Cron Job Updates
+
+Status: statically updated only. Do not treat this as live cron-runtime or gateway-job verified yet.
+
+Scope:
+
+- Updated the four `ensure_job` definitions in `scripts/bootstrap-openclaw-cron.sh` without changing the script structure, session mode, or agent assignments.
+- Changed the watchdog heartbeat cron frequency from `5m` to `15m`.
+- Rewrote the heartbeat job instructions to use `http://127.0.0.1:18789/readyz` plus `/Projects/ai-homebase/heartbeat.json` instead of `sessions_send` or `sessions_list` from cron context.
+- Updated the heartbeat job to require two consecutive failures before escalating beyond the status log and to apply the watchdog severity gates from `AGENTS.md`.
+- Changed the platform sweep schedule from `15 */6 * * *` to `15 */12 * * *`.
+- Removed `sessions_send` / `sessions_list` references from the platform sweep job and redirected cron-context issue reporting to `/Projects/ai-homebase/watchdog-status-log.md` for main to pick up later.
+- Updated the archivist nightly grooming job to use a Node.js Bolt path via `require('neo4j-driver')` instead of `mgconsole`.
+- Tightened the archivist grooming instructions to prefer a small set of general-purpose labels and relationships instead of adding domain-specific graph types unnecessarily.
+- Extended the daily digest job to read `/Projects/ai-homebase/budget-ledger.json` and include daily, weekly, and monthly per-agent spend summaries with threshold warnings.
+
+What to verify later during a real runtime test:
+
+- `openclaw cron add` accepts the revised long-form message strings without truncation, escaping issues, or cron-parser problems.
+- The heartbeat cron job can read `/Projects/ai-homebase/heartbeat.json` successfully from its isolated cron session and parse main's last-activity timestamp reliably.
+- The heartbeat job correctly treats `sessions_send` and `sessions_list` as non-authoritative in cron context and no longer produces false alarms from sandbox isolation.
+- A healthy gateway plus a fresh heartbeat produces only a short OK append to `/Projects/ai-homebase/watchdog-status-log.md`.
+- A stale heartbeat or failing `readyz` check produces a failure note in the same log and does not escalate until the second consecutive failure path is observed.
+- The resulting watchdog behavior in cron aligns with the severity gates already seeded into the watchdog workspace `AGENTS.md`.
+- The platform sweep still performs gateway readiness checks, TLS expiry inspection, and `session-logs` skill usage as intended, despite removing cron-context session messaging.
+- Main or the standing watchdog session can reliably detect and act on flagged issues written to `/Projects/ai-homebase/watchdog-status-log.md`.
+- The archivist runtime actually has `neo4j-driver` available and can establish the intended Bolt connection path from its execution environment.
+- The archivist grooming workflow still reaches the graph successfully without any hidden `mgconsole` dependency.
+- The daily digest can read `/Projects/ai-homebase/budget-ledger.json`, compute daily/weekly/monthly spend per agent, and flag threshold-adjacent agents without malformed output.
+- The daily digest still trims older status-log content as intended after adding the new budget-summary section.
+
+Static validation completed:
+
+- `bash -n scripts/bootstrap-openclaw-cron.sh`
+
+Known validation gap:
+
+- No live OpenClaw cron jobs were created or exercised in this session, and the running cluster was intentionally left untouched.
+
+Suggested later test sequence:
+
+1. Use a disposable environment, not the long-running local stack.
+2. Seed the revised cron jobs and list them back from the gateway to confirm the schedules and full messages were stored correctly.
+3. Trigger or wait for one heartbeat run with a healthy gateway and fresh heartbeat file, then confirm the expected one-line OK append in `/Projects/ai-homebase/watchdog-status-log.md`.
+4. Simulate a stale heartbeat and then a repeated stale heartbeat to confirm the two-consecutive-failure rule before escalation behavior.
+5. Run a platform sweep and confirm findings are written to the Nextcloud status log rather than sent directly from cron via `sessions_send`.
+6. Run archivist grooming and the daily digest once to confirm the `neo4j-driver` path and budget-ledger summary both work end to end.
