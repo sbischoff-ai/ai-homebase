@@ -51,6 +51,7 @@ fi
 bootstrap_init_logging
 
 NEXTCLOUD_MCP_HOST=""
+NEXTCLOUD_HOST=""
 QDRANT_MCP_HOST=""
 GITEA_HOST=""
 REGISTRY_HOST=""
@@ -61,6 +62,7 @@ if [[ -f "$BOOTSTRAP_CONFIG_PATH" ]]; then
   BOOTSTRAP_SHELL_VARS="$(python3 ./scripts/bootstrap-config.py shell-vars --config "$BOOTSTRAP_CONFIG_PATH")" || exit 1
   eval "$BOOTSTRAP_SHELL_VARS"
   NEXTCLOUD_MCP_HOST="${NEXTCLOUD_MCP_HOST:-}"
+  NEXTCLOUD_HOST="${NEXTCLOUD_HOST:-}"
   QDRANT_MCP_HOST="${QDRANT_MCP_HOST:-}"
   GITEA_HOST="${GITEA_HOST:-}"
   REGISTRY_HOST="${REGISTRY_HOST:-}"
@@ -77,6 +79,9 @@ INCUS_VM_CMD=(
   --shared-openclaw-state-target "$SHARED_OPENCLAW_STATE_TARGET"
 )
 
+if [[ -n "$NEXTCLOUD_HOST" ]]; then
+  INCUS_VM_CMD+=(--resolve-host "$NEXTCLOUD_HOST")
+fi
 if [[ -n "$NEXTCLOUD_MCP_HOST" ]]; then
   INCUS_VM_CMD+=(--resolve-host "$NEXTCLOUD_MCP_HOST")
 fi
@@ -110,6 +115,9 @@ echo "Summary:"
 echo "  VM: ${VM_NAME}"
 echo "  Host alias: ${HOST_ALIAS}"
 echo "  Shared OpenClaw state: ${SHARED_OPENCLAW_STATE_SOURCE} -> ${SHARED_OPENCLAW_STATE_TARGET}"
+if [[ -n "$NEXTCLOUD_HOST" ]]; then
+  echo "  Nextcloud host override inside sandbox: ${NEXTCLOUD_HOST}"
+fi
 if [[ -n "$NEXTCLOUD_MCP_HOST" ]]; then
   echo "  Nextcloud MCP host override inside sandbox: ${NEXTCLOUD_MCP_HOST}"
 fi

@@ -35,7 +35,7 @@ spec:
             - /bin/sh
             - -ceu
             - |
-              until mgconsole --host {{ include "platform-stack.memgraphServiceHost" . | quote }} --port {{ .Values.memgraph.service.boltPort }} --output-format csv -e "RETURN 1;" >/dev/null 2>&1; do
+              until printf 'RETURN 1;\n' | mgconsole --host {{ include "platform-stack.memgraphServiceHost" . | quote }} --port {{ .Values.memgraph.service.boltPort }} --output-format csv >/dev/null 2>&1; do
                 echo "waiting for {{ include "platform-stack.memgraphServiceHost" . }}:{{ .Values.memgraph.service.boltPort }}"
                 sleep 2
               done

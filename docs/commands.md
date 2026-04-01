@@ -117,7 +117,7 @@ python3 scripts/bootstrap-config.py validate --config bootstrap.local.toml
 # The helper seeds explicit NoCloud user-data + network-config before the VM starts,
 # including a default IPv4 route rendered as to: 0.0.0.0/0 for cloud-init/netplan compatibility.
 # Override the default 600-second readiness deadline if your host is slower:
-SSH_READY_TIMEOUT_SECONDS=900 ./scripts/incus-vm-up.sh --vm-name openclaw-sandbox
+SSH_READY_TIMEOUT_SECONDS=1800 ./scripts/incus-vm-up.sh --vm-name openclaw-sandbox
 source ~/.local/state/ai-homebase/incus/openclaw-sandbox.env
 ./scripts/bootstrap-stack.sh \
   --profile k3d \

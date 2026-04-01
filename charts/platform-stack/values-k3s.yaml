@@ -48,7 +48,7 @@ openclaw:
   persistence:
     enabled: true
     hostPath: /var/lib/ai-homebase/openclaw-state
-    size: 50Gi
+    size: 100Gi
     storageClass: local-path
   remoteDocker:
     enabled: true
@@ -56,10 +56,10 @@ openclaw:
   resources:
     requests:
       cpu: "1"
-      memory: 1Gi
+      memory: 2Gi
     limits:
-      cpu: "3"
-      memory: 4Gi
+      cpu: "4"
+      memory: 6Gi
   openclaw:
     gateway:
       controlUi:
@@ -92,15 +92,15 @@ nextcloud:
       className: nginx
   persistence:
     enabled: true
-    size: 250Gi
+    size: 1Ti
     storageClass: local-path
   resources:
     requests:
-      cpu: 750m
-      memory: 2Gi
+      cpu: "1"
+      memory: 3Gi
     limits:
-      cpu: "3"
-      memory: 6Gi
+      cpu: "4"
+      memory: 8Gi
   cron:
     resources:
       requests:
@@ -150,15 +150,15 @@ qdrant:
           - qdrant.vpn.homebase.internal
   persistence:
     enabled: true
-    size: 100Gi
+    size: 150Gi
     storageClass: local-path
   resources:
     requests:
-      cpu: 500m
-      memory: 1Gi
+      cpu: 750m
+      memory: 2Gi
     limits:
-      cpu: "2"
-      memory: 4Gi
+      cpu: "3"
+      memory: 6Gi
 
 qdrantMcp:
   enabled: true
@@ -198,15 +198,15 @@ memgraph:
           - memgraph.vpn.homebase.internal
   persistence:
     enabled: true
-    size: 150Gi
+    size: 200Gi
     storageClass: local-path
   resources:
     requests:
-      cpu: 500m
-      memory: 1Gi
+      cpu: 750m
+      memory: 2Gi
     limits:
-      cpu: "2"
-      memory: 4Gi
+      cpu: "3"
+      memory: 6Gi
 
 memgraphLab:
   enabled: true
@@ -253,15 +253,15 @@ gitea:
               pathType: Prefix
     persistence:
       enabled: true
-      size: 120Gi
+      size: 150Gi
       storageClass: local-path
     resources:
       requests:
-        cpu: 500m
+        cpu: 750m
         memory: 1Gi
       limits:
-        cpu: "2"
-        memory: 4Gi
+        cpu: "3"
+        memory: 3Gi
     initContainers:
       resources:
         requests:
@@ -292,7 +292,7 @@ registry:
           - registry.vpn.homebase.internal
   persistence:
     enabled: true
-    size: 50Gi
+    size: 100Gi
     storageClass: local-path
 
 vaultwarden:
@@ -346,11 +346,11 @@ paperlessNgx:
   persistence:
     data:
       enabled: true
-      size: 30Gi
+      size: 50Gi
       storageClass: local-path
     media:
       enabled: true
-      size: 250Gi
+      size: 300Gi
       storageClass: local-path
     consume:
       enabled: true
@@ -362,37 +362,37 @@ paperlessNgx:
       storageClass: local-path
   resources:
     requests:
-      cpu: 500m
-      memory: 1Gi
+      cpu: 750m
+      memory: 1536Mi
     limits:
-      cpu: "2"
-      memory: 4Gi
+      cpu: "3"
+      memory: 6Gi
 
 
 sharedPostgresql:
   enabled: true
   resources:
     requests:
-      cpu: "1"
-      memory: 2Gi
+      cpu: 1500m
+      memory: 3Gi
     limits:
-      cpu: "3"
-      memory: 6Gi
+      cpu: "4"
+      memory: 8Gi
   primary:
     persistence:
       enabled: true
-      size: 100Gi
+      size: 150Gi
       storageClass: local-path
 
 sharedRedis:
   enabled: true
   resources:
     requests:
-      cpu: 250m
-      memory: 512Mi
+      cpu: 500m
+      memory: 1Gi
     limits:
-      cpu: "1"
-      memory: 2Gi
+      cpu: "2"
+      memory: 3Gi
   master:
     persistence:
       enabled: true

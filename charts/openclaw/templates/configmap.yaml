@@ -10,7 +10,7 @@ data:
     {
       "commands": {{ toJson (.Values.openclaw.commands | default (dict)) }},
       "tools": {{ toJson (.Values.openclaw.tools | default (dict)) }},
-      "cron": {{ toJson (.Values.openclaw.cron | default (list)) }},
+      "cron": {{ toJson (.Values.openclaw.cron | default (dict)) }},
       "gateway": {
         "mode": {{ .Values.openclaw.gateway.mode | quote }},
         "bind": {{ .Values.openclaw.gateway.bind | quote }},

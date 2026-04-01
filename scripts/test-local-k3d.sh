@@ -592,7 +592,9 @@ verify_openclaw_gateway_tooling() {
 
 verify_openclaw_mcp_bootstrap_config() {
   local configmap_name="$1"
+  local deployment_name="$2"
   local openclaw_json=""
+  local cron_jobs_json=""
 
   openclaw_json="$(
     kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" get configmap "$configmap_name" -o jsonpath='{.data.openclaw\.json}'
@@ -608,23 +610,58 @@ verify_openclaw_mcp_bootstrap_config() {
     exit 1
   fi
 
-  if [[ "$openclaw_json" != *'"id":"watchdog-heartbeat"'* ]]; then
-    fail "OpenClaw bootstrap config in ConfigMap/${configmap_name} is missing the watchdog heartbeat cron job"
+  if [[ "$openclaw_json" != *'"enabled":true'* ]]; then
+    fail "OpenClaw bootstrap config in ConfigMap/${configmap_name} is missing the cron.enabled setting"
     exit 1
   fi
 
-  if [[ "$openclaw_json" != *'/Projects/ai-homebase/watchdog-status-log.md'* ]]; then
-    fail "OpenClaw bootstrap config in ConfigMap/${configmap_name} is missing the watchdog status-log path"
+  if [[ "$openclaw_json" != *'"store":"~/.openclaw/cron/jobs.json"'* ]]; then
+    fail "OpenClaw bootstrap config in ConfigMap/${configmap_name} is missing the documented cron store path"
     exit 1
   fi
 
-  if [[ "$openclaw_json" != *'registry.localtest.me/coder/openclaw-sandbox:bookworm-slim'* ]]; then
+  if [[ "$openclaw_json" != *'registry.localtest.me/openclaw/openclaw-sandbox:bookworm-slim'* ]]; then
     fail "OpenClaw bootstrap config in ConfigMap/${configmap_name} is not using the canonical registry-backed default sandbox image"
     exit 1
   fi
 
-  if [[ "$openclaw_json" != *'registry.localtest.me/coder/openclaw-sandbox-coder:bookworm-slim'* ]]; then
+  if [[ "$openclaw_json" != *'registry.localtest.me/openclaw/openclaw-sandbox-coder:bookworm-slim'* ]]; then
     fail "OpenClaw bootstrap config in ConfigMap/${configmap_name} is not using the canonical registry-backed coder sandbox image"
+    exit 1
+  fi
+
+  cron_jobs_json="$(
+    kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" exec "deployment/${deployment_name}" -- openclaw cron list --json
+  )"
+
+  if ! OPENCLAW_CRON_JOBS_JSON="$cron_jobs_json" python3 - <<'PY'
+import json
+import os
+import sys
+
+raw = os.environ["OPENCLAW_CRON_JOBS_JSON"]
+start = None
+for index, char in enumerate(raw):
+    if char in "[{":
+        start = index
+        break
+if start is None:
+    raise SystemExit("missing JSON payload from openclaw cron list --json")
+payload = json.loads(raw[start:])
+jobs = payload if isinstance(payload, list) else payload.get("jobs", [])
+names = {job.get("name") for job in jobs}
+expected = {
+    "Watchdog heartbeat",
+    "Watchdog platform sweep",
+    "Archivist nightly grooming",
+    "Watchdog daily digest",
+}
+if not expected.issubset(names):
+    missing = ", ".join(sorted(expected - names))
+    raise SystemExit(f"missing cron jobs: {missing}")
+PY
+  then
+    fail "OpenClaw gateway is missing one or more seeded cron jobs"
     exit 1
   fi
 }
@@ -715,7 +752,8 @@ fi
 
 wait_for_workload openclaw "$OPENCLAW_WAIT_TIMEOUT"
 OPENCLAW_DEPLOYMENT_NAME="$(resolve_deployment_name openclaw)"
-verify_openclaw_mcp_bootstrap_config "$OPENCLAW_DEPLOYMENT_NAME"
+OPENCLAW_CONFIGMAP_NAME="${RELEASE_NAME}-openclaw"
+verify_openclaw_mcp_bootstrap_config "$OPENCLAW_CONFIGMAP_NAME" "$OPENCLAW_DEPLOYMENT_NAME"
 verify_openclaw_gateway_tooling "$OPENCLAW_DEPLOYMENT_NAME"
 
 if [[ "$(is_openclaw_remote_docker_enabled)" == "true" ]]; then

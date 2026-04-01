@@ -42,7 +42,9 @@ spec:
             - -ceu
             - |
               mkdir -p /var/lib/memgraph
+              mkdir -p /var/log/memgraph
               chown -R {{ .Values.securityContext.runAsUser }}:{{ .Values.securityContext.runAsGroup }} /var/lib/memgraph
+              chown -R {{ .Values.securityContext.runAsUser }}:{{ .Values.securityContext.runAsGroup }} /var/log/memgraph
           resources:
             {{- toYaml .Values.volumePermissions.resources | nindent 12 }}
           securityContext:
@@ -50,6 +52,8 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /var/lib/memgraph
+            - name: logs
+              mountPath: /var/log/memgraph
       {{- end }}
       containers:
         - name: memgraph
@@ -59,11 +63,11 @@ spec:
             - /bin/sh
             - -ceu
             - |
-              exec memgraph \
+              exec /usr/lib/memgraph/memgraph \
                 --bolt-address=0.0.0.0 \
                 --bolt-port={{ .Values.service.boltPort }} \
-                --http-address=0.0.0.0 \
-                --http-port={{ .Values.service.httpPort }} \
+                --monitoring-address=0.0.0.0 \
+                --monitoring-port={{ .Values.service.httpPort }} \
                 --data-directory=/var/lib/memgraph
           ports:
             - name: bolt
@@ -89,6 +93,8 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /var/lib/memgraph
+            - name: logs
+              mountPath: /var/log/memgraph
           {{- with .Values.securityContext }}
           securityContext:
             {{- toYaml . | nindent 12 }}
@@ -97,6 +103,8 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: {{ include "memgraph.fullname" . }}-data
+        - name: logs
+          emptyDir: {}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

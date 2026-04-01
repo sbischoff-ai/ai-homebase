@@ -126,6 +126,7 @@ run_quiet ./scripts/incus-vm-up.sh \
   --shared-openclaw-state-source "$SHARED_OPENCLAW_STATE_SOURCE" \
   --shared-openclaw-state-target "$SHARED_OPENCLAW_STATE_VM_PATH" \
   --resolve-host "$OPENCLAW_HOST_VALUE" \
+  --resolve-host "$NEXTCLOUD_HOST_VALUE" \
   --resolve-host "$NEXTCLOUD_MCP_HOST_VALUE" \
   --resolve-host "$QDRANT_MCP_HOST_VALUE" \
   --resolve-host "$MEMGRAPH_HOST_VALUE" \

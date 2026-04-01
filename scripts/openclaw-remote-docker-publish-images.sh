@@ -9,12 +9,13 @@ REGISTRY_USERNAME=""
 REGISTRY_PASSWORD=""
 SOURCE_IMAGES=()
 TARGET_IMAGES=()
+TAG_ONLY=0
 
 usage() {
   cat <<USAGE
-Usage: $0 --docker-host <ssh://user@host:port> --registry-host <host> --registry-username <user> --registry-password <password> --source-image <image[:tag]> --target-image <registry/namespace/image[:tag]> [--source-image ... --target-image ...]
+Usage: $0 --docker-host <ssh://user@host:port> [--tag-only] [--registry-host <host> --registry-username <user> --registry-password <password>] --source-image <image[:tag]> --target-image <registry/namespace/image[:tag]> [--source-image ... --target-image ...]
 
-Log into the registry from the OpenClaw remote Docker host, tag the provided source images, and push them to their canonical registry references.
+Tag the provided source images on the OpenClaw remote Docker host. By default this also logs into the registry and pushes those canonical tags. Use --tag-only when the registry is not reachable yet and only the remote Docker host needs the canonical tags immediately.
 USAGE
 }
 
@@ -27,13 +28,14 @@ while [[ $# -gt 0 ]]; do
     --registry-password) REGISTRY_PASSWORD="$2"; shift 2 ;;
     --source-image) SOURCE_IMAGES+=("$2"); shift 2 ;;
     --target-image) TARGET_IMAGES+=("$2"); shift 2 ;;
+    --tag-only) TAG_ONLY=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
   esac
 done
 
-if [[ -z "$DOCKER_HOST_VALUE" || -z "$REGISTRY_HOST" || -z "$REGISTRY_USERNAME" || -z "$REGISTRY_PASSWORD" ]]; then
-  echo "docker host plus registry host/credentials are required" >&2
+if [[ -z "$DOCKER_HOST_VALUE" ]]; then
+  echo "docker host is required" >&2
   exit 1
 fi
 
@@ -44,6 +46,11 @@ fi
 
 if [[ "$DOCKER_HOST_VALUE" != ssh://* ]]; then
   echo "Only ssh:// remote Docker hosts are supported by this helper" >&2
+  exit 1
+fi
+
+if [[ "$TAG_ONLY" -eq 0 && ( -z "$REGISTRY_HOST" || -z "$REGISTRY_USERNAME" || -z "$REGISTRY_PASSWORD" ) ]]; then
+  echo "registry host/credentials are required unless --tag-only is used" >&2
   exit 1
 fi
 
@@ -106,10 +113,16 @@ for source_image in "${SOURCE_IMAGES[@]}"; do
   ssh_run "docker image inspect $(printf '%q' "$source_image") >/dev/null 2>&1"
 done
 
-ssh_run "printf '%s' $(printf '%q' "$REGISTRY_PASSWORD") | docker login $(printf '%q' "$REGISTRY_HOST") --username $(printf '%q' "$REGISTRY_USERNAME") --password-stdin >/dev/null"
-
 for i in "${!SOURCE_IMAGES[@]}"; do
   source_image="${SOURCE_IMAGES[$i]}"
   target_image="${TARGET_IMAGES[$i]}"
-  ssh_run "docker tag $(printf '%q' "$source_image") $(printf '%q' "$target_image") && docker push $(printf '%q' "$target_image") >/dev/null"
+  ssh_run "docker tag $(printf '%q' "$source_image") $(printf '%q' "$target_image")"
 done
+
+if [[ "$TAG_ONLY" -eq 0 ]]; then
+  ssh_run "printf '%s' $(printf '%q' "$REGISTRY_PASSWORD") | docker login $(printf '%q' "$REGISTRY_HOST") --username $(printf '%q' "$REGISTRY_USERNAME") --password-stdin >/dev/null"
+
+  for target_image in "${TARGET_IMAGES[@]}"; do
+    ssh_run "docker push $(printf '%q' "$target_image") >/dev/null"
+  done
+fi

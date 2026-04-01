@@ -269,6 +269,24 @@ resolve_paperless_secret_key() {
   openssl rand -hex 32
 }
 
+generate_htpasswd_entry() {
+  local username="$1"
+  local password="$2"
+
+  if command -v htpasswd >/dev/null 2>&1; then
+    htpasswd -nbB "$username" "$password"
+    return 0
+  fi
+
+  if command -v docker >/dev/null 2>&1; then
+    docker run --rm --entrypoint htpasswd httpd:2.4-alpine -nbB "$username" "$password"
+    return 0
+  fi
+
+  echo "htpasswd generation requires either the htpasswd CLI or Docker." >&2
+  return 1
+}
+
 resolve_from_existing_secret_or_empty() {
   local explicit_value="$1"
   local secret_name="$2"
@@ -325,7 +343,7 @@ REGISTRY_USERNAME="${REGISTRY_USERNAME:-coder}"
 REGISTRY_PASSWORD="$(resolve_from_existing_secret_or_generate "$REGISTRY_PASSWORD" registry-auth-secret '{.data.password}')"
 GITEA_REDIS_URI="redis://:${REDIS_PASSWORD}@platform-stack-shared-redis:6379/0?pool_size=100&idle_timeout=180s"
 PAPERLESS_REDIS_URI="redis://:${REDIS_PASSWORD}@platform-stack-shared-redis:6379/0"
-REGISTRY_HTPASSWD="$(openssl passwd -apr1 "${REGISTRY_PASSWORD}")"
+REGISTRY_HTPASSWD="$(generate_htpasswd_entry "$REGISTRY_USERNAME" "$REGISTRY_PASSWORD")"
 
 SHARED_POSTGRESQL_INITDB_SQL="$(mktemp /tmp/ai-homebase-shared-postgresql-initdb.XXXXXX.sql)"
 cat >"$SHARED_POSTGRESQL_INITDB_SQL" <<EOF
@@ -407,7 +425,7 @@ create_and_apply_secret paperless-config-secrets \
 create_and_apply_secret registry-auth-secret \
   --from-literal=username="${REGISTRY_USERNAME}" \
   --from-literal=password="${REGISTRY_PASSWORD}" \
-  --from-literal=htpasswd="${REGISTRY_USERNAME}:${REGISTRY_HTPASSWD}"
+  --from-literal=htpasswd="${REGISTRY_HTPASSWD}"
 
 OPENCLAW_SECRET_ARGS=(
   --from-literal=OPENCLAW_GATEWAY_TOKEN="$OPENCLAW_GATEWAY_TOKEN"
