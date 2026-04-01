@@ -1533,6 +1533,9 @@ def resolved_values(data: dict[str, object]) -> dict[str, str]:
     values["OPENCLAW_DEFAULT_SANDBOX_IMAGE"] = registry_image_ref(
         values["REGISTRY_HOST"], values["CODER_GITEA_USERNAME"], "openclaw-sandbox"
     )
+    values["OPENCLAW_ARCHIVIST_SANDBOX_IMAGE"] = registry_image_ref(
+        values["REGISTRY_HOST"], values["CODER_GITEA_USERNAME"], "openclaw-sandbox-archivist"
+    )
     values["OPENCLAW_CODER_SANDBOX_IMAGE"] = registry_image_ref(
         values["REGISTRY_HOST"], values["CODER_GITEA_USERNAME"], "openclaw-sandbox-coder"
     )
@@ -1714,6 +1717,12 @@ def command_render_values(args: argparse.Namespace) -> int:
                     "workspace": "/home/node/.openclaw/workspace-archivist",
                     "model": {
                         "primary": values["OPENCLAW_ARCHIVIST_MODEL"],
+                    },
+                    "sandbox": {
+                        "mode": "non-main",
+                        "docker": {
+                            "image": values["OPENCLAW_ARCHIVIST_SANDBOX_IMAGE"],
+                        },
                     },
                 },
                 {

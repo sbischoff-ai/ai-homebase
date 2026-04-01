@@ -41,7 +41,7 @@ Use this page when the concise workflow in [`docs/deployment-k3d.md`](./deployme
 - `./scripts/bootstrap-secrets.sh --profile k3d --bootstrap-config bootstrap.local.toml` fails early if the remote Docker private key is missing or empty.
 - The same helper also fails when `ssh-keyscan` does not produce a non-empty `known_hosts` file for the target host and port.
 - Those checks keep the generated `openclaw-remote-docker-ssh` Secret aligned with the OpenClaw chart contract before Helm deploys resources.
-- The same helper now forwards any non-empty supported provider/search keys from `bootstrap.local.toml` into `openclaw-app-secrets` so the first bootstrap can immediately expose those integrations inside the pod.
+- Provider/search credentials should now come from the SOPS-managed `openclaw-secrets` manifest instead of the deprecated bootstrap helper; `bootstrap-secrets.sh` remains relevant here only for the legacy remote Docker SSH Secret path and other not-yet-migrated Secrets.
 
 ### Local ingress and hostname access
 

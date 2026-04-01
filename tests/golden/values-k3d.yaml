@@ -534,54 +534,11 @@ data:
     data\", (chunk) => {\n  stdinBuffer += chunk;\n  void scheduleDrain();\n});\n"
   openclaw.json: "{\n  \"commands\": {\"mcp\":true},\n  \"tools\": {\"agentToAgent\"\
     :{\"allow\":[\"main\",\"coder\",\"architect\",\"archivist\",\"watchdog\"],\"enabled\"\
-    :true},\"sessions\":{\"visibility\":\"all\"}},\n  \"cron\": [{\"enabled\":true,\"\
-    id\":\"watchdog-heartbeat\",\"payload\":{\"agent\":\"watchdog\",\"kind\":\"agentTurn\"\
-    ,\"message\":\"Run heartbeat check. Verify the local OpenClaw gateway readiness\
-    \ endpoint responds at http://127.0.0.1:18789/readyz. Confirm the standing main\
-    \ sessions exist and accept a brief ping for agents main, architect, coder, archivist,\
-    \ and watchdog. Use the status log at /Projects/ai-homebase/watchdog-status-log.md\
-    \ to determine whether this is a repeated failure; require at least 2 consecutive\
-    \ heartbeat failures before escalating as CRITICAL. If all checks are healthy,\
-    \ append a short OK line to the status log and stay quiet. If a check fails, append\
-    \ a short failure note to the status log when possible and send a concise alert\
-    \ to session agent:main:main via sessions_send with a [WATCHDOG WARNING] prefix\
-    \ for the first failure or a [WATCHDOG CRITICAL] prefix once the same heartbeat\
-    \ path has failed twice in a row.\",\"session\":\"isolated\"},\"schedule\":{\"\
-    every\":\"5m\"}},{\"enabled\":true,\"id\":\"watchdog-platform-sweep\",\"payload\"\
-    :{\"agent\":\"watchdog\",\"kind\":\"agentTurn\",\"message\":\"Run platform sweep.\
-    \ Check the local OpenClaw gateway readiness endpoint, confirm the standing main\
-    \ sessions for main, architect, coder, archivist, and watchdog still exist and\
-    \ respond, inspect recent session behavior with the session-logs skill when that\
-    \ helps confirm whether failures are transient or recurring, and inspect TLS expiry\
-    \ for the core ingress hosts you can reach from the gateway with openssl, including\
-    \ OpenClaw and the MCP endpoints. Summarize findings concisely, append the result\
-    \ to /Projects/ai-homebase/watchdog-status-log.md, and send a short report to\
-    \ session agent:main:main via sessions_send with [WATCHDOG WARNING] or [WATCHDOG\
-    \ CRITICAL] when issues are found. If everything is clear, append a one-line all-clear\
-    \ and do not escalate.\",\"session\":\"isolated\"},\"schedule\":{\"cron\":\"15\
-    \ */6 * * *\"}},{\"enabled\":true,\"id\":\"archivist-nightly-grooming\",\"payload\"\
-    :{\"agent\":\"archivist\",\"kind\":\"agentTurn\",\"message\":\"Run nightly knowledge\
-    \ graph grooming. Review durable Qdrant memories that are new, weakly linked,\
-    \ or likely to deserve graph structure. Review relevant Nextcloud project material,\
-    \ especially /Projects/ai-homebase/knowledge-graph-schema.md and related cluster\
-    \ docs, for durable entities and relationships not yet represented in Memgraph.\
-    \ Use mgconsole and reusable Cypher queries to add or update only canonical graph\
-    \ structure, preferring existing labels and relationship types over inventing\
-    \ new ones. Keep Qdrant-linked graph nodes annotated with the Qdrant ID and provenance\
-    \ metadata. Summarize important schema or knowledge changes to session agent:main:main\
-    \ via sessions_send only when the changes matter for other agents or the user.\"\
-    ,\"session\":\"isolated\"},\"schedule\":{\"cron\":\"30 2 * * *\"}},{\"enabled\"\
-    :true,\"id\":\"watchdog-daily-digest\",\"payload\":{\"agent\":\"watchdog\",\"\
-    kind\":\"agentTurn\",\"message\":\"Run daily health digest. Read /Projects/ai-homebase/watchdog-status-log.md\
-    \ and summarize the last 24 hours of heartbeat and platform-sweep results. Call\
-    \ out repeated failures, inability to reach main, or upcoming TLS expiry if present.\
-    \ Produce a concise daily report for main, send it to session agent:main:main\
-    \ via sessions_send with a [WATCHDOG OK] prefix when healthy or [WATCHDOG WARNING]\
-    \ when attention is needed, and append the digest summary to the same status log\
-    \ while trimming older material so the log stays focused on roughly the last 7\
-    \ days.\",\"session\":\"isolated\"},\"schedule\":{\"cron\":\"0 7 * * *\"}}],\n\
-    \  \"gateway\": {\n    \"mode\": \"local\",\n    \"bind\": \"lan\",\n    \"port\"\
-    : 18789,\n    \"auth\": {\n      \"mode\": \"token\",\n      \"token\": \"${OPENCLAW_GATEWAY_TOKEN}\"\
+    :true},\"sessions\":{\"visibility\":\"all\"}},\n  \"cron\": {\"enabled\":true,\"\
+    maxConcurrentRuns\":1,\"runLog\":{\"keepLines\":2000,\"maxBytes\":\"2mb\"},\"\
+    sessionRetention\":\"24h\",\"store\":\"~/.openclaw/cron/jobs.json\"},\n  \"gateway\"\
+    : {\n    \"mode\": \"local\",\n    \"bind\": \"lan\",\n    \"port\": 18789,\n\
+    \    \"auth\": {\n      \"mode\": \"token\",\n      \"token\": \"${OPENCLAW_GATEWAY_TOKEN}\"\
     \n    },\n    \"controlUi\": {\n      \"enabled\": true,\n      \"allowedOrigins\"\
     : [\"https://openclaw.localtest.me\"]\n    },\n    \"trustedProxies\": [\"10.42.0.0/16\"\
     ]\n  },\n  \"agents\": {\n    \"defaults\": {\"models\":{\"anthropic/claude-haiku-4-5\"\
@@ -602,37 +559,38 @@ data:
     id\":\"coder\",\"model\":{\"primary\":\"anthropic/claude-sonnet-4-5\"},\"name\"\
     :\"Coder\",\"sandbox\":{\"docker\":{\"env\":{\"CODER_GITEA_BASE_URL\":\"https://gitea.homebase.local\"\
     ,\"CODER_GITEA_EMAIL\":\"coder@example.invalid\",\"CODER_GITEA_HOST\":\"gitea.homebase.local\"\
-    ,\"CODER_GITEA_PASSWORD\":\"change-me\",\"CODER_GITEA_TEA_LOGIN_NAME\":\"coder\"\
-    ,\"CODER_GITEA_TEA_TOKEN_NAME\":\"openclaw-coder-sandbox\",\"CODER_GITEA_USERNAME\"\
+    ,\"CODER_GITEA_PASSWORD\":\"${CODER_GITEA_PASSWORD}\",\"CODER_GITEA_TEA_LOGIN_NAME\"\
+    :\"coder\",\"CODER_GITEA_TEA_TOKEN_NAME\":\"openclaw-coder-sandbox\",\"CODER_GITEA_USERNAME\"\
     :\"coder\",\"CODER_GITOPS_PROJECT\":\"platform-stack\",\"CODER_GITOPS_REPO_BRANCH\"\
     :\"main\",\"CODER_GITOPS_REPO_NAME\":\"cluster-gitops\",\"CODER_REGISTRY_BASE_URL\"\
     :\"https://registry.homebase.local\",\"CODER_REGISTRY_HOST\":\"registry.homebase.local\"\
-    ,\"CODER_REGISTRY_NAMESPACE\":\"coder\",\"CODER_REGISTRY_PASSWORD\":\"change-me\"\
+    ,\"CODER_REGISTRY_NAMESPACE\":\"coder\",\"CODER_REGISTRY_PASSWORD\":\"${CODER_REGISTRY_PASSWORD}\"\
     ,\"CODER_REGISTRY_USERNAME\":\"coder\",\"CODER_SANDBOX_IMAGES_REPO_NAME\":\"openclaw-sandbox-images\"\
     ,\"GITHUB_TOKEN\":\"${GITHUB_TOKEN}\",\"OPENAI_API_KEY\":\"${OPENAI_API_KEY}\"\
     },\"image\":\"registry.homebase.local/coder/openclaw-sandbox-coder:bookworm-slim\"\
     ,\"setupCommand\":\"set -eu\\nexport HOME=/workspace/.home\\nexport CODEX_HOME=\\\
-    \"${HOME}/.codex\\\"\\nexport XDG_CONFIG_HOME=\\\"${HOME}/.config\\\"\\nexport\
-    \ XDG_CACHE_HOME=\\\"${HOME}/.cache\\\"\\nexport XDG_STATE_HOME=\\\"${HOME}/.local/state\\\
-    \"\\nmkdir -p \\\"${CODEX_HOME}\\\" \\\"${XDG_CONFIG_HOME}/tea\\\" \\\"${XDG_CACHE_HOME}\\\
-    \" \\\"${XDG_STATE_HOME}\\\" \\\"${HOME}/.docker\\\"\\ngit config --global user.name\
+    \"$HOME/.codex\\\"\\nexport XDG_CONFIG_HOME=\\\"$HOME/.config\\\"\\nexport XDG_CACHE_HOME=\\\
+    \"$HOME/.cache\\\"\\nexport XDG_STATE_HOME=\\\"$HOME/.local/state\\\"\\nmkdir\
+    \ -p \\\"$CODEX_HOME\\\" \\\"$XDG_CONFIG_HOME/tea\\\" \\\"$XDG_CACHE_HOME\\\"\
+    \ \\\"$XDG_STATE_HOME\\\" \\\"$HOME/.docker\\\"\\ngit config --global user.name\
     \ \\\"coder\\\"\\ngit config --global user.email \\\"coder@example.invalid\\\"\
-    \\ncat \\u003e \\\"${HOME}/.netrc\\\" \\u003c\\u003c'EOF'\\nmachine gitea.homebase.local\\\
-    n  login coder\\n  password change-me\\nEOF\\nchmod 0600 \\\"${HOME}/.netrc\\\"\
-    \\nexisting_token_ids=\\\"$(curl -fsS -u 'coder:change-me' 'https://gitea.homebase.local/api/v1/users/coder/tokens'\
-    \ | jq -r '.[] | select(.name == \\\"openclaw-coder-sandbox\\\") | .id' || true)\\\
-    \"\\nif [ -n \\\"${existing_token_ids}\\\" ]; then\\n  for token_id in $existing_token_ids;\
-    \ do\\n    curl -fsS -X DELETE -u 'coder:change-me' \\\"https://gitea.homebase.local/api/v1/users/coder/tokens/${token_id}\\\
-    \" \\u003e/dev/null || true\\n  done\\nfi\\ntoken=\\\"$(curl -fsS -u 'coder:change-me'\
-    \ -H 'Content-Type: application/json' -d '{\\\"name\\\":\\\"openclaw-coder-sandbox\\\
+    \\ncat \\u003e \\\"$HOME/.netrc\\\" \\u003c\\u003cEOF\\nmachine gitea.homebase.local\\\
+    n  login coder\\n  password ${CODER_GITEA_PASSWORD}\\nEOF\\nchmod 0600 \\\"$HOME/.netrc\\\
+    \"\\nexisting_token_ids=\\\"$(curl -fsS -u \\\"coder:${CODER_GITEA_PASSWORD}\\\
+    \" 'https://gitea.homebase.local/api/v1/users/coder/tokens' | jq -r '.[] | select(.name\
+    \ == \\\"openclaw-coder-sandbox\\\") | .id' || true)\\\"\\nif [ -n \\\"$existing_token_ids\\\
+    \" ]; then\\n  for token_id in $existing_token_ids; do\\n    curl -fsS -X DELETE\
+    \ -u \\\"coder:${CODER_GITEA_PASSWORD}\\\" \\\"https://gitea.homebase.local/api/v1/users/coder/tokens/$token_id\\\
+    \" \\u003e/dev/null || true\\n  done\\nfi\\ntoken=\\\"$(curl -fsS -u \\\"coder:${CODER_GITEA_PASSWORD}\\\
+    \" -H 'Content-Type: application/json' -d '{\\\"name\\\":\\\"openclaw-coder-sandbox\\\
     \",\\\"scopes\\\":[\\\"all\\\"]}' 'https://gitea.homebase.local/api/v1/users/coder/tokens'\
-    \ 2\\u003e/dev/null | jq -r '.sha1 // empty' || true)\\\"\\nif [ -n \\\"${token}\\\
+    \ 2\\u003e/dev/null | jq -r '.sha1 // empty' || true)\\\"\\nif [ -n \\\"$token\\\
     \" ]; then\\n  tea login add --name coder --url 'https://gitea.homebase.local'\
-    \ --token \\\"${token}\\\" \\u003e/dev/null 2\\u003e\\u00261 || true\\nfi\\nif\
-    \ [ -n \\\"${CODER_REGISTRY_HOST:-}\\\" ] \\u0026\\u0026 [ -n \\\"${CODER_REGISTRY_USERNAME:-}\\\
+    \ --token \\\"$token\\\" \\u003e/dev/null 2\\u003e\\u00261 || true\\nfi\\nif [\
+    \ -n \\\"${CODER_REGISTRY_HOST:-}\\\" ] \\u0026\\u0026 [ -n \\\"${CODER_REGISTRY_USERNAME:-}\\\
     \" ] \\u0026\\u0026 [ -n \\\"${CODER_REGISTRY_PASSWORD:-}\\\" ]; then\\n  printf\
-    \ '%s' \\\"${CODER_REGISTRY_PASSWORD}\\\" | docker login \\\"${CODER_REGISTRY_HOST}\\\
-    \" --username \\\"${CODER_REGISTRY_USERNAME}\\\" --password-stdin \\u003e/dev/null\
+    \ '%s' \\\"$CODER_REGISTRY_PASSWORD\\\" | docker login \\\"$CODER_REGISTRY_HOST\\\
+    \" --username \\\"$CODER_REGISTRY_USERNAME\\\" --password-stdin \\u003e/dev/null\
     \ 2\\u003e\\u00261 || true\\nfi\"},\"mode\":\"all\"},\"workspace\":\"/home/node/.openclaw/workspace-coder\"\
     },{\"id\":\"architect\",\"model\":{\"primary\":\"anthropic/claude-opus-4-6\"},\"\
     name\":\"Architect\",\"workspace\":\"/home/node/.openclaw/workspace-architect\"\
@@ -685,8 +643,9 @@ data:
     \ Which agent owns each.]\n~~~\n\n## Tool Scope\n\n- Use research, documentation,\
     \ planning, and diagnostic tools.\n- Use Nextcloud extensively for project artifacts.\n\
     - Use Qdrant for cross-agent memory.\n- Use `sessions_send` via `agent:main:main`.\n\
-    - Do not use `sessions_spawn`; main owns sub-agent spawning.\n- Do not use coding-agent,\
-    \ repository-execution, messaging-channel, or personal-assistant tools.\n"
+    - Treat `agent:main:main` as a session ID, not a label.\n- Do not use `sessions_spawn`;\
+    \ main owns sub-agent spawning.\n- Do not use coding-agent, repository-execution,\
+    \ messaging-channel, or personal-assistant tools.\n"
   workspace-architect-HEARTBEAT.md: '
 
     Before finishing, check whether the plan is concrete enough for main to route
@@ -1019,9 +978,9 @@ data:
     \ open questions, next steps. Which agent owns each.]\n~~~\n\n## Tool Scope\n\n\
     - Use coding-agent tools, repository-execution tools, and GitOps tools.\n- Use\
     \ Nextcloud for implementation documentation.\n- Use Qdrant for cross-agent memory.\n\
-    - Use `sessions_send` to communicate via `agent:main:main`.\n- Do not use `sessions_spawn`;\
-    \ main owns sub-agent spawning.\n- Do not use messaging-channel or personal-assistant\
-    \ tools.\n"
+    - Use `sessions_send` to communicate via `agent:main:main`.\n- Treat `agent:main:main`\
+    \ as a session ID, not a label.\n- Do not use `sessions_spawn`; main owns sub-agent\
+    \ spawning.\n- Do not use messaging-channel or personal-assistant tools.\n"
   workspace-coder-HEARTBEAT.md: '
 
     Before finishing, check whether the implementation is validated enough for main
@@ -1161,10 +1120,12 @@ data:
     \ `healthcheck`, and `skill-creator`.\n- Do not use personal tools, messaging\
     \ tools, or weather-oriented tools unless the work somehow requires them and main\
     \ explicitly routed that need to you.\n\nAgent communication:\n- Use `sessions_send`\
-    \ to communicate with other agents through their main sessions.\n- Your normal\
-    \ coordination target is `agent:main:main`.\n- If work is mainly recurring monitoring,\
-    \ polling, or watch duty, route that need back through main so watchdog can own\
-    \ it.\n- Do not use `sessions_spawn`; main owns sub-agent spawning.\n"
+    \ to communicate with other agents through their main sessions.\n- Session targets\
+    \ like `agent:main:main`, `agent:architect:main`, and `agent:watchdog:main` are\
+    \ session IDs, not labels.\n- Your normal coordination target is `agent:main:main`.\n\
+    - If work is mainly recurring monitoring, polling, or watch duty, route that need\
+    \ back through main so watchdog can own it.\n- Do not use `sessions_spawn`; main\
+    \ owns sub-agent spawning.\n"
   workspace-coder-USER.md: '
 
     The user works through main. Keep handoff notes concise, factual, and ready for
@@ -1213,9 +1174,10 @@ data:
     \ user should see the result, synthesize or relay it.\n3. If follow-up is needed,\
     \ route it to the correct agent.\n\n## Tool Scope\n\n- Use `sessions_spawn` and\
     \ `sessions_send` for agent coordination. Main is the only agent that spawns sub-agents.\n\
-    - Use Nextcloud for user-facing data management.\n- Use Qdrant for cross-agent\
-    \ memory.\n- Do not use coding-agent or repository-execution tools beyond trivial\
-    \ config lookups.\n"
+    - When you call `sessions_send`, targets like `agent:main:main`, `agent:coder:main`,\
+    \ and `agent:archivist:main` are literal session IDs, not labels.\n- Use Nextcloud\
+    \ for user-facing data management.\n- Use Qdrant for cross-agent memory.\n- Do\
+    \ not use coding-agent or repository-execution tools beyond trivial config lookups.\n"
   workspace-main-BOOTSTRAP.md: '
 
     Start a normal first-use bootstrap conversation with the user.
@@ -1241,7 +1203,7 @@ data:
 
     - use `sessions_send` to start `agent:coder:main`, `agent:architect:main`, `agent:archivist:main`,
     and `agent:watchdog:main` right away so those specialist main sessions are live
-    from the start;
+    from the start; treat those `agent:<name>:main` targets as session IDs, not labels;
 
     - explain that you can use the dedicated Nextcloud account `openclaw` for lightweight
     shared coordination notes, calendars, tasks, and reminders;
@@ -1455,10 +1417,10 @@ data:
     ### Recommended action\n[What should happen next and which agent should own it.]\n\
     ~~~\n\n## Tool Scope\n\n- Use health-check, monitoring, and diagnostic tools.\n\
     - Use Nextcloud for incident reports and baselines.\n- Use Qdrant for cross-agent\
-    \ memory.\n- Use `sessions_send` via `agent:main:main`.\n- Do not use `sessions_spawn`;\
-    \ main owns sub-agent spawning.\n- Do not use coding-agent, repository-execution,\
-    \ or messaging-channel tools.\n- Keep operations lightweight and prefer quick\
-    \ checks over deep analysis.\n"
+    \ memory.\n- Use `sessions_send` via `agent:main:main`.\n- Treat `agent:main:main`\
+    \ as a session ID, not a label.\n- Do not use `sessions_spawn`; main owns sub-agent\
+    \ spawning.\n- Do not use coding-agent, repository-execution, or messaging-channel\
+    \ tools.\n- Keep operations lightweight and prefer quick checks over deep analysis.\n"
   workspace-watchdog-HEARTBEAT.md: '
 
     Stay lightweight. Watch for signals, classify urgency, and hand off to main when
@@ -1694,8 +1656,9 @@ spec:
       - command:
         - /bin/sh
         - -ceu
-        - "exec memgraph \\\n  --bolt-address=0.0.0.0 \\\n  --bolt-port=7687 \\\n\
-          \  --http-address=0.0.0.0 \\\n  --http-port=7444 \\\n  --data-directory=/var/lib/memgraph\n"
+        - "exec /usr/lib/memgraph/memgraph \\\n  --bolt-address=0.0.0.0 \\\n  --bolt-port=7687\
+          \ \\\n  --monitoring-address=0.0.0.0 \\\n  --monitoring-port=7444 \\\n \
+          \ --data-directory=/var/lib/memgraph\n"
         image: memgraph/memgraph:3.8.1
         imagePullPolicy: IfNotPresent
         livenessProbe:
@@ -1733,13 +1696,19 @@ spec:
         volumeMounts:
         - mountPath: /var/lib/memgraph
           name: data
+        - mountPath: /var/log/memgraph
+          name: logs
       initContainers:
       - command:
         - sh
         - -ceu
         - 'mkdir -p /var/lib/memgraph
 
+          mkdir -p /var/log/memgraph
+
           chown -R 0:0 /var/lib/memgraph
+
+          chown -R 0:0 /var/log/memgraph
 
           '
         image: busybox:1.36.1
@@ -1751,6 +1720,8 @@ spec:
         volumeMounts:
         - mountPath: /var/lib/memgraph
           name: data
+        - mountPath: /var/log/memgraph
+          name: logs
       securityContext:
         fsGroup: 0
         seccompProfile:
@@ -1759,6 +1730,7 @@ spec:
       - name: data
         persistentVolumeClaim:
           claimName: platform-stack-memgraph-data
+      - name: logs
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -1975,12 +1947,82 @@ spec:
           valueFrom:
             secretKeyRef:
               key: OPENCLAW_GATEWAY_TOKEN
-              name: openclaw-app-secrets
+              name: openclaw-secrets
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              key: OPENAI_API_KEY
+              name: openclaw-secrets
+        - name: ANTHROPIC_API_KEY
+          valueFrom:
+            secretKeyRef:
+              key: ANTHROPIC_API_KEY
+              name: openclaw-secrets
+        - name: BRAVE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              key: BRAVE_API_KEY
+              name: openclaw-secrets
+        - name: KIMI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              key: KIMI_API_KEY
+              name: openclaw-secrets
+        - name: MOONSHOT_API_KEY
+          valueFrom:
+            secretKeyRef:
+              key: MOONSHOT_API_KEY
+              name: openclaw-secrets
+        - name: TAVILY_API_KEY
+          valueFrom:
+            secretKeyRef:
+              key: TAVILY_API_KEY
+              name: openclaw-secrets
+        - name: PERPLEXITY_API_KEY
+          valueFrom:
+            secretKeyRef:
+              key: PERPLEXITY_API_KEY
+              name: openclaw-secrets
+        - name: GEMINI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              key: GEMINI_API_KEY
+              name: openclaw-secrets
+        - name: XAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              key: XAI_API_KEY
+              name: openclaw-secrets
+        - name: GITHUB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              key: GITHUB_TOKEN
+              name: openclaw-secrets
+        - name: GOOGLE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              key: GOOGLE_API_KEY
+              name: openclaw-secrets
+        - name: BRAVE_SEARCH_API_KEY
+          valueFrom:
+            secretKeyRef:
+              key: BRAVE_SEARCH_API_KEY
+              name: openclaw-secrets
         - name: OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER
           valueFrom:
             secretKeyRef:
               key: OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER
               name: openclaw-nextcloud-mcp-secrets
+        - name: CODER_GITEA_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: CODER_GITEA_PASSWORD
+              name: coder-credentials
+        - name: CODER_REGISTRY_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: CODER_REGISTRY_PASSWORD
+              name: coder-credentials
         image: openclaw-remote-docker:bookworm-slim
         imagePullPolicy: IfNotPresent
         livenessProbe:
@@ -4095,17 +4137,17 @@ spec:
       - command:
         - /bin/sh
         - -ceu
-        - "until mgconsole --host \"platform-stack-memgraph\" --port 7687 --output-format\
-          \ csv -e \"RETURN 1;\" >/dev/null 2>&1; do\n  echo \"waiting for platform-stack-memgraph:7687\"\
-          \n  sleep 2\ndone\ncat <<'CYPHER' >/tmp/memgraph-seed.cypher\n  MERGE (project:Project:System\
-          \ {slug: 'ai-homebase'})\n  ON CREATE SET project.name = 'ai-homebase',\n\
-          \                project.domain = 'real',\n                project.kind\
-          \ = 'platform';\n  \n  MERGE (user:Person:User {slug: 'user'})\n  ON CREATE\
-          \ SET user.name = 'User',\n                user.domain = 'real';\n  \n \
-          \ MERGE (openclaw:Service:System {slug: 'openclaw'})\n  ON CREATE SET openclaw.name\
-          \ = 'OpenClaw',\n                openclaw.category = 'agent-runtime';\n\
-          \  \n  MERGE (nextcloud:Service:System {slug: 'nextcloud'})\n  ON CREATE\
-          \ SET nextcloud.name = 'Nextcloud',\n                nextcloud.category\
+        - "until printf 'RETURN 1;\\n' | mgconsole --host \"platform-stack-memgraph\"\
+          \ --port 7687 --output-format csv >/dev/null 2>&1; do\n  echo \"waiting\
+          \ for platform-stack-memgraph:7687\"\n  sleep 2\ndone\ncat <<'CYPHER' >/tmp/memgraph-seed.cypher\n\
+          \  MERGE (project:Project:System {slug: 'ai-homebase'})\n  ON CREATE SET\
+          \ project.name = 'ai-homebase',\n                project.domain = 'real',\n\
+          \                project.kind = 'platform';\n  \n  MERGE (user:Person:User\
+          \ {slug: 'user'})\n  ON CREATE SET user.name = 'User',\n               \
+          \ user.domain = 'real';\n  \n  MERGE (openclaw:Service:System {slug: 'openclaw'})\n\
+          \  ON CREATE SET openclaw.name = 'OpenClaw',\n                openclaw.category\
+          \ = 'agent-runtime';\n  \n  MERGE (nextcloud:Service:System {slug: 'nextcloud'})\n\
+          \  ON CREATE SET nextcloud.name = 'Nextcloud',\n                nextcloud.category\
           \ = 'knowledge-store';\n  \n  MERGE (qdrant:Service:System {slug: 'qdrant'})\n\
           \  ON CREATE SET qdrant.name = 'Qdrant',\n                qdrant.category\
           \ = 'vector-memory';\n  \n  MERGE (memgraph:Service:System {slug: 'memgraph'})\n\
@@ -4132,7 +4174,19 @@ spec:
           \                gitopsRepo.kind = 'gitops';\n  \n  MERGE (sandboxRepo:Repository:System\
           \ {slug: 'openclaw-sandbox-images'})\n  ON CREATE SET sandboxRepo.name =\
           \ 'openclaw-sandbox-images',\n                sandboxRepo.kind = 'sandbox-images';\n\
-          \  \n  MERGE (project)-[:HAS_USER]->(user)\n  MERGE (project)-[:USES_SERVICE]->(openclaw)\n\
+          \  \n  MATCH (project:Project:System {slug: 'ai-homebase'})\n  MATCH (user:Person:User\
+          \ {slug: 'user'})\n  MATCH (openclaw:Service:System {slug: 'openclaw'})\n\
+          \  MATCH (nextcloud:Service:System {slug: 'nextcloud'})\n  MATCH (qdrant:Service:System\
+          \ {slug: 'qdrant'})\n  MATCH (memgraph:Service:System {slug: 'memgraph'})\n\
+          \  MATCH (memgraphLab:Service:System {slug: 'memgraph-lab'})\n  MATCH (gitea:Service:System\
+          \ {slug: 'gitea'})\n  MATCH (argocd:Service:System {slug: 'argocd'})\n \
+          \ MATCH (registry:Service:System {slug: 'registry'})\n  MATCH (main:Agent:Person\
+          \ {slug: 'main'})\n  MATCH (architect:Agent:Person {slug: 'architect'})\n\
+          \  MATCH (coder:Agent:Person {slug: 'coder'})\n  MATCH (watchdog:Agent:Person\
+          \ {slug: 'watchdog'})\n  MATCH (archivist:Agent:Person {slug: 'archivist'})\n\
+          \  MATCH (gitopsRepo:Repository:System {slug: 'cluster-gitops'})\n  MATCH\
+          \ (sandboxRepo:Repository:System {slug: 'openclaw-sandbox-images'})\n  MERGE\
+          \ (project)-[:HAS_USER]->(user)\n  MERGE (project)-[:USES_SERVICE]->(openclaw)\n\
           \  MERGE (project)-[:USES_SERVICE]->(nextcloud)\n  MERGE (project)-[:USES_SERVICE]->(qdrant)\n\
           \  MERGE (project)-[:USES_SERVICE]->(memgraph)\n  MERGE (project)-[:USES_SERVICE]->(memgraphLab)\n\
           \  MERGE (project)-[:USES_SERVICE]->(gitea)\n  MERGE (project)-[:USES_SERVICE]->(argocd)\n\

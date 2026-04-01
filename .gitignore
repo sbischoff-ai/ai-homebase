@@ -25,3 +25,8 @@ temp/
 *.bak
 __pycache__/
 *.pyc
+
+# Local plaintext secret templates and operator-filled copies
+secrets/*.yaml
+!secrets/.sops.yaml
+!secrets/*.enc.yaml

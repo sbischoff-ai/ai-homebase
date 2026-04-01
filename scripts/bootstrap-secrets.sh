@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+# DEPRECATED: prefer repo-managed SOPS Secret manifests under ./secrets/ and Argo CD
+# decryption at deploy time. This script remains only for legacy bootstrap flows and
+# Secrets that have not yet been migrated to the SOPS workflow. See docs/secrets.md.
+
 source "$(dirname "$0")/lib/logging.sh"
 
 PROFILE="${PROFILE:-}"
@@ -438,7 +442,7 @@ done
 if [[ -n "${GITHUB_TOKEN:-}" ]]; then
   OPENCLAW_SECRET_ARGS+=(--from-literal="GITHUB_TOKEN=${GITHUB_TOKEN}")
 fi
-create_and_apply_secret openclaw-app-secrets \
+create_and_apply_secret openclaw-secrets \
   "${OPENCLAW_SECRET_ARGS[@]}"
 
 create_remote_docker_secret \
