@@ -413,3 +413,45 @@ Suggested later test sequence:
 4. Simulate a stale heartbeat and then a repeated stale heartbeat to confirm the two-consecutive-failure rule before escalation behavior.
 5. Run a platform sweep and confirm findings are written to the Nextcloud status log rather than sent directly from cron via `sessions_send`.
 6. Run archivist grooming and the daily digest once to confirm the `neo4j-driver` path and budget-ledger summary both work end to end.
+
+## 2026-04-01 - Task 10: Nextcloud Bootstrap Content + Escalation Rules + Baselines
+
+Status: statically validated only. Do not treat this as live Nextcloud-bootstrap or reseed verified yet.
+
+Scope:
+
+- Added `heartbeat.json` to the seeded `bootstrapProjectContent` for the `ai-homebase` Nextcloud project with the initial bootstrap heartbeat payload.
+- Added `budget-ledger.json` to the same seeded project content with the initial soft-budget and hard-ceiling structure plus an empty `entries` array.
+- Replaced the placeholder `baselines.md` content with initial gateway, session, service, and known-pattern baselines for watchdog follow-up.
+- Replaced the placeholder `escalation-rules.md` content with explicit `info` / `warning` / `critical` gates, anti-false-positive rules, and follow-up ownership guidance.
+
+What to verify later during a real bootstrap, reseed, or disposable-environment test:
+
+- A fresh Nextcloud bootstrap actually creates `/Projects/ai-homebase/heartbeat.json` with the exact initial JSON payload from `charts/platform-stack/values.yaml`.
+- A fresh Nextcloud bootstrap actually creates `/Projects/ai-homebase/budget-ledger.json` with the exact seeded budget structure and an empty `entries` array.
+- The Nextcloud bootstrap job writes the Markdown files with the intended formatting and does not mangle the table in `escalation-rules.md`.
+- Existing environments are handled intentionally:
+  confirm whether already-seeded project files remain unchanged, are overwritten, or require an explicit reseed path.
+- The standing agents can read the newly seeded `heartbeat.json` and `budget-ledger.json` paths through the Nextcloud MCP pathing conventions already referenced in their workspace instructions.
+- `watchdog` can append or update the seeded `baselines.md` and incident-related files without conflicting with the new initial content.
+- `main` can read the seeded `budget-ledger.json` before delegation and append later usage records in the expected JSON shape.
+- The initial baselines are accurate enough for a real environment and do not create false positives once the platform is running normally.
+- The severity ownership guidance in `escalation-rules.md` matches actual operator expectations for watchdog-to-main escalation flow.
+
+Static validation completed:
+
+- `yq '.' charts/platform-stack/values.yaml >/tmp/platform-stack-values-validated.yaml`
+- Extracted `heartbeat.json` payload from `charts/platform-stack/values.yaml` and validated it with `jq`.
+- Extracted `budget-ledger.json` payload from `charts/platform-stack/values.yaml` and validated it with `jq`.
+
+Known validation gap:
+
+- The repo's canonical Helm-based validation commands could not run in this workspace because `helm` is not installed locally, so no Helm render or lint verified the seeded Nextcloud content in this session.
+
+Suggested later test sequence:
+
+1. Use a disposable environment, not the long-running local stack.
+2. Run a fresh bootstrap or an explicit Nextcloud project-content reseed path and inspect the resulting `/Projects/ai-homebase/` files.
+3. Open `heartbeat.json`, `budget-ledger.json`, `baselines.md`, and `escalation-rules.md` through Nextcloud or the MCP bridge and confirm the exact seeded content and formatting.
+4. Exercise one `main` budget-check flow and one `watchdog` baseline/escalation-reference flow to confirm the seeded files are readable and operationally useful.
+5. Decide and document the intended behavior for already-existing bootstrap project files during upgrades or reruns.

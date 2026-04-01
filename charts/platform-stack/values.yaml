@@ -1544,22 +1544,69 @@ nextcloud:
             - suspected or confirmed cause
             - resolution
             - follow-up actions
+        - path: heartbeat.json
+          content: |
+            {"lastActivity": "1970-01-01T00:00:00Z", "agent": "bootstrap", "status": "initial"}
+        - path: budget-ledger.json
+          content: |
+            {
+              "budgets": {
+                "daily_soft_total": 12.50,
+                "weekly_soft_total": 50.00,
+                "monthly_hard_ceiling": 100.00,
+                "per_agent_daily_soft": {
+                  "main": 5.00,
+                  "architect": 3.00,
+                  "coder": 3.00,
+                  "archivist": 1.00,
+                  "watchdog": 0.50
+                }
+              },
+              "entries": [],
+              "note": "Agents append usage entries at session end. Main checks before delegating. Watchdog reads for daily digest. Format: {date, agent, tokens, estimatedCostUsd}. Monthly ceiling is the binding constraint; daily/weekly are soft."
+            }
         - path: baselines.md
           content: |
             # Monitoring Baselines
 
-            Record durable monitoring baselines, thresholds, and expected values here.
+            ## Gateway
+            - /readyz -> HTTP 200 (expected at all times after startup)
+            - Startup time: ~30-60 seconds after pod creation
 
-            Watchdog should append to this file when a new baseline is established or an old one changes.
+            ## Sessions
+            - Standing sessions after bootstrap: 5 (main, architect, coder, archivist, watchdog)
+            - Cold-start session response time: 5-30 seconds (expected, not a fault)
+
+            ## Services
+            - Nextcloud: HTTP 200 at internal service URL
+            - Memgraph: Bolt connection on port 7687
+            - Qdrant: HTTP 200 at internal service URL
+
+            ## Known Patterns
+            - sessions_list returns 0 from sandboxed cron context (expected - sandbox isolation)
+            - First heartbeat after deploy may show stale timestamp (expected - main has not run yet)
+
+            Watchdog should update this document as new baselines are established.
         - path: escalation-rules.md
           content: |
             # Escalation Rules
 
-            Record durable escalation guidance here:
-            - what conditions should trigger an alert
-            - severity mapping
-            - which agent should own follow-up
-            - any timing or retry expectations
+            | Severity | Gate | Follow-up owner |
+            | --- | --- | --- |
+            | info | Expected behavior, first observation, or no user-visible impact | watchdog documents it and updates baselines if needed |
+            | warning | Repeated deviation, degraded behavior, or issue needing scheduled follow-up | watchdog notifies main; main decides routing |
+            | critical | User-visible outage, data-risk condition, or sustained control-plane failure | watchdog escalates to main immediately; main coordinates response |
+
+            ## Anti-False-Positive Rules
+            - Cold-start exemption: do not escalate slow first response from a newly created session if it falls within the documented cold-start baseline.
+            - Sandbox isolation exemption: do not escalate `sessions_list` returning 0 from sandboxed cron context; that is expected isolation behavior.
+            - 30-minute cooldown: do not re-raise the same warning or critical condition more than once within 30 minutes unless severity increases.
+            - Baseline requirement: before classifying anything as a deviation, compare it against `/Projects/ai-homebase/baselines.md`. If no baseline exists, log it as info and propose a baseline instead of escalating.
+
+            Ownership note:
+            - `info` stays with `watchdog`.
+            - `warning` goes from `watchdog` to `main` for prioritization and delegation.
+            - `critical` goes directly to `main`, which owns immediate coordination and follow-up assignment.
       notes:
         - path: project-brief.md
           content: |
