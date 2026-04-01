@@ -906,6 +906,7 @@ openclaw:
           backend: docker
           mode: non-main
           scope: agent
+          sessionToolsVisibility: "all"
           docker:
             image: registry.homebase.local/coder/openclaw-sandbox:bookworm-slim
             workdir: /workspace
@@ -953,12 +954,24 @@ openclaw:
             mode: all
             docker:
               image: registry.homebase.local/coder/openclaw-sandbox-coder:bookworm-slim
+              binds:
+                - /var/run/docker.sock:/var/run/docker.sock
+              tmpfs:
+                - /tmp
+                - /var/tmp
+                - /run
+                - /workspace
               env:
+                HOME: /workspace/.home
+                CODEX_HOME: /workspace/.home/.codex
+                XDG_CONFIG_HOME: /workspace/.home/.config
+                XDG_CACHE_HOME: /workspace/.home/.cache
+                XDG_STATE_HOME: /workspace/.home/.local/state
                 CODER_GITEA_BASE_URL: https://gitea.homebase.local
                 CODER_GITEA_HOST: gitea.homebase.local
                 CODER_GITEA_USERNAME: coder
                 CODER_GITEA_EMAIL: coder@example.invalid
-                CODER_GITEA_PASSWORD: change-me
+                CODER_GITEA_PASSWORD: ${CODER_GITEA_PASSWORD}
                 CODER_GITOPS_REPO_NAME: cluster-gitops
                 CODER_SANDBOX_IMAGES_REPO_NAME: openclaw-sandbox-images
                 CODER_GITOPS_REPO_BRANCH: main
@@ -968,39 +981,11 @@ openclaw:
                 CODER_REGISTRY_HOST: registry.homebase.local
                 CODER_REGISTRY_BASE_URL: https://registry.homebase.local
                 CODER_REGISTRY_USERNAME: coder
-                CODER_REGISTRY_PASSWORD: change-me
+                CODER_REGISTRY_PASSWORD: ${CODER_REGISTRY_PASSWORD}
                 CODER_REGISTRY_NAMESPACE: coder
                 OPENAI_API_KEY: ${OPENAI_API_KEY}
                 GITHUB_TOKEN: ${GITHUB_TOKEN}
-              setupCommand: |-
-                set -eu
-                export HOME=/workspace/.home
-                export CODEX_HOME="$HOME/.codex"
-                export XDG_CONFIG_HOME="$HOME/.config"
-                export XDG_CACHE_HOME="$HOME/.cache"
-                export XDG_STATE_HOME="$HOME/.local/state"
-                mkdir -p "$CODEX_HOME" "$XDG_CONFIG_HOME/tea" "$XDG_CACHE_HOME" "$XDG_STATE_HOME" "$HOME/.docker"
-                git config --global user.name "coder"
-                git config --global user.email "coder@example.invalid"
-                cat > "$HOME/.netrc" <<'EOF'
-                machine gitea.homebase.local
-                  login coder
-                  password change-me
-                EOF
-                chmod 0600 "$HOME/.netrc"
-                existing_token_ids="$(curl -fsS -u 'coder:change-me' 'https://gitea.homebase.local/api/v1/users/coder/tokens' | jq -r '.[] | select(.name == "openclaw-coder-sandbox") | .id' || true)"
-                if [ -n "$existing_token_ids" ]; then
-                  for token_id in $existing_token_ids; do
-                    curl -fsS -X DELETE -u 'coder:change-me' "https://gitea.homebase.local/api/v1/users/coder/tokens/$token_id" >/dev/null || true
-                  done
-                fi
-                token="$(curl -fsS -u 'coder:change-me' -H 'Content-Type: application/json' -d '{"name":"openclaw-coder-sandbox","scopes":["all"]}' 'https://gitea.homebase.local/api/v1/users/coder/tokens' 2>/dev/null | jq -r '.sha1 // empty' || true)"
-                if [ -n "$token" ]; then
-                  tea login add --name coder --url 'https://gitea.homebase.local' --token "$token" >/dev/null 2>&1 || true
-                fi
-                if [ -n "${CODER_REGISTRY_HOST:-}" ] && [ -n "${CODER_REGISTRY_USERNAME:-}" ] && [ -n "${CODER_REGISTRY_PASSWORD:-}" ]; then
-                  printf '%s' "$CODER_REGISTRY_PASSWORD" | docker login "$CODER_REGISTRY_HOST" --username "$CODER_REGISTRY_USERNAME" --password-stdin >/dev/null 2>&1 || true
-                fi
+              setupCommand: /usr/local/bin/coder-init.sh
         - id: architect
           name: Architect
           workspace: /home/node/.openclaw/workspace-architect
@@ -1011,6 +996,10 @@ openclaw:
           workspace: /home/node/.openclaw/workspace-archivist
           model:
             primary: anthropic/claude-sonnet-4-6
+          sandbox:
+            mode: non-main
+            docker:
+              image: registry.homebase.local/coder/openclaw-sandbox-archivist:bookworm-slim
         - id: watchdog
           name: Watchdog
           workspace: /home/node/.openclaw/workspace-watchdog
@@ -1076,25 +1065,31 @@ openclaw:
     limits:
       cpu: 500m
       memory: 512Mi
-  existingSecret: "openclaw-app-secrets"
+  existingSecret: "openclaw-secrets"
   secretKeys:
     gatewayToken: OPENCLAW_GATEWAY_TOKEN
-    openaiApiKey: ""
-    anthropicApiKey: ""
-    braveApiKey: ""
-    kimiApiKey: ""
-    moonshotApiKey: ""
-    tavilyApiKey: ""
-    perplexityApiKey: ""
-    geminiApiKey: ""
-    xaiApiKey: ""
-    githubToken: ""
-    googleApiKey: ""
-    braveSearchApiKey: ""
+    openaiApiKey: OPENAI_API_KEY
+    anthropicApiKey: ANTHROPIC_API_KEY
+    braveApiKey: BRAVE_API_KEY
+    kimiApiKey: KIMI_API_KEY
+    moonshotApiKey: MOONSHOT_API_KEY
+    tavilyApiKey: TAVILY_API_KEY
+    perplexityApiKey: PERPLEXITY_API_KEY
+    geminiApiKey: GEMINI_API_KEY
+    xaiApiKey: XAI_API_KEY
+    githubToken: GITHUB_TOKEN
+    googleApiKey: GOOGLE_API_KEY
+    braveSearchApiKey: BRAVE_SEARCH_API_KEY
   secretRefs:
     - name: openclaw-nextcloud-mcp-secrets
       key: OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER
       envVar: OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER
+    - name: coder-credentials
+      key: CODER_GITEA_PASSWORD
+      envVar: CODER_GITEA_PASSWORD
+    - name: coder-credentials
+      key: CODER_REGISTRY_PASSWORD
+      envVar: CODER_REGISTRY_PASSWORD
 
 argoCd:
   enabled: false

@@ -139,6 +139,7 @@ project = "platform-stack"
         assert "${OPENCLAW_NEXTCLOUD_MCP_INTERNAL_URL}" in bootstrap_values
         assert "${OPENCLAW_NEXTCLOUD_MCP_EXTERNAL_URL}" in bootstrap_values
         assert "/opt/openclaw-runtime/mcp/mcp-http-bridge.mjs" in bootstrap_values
+        assert "openclaw-sandbox-archivist:bookworm-slim" in bootstrap_values
         assert "openclaw-sandbox-coder:bookworm-slim" in bootstrap_values
         assert 'export HOME=/workspace/.home' in bootstrap_values
         assert 'CODEX_HOME' in bootstrap_values

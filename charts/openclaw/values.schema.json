@@ -237,6 +237,11 @@
                           "default": ["/tmp", "/var/tmp", "/run"],
                           "items": { "type": "string", "minLength": 1 }
                         },
+                        "binds": {
+                          "type": "array",
+                          "default": [],
+                          "items": { "type": "string", "minLength": 1 }
+                        },
                         "user": { "type": "string", "default": "1000:1000" },
                         "capDrop": {
                           "type": "array",

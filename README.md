@@ -22,6 +22,7 @@ The intended long-running target today is a single-node `k3s` install on a Hetzn
 - Full docs index: [docs/README.md](./docs/README.md)
 - Configuration and bootstrap model: [docs/configuration.md](./docs/configuration.md)
 - Service contracts: [docs/services.md](./docs/services.md)
+- Secret workflow: [docs/secrets.md](./docs/secrets.md)
 
 ## Quick Start
 
@@ -44,7 +45,7 @@ cp bootstrap.example.toml bootstrap.local.toml
 
 Use [docs/runbook-homelab.md](./docs/runbook-homelab.md) for the full Ubuntu host-prep and integrated bootstrap path.
 
-In both cases, fill in the new `[mail]` section and the per-agent model sections in `bootstrap.local.toml` before bootstrapping so Nextcloud/Vaultwarden mail and the bootstrapped OpenClaw `main`, `architect`, `coder`, `archivist`, and `watchdog` agents are configured correctly. The default coder posture now assumes a Claude-based orchestrator delegating substantial coding to Codex, so the standard bootstrap expects both `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` in `[providers]`. The same bootstrap flow also creates a dedicated `openclaw` Nextcloud user, seeds the OpenClaw gateway config with the standard Nextcloud MCP server definition, pre-seeds specialist workspace files for the multi-agent topology, and seeds the initial Memgraph knowledge graph baseline for the cluster.
+In both cases, fill in the new `[mail]` section and the per-agent model sections in `bootstrap.local.toml` before bootstrapping so Nextcloud/Vaultwarden mail and the bootstrapped OpenClaw `main`, `architect`, `coder`, `archivist`, and `watchdog` agents are configured correctly. Provider tokens and the migrated application Secrets should now be managed through the SOPS workflow documented in [docs/secrets.md](./docs/secrets.md) rather than committed in values files or created imperatively during bootstrap. The default coder posture now assumes a Claude-based orchestrator delegating substantial coding to Codex, so the standard bootstrap expects both `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` to be present through the `openclaw-secrets` Secret. The same bootstrap flow also creates a dedicated `openclaw` Nextcloud user, seeds the OpenClaw gateway config with the standard Nextcloud MCP server definition, pre-seeds specialist workspace files for the multi-agent topology, and seeds the initial Memgraph knowledge graph baseline for the cluster.
 
 ## Documentation Map
 

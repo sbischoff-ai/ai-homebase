@@ -177,7 +177,7 @@
         },
         "existingSecret": {
           "type": "string",
-          "default": "openclaw-app-secrets",
+          "default": "openclaw-secrets",
           "description": "Kubernetes Secret name containing OpenClaw credentials."
         },
         "remoteDocker": {

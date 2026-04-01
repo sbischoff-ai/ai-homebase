@@ -27,6 +27,13 @@ cat >"${repo_dir}/charts/platform-stack/values.yaml" <<'EOF'
 openclaw:
   remoteDocker:
     dockerHost: ssh://docker-remote@openclaw-sandbox.homebase.internal:2222
+  openclaw:
+    agents:
+      list:
+        - id: archivist
+          sandbox:
+            docker:
+              image: registry.homebase.local/coder/openclaw-sandbox-archivist:bookworm-slim
 EOF
 
 cat >"${repo_dir}/charts/platform-stack/values-k3s.yaml" <<'EOF'
@@ -84,6 +91,13 @@ printf 'openclaw-remote-docker-load-images.sh %s\n' "$*" >>"${FAKE_COMMAND_LOG:?
 SH
 chmod +x "${repo_dir}/scripts/openclaw-remote-docker-load-images.sh"
 
+cat >"${repo_dir}/scripts/openclaw-remote-docker-publish-images.sh" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'openclaw-remote-docker-publish-images.sh %s\n' "$*" >>"${FAKE_COMMAND_LOG:?}"
+SH
+chmod +x "${repo_dir}/scripts/openclaw-remote-docker-publish-images.sh"
+
 cat >"${repo_dir}/scripts/bootstrap-coder-gitea.sh" <<'SH'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -97,6 +111,13 @@ set -euo pipefail
 printf 'bootstrap-gitops.sh %s\n' "$*" >>"${FAKE_COMMAND_LOG:?}"
 SH
 chmod +x "${repo_dir}/scripts/bootstrap-gitops.sh"
+
+cat >"${repo_dir}/scripts/bootstrap-openclaw-cron.sh" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'bootstrap-openclaw-cron.sh %s\n' "$*" >>"${FAKE_COMMAND_LOG:?}"
+SH
+chmod +x "${repo_dir}/scripts/bootstrap-openclaw-cron.sh"
 
 cat >"${sandbox_dir}/bin/helm" <<'SH'
 #!/usr/bin/env bash
@@ -150,10 +171,12 @@ helm_log="$(cat "${sandbox_dir}/helm.log")"
 
 assert_contains "${commands}" "--remote-docker-host 10.10.10.1"
 assert_contains "${commands}" "--remote-docker-port 2222"
-assert_contains "${commands}" "build-openclaw-sandbox-images.sh --coder-image openclaw-sandbox-coder:bookworm-slim"
-assert_contains "${commands}" "openclaw-remote-docker-load-images.sh --docker-host ssh://docker-remote@10.10.10.1:2222 --image openclaw-sandbox-coder:bookworm-slim"
+assert_contains "${commands}" "build-openclaw-sandbox-images.sh --base-image openclaw-sandbox:bookworm-slim --archivist-image openclaw-sandbox-archivist:bookworm-slim --coder-image openclaw-sandbox-coder:bookworm-slim"
+assert_contains "${commands}" "openclaw-remote-docker-load-images.sh --docker-host ssh://docker-remote@10.10.10.1:2222"
+assert_contains "${commands}" "--image openclaw-sandbox-archivist:bookworm-slim"
+assert_contains "${commands}" "--image openclaw-sandbox-coder:bookworm-slim"
 assert_contains "${commands}" "bootstrap-coder-gitea.sh --bootstrap-config ${sandbox_dir}/bootstrap.local.toml --release-name platform-stack --namespace ai-homebase"
-assert_contains "${commands}" "bootstrap-gitops.sh --profile k3s --bootstrap-config ${sandbox_dir}/bootstrap.local.toml --release-name platform-stack --namespace ai-homebase --skip-install --kubeconfig /home/sbischoff/.kube/config --remote-docker-host 10.10.10.1 --remote-docker-port 2222 --incus-connection-info ${sandbox_dir}/incus/openclaw-sandbox.env"
+assert_contains "${commands}" "bootstrap-gitops.sh --profile k3s --bootstrap-config ${sandbox_dir}/bootstrap.local.toml --release-name platform-stack --namespace ai-homebase --kubeconfig /home/sbischoff/.kube/config --remote-docker-host 10.10.10.1 --remote-docker-port 2222 --remote-docker-key ${sandbox_dir}/.local/state/ai-homebase/incus/openclaw-sandbox-id_ed25519 --incus-connection-info ${sandbox_dir}/incus/openclaw-sandbox.env"
 assert_contains "${helm_log}" "dockerHost: ssh://docker-remote@10.10.10.1:2222"
 
 echo "bootstrap stack remote docker autodiscovery tests passed"

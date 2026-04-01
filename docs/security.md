@@ -15,7 +15,8 @@ The intended split is:
 
 Bootstrap-managed Secrets include:
 
-- `openclaw-app-secrets`
+- `openclaw-secrets`
+- `coder-credentials`
 - `openclaw-remote-docker-ssh`
 - `gitea-config-secrets`
 - `gitea-admin-secret`
@@ -23,6 +24,8 @@ Bootstrap-managed Secrets include:
 - `nextcloud-config-secrets`
 - `paperless-config-secrets`
 - shared PostgreSQL and Redis auth Secrets
+
+The preferred workflow for migrated Secrets is now SOPS-encrypted manifests under [`secrets/`](../secrets/) with operator guidance in [`docs/secrets.md`](./secrets.md). The imperative `scripts/bootstrap-secrets.sh` flow is deprecated and remains only for legacy or not-yet-migrated Secrets.
 
 ## User-Provided Tokens
 

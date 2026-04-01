@@ -757,6 +757,7 @@ openclaw:
         backend: docker
         mode: non-main
         scope: agent
+        sessionToolsVisibility: "all"
         docker:
           image: registry.example.com/coder/openclaw-sandbox:bookworm-slim
           workdir: /workspace
@@ -803,12 +804,24 @@ openclaw:
           mode: all
           docker:
             image: registry.example.com/coder/openclaw-sandbox-coder:bookworm-slim
+            binds:
+              - /var/run/docker.sock:/var/run/docker.sock
+            tmpfs:
+              - /tmp
+              - /var/tmp
+              - /run
+              - /workspace
             env:
+              HOME: /workspace/.home
+              CODEX_HOME: /workspace/.home/.codex
+              XDG_CONFIG_HOME: /workspace/.home/.config
+              XDG_CACHE_HOME: /workspace/.home/.cache
+              XDG_STATE_HOME: /workspace/.home/.local/state
               CODER_GITEA_BASE_URL: https://gitea.example.com
               CODER_GITEA_HOST: gitea.example.com
               CODER_GITEA_USERNAME: coder
               CODER_GITEA_EMAIL: coder@example.invalid
-              CODER_GITEA_PASSWORD: change-me
+              CODER_GITEA_PASSWORD: ${CODER_GITEA_PASSWORD}
               CODER_GITOPS_REPO_NAME: cluster-gitops
               CODER_SANDBOX_IMAGES_REPO_NAME: openclaw-sandbox-images
               CODER_GITOPS_REPO_BRANCH: main
@@ -818,39 +831,11 @@ openclaw:
               CODER_REGISTRY_HOST: registry.example.com
               CODER_REGISTRY_BASE_URL: https://registry.example.com
               CODER_REGISTRY_USERNAME: coder
-              CODER_REGISTRY_PASSWORD: change-me
+              CODER_REGISTRY_PASSWORD: ${CODER_REGISTRY_PASSWORD}
               CODER_REGISTRY_NAMESPACE: coder
               OPENAI_API_KEY: ${OPENAI_API_KEY}
               GITHUB_TOKEN: ${GITHUB_TOKEN}
-            setupCommand: |-
-              set -eu
-              export HOME=/workspace/.home
-              export CODEX_HOME="$HOME/.codex"
-              export XDG_CONFIG_HOME="$HOME/.config"
-              export XDG_CACHE_HOME="$HOME/.cache"
-              export XDG_STATE_HOME="$HOME/.local/state"
-              mkdir -p "$CODEX_HOME" "$XDG_CONFIG_HOME/tea" "$XDG_CACHE_HOME" "$XDG_STATE_HOME" "$HOME/.docker"
-              git config --global user.name "coder"
-              git config --global user.email "coder@example.invalid"
-              cat > "$HOME/.netrc" <<'EOF'
-              machine gitea.example.com
-                login coder
-                password change-me
-              EOF
-              chmod 0600 "$HOME/.netrc"
-              existing_token_ids="$(curl -fsS -u 'coder:change-me' 'https://gitea.example.com/api/v1/users/coder/tokens' | jq -r '.[] | select(.name == "openclaw-coder-sandbox") | .id' || true)"
-              if [ -n "$existing_token_ids" ]; then
-                for token_id in $existing_token_ids; do
-                  curl -fsS -X DELETE -u 'coder:change-me' "https://gitea.example.com/api/v1/users/coder/tokens/$token_id" >/dev/null || true
-                done
-              fi
-              token="$(curl -fsS -u 'coder:change-me' -H 'Content-Type: application/json' -d '{"name":"openclaw-coder-sandbox","scopes":["all"]}' 'https://gitea.example.com/api/v1/users/coder/tokens' 2>/dev/null | jq -r '.sha1 // empty' || true)"
-              if [ -n "$token" ]; then
-                tea login add --name coder --url 'https://gitea.example.com' --token "$token" >/dev/null 2>&1 || true
-              fi
-              if [ -n "${CODER_REGISTRY_HOST:-}" ] && [ -n "${CODER_REGISTRY_USERNAME:-}" ] && [ -n "${CODER_REGISTRY_PASSWORD:-}" ]; then
-                printf '%s' "$CODER_REGISTRY_PASSWORD" | docker login "$CODER_REGISTRY_HOST" --username "$CODER_REGISTRY_USERNAME" --password-stdin >/dev/null 2>&1 || true
-              fi
+            setupCommand: /usr/local/bin/coder-init.sh
       - id: architect
         name: Architect
         workspace: /home/node/.openclaw/workspace-architect
@@ -912,7 +897,7 @@ openclaw:
 env: []
 envFromSecrets: []
 # Secret injection conventions:
-# - Secret names: kebab-case (example: openclaw-app-secrets)
+# - Secret names: kebab-case (example: openclaw-secrets)
 # - Secret data keys: UPPER_SNAKE_CASE (example: OPENCLAW_GATEWAY_TOKEN)
 existingSecret: openclaw-secrets # Secret name used for explicit key refs under secretKeys.
 secretKeys:
@@ -929,7 +914,7 @@ secretKeys:
   githubToken: ""
   googleApiKey: "" # backward-compatible legacy alias for GEMINI_API_KEY-style setups
   braveSearchApiKey: "" # backward-compatible legacy alias for BRAVE_API_KEY-style setups
-secretRefs: [] # [{name: openclaw-app-secrets, key: OPENCLAW_API_TOKEN, envVar: OPENCLAW_API_TOKEN}]
+secretRefs: [] # [{name: openclaw-secrets, key: OPENCLAW_API_TOKEN, envVar: OPENCLAW_API_TOKEN}]
 
 podSecurityContext:
   fsGroup: 1000

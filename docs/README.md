@@ -12,6 +12,7 @@ Use this index as the map for the repository after the top-level [README.md](../
 
 - [`configuration.md`](./configuration.md): values layering, bootstrap config, and environment-specific inputs
 - [`services.md`](./services.md): service toggles, secret contracts, and runtime expectations
+- [`secrets.md`](./secrets.md): SOPS workflow, age keys, and encrypted Secret manifests
 - [`architecture.md`](./architecture.md): platform structure and target model
 
 ## Deep Dives

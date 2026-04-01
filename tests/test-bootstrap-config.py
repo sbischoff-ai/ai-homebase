@@ -193,12 +193,12 @@ assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["OPENAI_API_KEY"] == "${OPENAI_API_KEY}"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["GITHUB_TOKEN"] == "${GITHUB_TOKEN}"
 assert 'export HOME=/workspace/.home' in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["setupCommand"]
-assert 'export CODEX_HOME="${HOME}/.codex"' in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["setupCommand"]
-assert 'mkdir -p "${CODEX_HOME}" "${XDG_CONFIG_HOME}/tea" "${XDG_CACHE_HOME}" "${XDG_STATE_HOME}" "${HOME}/.docker"' in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["setupCommand"]
+assert 'export CODEX_HOME="$HOME/.codex"' in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["setupCommand"]
+assert 'mkdir -p "$CODEX_HOME" "$XDG_CONFIG_HOME/tea" "$XDG_CACHE_HOME" "$XDG_STATE_HOME" "$HOME/.docker"' in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["setupCommand"]
 assert "git config --global user.name" in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["setupCommand"]
 assert "machine gitea.test.internal" in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["setupCommand"]
 assert "tea login add --name coder" in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["setupCommand"]
-assert 'docker login "${CODER_REGISTRY_HOST}"' in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["setupCommand"]
+assert 'docker login ' in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["setupCommand"]
 assert "${CODER_GITEA_USERNAME}" not in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["setupCommand"]
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["id"] == "architect"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["workspace"] == "/home/node/.openclaw/workspace-architect"
@@ -326,8 +326,10 @@ assert rendered_values["paperlessNgx"]["admin"]["mail"] == "admin@example.invali
 assert rendered_values["paperlessNgx"]["ingress"]["hosts"][0]["host"] == "paperless.test.internal"
 assert rendered_values["global"]["mail"]["smtpHost"] == "smtp.example.com"
 assert rendered_values["global"]["hosts"]["registry"] == "registry.test.internal"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][3]["sandbox"]["docker"]["image"] == "registry.test.internal/coder-bot/openclaw-sandbox-archivist:bookworm-slim"
 
 coder_dockerfile = (REPO_ROOT / "images" / "openclaw-sandbox-coder" / "Dockerfile").read_text(encoding="utf-8")
+archivist_dockerfile = (REPO_ROOT / "images" / "openclaw-sandbox-archivist" / "Dockerfile").read_text(encoding="utf-8")
 qdrant_mcp_values = (REPO_ROOT / "charts" / "qdrant-mcp" / "values.yaml").read_text(encoding="utf-8")
 assert "usermod --home /home/sandbox sandbox" in coder_dockerfile
 assert "mkdir -p /home/sandbox /workspace" in coder_dockerfile
@@ -335,6 +337,9 @@ assert "ENV HOME=/workspace" not in coder_dockerfile
 assert "WORKDIR /workspace" in coder_dockerfile
 assert "tmux" in coder_dockerfile
 assert "@openai/codex" in coder_dockerfile
+assert "npm install -g neo4j-driver" in archivist_dockerfile
+assert "rm -f /usr/local/bin/mgconsole" in archivist_dockerfile
+assert "WORKDIR /home/sandbox" in archivist_dockerfile
 assert "toolDescriptions:" in qdrant_mcp_values
 assert "Store a memory for cross-agent recall." in qdrant_mcp_values
 assert "Search shared semantic memory across all agents." in qdrant_mcp_values

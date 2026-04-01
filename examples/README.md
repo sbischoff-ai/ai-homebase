@@ -2,12 +2,12 @@
 
 All examples in this directory use placeholders only. Replace values like `<your-namespace>`, `<your-release>`, and `<your-kube-context>` before running commands.
 
-For normal bootstrap flows, prefer `bootstrap.example.toml` + `bootstrap.local.toml` together with `scripts/bootstrap-stack.sh --profile <k3d|k3s> --bootstrap-config ...`. The manual `kubectl create secret` examples below remain useful for debugging or custom secret-management workflows.
+For normal bootstrap flows, prefer `bootstrap.example.toml` + `bootstrap.local.toml` together with `scripts/bootstrap-stack.sh --profile <k3d|k3s> --bootstrap-config ...`. For migrated application secrets, prefer the SOPS workflow in [`docs/secrets.md`](../docs/secrets.md). The manual `kubectl create secret` examples below remain useful for debugging or custom secret-management workflows.
 
 ## Dummy secrets for all components
 
 ```bash
-kubectl --context <your-kube-context> -n <your-namespace> create secret generic openclaw-app-secrets   --from-literal=OPENCLAW_GATEWAY_TOKEN=<dummy-openclaw-gateway-token>
+kubectl --context <your-kube-context> -n <your-namespace> create secret generic openclaw-secrets   --from-literal=OPENCLAW_GATEWAY_TOKEN=<dummy-openclaw-gateway-token>
 
 kubectl --context <your-kube-context> -n <your-namespace> create secret generic openclaw-remote-docker-ssh   --from-file=id_ed25519=<path-to-private-key>   --from-file=known_hosts=<path-to-known-hosts>
 

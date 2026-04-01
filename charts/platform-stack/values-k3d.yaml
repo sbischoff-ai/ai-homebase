@@ -52,24 +52,31 @@ openclaw:
   env:
     - name: NODE_OPTIONS
       value: --max-old-space-size=2048
-  existingSecret: openclaw-app-secrets
+  existingSecret: openclaw-secrets
   secretKeys:
     gatewayToken: OPENCLAW_GATEWAY_TOKEN
-    openaiApiKey: ""
-    anthropicApiKey: ""
-    braveApiKey: ""
-    kimiApiKey: ""
-    moonshotApiKey: ""
-    tavilyApiKey: ""
-    perplexityApiKey: ""
-    geminiApiKey: ""
-    xaiApiKey: ""
-    googleApiKey: ""
-    braveSearchApiKey: ""
+    openaiApiKey: OPENAI_API_KEY
+    anthropicApiKey: ANTHROPIC_API_KEY
+    braveApiKey: BRAVE_API_KEY
+    kimiApiKey: KIMI_API_KEY
+    moonshotApiKey: MOONSHOT_API_KEY
+    tavilyApiKey: TAVILY_API_KEY
+    perplexityApiKey: PERPLEXITY_API_KEY
+    geminiApiKey: GEMINI_API_KEY
+    xaiApiKey: XAI_API_KEY
+    githubToken: GITHUB_TOKEN
+    googleApiKey: GOOGLE_API_KEY
+    braveSearchApiKey: BRAVE_SEARCH_API_KEY
   secretRefs:
     - name: openclaw-nextcloud-mcp-secrets
       key: OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER
       envVar: OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER
+    - name: coder-credentials
+      key: CODER_GITEA_PASSWORD
+      envVar: CODER_GITEA_PASSWORD
+    - name: coder-credentials
+      key: CODER_REGISTRY_PASSWORD
+      envVar: CODER_REGISTRY_PASSWORD
   openclaw:
     gateway:
       controlUi:
