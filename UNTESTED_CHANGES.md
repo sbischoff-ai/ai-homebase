@@ -219,6 +219,42 @@ Scope:
 - Added explicit main-agent routing exclusions for graph work to archivist and expanded the existing routing boundaries for architect, coder, and watchdog.
 - Added a routing heuristics table to main's seeded `AGENTS.md` covering graph, coding/deployment, design/planning, and monitoring/health prompts.
 
+## 2026-04-02 - Task 13: Workspace Files Extracted Out of values.yaml
+
+Status: statically validated only. Do not treat this as live first-boot verified yet.
+
+Scope:
+
+- Moved the seeded agent workspace markdown out of inline YAML block scalars and into plain files under `charts/openclaw/files/workspaces/`.
+- Replaced the inline `workspaceBootstrap.agents.<id>.files` maps in `charts/platform-stack/values.yaml` and `charts/openclaw/values.yaml` with `filesDir` pointers.
+- Updated `charts/openclaw/templates/configmap.yaml` to render workspace files either from chart-owned files via `.Files.Get` or from legacy inline `files` values.
+- Updated `charts/openclaw/templates/deployment.yaml` so the workspace bootstrap init-container seeds files from either `filesDir` or legacy inline `files`.
+- Documented the new chart-owned workspace file location and legacy compatibility behavior in `docs/configuration.md`.
+
+What to verify later during a real deploy or first-start test:
+
+- A fresh OpenClaw install still seeds every expected workspace file into the durable state tree for `main`, `coder`, `architect`, `archivist`, and `watchdog`.
+- The seeded files in the live pod match the intended on-disk chart assets exactly, including trailing newlines and markdown formatting.
+- Existing persistent workspaces are still preserved correctly on upgrade and are not overwritten by the init-container when files already exist.
+- The chart-owned `filesDir` path works correctly for both umbrella-driven installs and direct `charts/openclaw` chart usage.
+- A values override that still uses legacy inline `workspaceBootstrap.agents.<id>.files` continues to render and seed correctly without `filesDir`.
+- The ConfigMap size remains acceptable when the workspace payload is loaded from files rather than inline values.
+
+Static validation completed:
+
+- `nix-shell --run './scripts/lint.sh --values-file charts/platform-stack/values.yaml'`
+- `nix-shell --run './scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values.yaml > /tmp/after-refactor.yaml'`
+- Rendered a clean pre-change snapshot to `/tmp/before-refactor.yaml` and confirmed `diff -u /tmp/before-refactor.yaml /tmp/after-refactor.yaml` was empty.
+
+Suggested later test sequence:
+
+1. Use a disposable environment, not the long-running local stack.
+2. Deploy or upgrade the umbrella chart with the refactored values.
+3. Inspect the rendered OpenClaw ConfigMap and confirm the expected `workspace-<agent>-<file>` keys exist.
+4. Start from an empty OpenClaw state directory and verify the init-container seeds every expected workspace file.
+5. Re-run with an existing populated state directory and confirm existing workspace files are preserved.
+6. Run one targeted override test using legacy inline `workspaceBootstrap.agents.<id>.files` to confirm backward compatibility.
+
 ## 2026-04-01 - Task 7: Coder + Archivist Workspace Bootstrap Revisions
 
 Status: statically validated only. Do not treat this as first-deploy or live-agent-runtime verified yet.
