@@ -17,6 +17,18 @@ mkdir -p "${GOLDEN_DIR}"
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "${tmp_dir}"' EXIT
 
+ensure_helm_repo() {
+  local name="$1"
+  local url="$2"
+  helm repo add --force-update "${name}" "${url}" > /dev/null
+}
+
+prepare_dependencies() {
+  local chart_dir="$1"
+  echo "Building chart dependencies for ${chart_dir}"
+  helm dependency build "${chart_dir}" > /dev/null
+}
+
 normalize_manifest() {
   local input_file="$1"
   local output_file="$2"
@@ -227,6 +239,13 @@ with output_path.open("w", encoding="utf-8") as fh:
     yaml.dump(configmap, fh, sort_keys=True, Dumper=StableDumper, width=10_000)
 PY
 }
+
+ensure_helm_repo "argoproj" "https://argoproj.github.io/argo-helm"
+ensure_helm_repo "gitea-charts" "https://dl.gitea.com/charts/"
+
+prepare_dependencies "charts/argo-cd"
+prepare_dependencies "charts/gitea"
+prepare_dependencies "${CHART_PATH}"
 
 for profile in "${profiles[@]}"; do
   name="${profile%%=*}"
