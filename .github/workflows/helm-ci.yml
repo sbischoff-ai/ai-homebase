@@ -33,7 +33,13 @@ jobs:
           version: v3.19.1
 
       - name: Build chart dependencies
-        run: helm dependency build charts/platform-stack
+        run: |
+          set -euo pipefail
+          helm repo add --force-update argoproj https://argoproj.github.io/argo-helm
+          helm repo add --force-update gitea-charts https://dl.gitea.com/charts/
+          helm dependency build charts/argo-cd
+          helm dependency build charts/gitea
+          helm dependency build charts/platform-stack
 
       - name: Lint all charts
         run: ./scripts/ci/lint_all_charts.sh
