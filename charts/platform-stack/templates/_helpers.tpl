@@ -69,3 +69,23 @@ helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
 {{- printf "%s-memgraph" .Release.Name | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 {{- end -}}
+
+{{- define "platform-stack.nextcloudFullname" -}}
+{{- if .Values.nextcloud.fullnameOverride -}}
+{{- .Values.nextcloud.fullnameOverride | trunc 63 | trimSuffix "-" -}}
+{{- else -}}
+{{- printf "%s-nextcloud" .Release.Name | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "platform-stack.nextcloudDataPvcName" -}}
+{{- if .Values.nextcloud.persistence.existingClaim -}}
+{{- .Values.nextcloud.persistence.existingClaim -}}
+{{- else -}}
+data
+{{- end -}}
+{{- end -}}
+
+{{- define "platform-stack.nextcloudBootstrapProjectContentConfigMapName" -}}
+{{- printf "%s-bootstrap-project-content" (include "platform-stack.nextcloudFullname" .) | trunc 63 | trimSuffix "-" -}}
+{{- end -}}

@@ -21,6 +21,7 @@ Local bootstrap operator input also lives outside the Helm values hierarchy:
 - Use the same `bootstrap.local.toml` for both `k3d` and `k3s`; cluster setup differs by target, but the stack bootstrap values and secret inputs stay shared.
 
 Bootstrap-generated values now also seed one initial Nextcloud project for the cluster itself, `ai-homebase`, so the bootstrapped agents start with durable in-cluster documentation about the running system and its operating model.
+The standard `ai-homebase` bootstrap content and the baseline Memgraph seed Cypher now live as ordinary repo files under `charts/platform-stack/files/` and are referenced from values by relative file paths/directories. Keep editing those assets as plain files rather than re-embedding large multiline payloads into `values.yaml`.
 
 Canonical global host keys include `global.hosts.paperlessNgx` for Paperless, `global.hosts.vaultwarden` for Vaultwarden, `global.hosts.registry` for the registry, `global.hosts.argocd` for Argo CD, `global.hosts.memgraph` for Memgraph, and `global.hosts.memgraphLab` for Memgraph Lab. Nextcloud also supports a second bootstrap-only hostname key, `hosts.nextcloud_public`, which feeds the public ingress host when the `k3s` overlay enables it.
 Nextcloud MCP follows the same pattern: `global.hosts.nextcloudMcp` is the canonical values key, and bootstrap config uses `hosts.nextcloud_mcp`.

@@ -1,0 +1,64 @@
+{{- $projects := .Values.nextcloud.bootstrapProjectContent | default (list) -}}
+{{- $hasFileBackedBootstrapProjectContent := false -}}
+{{- range $project := $projects }}
+  {{- if or ($project.projectsFilesDir | default "") ($project.notesFilesDir | default "") }}
+    {{- $hasFileBackedBootstrapProjectContent = true -}}
+  {{- end }}
+{{- end }}
+{{- if and (.Values.nextcloud.enabled | default false) $projects $hasFileBackedBootstrapProjectContent }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "platform-stack.nextcloudBootstrapProjectContentConfigMapName" . }}
+  labels:
+    helm.sh/chart: nextcloud-0.1.0
+    app.kubernetes.io/name: nextcloud
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    {{- with .Values.global.commonLabels }}
+{{ toYaml . | nindent 4 }}
+    {{- end }}
+data:
+  {{- range $projectIndex, $project := $projects }}
+  {{- $projectsFilesDir := $project.projectsFilesDir | default "" }}
+  {{- if $projectsFilesDir }}
+  {{- if $project.projectsFiles }}
+  {{- range $fileIndex, $file := $project.projectsFiles }}
+  project-{{ $projectIndex }}-file-{{ $fileIndex }}: |
+{{ $.Files.Get (printf "files/%s/%s" $projectsFilesDir $file.path) | trimSuffix "\n" | nindent 4 }}
+  {{- end }}
+  {{- else }}
+    {{- range $path, $_ := $.Files.Glob (printf "files/%s/**" $projectsFilesDir) }}
+    {{- $relativePath := trimPrefix (printf "files/%s/" $projectsFilesDir) $path }}
+  project-{{ $projectIndex }}-project-{{ $relativePath | replace "/" "-" | replace "." "-" | replace "_" "-" }}: |
+{{ $.Files.Get $path | trimSuffix "\n" | nindent 4 }}
+    {{- end }}
+  {{- end }}
+  {{- else }}
+  {{- range $fileIndex, $file := ($project.projectsFiles | default (list)) }}
+  project-{{ $projectIndex }}-file-{{ $fileIndex }}: |
+{{ $file.content | trimSuffix "\n" | nindent 4 }}
+  {{- end }}
+  {{- end }}
+  {{- $notesFilesDir := $project.notesFilesDir | default "" }}
+  {{- if $notesFilesDir }}
+  {{- if $project.notes }}
+  {{- range $noteIndex, $note := $project.notes }}
+  project-{{ $projectIndex }}-note-{{ $noteIndex }}: |
+{{ $.Files.Get (printf "files/%s/%s" $notesFilesDir $note.path) | trimSuffix "\n" | nindent 4 }}
+  {{- end }}
+  {{- else }}
+    {{- range $path, $_ := $.Files.Glob (printf "files/%s/**" $notesFilesDir) }}
+    {{- $relativePath := trimPrefix (printf "files/%s/" $notesFilesDir) $path }}
+  project-{{ $projectIndex }}-note-{{ $relativePath | replace "/" "-" | replace "." "-" | replace "_" "-" }}: |
+{{ $.Files.Get $path | trimSuffix "\n" | nindent 4 }}
+    {{- end }}
+  {{- end }}
+  {{- else }}
+  {{- range $noteIndex, $note := ($project.notes | default (list)) }}
+  project-{{ $projectIndex }}-note-{{ $noteIndex }}: |
+{{ $note.content | trimSuffix "\n" | nindent 4 }}
+  {{- end }}
+  {{- end }}
+  {{- end }}
+{{- end }}

@@ -347,6 +347,23 @@
           }
         }
       }
+    },
+    "memgraphBootstrap": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "seedCypher": {
+          "type": "string"
+        },
+        "seedCypherFile": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
     }
   },
   "not": {
