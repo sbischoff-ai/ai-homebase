@@ -105,6 +105,8 @@ Each entry defines:
 - `projectsFiles[]`: durable curated files written into `/Projects/<slug>/`
 - `notes[]`: temporary working notes written into `/Notes/<slug>/`
 
+The chart still supports that inline form directly. The umbrella `platform-stack` chart also supports file-backed project content by selecting `projectsFilesDir` and `notesFilesDir`, then rendering the bootstrap ConfigMap/Job from chart-owned files in `charts/platform-stack/files/`.
+
 This repo treats those locations differently:
 
 - `/Projects/` is durable structured storage for long-lived docs and outputs

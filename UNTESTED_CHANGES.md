@@ -1,5 +1,37 @@
 # Untested Changes
 
+## 2026-04-02 - Task 14: File-Backed Nextcloud Bootstrap Content + Memgraph Seed Cypher
+
+Status: statically validated only. Do not treat this as live-bootstrap verified yet.
+
+Scope:
+
+- Moved the inline Nextcloud bootstrap markdown, JSON, and notes content out of `charts/platform-stack/values.yaml` into plain repo files under `charts/platform-stack/files/bootstrap-content/ai-homebase/`.
+- Changed the standard `nextcloud.bootstrapProjectContent[]` entry in `charts/platform-stack/values.yaml` to point at `projectsFilesDir` and `notesFilesDir`, while keeping explicit ordered `projectsFiles[].path` and `notes[].path` lists so rendered key ordering stays stable.
+- Added `charts/platform-stack/templates/nextcloud-bootstrap-project-content.yaml` so the umbrella chart renders the bootstrap-content ConfigMap from chart-owned files via `.Files.Get`.
+- Kept the Nextcloud bootstrap Job in `charts/nextcloud/templates/bootstrap-project-content-job.yaml` and preserved the legacy inline-content path for backward compatibility.
+- Moved the inline Memgraph seed Cypher out of `charts/platform-stack/values.yaml` into `charts/platform-stack/files/memgraph-seed.cypher`.
+- Updated `charts/platform-stack/templates/memgraph-bootstrap-job.yaml` to load `memgraphBootstrap.seedCypherFile` via `.Files.Get`, with inline `seedCypher` retained as a fallback for backward compatibility.
+- Updated chart/docs schema references so the file-backed shape is documented and accepted.
+
+What to verify later during a real bootstrap or upgrade test:
+
+- The Nextcloud bootstrap Job still mounts and reads the umbrella-rendered ConfigMap correctly in a live install or upgrade, not just in `helm template` output.
+- The file-backed Nextcloud content preserves exact on-disk file bytes as intended, including trailing newline behavior for markdown, JSON, and nested paths such as `incidents/README.md`.
+- A real post-install or post-upgrade hook run still writes the expected files into `/Projects/ai-homebase/` and `/Notes/ai-homebase/` for the `openclaw` user, with no path, permission, or ownership regressions.
+- The file-backed ConfigMap move from the `nextcloud` subchart to the umbrella chart does not affect hook behavior, object lifecycle, or any operator tooling that inspects resource provenance.
+- The Memgraph bootstrap hook still writes the same Cypher to `/tmp/memgraph-seed.cypher` in the hook pod and executes successfully against a live Memgraph instance.
+- Any environment still relying on inline `bootstrapProjectContent[].projectsFiles[].content`, `bootstrapProjectContent[].notes[].content`, or `memgraphBootstrap.seedCypher` continues to render and behave correctly through the fallback paths.
+
+Static validation completed:
+
+- `nix-shell --run 'helm dependency update charts/platform-stack'`
+- `nix-shell --run './scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values.yaml > /tmp/platform-stack-task14-after.yaml'`
+- Rendered archived `HEAD` into `/tmp/platform-stack-task14-before.yaml` and diffed against the updated render.
+- Confirmed the Memgraph bootstrap render is unchanged.
+- Confirmed the Nextcloud bootstrap Job render is unchanged.
+- Confirmed the full-render diff is limited to the bootstrap-content ConfigMap moving from the `nextcloud` subchart to the umbrella chart, which changes Helm `# Source:` provenance and document position but not the rendered ConfigMap payload.
+
 ## 2026-04-01 - Task 1: SOPS Secrets Infrastructure
 
 Status: statically validated only. Do not treat this as live-bootstrap verified yet.

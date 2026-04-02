@@ -1,4 +1,11 @@
+{{- $hasFileBackedBootstrapProjectContent := false -}}
+{{- range $project := (.Values.bootstrapProjectContent | default (list)) }}
+  {{- if or ($project.projectsFilesDir | default "") ($project.notesFilesDir | default "") }}
+    {{- $hasFileBackedBootstrapProjectContent = true -}}
+  {{- end }}
+{{- end }}
 {{- if .Values.bootstrapProjectContent }}
+{{- if not $hasFileBackedBootstrapProjectContent }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -17,6 +24,7 @@ data:
   {{- end }}
   {{- end }}
 ---
+{{- end }}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -83,7 +91,7 @@ spec:
               {{- range $fileIndex, $file := ($project.projectsFiles | default (list)) }}
               ensure_parent_dir "${project_root}/{{ $file.path }}"
               write_managed_file "${project_root}/{{ $file.path }}" <"/bootstrap-content/project-{{ $projectIndex }}-file-{{ $fileIndex }}"
-             {{- end }}
+              {{- end }}
               {{- range $noteIndex, $note := ($project.notes | default (list)) }}
               ensure_parent_dir "${notes_root}/{{ $note.path }}"
               write_managed_file "${notes_root}/{{ $note.path }}" <"/bootstrap-content/project-{{ $projectIndex }}-note-{{ $noteIndex }}"

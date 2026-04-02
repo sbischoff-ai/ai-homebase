@@ -153,7 +153,7 @@
             "type": "array",
             "items": {
               "type": "object",
-              "required": ["path", "content"],
+              "required": ["path"],
               "additionalProperties": true,
               "properties": {
                 "path": {
@@ -166,11 +166,15 @@
               }
             }
           },
+          "projectsFilesDir": {
+            "type": "string",
+            "minLength": 1
+          },
           "notes": {
             "type": "array",
             "items": {
               "type": "object",
-              "required": ["path", "content"],
+              "required": ["path"],
               "additionalProperties": true,
               "properties": {
                 "path": {
@@ -182,6 +186,10 @@
                 }
               }
             }
+          },
+          "notesFilesDir": {
+            "type": "string",
+            "minLength": 1
           }
         }
       }
