@@ -1,5 +1,29 @@
 # Untested Changes
 
+## 2026-04-02 - Task 16: Extract Cron Job Messages into Standalone Files
+
+Status: statically validated only. Do not treat this as live-runtime verified yet.
+
+Scope:
+
+- Added `scripts/cron-messages/` with four standalone markdown prompt files for the documented default OpenClaw cron jobs:
+  `watchdog-heartbeat.md`, `watchdog-platform-sweep.md`, `watchdog-daily-digest.md`, and `archivist-nightly-grooming.md`.
+- Removed the large inline `--message` bash string literals from `scripts/bootstrap-openclaw-cron.sh`.
+- Added a `read_message()` helper to `scripts/bootstrap-openclaw-cron.sh` that resolves prompt file paths relative to `$(dirname "$0")/cron-messages/`.
+- Made the script fail fast with a clear `Missing cron message file: ...` error if any expected prompt file is absent.
+- Kept the existing cron job names, schedules, agents, sessions, and message text unchanged apart from sourcing the messages from files at runtime.
+
+What to verify later during a real runtime check:
+
+- Running `scripts/bootstrap-openclaw-cron.sh` against a live OpenClaw deployment still results in the same `openclaw cron add` payloads as before for all four jobs.
+- The message content reaches OpenClaw byte-for-byte as intended, including any trailing newline behavior from the markdown files.
+- The relative-path lookup works correctly when the script is invoked from working directories other than the repo root.
+- The missing-file failure path is clear in practice and stops the script before any partial cron seeding occurs.
+
+Static validation completed:
+
+- `bash -n scripts/bootstrap-openclaw-cron.sh`
+
 ## 2026-04-02 - Task 15: Extract `mcp-http-bridge.mjs` from ConfigMap Template
 
 Status: statically validated only. Do not treat this as live-runtime verified yet.
