@@ -1,4 +1,10 @@
 {{- if .Values.networkPolicy.enabled }}
+# Note: Sandbox network access is controlled at the Docker/Incus level, not by this
+# K8s NetworkPolicy (which applies to the gateway pod only). For the sandbox access
+# matrix, see docs/sandbox-network-access.md.
+#
+# Coder sandbox intentionally has no Memgraph (Bolt 7687) access.
+# Graph data operations are archivist's domain.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
