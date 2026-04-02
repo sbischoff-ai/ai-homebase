@@ -61,6 +61,12 @@ jobs:
           python -m pip install --quiet pyyaml
           python scripts/ci/validate_rendered_yaml.py
 
+      - name: Check golden snapshots
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet pyyaml
+          ./scripts/ci/check_golden.sh
+
       - name: Render service-combination matrix and assert key resources
         run: |
           set -euo pipefail

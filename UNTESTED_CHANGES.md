@@ -1,5 +1,30 @@
 # Untested Changes
 
+## 2026-04-02 - Task 17: Golden Snapshot Coverage for Rendered OpenClaw ConfigMap
+
+Status: CI-level render validation completed. Do not treat this as live install or runtime verified yet.
+
+Scope:
+
+- Extended `scripts/ci/update_golden.sh` to generate dedicated per-profile OpenClaw ConfigMap snapshots alongside the existing full-manifest snapshots.
+- Added committed fixtures at `tests/golden/values-openclaw-configmap.yaml`, `tests/golden/values-k3d-openclaw-configmap.yaml`, and `tests/golden/values-k3s-openclaw-configmap.yaml`.
+- Made the OpenClaw snapshot generation fail fast if the rendered `platform-stack-openclaw` ConfigMap is missing, if `data["openclaw.json"]` is missing or invalid JSON, if any rendered agent is missing `model.primary`, or if any rendered agent lacks workspace bootstrap files in the ConfigMap.
+- Wired `scripts/ci/check_golden.sh` into `.github/workflows/helm-ci.yml` so CI now enforces the committed golden snapshots instead of only providing update/check scripts without a workflow step.
+- Refreshed the existing `tests/golden/values.yaml`, `tests/golden/values-k3d.yaml`, and `tests/golden/values-k3s.yaml` fixtures so they match the current render output.
+
+What to verify later during a real CI run or chart change:
+
+- GitHub Actions runs the new golden snapshot step successfully on a clean runner with the same tool versions used by the repo workflow.
+- Future OpenClaw config regressions produce a focused diff in the dedicated `*-openclaw-configmap.yaml` fixtures that is readable enough for review.
+- The snapshot extractor continues to find exactly one `platform-stack-openclaw` ConfigMap if chart naming or release naming conventions change.
+- The workspace-file presence check remains aligned with the intended bootstrap contract if agent IDs or workspace key naming conventions change.
+- A real chart change that intentionally modifies `openclaw.json`, the MCP bridge, or seeded workspace content is caught by CI until `scripts/ci/update_golden.sh` is rerun and the updated fixtures are committed.
+
+Static/CI-style validation completed:
+
+- `nix-shell -p kubernetes-helm python3Packages.pyyaml --run './scripts/ci/update_golden.sh'`
+- `nix-shell -p kubernetes-helm python3Packages.pyyaml --run './scripts/ci/check_golden.sh'`
+
 ## 2026-04-02 - Task 16: Extract Cron Job Messages into Standalone Files
 
 Status: statically validated only. Do not treat this as live-runtime verified yet.
