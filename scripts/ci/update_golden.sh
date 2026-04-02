@@ -54,6 +54,19 @@ stable_kinds = {
 }
 
 
+class StableDumper(yaml.SafeDumper):
+    pass
+
+
+def represent_str(dumper, data):
+    if "\n" in data:
+        return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")
+    return dumper.represent_scalar("tag:yaml.org,2002:str", data)
+
+
+StableDumper.add_representer(str, represent_str)
+
+
 def cleanup(node):
     if isinstance(node, dict):
         for key in ["creationTimestamp", "managedFields", "resourceVersion", "uid", "selfLink", "generation"]:
@@ -112,7 +125,7 @@ with output_path.open("w", encoding="utf-8") as fh:
     for idx, doc in enumerate(filtered):
         if idx:
             fh.write("---\n")
-        yaml.safe_dump(doc, fh, sort_keys=True)
+        yaml.dump(doc, fh, sort_keys=True, Dumper=StableDumper, width=10_000)
 PY
 }
 
@@ -134,6 +147,19 @@ except ModuleNotFoundError as exc:
 
 input_path = Path(sys.argv[1])
 output_path = Path(sys.argv[2])
+
+
+class StableDumper(yaml.SafeDumper):
+    pass
+
+
+def represent_str(dumper, data):
+    if "\n" in data:
+        return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")
+    return dumper.represent_scalar("tag:yaml.org,2002:str", data)
+
+
+StableDumper.add_representer(str, represent_str)
 
 with input_path.open("r", encoding="utf-8") as fh:
     docs = [doc for doc in yaml.safe_load_all(fh) if isinstance(doc, dict)]
@@ -198,7 +224,7 @@ if missing_workspaces:
     )
 
 with output_path.open("w", encoding="utf-8") as fh:
-    yaml.safe_dump(configmap, fh, sort_keys=True)
+    yaml.dump(configmap, fh, sort_keys=True, Dumper=StableDumper, width=10_000)
 PY
 }
 
