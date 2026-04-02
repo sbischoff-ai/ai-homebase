@@ -1,5 +1,29 @@
 # Untested Changes
 
+## 2026-04-02 - Task 15: Extract `mcp-http-bridge.mjs` from ConfigMap Template
+
+Status: statically validated only. Do not treat this as live-runtime verified yet.
+
+Scope:
+
+- Moved the embedded `mcp-http-bridge.mjs` module out of `charts/openclaw/templates/configmap.yaml` into `charts/openclaw/files/mcp-http-bridge.mjs`.
+- Updated the OpenClaw ConfigMap template to render `mcp-http-bridge.mjs` via `.Files.Get` instead of embedding the JavaScript inline.
+- Kept the ConfigMap key name as `mcp-http-bridge.mjs`.
+- Kept the JavaScript module content byte-for-byte identical to the prior inline version.
+
+What to verify later during a real install, upgrade, or runtime check:
+
+- The live OpenClaw ConfigMap still mounts `mcp-http-bridge.mjs` at the expected path with the expected file contents.
+- The OpenClaw runtime can still execute the extracted file as a Node.js ES module with no path, permission, or newline regressions.
+- Any workflow that invokes the stdio-to-HTTP MCP bridge still behaves identically against the configured MCP HTTP endpoints.
+
+Static validation completed:
+
+- `cmp -s charts/openclaw/files/mcp-http-bridge.mjs <(git show HEAD:charts/openclaw/templates/configmap.yaml | sed -n '/^  mcp-http-bridge.mjs: |$/,/^  {{- if \\.Values\\.workspaceBootstrap\\.enabled }}/p' | sed '1d;$d;s/^    //')`
+- `nix-shell --run './scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values.yaml > /tmp/rendered-prechange.yaml'` from a dependency-preserving temp workspace with the pre-change `charts/openclaw/templates/configmap.yaml` restored from `HEAD`
+- `nix-shell --run './scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values.yaml > /tmp/rendered-current.yaml'`
+- `diff -u /tmp/rendered-prechange.yaml /tmp/rendered-current.yaml`
+
 ## 2026-04-02 - Task 14: File-Backed Nextcloud Bootstrap Content + Memgraph Seed Cypher
 
 Status: statically validated only. Do not treat this as live-bootstrap verified yet.
