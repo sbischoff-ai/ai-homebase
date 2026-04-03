@@ -26,6 +26,7 @@ DEFAULT_MAIN_MODEL = "openai/gpt-5.4-mini"
 DEFAULT_MAIN_FALLBACK_MODELS = ["anthropic/claude-sonnet-4-6"]
 DEFAULT_CODER_MODEL = "anthropic/claude-sonnet-4-6"
 DEFAULT_CODER_FALLBACK_MODELS = ["openai/gpt-5.4"]
+DEFAULT_CODEX_MODEL = "openai/gpt-5.3-codex"
 DEFAULT_ARCHITECT_MODEL = "anthropic/claude-sonnet-4-6"
 DEFAULT_ARCHITECT_FALLBACK_MODELS = ["openai/o3"]
 DEFAULT_ARCHIVIST_MODEL = "openai/gpt-5.4"
@@ -1692,6 +1693,7 @@ def resolved_values(data: dict[str, object]) -> dict[str, str]:
     archivist_model = require_string(agent_models["archivist"]["primary"], "openclaw.agents.archivist.model")
     watchdog_model = require_string(agent_models["watchdog"]["primary"], "openclaw.agents.watchdog.model")
     auditor_model = require_string(agent_models["auditor"]["primary"], "openclaw.agents.auditor.model")
+    codex_model = nested_nonempty_string(data, ("openclaw", "agents", "coder", "codex_model"), DEFAULT_CODEX_MODEL)
 
     admin_name = nested_string(data, ("admin", "name"), "Homebase Admin")
     admin_username = nested_string(data, ("admin", "username"), "homebase-admin")
@@ -1735,6 +1737,10 @@ def resolved_values(data: dict[str, object]) -> dict[str, str]:
         raise SystemExit("mail.domain is required so the Postfix relay and application sender addresses can be rendered.")
     if not mail_smtp_host:
         raise SystemExit("mail.smtp_host is required so the Postfix relay can present a stable SMTP hostname.")
+    if "/" not in codex_model:
+        raise SystemExit(
+            "openclaw.agents.coder.codex_model must use the OpenClaw provider/model form, for example openai/gpt-5.3-codex."
+        )
     values = {
         **providers,
         "OPENCLAW_GATEWAY_TOKEN": nested_string(data, ("secrets", "openclaw_gateway_token")),
@@ -1793,6 +1799,7 @@ def resolved_values(data: dict[str, object]) -> dict[str, str]:
         "CODER_GITEA_PASSWORD": coder_gitea_password,
         "REGISTRY_USERNAME": registry_username,
         "REGISTRY_PASSWORD": registry_password,
+        "CODEX_MODEL": codex_model,
         "OPENCLAW_MAIN_MODEL": main_model,
         "OPENCLAW_CODER_MODEL": coder_model,
         "OPENCLAW_ARCHITECT_MODEL": architect_model,
@@ -1989,6 +1996,7 @@ def command_render_values(args: argparse.Namespace) -> int:
                                 "CODER_REGISTRY_USERNAME": values["REGISTRY_USERNAME"],
                                 "CODER_REGISTRY_PASSWORD": values["REGISTRY_PASSWORD"],
                                 "CODER_REGISTRY_NAMESPACE": values["CODER_GITEA_USERNAME"],
+                                "CODEX_MODEL": values["CODEX_MODEL"],
                                 "OPENAI_API_KEY": "${OPENAI_API_KEY}",
                             },
                             "setupCommand": coder_setup_command,

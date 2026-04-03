@@ -1,5 +1,33 @@
 # Untested Changes
 
+## 2026-04-03 - Task 5: Codex Model Configuration via bootstrap.local.toml
+
+Status: partially validated. Bootstrap validation, chart render checks, and `coder-init.sh` config writing were verified locally; the full `render-values` path remains blocked by a pre-existing unrelated bug.
+
+Scope:
+
+- Added `DEFAULT_CODEX_MODEL = "openai/gpt-5.3-codex"` to `scripts/bootstrap-config.py`.
+- Added bootstrap support for `openclaw.agents.coder.codex_model`, including basic `provider/model` validation and propagation into the coder sandbox env as `CODEX_MODEL`.
+- Added `codex_model = "openai/gpt-5.3-codex"` to `[openclaw.agents.coder]` in `bootstrap.example.toml`.
+- Updated both `charts/platform-stack/values.yaml` and `charts/openclaw/values.yaml` so the default coder sandbox env includes `CODEX_MODEL: openai/gpt-5.3-codex`.
+- Updated `images/openclaw-sandbox-coder/coder-init.sh` so sandbox startup writes `${CODEX_HOME}/config.toml` with the bare Codex CLI model name, for example `model = "gpt-5.3-codex"`.
+- Updated repo docs to describe the new bootstrap key and coder sandbox Codex model behavior.
+
+What to verify later during a real bootstrap/render/runtime check:
+
+- `python3 scripts/bootstrap-config.py render-values --config bootstrap.local.toml` succeeds once the existing unrelated `workspace_bootstrap_values()` format-string bug is fixed.
+- A real bootstrap using `bootstrap.local.toml` passes a non-default `openclaw.agents.coder.codex_model` through to the running coder sandbox env.
+- The live coder sandbox writes `${CODEX_HOME}/config.toml` on startup with the expected bare model name for both the default and a non-default configured `codex_model`.
+- Codex CLI inside the running sandbox actually honors the rendered config file and uses the configured model.
+
+Validation completed:
+
+- `nix-shell -p python3 --run 'python3 scripts/bootstrap-config.py validate --config bootstrap.example.toml'`
+- `nix-shell -p python3 --run 'python3 scripts/bootstrap-config.py shell-vars --config bootstrap.example.toml | rg -n "^CODEX_MODEL=|openai/gpt-5.3-codex"'`
+- `nix-shell -p kubernetes-helm --run './scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values.yaml | rg -n "CODEX_MODEL|openai/gpt-5.3-codex"'`
+- `HOME="$(mktemp -d)/home" CODEX_HOME="$HOME/.codex" XDG_CONFIG_HOME="$HOME/.config" XDG_CACHE_HOME="$HOME/.cache" XDG_STATE_HOME="$HOME/.local/state" DOCKER_CONFIG="$HOME/.docker" CODEX_MODEL="openai/gpt-5.3-codex" CODER_GITEA_USERNAME="coder" CODER_GITEA_EMAIL="coder@example.invalid" bash images/openclaw-sandbox-coder/coder-init.sh`
+- `cat "$CODEX_HOME/config.toml"` produced `model = "gpt-5.3-codex"`
+
 ## 2026-04-03 - Task 4: Update Existing Agent Workspace Files for Auditor
 
 Status: statically validated only. Do not treat this as live runtime/bootstrap verified yet.

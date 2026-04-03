@@ -34,6 +34,14 @@ mkdir -p \
   "${XDG_STATE_HOME}" \
   "${DOCKER_CONFIG}"
 
+CODEX_MODEL="${CODEX_MODEL:-openai/gpt-5.3-codex}"
+
+# Write Codex CLI config. Strip the provider prefix because Codex CLI expects a bare model name.
+codex_model_bare="${CODEX_MODEL#*/}"
+cat > "${CODEX_HOME_DIR}/config.toml" <<EOF
+model = "${codex_model_bare}"
+EOF
+
 git config --global user.name "${CODER_GITEA_USERNAME}"
 git config --global user.email "${CODER_GITEA_EMAIL}"
 
