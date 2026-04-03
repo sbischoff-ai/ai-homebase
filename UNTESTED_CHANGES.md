@@ -1,5 +1,23 @@
 # Untested Changes
 
+## 2026-04-03 - Task 19: Refresh Golden Snapshots for Agent Model Lineup
+
+Status: statically validated only. Do not treat this as live CI/network-verified yet.
+
+Scope:
+
+- Updated all `tests/golden/*.yaml` fixtures to match the new OpenClaw agent model defaults and fallbacks introduced in Task 18.
+- Added explicit golden snapshot maintenance commands to `AGENTS.md` so future render-impacting changes call out updating/checking golden fixtures.
+
+What to verify later during a real CI run:
+
+- `scripts/ci/check_golden.sh` succeeds on a runner with network access to the configured Helm chart repositories.
+- Golden snapshot diffs remain focused to intentional render changes when model defaults or agent config change.
+
+Static validation completed:
+
+- `rg -n 'gpt-4\.1(?!-nano)|gpt-4\.1-mini|claude-opus-4-6' tests/golden --pcre2`
+
 ## 2026-04-02 - Task 18: Update Default Agent Model Assignments
 
 Status: statically validated only. Do not treat this as live-runtime verified yet.
