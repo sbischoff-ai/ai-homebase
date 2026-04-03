@@ -104,6 +104,9 @@ workspaceBootstrap:
     watchdog:
       workspace: /home/node/.openclaw/workspace-watchdog
       filesDir: workspaces/watchdog
+    auditor:
+      workspace: /home/node/.openclaw/workspace-auditor
+      filesDir: workspaces/auditor
 openclaw:
   cron:
     enabled: true
@@ -133,9 +136,11 @@ openclaw:
         anthropic/claude-sonnet-4-6:
           alias: Main / Architect
         openai/gpt-5.4:
-          alias: Coder / Archivist
+          alias: Coder / Archivist / Auditor
         openai/gpt-4.1-nano:
           alias: Watchdog
+        anthropic/claude-opus-4-6:
+          alias: Auditor
       sandbox:
         backend: docker
         mode: non-main
@@ -181,6 +186,7 @@ openclaw:
             - coder
             - architect
             - archivist
+            - auditor
       - id: coder
         name: Coder
         workspace: /home/node/.openclaw/workspace-coder
@@ -251,6 +257,15 @@ openclaw:
             - anthropic/claude-haiku-4-5
         sandbox:
           mode: "off"
+      - id: auditor
+        name: Auditor
+        workspace: /home/node/.openclaw/workspace-auditor
+        model:
+          primary: anthropic/claude-opus-4-6
+          fallbacks:
+            - openai/gpt-5.4
+        sandbox:
+          mode: "off"
     tools:
       sessions:
         visibility: all
@@ -262,6 +277,7 @@ openclaw:
         - architect
         - archivist
         - watchdog
+        - auditor
   skills:
     allowBundled:
       - weather
