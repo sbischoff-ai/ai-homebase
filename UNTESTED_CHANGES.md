@@ -1,5 +1,29 @@
 # Untested Changes
 
+## 2026-04-03 - Task 14: Version Bumps (OpenClaw and Nextcloud)
+
+Status: partially validated. Helm lint and base render checks passed locally in the repo `nix-shell`; the version bumps have not been exercised through a live deploy/upgrade yet.
+
+Scope:
+
+- Updated `charts/openclaw/Chart.yaml` to bump the chart `version` from `0.1.0` to `0.1.1`.
+- Updated `charts/openclaw/Chart.yaml` to bump `appVersion` from `2026.3.28` to `2026.4.2`.
+- Updated `charts/platform-stack/values.yaml` to bump the Nextcloud image tag from `33.0.0-apache` to `33.0.2-apache`.
+
+What to verify later during a real bootstrap/render/runtime check:
+
+- A real Helm upgrade applies the OpenClaw chart metadata bump cleanly with no release-management regressions.
+- The running Nextcloud workload starts successfully on `nextcloud:33.0.2-apache` and completes any container-init or app-level upgrade steps without regressions.
+- The deployed OpenClaw stack is actually running the intended `2026.4.2` application version after upgrade.
+
+Validation completed:
+
+- `nix-shell -p kubernetes-helm python3 --run './scripts/lint.sh --values-file charts/platform-stack/values.yaml'`
+- `nix-shell -p kubernetes-helm python3 --run './scripts/lint.sh --values-file charts/platform-stack/values.yaml --values-file charts/platform-stack/values-k3d.yaml'`
+- `nix-shell -p kubernetes-helm --run './scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values.yaml > /tmp/platform-stack-rendered.yaml'`
+- `grep -n -A 5 -E 'appVersion|image: .*nextcloud' /tmp/platform-stack-rendered.yaml`
+- `sed -n '1,20p' charts/openclaw/Chart.yaml`
+
 ## 2026-04-03 - Task 11: Main Agent BOOTSTRAP.md Morning Brief and Evening Digest
 
 Status: statically validated only. Do not treat this as live runtime/bootstrap verified yet.

@@ -2,8 +2,8 @@ apiVersion: v2
 name: openclaw
 description: Helm chart for hosting the OpenClaw gateway and control UI
 type: application
-version: 0.1.0
-appVersion: "2026.3.28"
+version: 0.1.1
+appVersion: "2026.4.2"
 keywords:
   - ai
   - platform
