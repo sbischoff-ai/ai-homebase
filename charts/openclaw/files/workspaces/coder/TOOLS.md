@@ -18,6 +18,23 @@ Codex guidance:
 - Use direct edits yourself only for trivial one-line changes, tiny config updates, or obvious file scaffolding.
 - Review Codex output before handoff, and keep git/tea workflow ownership with you.
 
+#### Codex model selection
+
+- **Default model:** `gpt-5.4-mini` (configured in `~/.codex/config.toml`)
+  - Use for: routine feature work, straightforward bug fixes, multi-file changes with clear scope
+  - Goal: Cost efficiency (most tasks should use this)
+- **Override to `gpt-5.3-codex`** for particularly challenging work:
+  - Complex multi-file refactorings (e.g., renaming abstractions across 10+ files)
+  - Tricky debugging loops where context depth matters
+  - Architectural changes requiring deep codebase understanding
+  - Example: `codex --model gpt-5.3-codex "Refactor the plugin loading system to support lazy initialization"`
+- **Decision heuristic:**
+  - If the task is well-defined and the changes are mechanical -> `gpt-5.4-mini`
+  - If you've tried `gpt-5.4-mini` and the output was incorrect or incomplete -> retry with `gpt-5.3-codex`
+  - If the task involves cross-cutting concerns (e.g., security, error handling) across many files -> start with `gpt-5.3-codex`
+
+**Cost tracking:** Both models' usage is tracked via tokscale and the daily Codex usage log (see AGENTS.md).
+
 #### Codex usage logging
 
 Use `tokscale headless codex exec ...` as your Codex wrapper -- this automatically captures token usage to `~/.config/tokscale/headless/codex/`.

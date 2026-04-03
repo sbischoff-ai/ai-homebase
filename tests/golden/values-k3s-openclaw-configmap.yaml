@@ -204,7 +204,7 @@ data:
       },
       "agents": {
         "defaults": {"models":{"anthropic/claude-opus-4-6":{"alias":"Auditor"},"anthropic/claude-sonnet-4-6":{"alias":"Main / Architect"},"openai/gpt-4.1-nano":{"alias":"Watchdog"},"openai/gpt-5.4":{"alias":"Coder / Archivist / Auditor"},"openai/gpt-5.4-mini":{"alias":"Main"}},"sandbox":{"backend":"docker","browser":{"cdpPort":9222,"cdpSourceRange":"","enableNoVnc":true,"enabled":true,"headless":false,"image":"openclaw-sandbox-browser:bookworm-slim","network":"bridge","noVncPort":6080,"vncPort":5900},"docker":{"capDrop":["ALL"],"cpus":1,"image":"registry.homebase.local/coder/openclaw-sandbox:bookworm-slim","memory":"1g","memorySwap":"2g","network":"bridge","pidsLimit":256,"readOnlyRoot":true,"tmpfs":["/tmp","/var/tmp","/run"],"user":"1000:1000","workdir":"/workspace"},"mode":"non-main","scope":"agent","sessionToolsVisibility":"all"},"workspace":"/home/node/.openclaw/workspace"},
-        "list": [{"default":true,"id":"main","model":{"fallbacks":["anthropic/claude-sonnet-4-6"],"primary":"openai/gpt-5.4-mini"},"name":"OpenClaw Assistant","subagents":{"allowAgents":["coder","architect","archivist","auditor"]},"workspace":"/home/node/.openclaw/workspace"},{"id":"coder","model":{"fallbacks":["openai/gpt-5.4"],"primary":"anthropic/claude-sonnet-4-6"},"name":"Coder","sandbox":{"docker":{"binds":["/var/run/docker.sock:/var/run/docker.sock"],"env":{"CODER_GITEA_BASE_URL":"https://gitea.homebase.local","CODER_GITEA_EMAIL":"coder@example.invalid","CODER_GITEA_HOST":"gitea.homebase.local","CODER_GITEA_PASSWORD":"${CODER_GITEA_PASSWORD}","CODER_GITEA_TEA_LOGIN_NAME":"coder","CODER_GITEA_TEA_TOKEN_NAME":"openclaw-coder-sandbox","CODER_GITEA_USERNAME":"coder","CODER_GITOPS_PROJECT":"platform-stack","CODER_GITOPS_REPO_BRANCH":"main","CODER_GITOPS_REPO_NAME":"cluster-gitops","CODER_REGISTRY_BASE_URL":"https://registry.homebase.local","CODER_REGISTRY_HOST":"registry.homebase.local","CODER_REGISTRY_NAMESPACE":"coder","CODER_REGISTRY_PASSWORD":"${CODER_REGISTRY_PASSWORD}","CODER_REGISTRY_USERNAME":"coder","CODER_SANDBOX_IMAGES_REPO_NAME":"openclaw-sandbox-images","CODEX_HOME":"/workspace/.home/.codex","CODEX_MODEL":"openai/gpt-5.3-codex","GITHUB_TOKEN":"${GITHUB_TOKEN}","HOME":"/workspace/.home","OPENAI_API_KEY":"${OPENAI_API_KEY}","XDG_CACHE_HOME":"/workspace/.home/.cache","XDG_CONFIG_HOME":"/workspace/.home/.config","XDG_STATE_HOME":"/workspace/.home/.local/state"},"image":"registry.homebase.local/coder/openclaw-sandbox-coder:bookworm-slim","setupCommand":"/usr/local/bin/coder-init.sh","tmpfs":["/tmp","/var/tmp","/run","/workspace"]},"mode":"all"},"workspace":"/home/node/.openclaw/workspace-coder"},{"id":"architect","model":{"fallbacks":["openai/o3"],"primary":"anthropic/claude-sonnet-4-6"},"name":"Architect","workspace":"/home/node/.openclaw/workspace-architect"},{"id":"archivist","model":{"fallbacks":["anthropic/claude-sonnet-4-6"],"primary":"openai/gpt-5.4-mini"},"name":"Archivist","sandbox":{"docker":{"image":"registry.homebase.local/coder/openclaw-sandbox-archivist:bookworm-slim"},"mode":"non-main"},"workspace":"/home/node/.openclaw/workspace-archivist"},{"id":"watchdog","model":{"fallbacks":["anthropic/claude-haiku-4-5"],"primary":"openai/gpt-4.1-nano"},"name":"Watchdog","sandbox":{"mode":"off"},"workspace":"/home/node/.openclaw/workspace-watchdog"},{"id":"auditor","model":{"fallbacks":["openai/gpt-5.4"],"primary":"anthropic/claude-opus-4-6"},"name":"Auditor","sandbox":{"mode":"off"},"workspace":"/home/node/.openclaw/workspace-auditor"}]
+        "list": [{"default":true,"id":"main","model":{"fallbacks":["anthropic/claude-sonnet-4-6"],"primary":"openai/gpt-5.4-mini"},"name":"OpenClaw Assistant","subagents":{"allowAgents":["coder","architect","archivist","auditor"]},"workspace":"/home/node/.openclaw/workspace"},{"id":"coder","model":{"fallbacks":["openai/gpt-5.4"],"primary":"anthropic/claude-sonnet-4-6"},"name":"Coder","sandbox":{"docker":{"binds":["/var/run/docker.sock:/var/run/docker.sock"],"env":{"CODER_GITEA_BASE_URL":"https://gitea.homebase.local","CODER_GITEA_EMAIL":"coder@example.invalid","CODER_GITEA_HOST":"gitea.homebase.local","CODER_GITEA_PASSWORD":"${CODER_GITEA_PASSWORD}","CODER_GITEA_TEA_LOGIN_NAME":"coder","CODER_GITEA_TEA_TOKEN_NAME":"openclaw-coder-sandbox","CODER_GITEA_USERNAME":"coder","CODER_GITOPS_PROJECT":"platform-stack","CODER_GITOPS_REPO_BRANCH":"main","CODER_GITOPS_REPO_NAME":"cluster-gitops","CODER_REGISTRY_BASE_URL":"https://registry.homebase.local","CODER_REGISTRY_HOST":"registry.homebase.local","CODER_REGISTRY_NAMESPACE":"coder","CODER_REGISTRY_PASSWORD":"${CODER_REGISTRY_PASSWORD}","CODER_REGISTRY_USERNAME":"coder","CODER_SANDBOX_IMAGES_REPO_NAME":"openclaw-sandbox-images","CODEX_DEFAULT_MODEL":"gpt-5.4-mini","CODEX_HOME":"/workspace/.home/.codex","CODEX_MODEL":"openai/gpt-5.3-codex","GITHUB_TOKEN":"${GITHUB_TOKEN}","HOME":"/workspace/.home","OPENAI_API_KEY":"${OPENAI_API_KEY}","XDG_CACHE_HOME":"/workspace/.home/.cache","XDG_CONFIG_HOME":"/workspace/.home/.config","XDG_STATE_HOME":"/workspace/.home/.local/state"},"image":"registry.homebase.local/coder/openclaw-sandbox-coder:bookworm-slim","setupCommand":"/usr/local/bin/coder-init.sh","tmpfs":["/tmp","/var/tmp","/run","/workspace"]},"mode":"all"},"workspace":"/home/node/.openclaw/workspace-coder"},{"id":"architect","model":{"fallbacks":["openai/o3"],"primary":"anthropic/claude-sonnet-4-6"},"name":"Architect","workspace":"/home/node/.openclaw/workspace-architect"},{"id":"archivist","model":{"fallbacks":["anthropic/claude-sonnet-4-6"],"primary":"openai/gpt-5.4-mini"},"name":"Archivist","sandbox":{"docker":{"image":"registry.homebase.local/coder/openclaw-sandbox-archivist:bookworm-slim"},"mode":"non-main"},"workspace":"/home/node/.openclaw/workspace-archivist"},{"id":"watchdog","model":{"fallbacks":["anthropic/claude-haiku-4-5"],"primary":"openai/gpt-4.1-nano"},"name":"Watchdog","sandbox":{"mode":"off"},"workspace":"/home/node/.openclaw/workspace-watchdog"},{"id":"auditor","model":{"fallbacks":["openai/gpt-5.4"],"primary":"anthropic/claude-opus-4-6"},"name":"Auditor","sandbox":{"mode":"off"},"workspace":"/home/node/.openclaw/workspace-auditor"}]
       },
       "skills": {"allowBundled":["weather","healthcheck","node-connect","skill-creator","session-logs","coding-agent","tmux","summarize","github"]},
       "mcp": {"servers":{"nextcloud":{"args":["/opt/openclaw-runtime/mcp/mcp-http-bridge.mjs","--url","${OPENCLAW_NEXTCLOUD_MCP_INTERNAL_URL}","--url","${OPENCLAW_NEXTCLOUD_MCP_EXTERNAL_URL}","--header","Authorization=${OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER}"],"command":"node"},"qdrant":{"args":["/opt/openclaw-runtime/mcp/mcp-http-bridge.mjs","--url","${OPENCLAW_QDRANT_MCP_INTERNAL_URL}","--url","${OPENCLAW_QDRANT_MCP_EXTERNAL_URL}"],"command":"node"}}},
@@ -800,6 +800,12 @@ data:
     [Remaining work, open questions, next steps. Which agent owns each.]
     ~~~
 
+    ### Codex model selection
+
+    Your Codex CLI is configured with `gpt-5.4-mini` as the default model for cost efficiency. For particularly complex multi-file refactorings or tricky debugging loops, override with `--model gpt-5.3-codex` via CLI flag.
+
+    See TOOLS.md for detailed guidance on when to use which model.
+
     ## Tool Scope
 
     - Use coding-agent tools, repository-execution tools, and GitOps tools.
@@ -896,6 +902,23 @@ data:
     - Use Codex for substantial feature work, refactors, multi-file bug fixes, and implementation from architect-provided specs.
     - Use direct edits yourself only for trivial one-line changes, tiny config updates, or obvious file scaffolding.
     - Review Codex output before handoff, and keep git/tea workflow ownership with you.
+
+    #### Codex model selection
+
+    - **Default model:** `gpt-5.4-mini` (configured in `~/.codex/config.toml`)
+      - Use for: routine feature work, straightforward bug fixes, multi-file changes with clear scope
+      - Goal: Cost efficiency (most tasks should use this)
+    - **Override to `gpt-5.3-codex`** for particularly challenging work:
+      - Complex multi-file refactorings (e.g., renaming abstractions across 10+ files)
+      - Tricky debugging loops where context depth matters
+      - Architectural changes requiring deep codebase understanding
+      - Example: `codex --model gpt-5.3-codex "Refactor the plugin loading system to support lazy initialization"`
+    - **Decision heuristic:**
+      - If the task is well-defined and the changes are mechanical -> `gpt-5.4-mini`
+      - If you've tried `gpt-5.4-mini` and the output was incorrect or incomplete -> retry with `gpt-5.3-codex`
+      - If the task involves cross-cutting concerns (e.g., security, error handling) across many files -> start with `gpt-5.3-codex`
+
+    **Cost tracking:** Both models' usage is tracked via tokscale and the daily Codex usage log (see AGENTS.md).
 
     #### Codex usage logging
 
@@ -1161,29 +1184,7 @@ data:
     - Use Nextcloud for user-facing data management.
     - Use Qdrant for cross-agent memory.
     - Do not use coding-agent or repository-execution tools beyond trivial config lookups.
-  workspace-main-BOOTSTRAP.md: |2
-
-    Start a normal first-use bootstrap conversation with the user.
-
-    During bootstrap:
-    - ask what the user wants to call you;
-    - ask what personality or interaction style the user wants you to exhibit;
-    - learn how the user wants to work with you;
-    - confirm how they want to be addressed;
-    - confirm their current Nextcloud username;
-    - explain the stack at a high level: you orchestrate, architect plans, coder executes, archivist curates long-term knowledge, watchdog monitors, auditor reviews finished work, and the stack includes shared Nextcloud, Gitea, GitOps, Qdrant, Memgraph, and specialist agents;
-    - help the user set up a direct channel for you;
-    - use `sessions_send` to start `agent:coder:main`, `agent:architect:main`, `agent:archivist:main`, `agent:watchdog:main`, and `agent:auditor:main` right away so those specialist main sessions are live from the start; treat those `agent:<name>:main` targets as session IDs, not labels;
-    - explain that you can use the dedicated Nextcloud account `openclaw` for lightweight shared coordination notes, calendars, tasks, and reminders;
-    - explain that the `ai-homebase` project already exists in Nextcloud at `/Projects/ai-homebase/` with working notes under `/Notes/ai-homebase/`;
-    - ask the user to create a calendar and share it with `openclaw`;
-    - once the user's real Nextcloud username is confirmed, share `/Projects/` and `/Notes/` with that user so they can access the pre-seeded cluster documentation, working notes, and future project material from the start;
-    - remind the user to set up direct channels for architect, coder, and archivist if they want to workshop plans or coordinate implementation with them directly;
-    - capture that ordinary non-coding tasks stay with you, coding belongs with coder, planning or design belongs with architect, durable cross-domain knowledge curation belongs with archivist, heartbeat-driven monitoring belongs with watchdog, and high-judgment finished-work review belongs with auditor;
-    - explain that watchdog already has bootstrapped cron jobs for heartbeat checks, platform sweeps, and the daily digest;
-    - explain that project setup, specifications, task breakdowns, and durable project documentation belong with architect rather than with you.
-
-    Update the workspace files as needed and remove this file when bootstrap is complete.
+  workspace-main-BOOTSTRAP.md: "\n# Bootstrap \u2014 First Session Setup\n\nWelcome. This file contains one-time setup suggestions for your first session. After completing these, you can delete this file or leave it \u2014 it won't trigger again.\n\n## Daily Brief and Digest (optional)\n\nWould you like a morning brief and evening digest? These are lightweight daily crons that help you stay on top of the system.\n\n**Morning brief** (suggested: 7:00 AM local time) \u2014 main summarizes:\n- Overnight activity: what watchdog, archivist, and auditor did while you were away\n- Budget status: current daily/weekly/monthly spend\n- Pending items: any unresolved escalations, open questions, or items waiting for your input\n- Calendar: today's events (if calendar is set up)\n\n**Evening digest** (suggested: 6:00 PM local time) \u2014 main summarizes:\n- What was accomplished today across all agents\n- Budget spent today\n- Decisions made and artifacts produced (with Nextcloud links)\n- Open items carrying over to tomorrow\n\nTo set these up, tell me:\n1. Whether you want one or both\n2. Your preferred times (I'll convert to UTC for the cron schedule)\n3. Which messaging channel to deliver to (e.g., Signal, Telegram, or just Nextcloud)\n\nI'll create the cron jobs using `openclaw cron add`. You can adjust or remove them anytime.\n\n## Calendar Setup (optional)\n\nIf you'd like me to manage calendar events and reminders, create a calendar in Nextcloud and share it with the `openclaw` user. Then tell me the calendar name and I'll start using it for scheduling.\n\n## Nextcloud Shares (optional)\n\nThe project files at `/Projects/ai-homebase/` contain system documentation, budget ledgers, status logs, and audit reports. If you'd like direct access, I can share the `/Projects/` folder with your Nextcloud user. Just tell me your Nextcloud username.\n"
   workspace-main-HEARTBEAT.md: |2
 
     After handling a user request or significant coordination task, update `/Projects/ai-homebase/heartbeat.json` in Nextcloud with `{"lastActivity": "ISO-8601", "agent": "main", "status": "ok"}`.
