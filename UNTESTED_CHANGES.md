@@ -1,5 +1,37 @@
 # Untested Changes
 
+## 2026-04-03 - Task 7: Add Auditor to Graph Bootstrap Seed
+
+Status: statically validated only. Do not treat this as live Memgraph-bootstrap, fresh-deploy seed, or Helm-render verified yet.
+
+Scope:
+
+- Added `auditor` to the repo-managed Memgraph bootstrap seed at `charts/platform-stack/files/memgraph-seed.cypher` as `:Entity:Agent:Person` with `name = 'auditor'` and `role = 'reviewer'`.
+- Added the corresponding `MATCH (auditor:...)` line in the same seed file so the later relationship block can connect the seeded node idempotently.
+- Added auditor graph relationships in the file-backed seed using the conventions already present there:
+  `MERGE (auditor)-[:PART_OF]->(openclaw)`,
+  `MERGE (auditor)-[:USES_SERVICE]->(nextcloud)`,
+  and `MERGE (auditor)-[:USES_SERVICE]->(qdrant)`.
+- Updated the embedded bootstrap Cypher in `scripts/bootstrap-config.py` to include the same `auditor` node and service edges, plus `MERGE (openclaw)-[:COORDINATES]->(auditor)` to match that block's existing coordination convention.
+
+What to verify later during a real bootstrap, reseed, or disposable-environment test:
+
+- A fresh deploy or explicit Memgraph bootstrap run creates exactly one `auditor` node in the initial graph.
+- The seeded `auditor` node has the expected labels and properties, especially `:Entity:Agent:Person` in the file-backed seed path and `role = 'reviewer'`.
+- The expected auditor relationships appear after bootstrap:
+  OpenClaw membership/coordination in the relevant seed path and `USES_SERVICE` edges to Nextcloud and Qdrant only.
+- The generated bootstrap values path still emits the intended embedded Cypher from `scripts/bootstrap-config.py` without drift from the checked-in seed file.
+- No duplicate auditor edges are created when the bootstrap hook is rerun.
+
+Static validation completed:
+
+- Reviewed both graph-seed definitions and added the auditor node and relationships in the local conventions each block already uses.
+- Searched the updated files to confirm the new `auditor` `MERGE` / `MATCH` statements appear once per file and that the intended service relationships are present.
+
+Known validation gap:
+
+- No Helm lint/render, bootstrap execution, or live Memgraph query was run in this session for Task 7.
+
 ## 2026-04-03 - Task 5: Codex Model Configuration via bootstrap.local.toml
 
 Status: partially validated. Bootstrap validation, chart render checks, and `coder-init.sh` config writing were verified locally; the full `render-values` path remains blocked by a pre-existing unrelated bug.
