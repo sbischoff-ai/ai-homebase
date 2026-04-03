@@ -302,6 +302,21 @@ seed_openclaw_cron_jobs() {
   "${seed_cmd[@]}"
 }
 
+seed_memgraph() {
+  local seed_cmd=(
+    ./scripts/bootstrap-memgraph.sh
+    --release-name "$RELEASE_NAME"
+    --namespace "$NAMESPACE"
+  )
+  if [[ -n "$KUBECONFIG_PATH" ]]; then
+    seed_cmd+=(--kubeconfig "$KUBECONFIG_PATH")
+  fi
+  if [[ -n "$KUBE_CONTEXT" ]]; then
+    seed_cmd+=(--kube-context "$KUBE_CONTEXT")
+  fi
+  "${seed_cmd[@]}"
+}
+
 cert_manager_install_enabled() {
   helm template "$RELEASE_NAME" charts/platform-stack \
     "${HELM_CONTEXT_ARGS[@]}" \
@@ -524,6 +539,7 @@ fi
 
 publish_runtime_images_to_registry
 seed_openclaw_cron_jobs
+seed_memgraph
 
 if [[ -n "$BOOTSTRAP_CONFIG_PATH" ]]; then
   CODER_GITEA_CMD=(

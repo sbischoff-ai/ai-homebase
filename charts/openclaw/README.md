@@ -38,12 +38,11 @@ If `openclaw.gateway.auth.mode=token`, Helm rendering fails unless `existingSecr
 
 Optional keys for additional providers and web-search tooling:
 
-- `BRAVE_API_KEY` (preferred; `BRAVE_SEARCH_API_KEY` remains as a legacy alias)
+- `BRAVE_API_KEY`
 - `PERPLEXITY_API_KEY`
-- `GEMINI_API_KEY` (preferred; `GOOGLE_API_KEY` remains as a legacy alias)
+- `GEMINI_API_KEY`
 - `XAI_API_KEY`
-- `KIMI_API_KEY` / `MOONSHOT_API_KEY`
-- `TAVILY_API_KEY`
+- `MOONSHOT_API_KEY`
 
 Use `secretKeys` for common direct mappings and/or `secretRefs` for arbitrary secret-to-env mappings.
 
@@ -140,9 +139,7 @@ stringData:
   PERPLEXITY_API_KEY: "optional"
   GEMINI_API_KEY: "optional"
   XAI_API_KEY: "optional"
-  KIMI_API_KEY: "optional"
   MOONSHOT_API_KEY: "optional"
-  TAVILY_API_KEY: "optional"
 ```
 
 Example values override:
@@ -154,17 +151,10 @@ secretKeys:
   openaiApiKey: OPENAI_API_KEY
   # anthropicApiKey: ANTHROPIC_API_KEY
   braveApiKey: BRAVE_API_KEY
-  tavilyApiKey: TAVILY_API_KEY
   perplexityApiKey: PERPLEXITY_API_KEY
   geminiApiKey: GEMINI_API_KEY
   xaiApiKey: XAI_API_KEY
-  kimiApiKey: KIMI_API_KEY
   moonshotApiKey: MOONSHOT_API_KEY
-
-secretRefs:
-  - name: openclaw-secrets
-    key: TAVILY_API_KEY
-    envVar: TAVILY_API_KEY
 
 ingress:
   enabled: true

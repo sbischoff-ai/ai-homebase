@@ -11,8 +11,8 @@ usage() {
 Usage: $0 --docker-host <ssh://user@host:port> --image <image[:tag]> [--image <image[:tag]> ...]
 
 Ensure one or more OpenClaw sandbox images are available on a remote Docker daemon.
-Each image must already exist locally; the script streams it to the remote daemon with
-"docker save | docker load" only when the remote host does not already have it.
+Each image must already exist locally; the script streams it to the remote daemon only
+when the remote host is missing the image or has a different image ID for the same tag.
 USAGE
 }
 
@@ -108,6 +108,22 @@ remote_image_exists_via_ssh() {
     "docker image inspect $(printf '%q' "$image") >/dev/null 2>&1"
 }
 
+local_image_id() {
+  local image="$1"
+  docker image inspect --format '{{.Id}}' "$image"
+}
+
+remote_image_id_via_ssh() {
+  local image="$1"
+  local -a ssh_args_array=()
+  local arg=""
+  while IFS= read -r -d '' arg; do
+    ssh_args_array+=("$arg")
+  done < <(ssh_args)
+  ssh "${ssh_args_array[@]}" -p "$(ssh_port)" "$(ssh_user_host)" \
+    "docker image inspect --format '{{.Id}}' $(printf '%q' "$image")" 2>/dev/null
+}
+
 copy_image_via_ssh() {
   local archive_path="$1"
   local remote_path="$2"
@@ -123,17 +139,27 @@ copy_image_via_ssh() {
 }
 
 for image in "${IMAGES[@]}"; do
+  local_id=""
+  remote_id=""
+
   echo "Checking local image: ${image}"
   docker image inspect "$image" >/dev/null
+  local_id="$(local_image_id "$image")"
 
   if [[ "$DOCKER_HOST_VALUE" == ssh://* ]]; then
     if remote_image_exists_via_ssh "$image"; then
-      echo "Remote already has ${image}"
-      continue
+      remote_id="$(remote_image_id_via_ssh "$image" || true)"
+      if [[ -n "$remote_id" && "$remote_id" == "$local_id" ]]; then
+        echo "Remote already has current ${image}"
+        continue
+      fi
     fi
   elif DOCKER_HOST="$DOCKER_HOST_VALUE" docker image inspect "$image" >/dev/null 2>&1; then
-    echo "Remote already has ${image}"
-    continue
+    remote_id="$(DOCKER_HOST="$DOCKER_HOST_VALUE" docker image inspect --format '{{.Id}}' "$image" 2>/dev/null || true)"
+    if [[ -n "$remote_id" && "$remote_id" == "$local_id" ]]; then
+      echo "Remote already has current ${image}"
+      continue
+    fi
   fi
 
   tmp_archive="$(mktemp /tmp/openclaw-remote-image.XXXXXX.tar)"

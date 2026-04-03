@@ -58,15 +58,11 @@ openclaw:
     openaiApiKey: OPENAI_API_KEY
     anthropicApiKey: ANTHROPIC_API_KEY
     braveApiKey: BRAVE_API_KEY
-    kimiApiKey: KIMI_API_KEY
     moonshotApiKey: MOONSHOT_API_KEY
-    tavilyApiKey: TAVILY_API_KEY
     perplexityApiKey: PERPLEXITY_API_KEY
     geminiApiKey: GEMINI_API_KEY
     xaiApiKey: XAI_API_KEY
     githubToken: GITHUB_TOKEN
-    googleApiKey: GOOGLE_API_KEY
-    braveSearchApiKey: BRAVE_SEARCH_API_KEY
   secretRefs:
     - name: openclaw-nextcloud-mcp-secrets
       key: OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER

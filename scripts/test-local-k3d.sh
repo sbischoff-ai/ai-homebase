@@ -5,6 +5,7 @@ source "$(dirname "$0")/lib/logging.sh"
 
 RELEASE_NAME="${RELEASE_NAME:-platform-stack}"
 NAMESPACE="${NAMESPACE:-ai-homebase}"
+CLUSTER_NAME="${CLUSTER_NAME:-ai-homebase-dev}"
 VALUES_FILES=()
 KUBE_CONTEXT="${KUBE_CONTEXT:-}"
 KUBECONFIG_PATH="${KUBECONFIG_PATH:-}"
@@ -26,6 +27,8 @@ POSTFIX_RELAY_WAIT_TIMEOUT="${POSTFIX_RELAY_WAIT_TIMEOUT:-600s}"
 PAPERLESS_WAIT_TIMEOUT="${PAPERLESS_WAIT_TIMEOUT:-1200s}"
 QDRANT_WAIT_TIMEOUT="${QDRANT_WAIT_TIMEOUT:-900s}"
 QDRANT_MCP_WAIT_TIMEOUT="${QDRANT_MCP_WAIT_TIMEOUT:-1200s}"
+MEMGRAPH_WAIT_TIMEOUT="${MEMGRAPH_WAIT_TIMEOUT:-900s}"
+MEMGRAPH_LAB_WAIT_TIMEOUT="${MEMGRAPH_LAB_WAIT_TIMEOUT:-900s}"
 INGRESS_ENDPOINT_RETRIES="${INGRESS_ENDPOINT_RETRIES:-60}"
 INGRESS_ENDPOINT_RETRY_DELAY_SECONDS="${INGRESS_ENDPOINT_RETRY_DELAY_SECONDS:-2}"
 
@@ -50,6 +53,7 @@ Usage: $0 [options]
 Deploy the k3d profile and run local smoke checks.
 
 Options:
+  --cluster-name <name>      k3d cluster name used for the default kubeconfig path (default: ${CLUSTER_NAME})
   --release-name <name>       Helm release name (default: ${RELEASE_NAME})
   --namespace <name>          Kubernetes namespace (default: ${NAMESPACE})
   --bootstrap-config <path>   Bootstrap config file (default: ${BOOTSTRAP_CONFIG_PATH})
@@ -72,6 +76,7 @@ USAGE
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --cluster-name) CLUSTER_NAME="$2"; shift 2 ;;
     --release-name) RELEASE_NAME="$2"; shift 2 ;;
     --namespace) NAMESPACE="$2"; shift 2 ;;
     --bootstrap-config) BOOTSTRAP_CONFIG_PATH="$2"; shift 2 ;;
@@ -93,6 +98,15 @@ done
 
 if [[ -z "$KUBECONFIG_PATH" ]]; then
   KUBECONFIG_PATH="$(normalize_kubeconfig_path "$RAW_KUBECONFIG")"
+fi
+
+DEFAULT_K3D_KUBECONFIG_PATH="${HOME}/.kube/k3d-${CLUSTER_NAME}.yaml"
+if [[ -z "$KUBECONFIG_PATH" ]]; then
+  if [[ -f "$DEFAULT_K3D_KUBECONFIG_PATH" ]]; then
+    KUBECONFIG_PATH="$DEFAULT_K3D_KUBECONFIG_PATH"
+  fi
+elif [[ "$KUBECONFIG_PATH" == "${HOME}/.kube/config" && -f "$DEFAULT_K3D_KUBECONFIG_PATH" ]]; then
+  KUBECONFIG_PATH="$DEFAULT_K3D_KUBECONFIG_PATH"
 fi
 
 bootstrap_init_logging
@@ -468,6 +482,21 @@ wait_for_statefulset() {
   run_checked kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" rollout status "statefulset/${statefulset_name}" --timeout="$wait_timeout"
 }
 
+resolve_statefulset_name() {
+  local app_name="$1"
+  local statefulset_name
+  statefulset_name="$(kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" get statefulset \
+    -l "app.kubernetes.io/instance=${RELEASE_NAME},app.kubernetes.io/name=${app_name}" \
+    -o jsonpath='{.items[0].metadata.name}')"
+
+  if [[ -z "$statefulset_name" ]]; then
+    fail "Unable to find statefulset for app=${app_name}, release=${RELEASE_NAME} in namespace=${NAMESPACE}"
+    return 1
+  fi
+
+  echo "$statefulset_name"
+}
+
 wait_for_http_endpoint() {
   local host="$1"
   local url="$2"
@@ -656,15 +685,169 @@ expected = {
     "Watchdog platform sweep",
     "Watchdog nightly activity check",
     "Watchdog daily digest",
+    "Auditor weekly review",
 }
+forbidden = {"Archivist nightly grooming"}
 if not expected.issubset(names):
     missing = ", ".join(sorted(expected - names))
     raise SystemExit(f"missing cron jobs: {missing}")
+if forbidden & names:
+    present = ", ".join(sorted(forbidden & names))
+    raise SystemExit(f"unexpected retired cron jobs present: {present}")
 PY
   then
     fail "OpenClaw gateway is missing one or more seeded cron jobs"
     exit 1
   fi
+}
+
+verify_openclaw_workspace_bootstrap() {
+  local deployment_name="$1"
+
+  step "Checking bootstrapped OpenClaw workspace files"
+  CURRENT_COMMAND="kubectl exec deployment/${deployment_name} -- sh -ceu 'test workspace bootstrap files'"
+  run_checked kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" exec "deployment/${deployment_name}" -- sh -ceu '
+    test -f /home/node/.openclaw/workspace/BOOTSTRAP.md
+    grep -F "auditor" /home/node/.openclaw/workspace/BOOTSTRAP.md >/dev/null
+
+    test -f /home/node/.openclaw/workspace/AGENTS.md
+    grep -F "quality review" /home/node/.openclaw/workspace/AGENTS.md >/dev/null
+
+    test -f /home/node/.openclaw/workspace-coder/TOOLS.md
+    grep -F "Codex invocation patterns" /home/node/.openclaw/workspace-coder/TOOLS.md >/dev/null
+    grep -F "gpt-5.4-mini" /home/node/.openclaw/workspace-coder/TOOLS.md >/dev/null
+
+    test -f /home/node/.openclaw/workspace-archivist/TOOLS.md
+    grep -F "query_filter" /home/node/.openclaw/workspace-archivist/TOOLS.md >/dev/null
+    grep -F "MemoryEntry" /home/node/.openclaw/workspace-archivist/TOOLS.md >/dev/null
+
+    test -f /home/node/.openclaw/workspace-architect/AGENTS.md
+    grep -F "Quality review and systemic audit -> auditor" /home/node/.openclaw/workspace-architect/AGENTS.md >/dev/null
+
+    test -f /home/node/.openclaw/workspace-watchdog/AGENTS.md
+    grep -F "Budget sentinel" /home/node/.openclaw/workspace-watchdog/AGENTS.md >/dev/null
+
+    test -f /home/node/.openclaw/workspace-auditor/MEMORY.md
+    grep -F "\"agent\": \"auditor\"" /home/node/.openclaw/workspace-auditor/MEMORY.md >/dev/null
+  '
+}
+
+verify_nextcloud_bootstrap_content() {
+  local statefulset_name="$1"
+
+  step "Checking Nextcloud bootstrap project content"
+  CURRENT_COMMAND="kubectl exec statefulset/${statefulset_name} -- sh -ceu 'test Nextcloud bootstrap content'"
+  run_checked kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" exec "statefulset/${statefulset_name}" -- sh -ceu '
+    project_root=/var/www/html/data/openclaw/files/Projects/ai-homebase
+    notes_root=/var/www/html/data/openclaw/files/Notes/ai-homebase
+
+    test -f "${project_root}/heartbeat.json"
+    grep -F "\"agent\": \"bootstrap\"" "${project_root}/heartbeat.json" >/dev/null
+    test -f "${project_root}/knowledge-graph-schema.md"
+    grep -F "MemoryEntry" "${project_root}/knowledge-graph-schema.md" >/dev/null
+    test -f "${project_root}/archivist-grooming-log.md"
+    test -f "${project_root}/audit-log.md"
+    test -f "${project_root}/codex-usage/.gitkeep"
+    test ! -e "${project_root}/budget-ledger.json"
+
+    test -f "${notes_root}/planning-backlog.md"
+  '
+}
+
+verify_qdrant_mcp_runtime() {
+  local deployment_name="$1"
+
+  step "Checking Qdrant MCP runtime configuration"
+  CURRENT_COMMAND="kubectl exec deployment/${deployment_name} -- sh -ceu 'check Qdrant MCP env'"
+  run_checked kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" exec "deployment/${deployment_name}" -- sh -ceu '
+    [ "${QDRANT_ALLOW_ARBITRARY_FILTER:-}" = "true" ]
+    printf "%s" "${TOOL_FIND_DESCRIPTION:-}" | grep -F "query_filter" >/dev/null
+    printf "%s" "${TOOL_FIND_DESCRIPTION:-}" | grep -F "\"created\"" >/dev/null
+    printf "%s" "${TOOL_FIND_DESCRIPTION:-}" | grep -F "\"project\"" >/dev/null
+  '
+}
+
+verify_memgraph_bootstrap() {
+  local deployment_name="$1"
+
+  step "Checking Memgraph bootstrap seed state"
+  CURRENT_COMMAND="kubectl exec deployment/${deployment_name} -- sh -ceu 'run Memgraph bootstrap queries'"
+  run_checked kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" exec "deployment/${deployment_name}" -- sh -ceu "
+    auditor_count=\$(printf \"MATCH (:Entity:Agent {slug: 'auditor'}) RETURN count(*) AS count;\\n\" | mgconsole --host 127.0.0.1 --port 7687 --output-format csv | tail -n +2 | tr -d '\"[:space:]')
+    [ \"\$auditor_count\" = \"1\" ]
+
+    repo_count=\$(printf \"MATCH (:Entity:Work {slug: 'cluster-gitops'}) RETURN count(*) AS count;\\n\" | mgconsole --host 127.0.0.1 --port 7687 --output-format csv | tail -n +2 | tr -d '\"[:space:]')
+    [ \"\$repo_count\" = \"1\" ]
+
+    edge_count=\$(printf \"MATCH (:Entity:Service {slug: 'openclaw'})-[r:HAS_PART {kind: 'agent'}]->(:Entity:Agent {slug: 'auditor'}) RETURN count(r) AS count;\\n\" | mgconsole --host 127.0.0.1 --port 7687 --output-format csv | tail -n +2 | tr -d '\"[:space:]')
+    [ \"\$edge_count\" = \"1\" ]
+  "
+}
+
+verify_coder_sandbox_runtime() {
+  local memgraph_host="$1"
+
+  if ! command -v incus >/dev/null 2>&1; then
+    warn "Skipping coder sandbox runtime checks because incus is not installed in the current shell"
+    return 0
+  fi
+
+  step "Checking coder sandbox runtime image on the Incus Docker host"
+  CURRENT_COMMAND="incus exec ${INCUS_VM_NAME} -- sh -ceu 'docker run coder sandbox validation'"
+  run_checked incus exec "$INCUS_VM_NAME" -- sh -ceu "
+    docker image inspect openclaw-sandbox-coder:bookworm-slim >/dev/null
+    docker run --rm --entrypoint sh \
+      -e HOME=/workspace/.home \
+      -e CODEX_HOME=/workspace/.home/.codex \
+      -e XDG_CONFIG_HOME=/workspace/.home/.config \
+      -e XDG_CACHE_HOME=/workspace/.home/.cache \
+      -e XDG_STATE_HOME=/workspace/.home/.local/state \
+      -e CODEX_DEFAULT_MODEL=gpt-5.4-mini \
+      openclaw-sandbox-coder:bookworm-slim -ceu '
+        command -v codex >/dev/null
+        command -v tokscale >/dev/null
+        /usr/local/bin/coder-init.sh >/tmp/coder-init.log
+        test -f /workspace/.home/.codex/config.toml
+        grep -F \"default = \\\"gpt-5.4-mini\\\"\" /workspace/.home/.codex/config.toml >/dev/null
+        grep -F \"provider = \\\"openai\\\"\" /workspace/.home/.codex/config.toml >/dev/null
+      '
+  "
+}
+
+verify_archivist_sandbox_runtime() {
+  local memgraph_host="$1"
+
+  if ! command -v incus >/dev/null 2>&1; then
+    warn "Skipping archivist sandbox runtime checks because incus is not installed in the current shell"
+    return 0
+  fi
+
+  step "Checking archivist sandbox runtime image on the Incus Docker host"
+  CURRENT_COMMAND="incus exec ${INCUS_VM_NAME} -- sh -ceu 'docker run archivist sandbox validation'"
+  run_checked incus exec "$INCUS_VM_NAME" -- sh -ceu "
+    docker image inspect openclaw-sandbox-archivist:bookworm-slim >/dev/null
+    docker run --rm --entrypoint sh openclaw-sandbox-archivist:bookworm-slim -ceu '
+      command -v node >/dev/null
+      node -e \"require(\\\"neo4j-driver\\\"); console.log(\\\"neo4j-driver-ok\\\")\" >/tmp/neo4j-driver-check.log
+      node <<\"NODE\"
+const neo4j = require(\"neo4j-driver\");
+const driver = neo4j.driver(\"bolt://${memgraph_host}:7687\");
+(async () => {
+  try {
+    const result = await driver.executeQuery(\"RETURN 1 AS ok\");
+    if (!result.records.length || result.records[0].get(\"ok\").toNumber() !== 1) {
+      throw new Error(\"unexpected Memgraph result\");
+    }
+  } finally {
+    await driver.close();
+  }
+})().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});
+NODE
+    '
+  "
 }
 
 verify_incus_hostname_resolution() {
@@ -744,6 +927,8 @@ OPENCLAW_INGRESS_HOST="$(effective_value "openclaw.ingress.hosts.0.host")"
 REGISTRY_INGRESS_HOST="$(effective_value "registry.ingress.hosts.0.host")"
 QDRANT_INGRESS_HOST="$(effective_value "qdrant.ingress.hosts.0.host")"
 QDRANT_MCP_INGRESS_HOST="$(effective_value "qdrantMcp.ingress.hosts.0.host")"
+MEMGRAPH_INGRESS_HOST="$(effective_value "memgraph.ingress.hosts.0.host")"
+MEMGRAPH_LAB_INGRESS_HOST="$(effective_value "memgraphLab.ingress.hosts.0.host")"
 HOST_LISTEN_ADDRESS_VALUE=""
 if [[ -f "$INCUS_CONNECTION_INFO_PATH" ]]; then
   # shellcheck disable=SC1090
@@ -756,6 +941,7 @@ OPENCLAW_DEPLOYMENT_NAME="$(resolve_deployment_name openclaw)"
 OPENCLAW_CONFIGMAP_NAME="${RELEASE_NAME}-openclaw"
 verify_openclaw_mcp_bootstrap_config "$OPENCLAW_CONFIGMAP_NAME" "$OPENCLAW_DEPLOYMENT_NAME"
 verify_openclaw_gateway_tooling "$OPENCLAW_DEPLOYMENT_NAME"
+verify_openclaw_workspace_bootstrap "$OPENCLAW_DEPLOYMENT_NAME"
 
 if [[ "$(is_openclaw_remote_docker_enabled)" == "true" ]]; then
   verify_openclaw_remote_docker "$OPENCLAW_DEPLOYMENT_NAME"
@@ -765,7 +951,9 @@ fi
 
 if [[ "$(is_nextcloud_enabled)" == "true" ]]; then
   wait_for_statefulset nextcloud "$NEXTCLOUD_WAIT_TIMEOUT"
+  NEXTCLOUD_STATEFULSET_NAME="$(resolve_statefulset_name nextcloud)"
   verify_labeled_service nextcloud
+  verify_nextcloud_bootstrap_content "$NEXTCLOUD_STATEFULSET_NAME"
   step "Checking nextcloud ingress endpoint"
   CURRENT_COMMAND="curl --silent --show-error --fail -H Host: ${NEXTCLOUD_INGRESS_HOST} http://127.0.0.1/status.php"
   wait_for_http_endpoint "${NEXTCLOUD_INGRESS_HOST}" "http://127.0.0.1/status.php" "Nextcloud"
@@ -845,7 +1033,9 @@ fi
 
 if [[ "$(is_qdrant_mcp_enabled)" == "true" ]]; then
   wait_for_workload qdrant-mcp "$QDRANT_MCP_WAIT_TIMEOUT"
+  QDRANT_MCP_DEPLOYMENT_NAME="$(resolve_deployment_name qdrant-mcp)"
   verify_labeled_service qdrant-mcp
+  verify_qdrant_mcp_runtime "$QDRANT_MCP_DEPLOYMENT_NAME"
   if [[ -n "$HOST_LISTEN_ADDRESS_VALUE" ]]; then
     verify_incus_hostname_resolution "$QDRANT_MCP_INGRESS_HOST" "$HOST_LISTEN_ADDRESS_VALUE" "/mcp" "Qdrant MCP" "200|308"
   else
@@ -857,6 +1047,22 @@ if [[ "$(is_qdrant_mcp_enabled)" == "true" ]]; then
 else
   warn "Skipping Qdrant MCP workload/service/ingress checks because qdrantMcp.enabled=false in effective values"
 fi
+
+wait_for_workload memgraph "$MEMGRAPH_WAIT_TIMEOUT"
+MEMGRAPH_DEPLOYMENT_NAME="$(resolve_deployment_name memgraph)"
+verify_labeled_service memgraph
+verify_memgraph_bootstrap "$MEMGRAPH_DEPLOYMENT_NAME"
+if [[ -n "$HOST_LISTEN_ADDRESS_VALUE" ]]; then
+  verify_archivist_sandbox_runtime "$MEMGRAPH_INGRESS_HOST"
+  verify_coder_sandbox_runtime "$MEMGRAPH_INGRESS_HOST"
+else
+  warn "Skipping sandbox runtime checks because ${INCUS_CONNECTION_INFO_PATH} is missing or does not define HOST_LISTEN_ADDRESS"
+fi
+
+wait_for_workload memgraph-lab "$MEMGRAPH_LAB_WAIT_TIMEOUT"
+verify_labeled_service memgraph-lab
+kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" \
+  get ingress "${RELEASE_NAME}-memgraph-lab" >/dev/null
 
 if [[ "$(is_openclaw_ingress_enabled)" == "true" ]]; then
   if [[ -n "$HOST_LISTEN_ADDRESS_VALUE" ]]; then

@@ -1,5 +1,40 @@
 # Untested Changes
 
+## Consolidated Bootstrap Monitor List
+
+Use this list during a fresh `k3d` bootstrap and treat it as the shared `k3d`/`k3s` validation contract. Stop at the first failure and fix the bootstrap path itself rather than repairing the live cluster by hand.
+
+- Bootstrap config generation:
+  verify `scripts/bootstrap-config.py` output, rendered bootstrap values, agent topology, model selection, sandbox image refs, Nextcloud project content, and Memgraph seed content.
+- Secrets and runtime contracts:
+  verify the bootstrap creates every Secret and key expected by the rendered manifests, especially `openclaw-secrets`, `coder-credentials`, `openclaw-remote-docker-ssh`, Nextcloud auth, and registry credentials.
+- Runtime image preparation:
+  verify the gateway image and sandbox images build from their own Dockerfile contexts, import into `k3d`, and sync to the remote Docker sandbox with the canonical registry tags used by OpenClaw.
+- Helm install plus GitOps handoff:
+  verify the direct Helm install, cron seeding, Gitea bootstrap, Argo CD bootstrap, initial GitOps push, and initial Argo sync all complete without manual intervention.
+- OpenClaw bootstrap state:
+  verify the live OpenClaw config and seeded workspaces contain the expected six-agent topology, updated coder and archivist workspace guidance, watchdog and auditor cron jobs, and the remote Docker settings used on the target machine.
+- Nextcloud bootstrap content:
+  verify the fresh Nextcloud seed contains the intended project and notes files under `/Projects/ai-homebase/` and `/Notes/ai-homebase/`, including `heartbeat.json`, `knowledge-graph-schema.md`, `archivist-grooming-log.md`, `audit-log.md`, `codex-usage/.gitkeep`, and `planning-backlog.md`, and verify `budget-ledger.json` is absent.
+- Qdrant MCP runtime:
+  verify the running MCP pod exposes `QDRANT_ALLOW_ARBITRARY_FILTER=true` and the live tool description includes `query_filter` guidance for metadata fields such as `created` and `project`.
+- Memgraph bootstrap:
+  verify the bootstrap seed applies cleanly and idempotently, creates the canonical graph entities and relationships, and includes the `auditor` node and repository-as-`Work` modeling.
+- Sandbox runtime checks:
+  verify the coder sandbox contains `codex`, `tokscale`, and the expected Codex config, and verify the archivist sandbox can load `neo4j-driver` and connect to Memgraph over Bolt.
+- Hostname and ingress reachability:
+  verify the host, Incus VM, and nested Docker containers can resolve and reach the OpenClaw, Nextcloud MCP, Qdrant MCP, Memgraph, Gitea, and registry hostnames used by the target `k3s` machine.
+
+## Findings From The Current Fresh-Bootstrap Validation
+
+- Fixed `scripts/build-openclaw-sandbox-images.sh` so each image builds with the correct Docker context; the previous root-context build broke `openclaw-sandbox-coder` on `COPY coder-init.sh`.
+- Removed stale OpenClaw secret-key defaults for optional providers that were no longer bootstrap-managed, which had been blocking OpenClaw startup with `CreateContainerConfigError`.
+- Added bootstrap creation and reuse of the `coder-credentials` Secret so the live OpenClaw deployment and GitOps bootstrap agree on coder credential sources.
+- Updated the main morning-brief cron template to use `tokscale` plus `codex-usage` instead of the removed `budget-ledger.json`.
+- Expanded `scripts/test-local-k3d.sh` so the local verifier now checks the shared bootstrap outputs that matter for `k3s` too: OpenClaw workspaces, Nextcloud seeded files, cron jobs, Qdrant MCP runtime flags, Memgraph seed state, and coder/archivist sandbox behavior.
+- Fixed `scripts/test-local-k3d.sh` to prefer the dedicated `k3d-<cluster>.yaml` kubeconfig instead of accidentally falling back to `/home/sbischoff/.kube/config`.
+- Found a fresh-bootstrap Nextcloud seeding gap where `heartbeat.json` and `audit-log.md` were rendered into the ConfigMap but missing on disk after bootstrap. Reworked the Nextcloud bootstrap job to copy files directly from the mounted ConfigMap paths instead of using stdin-fed temp files so this failure is caught and fixed in the bootstrap path itself.
+
 ## 2026-04-03 - Task 17: Generalize the Knowledge Graph Schema and Seed Graph
 
 Status: statically validated only. Do not treat this as live Memgraph-bootstrap, bootstrap-generator, or workspace-bootstrap verified yet.

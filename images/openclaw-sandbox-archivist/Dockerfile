@@ -12,5 +12,7 @@ RUN apt-get update && \
     rm -f /usr/local/bin/mgconsole && \
     rm -rf /var/lib/apt/lists/*
 
+ENV NODE_PATH=/usr/local/lib/node_modules
+
 USER sandbox
 WORKDIR /home/sandbox

@@ -2040,20 +2040,10 @@ spec:
             secretKeyRef:
               key: BRAVE_API_KEY
               name: openclaw-secrets
-        - name: KIMI_API_KEY
-          valueFrom:
-            secretKeyRef:
-              key: KIMI_API_KEY
-              name: openclaw-secrets
         - name: MOONSHOT_API_KEY
           valueFrom:
             secretKeyRef:
               key: MOONSHOT_API_KEY
-              name: openclaw-secrets
-        - name: TAVILY_API_KEY
-          valueFrom:
-            secretKeyRef:
-              key: TAVILY_API_KEY
               name: openclaw-secrets
         - name: PERPLEXITY_API_KEY
           valueFrom:
@@ -2074,16 +2064,6 @@ spec:
           valueFrom:
             secretKeyRef:
               key: GITHUB_TOKEN
-              name: openclaw-secrets
-        - name: GOOGLE_API_KEY
-          valueFrom:
-            secretKeyRef:
-              key: GOOGLE_API_KEY
-              name: openclaw-secrets
-        - name: BRAVE_SEARCH_API_KEY
-          valueFrom:
-            secretKeyRef:
-              key: BRAVE_SEARCH_API_KEY
               name: openclaw-secrets
         - name: OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER
           valueFrom:
@@ -4426,14 +4406,12 @@ spec:
 
           write_managed_file() {
             target="$1"
-            temp_file="$(mktemp)"
-            cat >"${temp_file}"
-            if [ ! -f "${target}" ] || ! cmp -s "${temp_file}" "${target}"; then
-              cp "${temp_file}" "${target}"
+            source_file="$2"
+            if [ ! -f "${target}" ] || ! cmp -s "${source_file}" "${target}"; then
+              cp "${source_file}" "${target}"
               chown 33:33 "${target}"
               chmod 0640 "${target}"
             fi
-            rm -f "${temp_file}"
           }
           owner_username="openclaw"
           project_slug="ai-homebase"
@@ -4443,39 +4421,39 @@ spec:
           chown 33:33 "${project_root}" "${notes_root}"
           chmod 0750 "${project_root}" "${notes_root}"
           ensure_parent_dir "${project_root}/overview.md"
-          write_managed_file "${project_root}/overview.md" <"/bootstrap-content/project-0-file-0"
+          write_managed_file "${project_root}/overview.md" "/bootstrap-content/project-0-file-0"
           ensure_parent_dir "${project_root}/multi-agent-topology.md"
-          write_managed_file "${project_root}/multi-agent-topology.md" <"/bootstrap-content/project-0-file-1"
+          write_managed_file "${project_root}/multi-agent-topology.md" "/bootstrap-content/project-0-file-1"
           ensure_parent_dir "${project_root}/gitops-workflow.md"
-          write_managed_file "${project_root}/gitops-workflow.md" <"/bootstrap-content/project-0-file-2"
+          write_managed_file "${project_root}/gitops-workflow.md" "/bootstrap-content/project-0-file-2"
           ensure_parent_dir "${project_root}/cluster-architecture.md"
-          write_managed_file "${project_root}/cluster-architecture.md" <"/bootstrap-content/project-0-file-3"
+          write_managed_file "${project_root}/cluster-architecture.md" "/bootstrap-content/project-0-file-3"
           ensure_parent_dir "${project_root}/project-documentation-model.md"
-          write_managed_file "${project_root}/project-documentation-model.md" <"/bootstrap-content/project-0-file-4"
+          write_managed_file "${project_root}/project-documentation-model.md" "/bootstrap-content/project-0-file-4"
           ensure_parent_dir "${project_root}/qdrant-memory-schema.md"
-          write_managed_file "${project_root}/qdrant-memory-schema.md" <"/bootstrap-content/project-0-file-5"
+          write_managed_file "${project_root}/qdrant-memory-schema.md" "/bootstrap-content/project-0-file-5"
           ensure_parent_dir "${project_root}/knowledge-graph-schema.md"
-          write_managed_file "${project_root}/knowledge-graph-schema.md" <"/bootstrap-content/project-0-file-6"
+          write_managed_file "${project_root}/knowledge-graph-schema.md" "/bootstrap-content/project-0-file-6"
           ensure_parent_dir "${project_root}/archivist-grooming-log.md"
-          write_managed_file "${project_root}/archivist-grooming-log.md" <"/bootstrap-content/project-0-file-7"
+          write_managed_file "${project_root}/archivist-grooming-log.md" "/bootstrap-content/project-0-file-7"
           ensure_parent_dir "${project_root}/incidents/README.md"
-          write_managed_file "${project_root}/incidents/README.md" <"/bootstrap-content/project-0-file-8"
+          write_managed_file "${project_root}/incidents/README.md" "/bootstrap-content/project-0-file-8"
           ensure_parent_dir "${project_root}/heartbeat.json"
-          write_managed_file "${project_root}/heartbeat.json" <"/bootstrap-content/project-0-file-9"
+          write_managed_file "${project_root}/heartbeat.json" "/bootstrap-content/project-0-file-9"
           ensure_parent_dir "${project_root}/codex-usage/.gitkeep"
-          write_managed_file "${project_root}/codex-usage/.gitkeep" <"/bootstrap-content/project-0-file-10"
+          write_managed_file "${project_root}/codex-usage/.gitkeep" "/bootstrap-content/project-0-file-10"
           ensure_parent_dir "${project_root}/audit-log.md"
-          write_managed_file "${project_root}/audit-log.md" <"/bootstrap-content/project-0-file-11"
+          write_managed_file "${project_root}/audit-log.md" "/bootstrap-content/project-0-file-11"
           ensure_parent_dir "${project_root}/baselines.md"
-          write_managed_file "${project_root}/baselines.md" <"/bootstrap-content/project-0-file-12"
+          write_managed_file "${project_root}/baselines.md" "/bootstrap-content/project-0-file-12"
           ensure_parent_dir "${project_root}/escalation-rules.md"
-          write_managed_file "${project_root}/escalation-rules.md" <"/bootstrap-content/project-0-file-13"
+          write_managed_file "${project_root}/escalation-rules.md" "/bootstrap-content/project-0-file-13"
           ensure_parent_dir "${notes_root}/project-brief.md"
-          write_managed_file "${notes_root}/project-brief.md" <"/bootstrap-content/project-0-note-0"
+          write_managed_file "${notes_root}/project-brief.md" "/bootstrap-content/project-0-note-0"
           ensure_parent_dir "${notes_root}/planning-backlog.md"
-          write_managed_file "${notes_root}/planning-backlog.md" <"/bootstrap-content/project-0-note-1"
+          write_managed_file "${notes_root}/planning-backlog.md" "/bootstrap-content/project-0-note-1"
           ensure_parent_dir "${notes_root}/open-questions.md"
-          write_managed_file "${notes_root}/open-questions.md" <"/bootstrap-content/project-0-note-2"
+          write_managed_file "${notes_root}/open-questions.md" "/bootstrap-content/project-0-note-2"
           su -s /bin/sh www-data -c "cd /var/www/html && php occ files:scan --path='${owner_username}/files/Projects/${project_slug}'"
           su -s /bin/sh www-data -c "cd /var/www/html && php occ files:scan --path='${owner_username}/files/Notes/${project_slug}'"
         env:

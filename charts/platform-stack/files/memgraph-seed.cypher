@@ -136,4 +136,4 @@ MERGE (openclaw)-[:HAS_PART {kind: 'agent'}]->(auditor)
 
 // Archivist manages graph and memory services
 MERGE (archivist)-[:INFLUENCES {kind: 'curates', context: 'graph structure'}]->(memgraph)
-MERGE (archivist)-[:INFLUENCES {kind: 'grooms', context: 'memory consolidation'}]->(qdrant)
+MERGE (archivist)-[:INFLUENCES {kind: 'grooms', context: 'memory consolidation'}]->(qdrant);

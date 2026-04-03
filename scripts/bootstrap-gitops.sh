@@ -377,6 +377,21 @@ sync_and_validate_argocd_apps() {
     '
 }
 
+seed_memgraph() {
+  local seed_cmd=(
+    ./scripts/bootstrap-memgraph.sh
+    --release-name "$RELEASE_NAME"
+    --namespace "$NAMESPACE"
+  )
+  if [[ -n "$KUBECONFIG_PATH" ]]; then
+    seed_cmd+=(--kubeconfig "$KUBECONFIG_PATH")
+  fi
+  if [[ -n "$KUBE_CONTEXT" ]]; then
+    seed_cmd+=(--kube-context "$KUBE_CONTEXT")
+  fi
+  "${seed_cmd[@]}"
+}
+
 build_admin_user_payload() {
   python3 - "$@" <<'PY'
 import json
@@ -491,6 +506,8 @@ CONFIG_CODER_GITEA_PASSWORD="${CODER_GITEA_PASSWORD:-}"
 if CODER_GITEA_PASSWORD="$(read_secret_value "$GITOPS_SECRET_NAME" '{.data.CODER_GITEA_PASSWORD}')"; then
   :
 elif CODER_GITEA_PASSWORD="$(read_secret_value "$GITOPS_SECRET_NAME" '{.data.GITOPS_ROBOT_PASSWORD}')"; then
+  :
+elif CODER_GITEA_PASSWORD="$(read_secret_value "coder-credentials" '{.data.CODER_GITEA_PASSWORD}')"; then
   :
 elif [[ -n "${CONFIG_CODER_GITEA_PASSWORD}" ]]; then
   CODER_GITEA_PASSWORD="${CONFIG_CODER_GITEA_PASSWORD}"
@@ -676,6 +693,7 @@ kubectl "${KUBECTL_CONTEXT_ARGS[@]}" apply -f "${REPO_WORK_DIR}/gitops/clusters/
 kubectl "${KUBECTL_CONTEXT_ARGS[@]}" apply -f "${REPO_WORK_DIR}/gitops/clusters/${GITOPS_CLUSTER_NAME}/root-application.yaml"
 
 sync_and_validate_argocd_apps "${ARGOCD_ADMIN_USER:-admin}" "${ARGOCD_ADMIN_PASSWORD:-}"
+seed_memgraph
 
 printf 'GitOps bootstrap complete.\n'
 printf '  Argo CD URL: http://%s\n' "$ARGOCD_HOST"
