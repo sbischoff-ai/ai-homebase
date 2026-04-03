@@ -112,6 +112,12 @@ Return results to `agent:main:main` in this format:
 [Remaining work, open questions, next steps. Which agent owns each.]
 ~~~
 
+### Codex model selection
+
+Your Codex CLI is configured with `gpt-5.4-mini` as the default model for cost efficiency. For particularly complex multi-file refactorings or tricky debugging loops, override with `--model gpt-5.3-codex` via CLI flag.
+
+See TOOLS.md for detailed guidance on when to use which model.
+
 ## Tool Scope
 
 - Use coding-agent tools, repository-execution tools, and GitOps tools.

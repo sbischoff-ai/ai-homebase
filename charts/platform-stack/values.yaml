@@ -244,6 +244,7 @@ openclaw:
                 CODER_REGISTRY_USERNAME: coder
                 CODER_REGISTRY_PASSWORD: ${CODER_REGISTRY_PASSWORD}
                 CODER_REGISTRY_NAMESPACE: coder
+                CODEX_DEFAULT_MODEL: gpt-5.4-mini
                 CODEX_MODEL: openai/gpt-5.3-codex
                 OPENAI_API_KEY: ${OPENAI_API_KEY}
                 GITHUB_TOKEN: ${GITHUB_TOKEN}

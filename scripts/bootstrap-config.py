@@ -972,6 +972,12 @@ def workspace_bootstrap_values(
                         [Remaining work, open questions, next steps. Which agent owns each.]
                         ~~~
 
+                        ### Codex model selection
+
+                        Your Codex CLI is configured with `gpt-5.4-mini` as the default model for cost efficiency. For particularly complex multi-file refactorings or tricky debugging loops, override with `--model gpt-5.3-codex` via CLI flag.
+
+                        See TOOLS.md for detailed guidance on when to use which model.
+
                         ## Tool Scope
 
                         - Use coding-agent tools, repository-execution tools, and GitOps tools.
@@ -1011,6 +1017,23 @@ def workspace_bootstrap_values(
                         - Use Codex for substantial feature work, refactors, multi-file bug fixes, and implementation from architect-provided specs.
                         - Use direct edits yourself only for trivial one-line changes, tiny config updates, or obvious file scaffolding.
                         - Review Codex output before handoff, and keep git/tea workflow ownership with you.
+
+                        #### Codex model selection
+
+                        - **Default model:** `gpt-5.4-mini` (configured in `~/.codex/config.toml`)
+                          - Use for: routine feature work, straightforward bug fixes, multi-file changes with clear scope
+                          - Goal: Cost efficiency (most tasks should use this)
+                        - **Override to `gpt-5.3-codex`** for particularly challenging work:
+                          - Complex multi-file refactorings (e.g., renaming abstractions across 10+ files)
+                          - Tricky debugging loops where context depth matters
+                          - Architectural changes requiring deep codebase understanding
+                          - Example: `codex --model gpt-5.3-codex "Refactor the plugin loading system to support lazy initialization"`
+                        - **Decision heuristic:**
+                          - If the task is well-defined and the changes are mechanical -> `gpt-5.4-mini`
+                          - If you've tried `gpt-5.4-mini` and the output was incorrect or incomplete -> retry with `gpt-5.3-codex`
+                          - If the task involves cross-cutting concerns (e.g., security, error handling) across many files -> start with `gpt-5.3-codex`
+
+                        **Cost tracking:** Both models' usage is tracked via tokscale and the daily Codex usage log (see AGENTS.md).
 
                         #### Codex usage logging
 
@@ -2288,6 +2311,7 @@ def resolved_values(data: dict[str, object]) -> dict[str, str]:
         "REGISTRY_USERNAME": registry_username,
         "REGISTRY_PASSWORD": registry_password,
         "CODEX_MODEL": codex_model,
+        "CODEX_DEFAULT_MODEL": codex_model.split("/", 1)[1],
         "OPENCLAW_MAIN_MODEL": main_model,
         "OPENCLAW_CODER_MODEL": coder_model,
         "OPENCLAW_ARCHITECT_MODEL": architect_model,
@@ -2484,6 +2508,7 @@ def command_render_values(args: argparse.Namespace) -> int:
                                 "CODER_REGISTRY_USERNAME": values["REGISTRY_USERNAME"],
                                 "CODER_REGISTRY_PASSWORD": values["REGISTRY_PASSWORD"],
                                 "CODER_REGISTRY_NAMESPACE": values["CODER_GITEA_USERNAME"],
+                                "CODEX_DEFAULT_MODEL": values["CODEX_DEFAULT_MODEL"],
                                 "CODEX_MODEL": values["CODEX_MODEL"],
                                 "OPENAI_API_KEY": "${OPENAI_API_KEY}",
                             },
