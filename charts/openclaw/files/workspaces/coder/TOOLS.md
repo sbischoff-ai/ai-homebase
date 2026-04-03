@@ -18,6 +18,64 @@ Codex guidance:
 - Use direct edits yourself only for trivial one-line changes, tiny config updates, or obvious file scaffolding.
 - Review Codex output before handoff, and keep git/tea workflow ownership with you.
 
+#### Codex invocation patterns
+
+**PTY mode is required.** Codex is an interactive terminal app. Always use `pty:true`:
+
+```text
+# One-shot task
+bash pty:true workdir:/path/to/project command:"codex exec 'Your prompt'"
+
+# With auto-approve (sandboxed)
+bash pty:true workdir:/path/to/project command:"codex exec --full-auto 'Your prompt'"
+```
+
+**Background mode for long-running tasks:**
+
+```text
+# Start in background
+bash pty:true workdir:/path/to/project background:true command:"codex exec --full-auto 'Your task'"
+# Returns sessionId
+
+# Monitor progress
+process action:log sessionId:XXX
+
+# Check if done
+process action:poll sessionId:XXX
+
+# Send input if agent asks a question
+process action:submit sessionId:XXX data:"yes"
+
+# Kill if needed
+process action:kill sessionId:XXX
+```
+
+**Git repo required.** Codex refuses to run outside a git directory. For scratch work:
+
+```text
+SCRATCH=$(mktemp -d) && cd $SCRATCH && git init && codex exec "Your prompt"
+```
+
+**Workspace isolation rules:**
+- **NEVER** run Codex in `~/.openclaw/` — it will read system docs and get confused
+- Always use `workdir` to point Codex at the target project directory
+
+**Auto-notify on completion.** For long background tasks, append to your prompt:
+
+```text
+When completely finished, run this command to notify me:
+openclaw system event --text "Done: [brief summary]" --mode now
+```
+
+**Parallel work.** You can run multiple Codex sessions at once. Use git worktrees to isolate branches:
+
+```text
+git worktree add -b fix/issue-1 /tmp/issue-1 main
+git worktree add -b fix/issue-2 /tmp/issue-2 main
+bash pty:true workdir:/tmp/issue-1 background:true command:"codex exec --full-auto 'Fix issue #1'"
+bash pty:true workdir:/tmp/issue-2 background:true command:"codex exec --full-auto 'Fix issue #2'"
+```
+
 #### Codex model selection
 
 - **Default model:** `gpt-5.4-mini` (configured in `~/.codex/config.toml`)
