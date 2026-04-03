@@ -29,6 +29,17 @@
 - Verify golden snapshots are current:
   - `nix-shell -p kubernetes-helm python3Packages.pyyaml --run "./scripts/ci/check_golden.sh"`
 
+## Golden snapshot gate (mandatory, pre-commit)
+- Treat any change under `charts/**`, rendered OpenClaw config generation, or bootstrap values defaults as **render-impacting** unless proven otherwise.
+- For every render-impacting change, run both commands and commit updated files under `tests/golden/` in the same commit:
+  1. `nix-shell -p kubernetes-helm python3Packages.pyyaml --run "./scripts/ci/update_golden.sh"`
+  2. `nix-shell -p kubernetes-helm python3Packages.pyyaml --run "./scripts/ci/check_golden.sh"`
+- If `nix-shell` is unavailable, run the scripts directly with equivalent local tooling:
+  1. `./scripts/ci/update_golden.sh`
+  2. `./scripts/ci/check_golden.sh`
+- **Hard stop:** do not open a PR or mark work complete while golden snapshots are stale.
+- In your final report, always include the exact golden commands you ran and whether fixtures changed.
+
 ## Change-target rules (charts vs overlays vs docs)
 - Change `charts/<service>/` when you need template, chart metadata, image, probes, resources, secret wiring, or service defaults updated for that service.
 - Change `charts/platform-stack/` when you need composition, dependency wiring, umbrella defaults, or cross-service orchestration updates.
@@ -43,6 +54,7 @@ When a change affects rendered manifests (especially values that exist in both b
 - Update any bootstrap/config generator defaults that feed those same rendered values.
 - Regenerate golden fixtures with `scripts/ci/update_golden.sh` and verify with `scripts/ci/check_golden.sh` before merge.
 - If the diff still surprises you, inspect the merged render output first (`./scripts/template.sh ...`) before editing fixtures by hand.
+- Do not defer golden updates to a follow-up task; snapshot updates are part of the same change.
 
 ## Required updates when toggles/values change
 When adding/removing/renaming/changing a value key or toggle semantics, update all applicable files in the same change:

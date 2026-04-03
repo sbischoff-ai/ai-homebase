@@ -1,1 +1,2 @@
 - Added the `auditor` agent scaffolding/configuration updates across bootstrap and Helm values (Task 2).
+- Clarified mandatory golden snapshot gate in AGENTS.md to prevent stale fixtures in future tasks.
