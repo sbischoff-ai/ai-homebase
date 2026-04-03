@@ -1,5 +1,40 @@
 # Untested Changes
 
+## 2026-04-03 - Task 8: Strengthen Memory Discipline Across All Agent Workspace Files
+
+Status: statically validated only. Do not treat this as live runtime/bootstrap verified yet.
+
+Scope:
+
+- Updated `charts/openclaw/files/workspaces/{main,architect,coder,archivist,watchdog}/MEMORY.md` to add explicit `When to search`, `When to store`, and `Search tips` sections tailored to each agent.
+- Added `charts/openclaw/files/workspaces/auditor/MEMORY.md` with the same overall structure, tailored to audit findings, recurring patterns, anti-patterns, systemic observations, and review artifacts.
+- Updated `scripts/bootstrap-config.py` embedded workspace markdown so all six generated `MEMORY.md` files match the checked-in workspace files, including the new auditor memory guide.
+- Kept the shared collection wording aligned as `All six agents share one Qdrant collection for durable semantic memory.` across workspace files and bootstrap output.
+- Preserved and aligned pre-existing architect-specific memory guidance so the checked-in architect file and bootstrap template no longer drift.
+
+What to verify later during a real bootstrap/render/runtime check:
+
+- A real OpenClaw bootstrap emits all six `MEMORY.md` workspace files with the new sections present and with content matching the checked-in files.
+- The bootstrapped auditor workspace now includes `MEMORY.md` and any runtime code that consumes workspace files remains compatible with that added file.
+- The generated workspace markdown renders cleanly in the running OpenClaw environment and the added headings/lists are displayed as intended.
+- Any agent flows that rely on these instructions actually preserve the stronger search/store behavior once exercised in real sessions.
+
+Static validation completed:
+
+- `rg -n "All five agents share|Search Qdrant before|## " charts/openclaw/files/workspaces/*/MEMORY.md scripts/bootstrap-config.py`
+- `rg --files charts/openclaw/files/workspaces`
+- `sed -n '1,220p' charts/openclaw/files/workspaces/{main,coder,architect,archivist,watchdog}/MEMORY.md`
+- `sed -n '660,740p' scripts/bootstrap-config.py`
+- `sed -n '900,980p' scripts/bootstrap-config.py`
+- `sed -n '1055,1105p' scripts/bootstrap-config.py`
+- `sed -n '1200,1245p' scripts/bootstrap-config.py`
+- `sed -n '1390,1435p' scripts/bootstrap-config.py`
+- `sed -n '1535,1585p' scripts/bootstrap-config.py`
+- `test -f charts/openclaw/files/workspaces/auditor/MEMORY.md && echo auditor-memory-exists`
+- `sed -n '1,220p' charts/openclaw/files/workspaces/auditor/MEMORY.md`
+- `rg -n "## When to search|## When to store|## Search tips|All five agents share|All six agents share" charts/openclaw/files/workspaces/*/MEMORY.md scripts/bootstrap-config.py`
+- `git diff -- charts/openclaw/files/workspaces/main/MEMORY.md charts/openclaw/files/workspaces/coder/MEMORY.md charts/openclaw/files/workspaces/architect/MEMORY.md charts/openclaw/files/workspaces/archivist/MEMORY.md charts/openclaw/files/workspaces/watchdog/MEMORY.md charts/openclaw/files/workspaces/auditor/MEMORY.md scripts/bootstrap-config.py`
+
 ## 2026-04-03 - Task 7: Add Auditor to Graph Bootstrap Seed
 
 Status: statically validated only. Do not treat this as live Memgraph-bootstrap, fresh-deploy seed, or Helm-render verified yet.

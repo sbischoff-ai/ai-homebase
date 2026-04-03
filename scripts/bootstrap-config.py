@@ -699,6 +699,30 @@ def workspace_bootstrap_values(
                         `{"kind": "...", "domain": "...", "agent": "main", "created": "ISO-8601"}`
 
                         When a memory points to Nextcloud content, include the reference in both the text and `nc_refs` metadata. Prefer stable IDs over paths when available.
+
+                        ## When to search
+
+                        Search Qdrant at the start of every substantive interaction. Concrete triggers:
+                        - User asks about something discussed before -> search for the topic
+                        - About to delegate to a specialist -> search for prior work on that topic
+                        - User references a project, person, or decision -> search for it
+                        - Returning to a task after time has passed -> search for recent context
+
+                        ## When to store
+
+                        Store a memory when any of these happen during your session:
+
+                        1. **You produced an artifact.** Whenever you create, update, move, or share a durable artifact such as a Nextcloud note, project doc, report, or coordination file, store a memory noting what it is and where it lives. Include `nc_refs` for Nextcloud paths or stable IDs.
+                        2. **A decision was made.** Whenever a conversation produces a decision, resolved question, user preference, new convention, routing rule, or change in operating mode, store it as a `[decision]`, `[preference]`, or `[convention]` memory.
+                        3. **You learned something reusable.** Whenever you discover reusable context about the user, collaborators, projects, workflows, or coordination patterns that would help in a future session, store it.
+                        4. **End-of-session review.** Before finishing a non-trivial session, review what you did and verify you stored memories for items 1-3 above. If you produced artifacts or decisions but did not store memories for them yet, do it now.
+
+                        ## Search tips
+
+                        - Include domain tags in queries when useful: `[real] user's preferred editor` or `[decision] database choice for ai-homebase`
+                        - Be specific: `main routing rule for ai-homebase infra work` works better than `routing`
+                        - If a search returns nothing, try rephrasing; semantic search is sensitive to wording
+                        - If results mix real and fictional content, re-query with an explicit `[real]` or `[fictional]` prefix
                         """
                     ),
                     "BOOTSTRAP.md": normalize_markdown(
@@ -934,6 +958,30 @@ def workspace_bootstrap_values(
                         `{"kind": "...", "domain": "...", "agent": "coder", "created": "ISO-8601"}`
 
                         When a memory points to Nextcloud docs, specs, or plans, include the reference in both the text and `nc_refs` metadata.
+
+                        ## When to search
+
+                        Search Qdrant at the start of every task. Concrete triggers:
+                        - About to work on a repo or codebase -> search for conventions and prior decisions about it
+                        - Received a handoff referencing a plan or spec -> search for it and related implementation notes
+                        - About to make an implementation decision -> search for prior decisions on the same topic
+                        - Need to find where code, docs, or reports were stored -> search for the artifact name or description
+
+                        ## When to store
+
+                        Store a memory when any of these happen during your session:
+
+                        1. **You produced an artifact.** Whenever you create or update repo code, open or land a commit, write implementation notes, produce a report, or store docs, specs, or plans in Nextcloud, store a memory noting what it is and where it lives. Include repo, branch, commit, or `nc_refs` when relevant.
+                        2. **A decision was made.** Whenever implementation work resolves a technical question, establishes a convention, changes workflow, or chooses one approach over another, store it as a `[decision]` or `[convention]` memory.
+                        3. **You learned something reusable.** Whenever you discover a reusable pattern, constraint, workaround, deployment detail, or repo-specific rule that would help future implementation work, store it.
+                        4. **End-of-session review.** Before finishing a non-trivial session, review what you did and verify you stored memories for items 1-3 above. If you produced artifacts or decisions but did not store memories for them yet, do it now.
+
+                        ## Search tips
+
+                        - Include domain tags in queries when useful: `[real] coder convention for ai-homebase helm charts`
+                        - Be specific: `ai-homebase ingress naming decision` works better than `ingress`
+                        - If a search returns nothing, try rephrasing; semantic search is sensitive to wording
+                        - If results mix real and fictional content, re-query with an explicit `[real]` or `[fictional]` prefix
                         """
                     ),
                 },
@@ -1096,6 +1144,30 @@ def workspace_bootstrap_values(
                         - Durable project docs live in `/Projects/ai-homebase/`.
                         - Working notes live in `/Notes/ai-homebase/`.
                         - Treat that project as the standing documentation and planning home for the cluster itself.
+
+                        ## When to search
+
+                        Search Qdrant at the start of every planning or design task. Concrete triggers:
+                        - About to design or plan something -> search for prior designs, decisions, and constraints
+                        - Asked to review or revisit a plan -> search for the original plan and follow-up decisions
+                        - Working on a project that has history -> search for the project name and related decisions
+                        - Need to find where a spec, note, or design artifact was stored -> search for the artifact name or topic
+
+                        ## When to store
+
+                        Store a memory when any of these happen during your session:
+
+                        1. **You produced an artifact.** Whenever you create or update a spec, architecture note, plan, tradeoff analysis, roadmap, or other durable design output, store a memory noting what it is and where it lives. Include `nc_refs` for Nextcloud paths.
+                        2. **A decision was made.** Whenever planning work resolves a question, establishes a convention, chooses a design direction, or changes operating assumptions, store it as a `[decision]` or `[convention]` memory.
+                        3. **You learned something reusable.** Whenever you discover a reusable constraint, dependency, planning pattern, rationale, or cross-project relationship that will matter again, store it.
+                        4. **End-of-session review.** Before finishing a non-trivial session, review what you did and verify you stored memories for items 1-3 above. If you produced artifacts or decisions but did not store memories for them yet, do it now.
+
+                        ## Search tips
+
+                        - Include domain tags in queries when useful: `[decision] ai-homebase deployment architecture`
+                        - Be specific: `architect rationale for shared project docs location` works better than `docs`
+                        - If a search returns nothing, try rephrasing; semantic search is sensitive to wording
+                        - If results mix real and fictional content, re-query with an explicit `[real]` or `[fictional]` prefix
                         """
                     ),
                 },
@@ -1225,6 +1297,30 @@ def workspace_bootstrap_values(
 
                         Every stored memory must include metadata with at least:
                         `{"kind": "...", "domain": "...", "agent": "archivist", "created": "ISO-8601"}`
+
+                        ## When to search
+
+                        Search Qdrant before any graph or memory operation. Concrete triggers:
+                        - About to create or update graph entities -> search for related memories and prior schema decisions
+                        - Starting a grooming pass -> search for recent memories to evaluate
+                        - Asked about knowledge structure -> search for prior schema and ontology decisions
+                        - Need to locate stored artifacts or knowledge sources -> search for the project, entity, or artifact name first
+
+                        ## When to store
+
+                        Store a memory when any of these happen during your session:
+
+                        1. **You produced an artifact.** Whenever you create or update schema notes, graph guidance, import reports, grooming summaries, or other durable knowledge artifacts, store a memory noting what it is and where it lives. Include `nc_refs` for Nextcloud paths when relevant.
+                        2. **A decision was made.** Whenever curation work resolves an entity mapping, ontology choice, schema rule, import convention, or graph operating mode, store it as a `[decision]` or `[convention]` memory.
+                        3. **You learned something reusable.** Whenever you discover a reusable relationship pattern, query strategy, disambiguation rule, or memory-curation heuristic that would help future sessions, store it.
+                        4. **End-of-session review.** Before finishing a non-trivial session, review what you did and verify you stored memories for items 1-3 above. If you produced artifacts or decisions but did not store memories for them yet, do it now.
+
+                        ## Search tips
+
+                        - Include domain tags in queries when useful: `[decision] graph schema for ai-homebase projects`
+                        - Be specific: `archivist canonical entity mapping for OpenClaw agents` works better than `entities`
+                        - If a search returns nothing, try rephrasing; semantic search is sensitive to wording
+                        - If results mix real and fictional content, re-query with an explicit `[real]` or `[fictional]` prefix
                         """
                     ),
                     "SOUL.md": normalize_markdown(
@@ -1419,6 +1515,30 @@ def workspace_bootstrap_values(
 
                         Every stored memory must include metadata with at least:
                         `{"kind": "...", "domain": "...", "agent": "watchdog", "created": "ISO-8601"}`
+
+                        ## When to search
+
+                        Search Qdrant before any monitoring decision. Concrete triggers:
+                        - Investigating an anomaly -> search for prior incidents with similar symptoms
+                        - About to set or change a baseline -> search for existing baselines and monitoring rules
+                        - Escalating an issue -> search for prior escalations of the same type
+                        - Need to find where an incident note, rule, or report was stored -> search for the service, symptom, or artifact name
+
+                        ## When to store
+
+                        Store a memory when any of these happen during your session:
+
+                        1. **You produced an artifact.** Whenever you create or update an incident report, baseline note, escalation guide, monitoring rule document, or durable triage artifact, store a memory noting what it is and where it lives. Include `nc_refs` for Nextcloud paths when relevant.
+                        2. **A decision was made.** Whenever monitoring work resolves a threshold, baseline, escalation path, incident classification, or operating rule, store it as a `[decision]` or `[convention]` memory.
+                        3. **You learned something reusable.** Whenever you discover a recurring failure signature, triage pattern, baseline insight, or mitigation rule that would help future monitoring, store it.
+                        4. **End-of-session review.** Before finishing a non-trivial session, review what you did and verify you stored memories for items 1-3 above. If you produced artifacts or decisions but did not store memories for them yet, do it now.
+
+                        ## Search tips
+
+                        - Include domain tags in queries when useful: `[decision] watchdog baseline for ai-homebase cluster health`
+                        - Be specific: `watchdog recurring paperless startup failure signature` works better than `paperless issue`
+                        - If a search returns nothing, try rephrasing; semantic search is sensitive to wording
+                        - If results mix real and fictional content, re-query with an explicit `[real]` or `[fictional]` prefix
                         """
                     ),
                 },
@@ -1573,6 +1693,51 @@ def workspace_bootstrap_values(
                     "HEARTBEAT.md": normalize_markdown(
                         """
                         Before finishing, verify your verdict is structured per the output format in AGENTS.md and that findings are stored in Nextcloud/Qdrant as appropriate.
+                        """
+                    ),
+                    "MEMORY.md": normalize_markdown(
+                        """
+                        # Memory - Auditor Agent
+
+                        All six agents share one Qdrant collection for durable semantic memory.
+
+                        Search Qdrant before any review of requirements, implementations, conventions, or prior findings that may have historical context.
+
+                        Store durable audit knowledge such as findings patterns, review criteria, recurring anti-patterns, systemic observations, and resolved quality risks.
+
+                        Do not store full reports, raw evidence dumps, transient review notes, or issues that are only local to one unfinished pass. Keep durable reports in `/Projects/<slug>/`.
+
+                        Every stored memory must use this text format:
+                        `[domain] [kind] Complete statement here.`
+
+                        Every stored memory must include metadata with at least:
+                        `{"kind": "...", "domain": "...", "agent": "auditor", "created": "ISO-8601"}`
+
+                        When a memory points to Nextcloud audit reports or review artifacts, include the reference in both the text and `nc_refs` metadata.
+
+                        ## When to search
+
+                        Search Qdrant before any review. Concrete triggers:
+                        - Starting a review -> search for prior audit findings on the same area
+                        - Evaluating a plan or implementation -> search for the original requirements and prior decisions
+                        - Looking for recurring patterns -> search for past audit observations and anti-patterns
+                        - Need to find where an audit report or evidence artifact was stored -> search for the project, requirement, or artifact name
+
+                        ## When to store
+
+                        Store a memory when any of these happen during your session:
+
+                        1. **You produced an artifact.** Whenever you create or update an audit report, review note, risk summary, or other durable review artifact, store a memory noting what it is and where it lives. Include `nc_refs` for Nextcloud paths when relevant.
+                        2. **A decision was made.** Whenever a review resolves a question, confirms a requirement interpretation, establishes a quality convention, or changes audit posture, store it as a `[decision]` or `[convention]` memory.
+                        3. **You learned something reusable.** Whenever you discover a recurring finding pattern, anti-pattern, systemic weakness, or effective review heuristic that would help future audits, store it.
+                        4. **End-of-session review.** Before finishing a non-trivial session, review what you did and verify you stored memories for items 1-3 above. If you produced artifacts or decisions but did not store memories for them yet, do it now.
+
+                        ## Search tips
+
+                        - Include domain tags in queries when useful: `[decision] audit requirement interpretation for ai-homebase`
+                        - Be specific: `auditor recurring anti-pattern in helm values layering` works better than `anti-patterns`
+                        - If a search returns nothing, try rephrasing; semantic search is sensitive to wording
+                        - If results mix real and fictional content, re-query with an explicit `[real]` or `[fictional]` prefix
                         """
                     ),
                     "SOUL.md": normalize_markdown(
