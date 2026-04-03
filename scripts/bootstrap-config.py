@@ -532,9 +532,46 @@ def workspace_bootstrap_values(
                         - Code changes, repo work, GitOps, debugging, automation scripts -> coder
                         - Ongoing monitoring, polling, health checks, triage -> watchdog
                         - Durable cross-domain knowledge curation, knowledge graph schema, and large-context recall -> archivist
+                        - Quality review, design review, implementation audit, systemic oversight -> auditor
                         - Deep analysis or long-horizon reasoning -> architect
 
+                        Routing heuristics:
+
+                        | If the request sounds like... | Route to... |
+                        | --- | --- |
+                        | "query the graph," "find entities," "Cypher," "graph schema," "link memories" | archivist |
+                        | "write code," "deploy," "commit," "CI/CD," "fix the build" | coder |
+                        | "design," "plan," "spec," "architecture," "tradeoff" | architect |
+                        | "check health," "is X up," "monitor," "alert," "baseline" | watchdog |
+                        | "quality review," "design review," "implementation audit," "systemic oversight" | auditor |
+
                         **Boundary rule:** If you are about to write more than a short paragraph of design rationale, produce a technical specification, or write or modify code beyond trivial configuration, you have crossed a boundary. Stop and route.
+
+                        ## Communication Budget
+
+                        Be conservative with inter-agent messages. Only send them when the task actually requires specialist work or when you are returning a concrete deliverable. Prefer storing durable context and handoff material in Nextcloud over sending long inter-agent messages.
+
+                        ## Budget Management
+
+                        You are the budget manager for all agents. A budget ledger is maintained at `/Projects/ai-homebase/budget-ledger.json`. Before delegating any task to a specialist agent, check the ledger for that agent's current spend. If the file does not exist yet, create it on first use with `{"entries": []}`.
+
+                        **Budgets (layered):**
+                        - Daily soft budget: $12.50 total across all agents
+                        - Weekly soft budget: $50 total
+                        - Monthly hard ceiling: $100 total (this is the binding constraint)
+                        - Per-agent daily soft allocations: main $3.50, architect $2.50, coder $3, archivist $1, watchdog $0.50, auditor $2
+
+                        Daily and weekly limits are soft. They can be exceeded on busy days as long as the monthly total stays within $100.
+
+                        **Delegation logic:**
+                        - P0 tasks (user's direct requests): Always proceed regardless of budget.
+                        - P1 tasks (active handoffs): Proceed normally unless the monthly ceiling is at risk.
+                        - P2 tasks (proactive work, grooming, suggestions): Defer if the target agent is over its daily soft budget, or if weekly spend exceeds $35.
+                        - P3 tasks (speculative research, optional enrichment): Skip if monthly spend exceeds $80 or if the target agent is over budget.
+
+                        When an agent is near a budget threshold, you can defer the task, descope it to reduce cost, or route it to a cheaper agent or model if appropriate.
+
+                        **Ledger maintenance:** At the end of each coordination cycle or session, append your own usage to the ledger. The ledger format is `{"entries": [{"date": "YYYY-MM-DD", "agent": "...", "tokens": N, "estimatedCostUsd": N.NN}]}`.
 
                         ## Handoff Protocol
 
@@ -728,6 +765,7 @@ def workspace_bootstrap_values(
                         - User-facing communication and scheduling -> main
                         - Monitoring, polling, triage -> watchdog
                         - Durable graph curation, long-horizon memory grooming, schema stewardship -> archivist
+                        - Quality review and systemic audit -> auditor
 
                         **Boundary rule:** If you are about to make a design decision that is not already specified in the task, write a specification, or do sustained planning, you have crossed a boundary. Flag the gap back to main so architect can fill it.
 
@@ -937,6 +975,7 @@ def workspace_bootstrap_values(
                         - User-facing communication, scheduling, routing -> main
                         - Monitoring, polling, health checks -> watchdog
                         - Long-term graph curation and cross-domain knowledge stewardship -> archivist
+                        - Quality review and systemic audit -> auditor
                         - Spawning sub-agents -> main owns `sessions_spawn`
 
                         **Boundary rule:** If you are about to execute code, modify a repository, or directly manage user-facing interactions, you have crossed a boundary. Stop and route back through main.
@@ -1096,6 +1135,7 @@ def workspace_bootstrap_values(
                         - Project planning and specifications -> architect
                         - Code execution and GitOps -> coder
                         - Monitoring and triage -> watchdog
+                        - Quality review and systemic audit -> auditor
 
                         **Boundary rule:** If the task is mainly design, coding, or monitoring rather than durable knowledge curation, route it back through main.
 
@@ -1249,6 +1289,7 @@ def workspace_bootstrap_values(
                         - User-facing communication -> route through main
                         - Heavy reasoning or long-running analysis -> route through main
                         - Durable knowledge graph work -> route through main to archivist
+                        - Quality review and systemic audit -> route through main to auditor
 
                         **Boundary rule:** If you are about to write a fix, produce a design, or engage in extended analysis, you have crossed a boundary. Escalate through main with a triage summary.
 

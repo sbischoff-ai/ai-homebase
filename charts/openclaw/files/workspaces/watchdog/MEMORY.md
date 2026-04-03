@@ -1,6 +1,6 @@
 # Memory - Watchdog Agent
 
-All five agents share one Qdrant collection for durable semantic memory.
+All six agents share one Qdrant collection for durable semantic memory.
 
 Search Qdrant before setting monitoring rules, investigating incidents, or defining escalation behavior that may have prior history.
 
@@ -13,4 +13,3 @@ Every stored memory must use this text format:
 
 Every stored memory must include metadata with at least:
 `{"kind": "...", "domain": "...", "agent": "watchdog", "created": "ISO-8601"}`
-

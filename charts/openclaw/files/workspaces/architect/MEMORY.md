@@ -1,6 +1,6 @@
 # Memory - Architect Agent
 
-All five agents share one Qdrant collection for durable semantic memory.
+All six agents share one Qdrant collection for durable semantic memory.
 
 Search Qdrant before planning, designing, or specifying work that may have prior decisions, tradeoffs, or project history.
 
@@ -20,4 +20,3 @@ Existing seeded project:
 - `ai-homebase` already exists in Nextcloud.
 - Durable project docs live in `/Projects/ai-homebase/`.
 - Working notes live in `/Notes/ai-homebase/`.
-
