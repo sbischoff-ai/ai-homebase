@@ -870,10 +870,53 @@ def workspace_bootstrap_values(
                         """
                     ),
                     "BOOTSTRAP.md": normalize_markdown(
-                        """
+                        f"""
                         # Bootstrap — First Session Setup
 
                         Welcome. This file contains one-time setup suggestions for your first session. After completing these, you can delete this file or leave it — it won't trigger again.
+
+                        ## First Session Checklist
+
+                        In the first session, do this before moving on to ordinary work:
+
+                        1. Ask the user how they want to be addressed.
+                        2. Ask how they want to address you.
+                        3. Ask for their preferred conversation style or personality.
+                        4. Ask what they want to do with this setup.
+                        5. Confirm their Nextcloud username for sharing.
+                        6. Share the existing `/Projects/` and `/Notes/` folders with that username in Nextcloud.
+                        7. Start and verify the standing specialist sessions.
+
+                        ## Identity and Preferences
+
+                        Ask the user:
+                        - how they want to be addressed;
+                        - how they want to address the bot;
+                        - what conversation style or personality they prefer from the bot;
+                        - what they want to do with this setup right now and over time.
+
+                        Store durable preferences in Qdrant and put longer-lived setup notes in Nextcloud when useful.
+
+                        ## Nextcloud Username Confirmation
+
+                        The bootstrapped Nextcloud username for the user is currently `{user_nextcloud_username}`.
+
+                        Ask the user to confirm that this is their actual Nextcloud username for sharing. Do not guess or substitute another username without confirmation.
+
+                        After they confirm it, share these existing top-level folders with that username:
+                        - `/Projects/`
+                        - `/Notes/`
+
+                        ## Specialist Session Bring-Up
+
+                        Use `sessions_send` to target these literal session keys and bring up the main standing sessions:
+                        - `agent:coder:main`
+                        - `agent:architect:main`
+                        - `agent:archivist:main`
+                        - `agent:watchdog:main`
+                        - `agent:auditor:main`
+
+                        Ask each agent for a short readiness confirmation and verify they respond. Confirm to the user that the standing sessions are working, and note any agent that failed to respond.
 
                         ## Daily Brief and Digest (optional)
 
@@ -900,11 +943,11 @@ def workspace_bootstrap_values(
 
                         ## Calendar Setup (optional)
 
-                        If you'd like me to manage calendar events and reminders, create a calendar in Nextcloud and share it with the `openclaw` user. Then tell me the calendar name and I'll start using it for scheduling.
+                        If you'd like me to manage calendar events and reminders, create a calendar in Nextcloud and share it with the `{NEXTCLOUD_MCP_USERNAME}` user. Then tell me the calendar name and I'll start using it for scheduling.
 
                         ## Nextcloud Shares (optional)
 
-                        The project files at `/Projects/ai-homebase/` contain system documentation, budget ledgers, status logs, and audit reports. If you'd like direct access, I can share the `/Projects/` folder with your Nextcloud user. Just tell me your Nextcloud username.
+                        The project files at `/Projects/ai-homebase/` contain system documentation, budget ledgers, status logs, and audit reports. The working notes at `/Notes/ai-homebase/` contain drafts and short-lived planning material. After you confirm that `{user_nextcloud_username}` is your Nextcloud username, I should share both `/Projects/` and `/Notes/` with your user.
                         """
                     ),
                 },
@@ -2582,6 +2625,11 @@ def command_render_values(args: argparse.Namespace) -> int:
     openclaw["openclaw"] = {
         "skills": {
             "allowBundled": BUNDLED_SKILLS,
+        },
+        "plugins": {
+            "slots": {
+                "memory": "none",
+            },
         },
         "agents": {
             "defaults": {

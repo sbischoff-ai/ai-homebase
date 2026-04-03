@@ -308,6 +308,9 @@ openclaw:
         - tmux
         - summarize
         - github
+    plugins:
+      slots:
+        memory: none
     commands:
       mcp: true
     mcp:

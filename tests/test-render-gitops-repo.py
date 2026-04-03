@@ -106,6 +106,8 @@ project = "platform-stack"
         assert "nextcloud-mcp.test.internal" in bootstrap_values
         assert '"commands"' in bootstrap_values
         assert '"tools"' in bootstrap_values
+        assert '"plugins"' in bootstrap_values
+        assert '"memory": "none"' in bootstrap_values
         assert '"agentToAgent"' in bootstrap_values
         assert '"models"' in bootstrap_values
         assert '"coder"' in bootstrap_values
