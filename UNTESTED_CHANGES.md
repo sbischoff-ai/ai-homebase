@@ -1,5 +1,28 @@
 # Untested Changes
 
+## 2026-04-03 - Task 4: Update Existing Agent Workspace Files for Auditor
+
+Status: statically validated only. Do not treat this as live runtime/bootstrap verified yet.
+
+Scope:
+
+- Updated existing workspace files under `charts/openclaw/files/workspaces/{main,architect,coder,archivist,watchdog}/` so `auditor` is referenced in routing heuristics, agent domain boundaries, and session-target examples where applicable.
+- Updated main agent budget guidance in `charts/openclaw/files/workspaces/main/AGENTS.md` to include the auditor daily soft budget and revised per-agent allocations that still sum to the unchanged `$12.50` daily total.
+- Updated related checked-in workspace support files that still assumed five agents, including `charts/openclaw/files/workspaces/main/BOOTSTRAP.md`, `charts/openclaw/files/workspaces/coder/TOOLS.md`, and the affected workspace `MEMORY.md` files.
+- Updated the embedded workspace markdown in `scripts/bootstrap-config.py` to match the checked-in workspace content, including the new auditor routing/domain references and the main budget section.
+
+What to verify later during a real bootstrap/render/runtime check:
+
+- A real OpenClaw bootstrap emits workspace files for `main`, `architect`, `coder`, `archivist`, and `watchdog` that match the updated checked-in markdown and include the auditor references in the intended sections.
+- The bootstrapped main workspace content still renders cleanly and the added routing/budget markdown is displayed correctly by the running OpenClaw version.
+- Any runtime flows that rely on these textual routing heuristics or session-target examples remain aligned with the actual six-agent topology after bootstrap.
+
+Static validation completed:
+
+- `rg -n "five agents|five standing" charts/openclaw/files/workspaces scripts/bootstrap-config.py`
+- `rg -n "Quality review, design review, implementation audit, systemic oversight -> auditor|quality review,|implementation audit|systemic oversight" charts/openclaw/files/workspaces/main/AGENTS.md scripts/bootstrap-config.py`
+- `rg -n "Per-agent daily soft allocations|Daily soft budget|Weekly soft budget|Monthly hard ceiling" charts/openclaw/files/workspaces/main/AGENTS.md scripts/bootstrap-config.py`
+
 ## 2026-04-03 - Task 3: Auditor Workspace Files
 
 Status: statically validated only. Do not treat this as live runtime/bootstrap verified yet.

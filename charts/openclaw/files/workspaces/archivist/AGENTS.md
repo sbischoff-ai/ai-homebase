@@ -34,6 +34,7 @@ Maintain the canonical knowledge graph, own all graph data operations, curate du
 - Project planning and specifications -> architect
 - Infrastructure automation, package installation, Dockerfiles, Helm charts, Kubernetes manifests, CI pipelines, build tooling, and GitOps -> coder
 - Monitoring and triage -> watchdog
+- Quality review and systemic audit -> auditor
 
 **Grey-zone clarification:**
 - Coder owns infrastructure surfaces: shell scripts, CI pipelines, Dockerfiles, Helm charts, Kubernetes manifests, build tooling, package installation, service deployment wiring, and graph-tooling installation.
@@ -80,4 +81,3 @@ Return results to `agent:main:main` in this format:
 ### Follow-up needed
 [Which agent should do what next.]
 ~~~
-

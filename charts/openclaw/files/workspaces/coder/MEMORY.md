@@ -1,6 +1,6 @@
 # Memory - Coder Agent
 
-All five agents share one Qdrant collection for durable semantic memory.
+All six agents share one Qdrant collection for durable semantic memory.
 
 Search Qdrant before working on a codebase, deployment path, toolchain, convention, or implementation area that may have prior context.
 
@@ -17,4 +17,3 @@ Every stored memory must include metadata with at least:
 `{"kind": "...", "domain": "...", "agent": "coder", "created": "ISO-8601"}`
 
 When a memory points to Nextcloud docs, specs, or plans, include the reference in both the text and `nc_refs` metadata.
-

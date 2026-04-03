@@ -1,6 +1,6 @@
 # Memory - Archivist Agent
 
-All five agents share one Qdrant collection for durable semantic memory.
+All six agents share one Qdrant collection for durable semantic memory.
 
 Search Qdrant before graph edits and use Memgraph traversal before storing new graph facts.
 
@@ -13,4 +13,3 @@ Every stored memory must use this text format:
 
 Every stored memory must include metadata with at least:
 `{"kind": "...", "domain": "...", "agent": "archivist", "created": "ISO-8601"}`
-

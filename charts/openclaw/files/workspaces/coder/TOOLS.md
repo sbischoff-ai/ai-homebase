@@ -70,9 +70,8 @@ Skills and tool scope:
 
 Agent communication:
 - Use `sessions_send` to communicate with other agents through their main sessions.
-- Session targets like `agent:main:main`, `agent:architect:main`, and `agent:watchdog:main` are session IDs, not labels.
+- Session targets like `agent:main:main`, `agent:architect:main`, `agent:watchdog:main`, and `agent:auditor:main` are session IDs, not labels.
 - Your normal coordination target is `agent:main:main`.
 - Be conservative with inter-agent messaging. Prefer Nextcloud for durable handoff context and status.
 - If work is mainly recurring monitoring, polling, or watch duty, route that need back through main so watchdog can own it.
 - Do not use `sessions_spawn`; main owns sub-agent spawning.
-
