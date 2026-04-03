@@ -2417,6 +2417,10 @@ def command_render_values(args: argparse.Namespace) -> int:
                 ON CREATE SET watchdog.name = 'watchdog',
                               watchdog.role = 'monitor';
 
+                MERGE (auditor:Agent:Person {slug: 'auditor'})
+                ON CREATE SET auditor.name = 'auditor',
+                              auditor.role = 'reviewer';
+
                 MERGE (archivist:Agent:Person {slug: 'archivist'})
                 ON CREATE SET archivist.name = 'archivist',
                               archivist.role = 'knowledge-graph-curator';
@@ -2443,6 +2447,7 @@ def command_render_values(args: argparse.Namespace) -> int:
                 MATCH (architect:Agent:Person {slug: 'architect'})
                 MATCH (coder:Agent:Person {slug: 'coder'})
                 MATCH (watchdog:Agent:Person {slug: 'watchdog'})
+                MATCH (auditor:Agent:Person {slug: 'auditor'})
                 MATCH (archivist:Agent:Person {slug: 'archivist'})
                 MATCH (gitopsRepo:Repository:System {slug: 'cluster-gitops'})
                 MATCH (sandboxRepo:Repository:System {slug: 'openclaw-sandbox-images'})
@@ -2461,7 +2466,10 @@ def command_render_values(args: argparse.Namespace) -> int:
                 MERGE (openclaw)-[:COORDINATES]->(architect)
                 MERGE (openclaw)-[:COORDINATES]->(coder)
                 MERGE (openclaw)-[:COORDINATES]->(watchdog)
+                MERGE (openclaw)-[:COORDINATES]->(auditor)
                 MERGE (openclaw)-[:COORDINATES]->(archivist)
+                MERGE (auditor)-[:USES_SERVICE]->(nextcloud)
+                MERGE (auditor)-[:USES_SERVICE]->(qdrant)
                 MERGE (archivist)-[:CURATES]->(memgraph)
                 MERGE (archivist)-[:GROOMS]->(qdrant)
                 MERGE (memgraphLab)-[:VISUALIZES]->(memgraph)

@@ -55,6 +55,10 @@ MERGE (watchdog:Entity:Agent:Person {slug: 'watchdog'})
 ON CREATE SET watchdog.name = 'watchdog',
               watchdog.role = 'monitor';
 
+MERGE (auditor:Entity:Agent:Person {slug: 'auditor'})
+ON CREATE SET auditor.name = 'auditor',
+              auditor.role = 'reviewer';
+
 MERGE (archivist:Entity:Agent:Person {slug: 'archivist'})
 ON CREATE SET archivist.name = 'archivist',
               archivist.role = 'knowledge-graph-curator';
@@ -81,6 +85,7 @@ MATCH (main:Entity:Agent:Person {slug: 'main'})
 MATCH (architect:Entity:Agent:Person {slug: 'architect'})
 MATCH (coder:Entity:Agent:Person {slug: 'coder'})
 MATCH (watchdog:Entity:Agent:Person {slug: 'watchdog'})
+MATCH (auditor:Entity:Agent:Person {slug: 'auditor'})
 MATCH (archivist:Entity:Agent:Person {slug: 'archivist'})
 MATCH (gitopsRepo:Entity:Repository:System {slug: 'cluster-gitops'})
 MATCH (sandboxRepo:Entity:Repository:System {slug: 'openclaw-sandbox-images'})
@@ -99,7 +104,10 @@ MERGE (main)-[:PART_OF]->(openclaw)
 MERGE (architect)-[:PART_OF]->(openclaw)
 MERGE (coder)-[:PART_OF]->(openclaw)
 MERGE (watchdog)-[:PART_OF]->(openclaw)
+MERGE (auditor)-[:PART_OF]->(openclaw)
 MERGE (archivist)-[:PART_OF]->(openclaw)
+MERGE (auditor)-[:USES_SERVICE]->(nextcloud)
+MERGE (auditor)-[:USES_SERVICE]->(qdrant)
 MERGE (archivist)-[:MANAGES {role: 'graph-curation'}]->(memgraph)
 MERGE (archivist)-[:MANAGES {role: 'memory-grooming'}]->(qdrant)
 MERGE (archivist)-[:MANAGES {role: 'schema-maintenance'}]->(memgraph)
