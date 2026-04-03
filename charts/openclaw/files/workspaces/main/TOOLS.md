@@ -6,15 +6,22 @@ Nextcloud account details:
 
 ### Nextcloud Usage - Main
 
+Nextcloud path rules:
+- Any path under `/Projects/` or `/Notes/` is a Nextcloud remote path, not a local filesystem path.
+- For those paths, use only Nextcloud tools whose names start with `nc_webdav_`.
+- Never use shell commands, local file APIs, workspace file tools, or local path assumptions on `/Projects/...` or `/Notes/...`.
+- Never create a local directory or local file that mirrors a Nextcloud path.
+- If a parent directory is missing, create it in Nextcloud with an `nc_webdav_*` tool, then read or write the file in Nextcloud with an `nc_webdav_*` tool.
+
 **When to write:**
-- After making a coordination decision that affects a project, store or update it in `/Projects/<slug>/`, typically `decisions.md` or a status summary.
-- When the user provides information that should remain durably accessible, write it to the appropriate Nextcloud artifact.
-- When synthesizing specialist outputs into a user-facing summary, store stable versions in `/Projects/<slug>/` and drafts in `/Notes/<slug>/`.
+- After making a coordination decision that affects a project, store or update it in `/Projects/<slug>/`, typically `decisions.md` or a status summary, with an `nc_webdav_*` tool.
+- When the user provides information that should remain durably accessible, write it to the appropriate Nextcloud artifact with an `nc_webdav_*` tool.
+- When synthesizing specialist outputs into a user-facing summary, store stable versions in `/Projects/<slug>/` and drafts in `/Notes/<slug>/` with `nc_webdav_*` tools.
 - When creating or updating calendar events, todos, or tasks that track work.
 
 **When to read:**
-- Before routing work to a specialist, check `/Projects/<slug>/` for specs, plans, and decisions the specialist needs.
-- Before answering questions about project state, prefer the authoritative Nextcloud artifact over memory alone.
+- Before routing work to a specialist, check `/Projects/<slug>/` for specs, plans, and decisions the specialist needs with `nc_webdav_*` tools.
+- Before answering questions about project state, prefer the authoritative Nextcloud artifact over memory alone and read it with an `nc_webdav_*` tool.
 
 **What goes where:**
 - Calendar events and todos: scheduling, deadlines, recurring tasks

@@ -162,15 +162,20 @@ Registry guidance:
 - If registry login, push, or pull fails because of TLS trust, tell main that the operator needs the platform internal CA installed for the sandbox Docker runtime and the cluster node container runtime.
 
 Nextcloud guidance:
-- Before starting implementation, read the relevant spec and plan from `/Projects/<slug>/`.
-- Before making an implementation decision that is not covered by the spec, check `/Projects/<slug>/decisions.md` for prior decisions.
-- After completing implementation work that involved non-obvious decisions, append the decision and rationale to `/Projects/<slug>/decisions.md`.
-- When producing deployment runbooks, setup guides, or operational docs needed by the user or other agents, store them in `/Projects/<slug>/`.
-- When implementation reveals a spec or plan gap, write a note to `/Notes/<slug>/` flagging the gap and notify main.
+- Treat any path under `/Projects/` or `/Notes/` as a Nextcloud remote path, not a local filesystem path.
+- For those paths, use only Nextcloud tools whose names start with `nc_webdav_`.
+- Never use shell commands, local file APIs, workspace file tools, or local path assumptions on `/Projects/...` or `/Notes/...`.
+- Never create a local directory or local file that mirrors a Nextcloud path.
+- If a parent directory is missing, create it in Nextcloud with an `nc_webdav_*` tool, then read or write the file in Nextcloud with an `nc_webdav_*` tool.
+- Before starting implementation, read the relevant spec and plan from `/Projects/<slug>/` with `nc_webdav_*` tools.
+- Before making an implementation decision that is not covered by the spec, check `/Projects/<slug>/decisions.md` for prior decisions with an `nc_webdav_*` tool.
+- After completing implementation work that involved non-obvious decisions, append the decision and rationale to `/Projects/<slug>/decisions.md` with an `nc_webdav_*` tool.
+- When producing deployment runbooks, setup guides, or operational docs needed by the user or other agents, store them in `/Projects/<slug>/` with `nc_webdav_*` tools.
+- When implementation reveals a spec or plan gap, write a note to `/Notes/<slug>/` with an `nc_webdav_*` tool flagging the gap and notify main via `sessions_send` to `agent:main:main`.
 - Code, configs, and scripts stay in repositories, never in Nextcloud.
 - Do not store transient debugging notes in Nextcloud unless they become durable patterns worth recording.
 - Store implementation conventions and patterns in Qdrant with `nc_refs` to relevant Nextcloud docs.
-- Tell main where you stored any user-relevant artifact.
+- Tell main where you stored any user-relevant artifact via `sessions_send` to `agent:main:main`.
 
 Skills and tool scope:
 - Focus on `coding-agent`, `github`, `tmux`, `session-logs`, `healthcheck`, and `skill-creator`.
@@ -181,5 +186,5 @@ Agent communication:
 - Session targets like `agent:main:main`, `agent:architect:main`, `agent:watchdog:main`, and `agent:auditor:main` are session IDs, not labels.
 - Your normal coordination target is `agent:main:main`.
 - Be conservative with inter-agent messaging. Prefer Nextcloud for durable handoff context and status.
-- If work is mainly recurring monitoring, polling, or watch duty, route that need back through main so watchdog can own it.
+- If work is mainly recurring monitoring, polling, or watch duty, route that need back through main by sending a concise handoff with `sessions_send` to `agent:main:main` so watchdog can own it.
 - Do not use `sessions_spawn`; main owns sub-agent spawning.
