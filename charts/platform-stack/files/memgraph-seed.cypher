@@ -1,114 +1,139 @@
-MERGE (project:Entity:Project:System {slug: 'ai-homebase'})
+// === Core entities ===
+
+MERGE (project:Entity:Project {slug: 'ai-homebase'})
 ON CREATE SET project.name = 'ai-homebase',
               project.domain = 'real',
-              project.kind = 'platform';
+              project.kind = 'platform',
+              project.status = 'active';
 
-MERGE (user:Entity:Person:User {slug: 'user'})
+MERGE (user:Entity:Person {slug: 'user'})
 ON CREATE SET user.name = 'User',
-              user.domain = 'real';
+              user.domain = 'real',
+              user.kind = 'owner';
 
-MERGE (openclaw:Entity:Service:System {slug: 'openclaw'})
+// === Services ===
+
+MERGE (openclaw:Entity:Service {slug: 'openclaw'})
 ON CREATE SET openclaw.name = 'OpenClaw',
-              openclaw.category = 'agent-runtime';
+              openclaw.domain = 'real',
+              openclaw.kind = 'agent-runtime';
 
-MERGE (nextcloud:Entity:Service:System {slug: 'nextcloud'})
+MERGE (nextcloud:Entity:Service {slug: 'nextcloud'})
 ON CREATE SET nextcloud.name = 'Nextcloud',
-              nextcloud.category = 'knowledge-store';
+              nextcloud.domain = 'real',
+              nextcloud.kind = 'knowledge-store';
 
-MERGE (qdrant:Entity:Service:System {slug: 'qdrant'})
+MERGE (qdrant:Entity:Service {slug: 'qdrant'})
 ON CREATE SET qdrant.name = 'Qdrant',
-              qdrant.category = 'vector-memory';
+              qdrant.domain = 'real',
+              qdrant.kind = 'vector-memory';
 
-MERGE (memgraph:Entity:Service:System {slug: 'memgraph'})
+MERGE (memgraph:Entity:Service {slug: 'memgraph'})
 ON CREATE SET memgraph.name = 'Memgraph',
-              memgraph.category = 'graph-memory';
+              memgraph.domain = 'real',
+              memgraph.kind = 'graph-memory';
 
-MERGE (memgraphLab:Entity:Service:System {slug: 'memgraph-lab'})
-ON CREATE SET memgraphLab.name = 'Memgraph Lab',
-              memgraphLab.category = 'graph-ui';
-
-MERGE (gitea:Entity:Service:System {slug: 'gitea'})
+MERGE (gitea:Entity:Service {slug: 'gitea'})
 ON CREATE SET gitea.name = 'Gitea',
-              gitea.category = 'source-control';
+              gitea.domain = 'real',
+              gitea.kind = 'source-control';
 
-MERGE (argocd:Entity:Service:System {slug: 'argocd'})
+MERGE (argocd:Entity:Service {slug: 'argocd'})
 ON CREATE SET argocd.name = 'Argo CD',
-              argocd.category = 'gitops';
+              argocd.domain = 'real',
+              argocd.kind = 'gitops';
 
-MERGE (registry:Entity:Service:System {slug: 'registry'})
+MERGE (registry:Entity:Service {slug: 'registry'})
 ON CREATE SET registry.name = 'Registry',
-              registry.category = 'artifact-store';
+              registry.domain = 'real',
+              registry.kind = 'artifact-store';
 
-MERGE (main:Entity:Agent:Person {slug: 'main'})
+// === Agents ===
+
+MERGE (main:Entity:Agent {slug: 'main'})
 ON CREATE SET main.name = 'main',
-              main.role = 'orchestrator';
+              main.domain = 'real',
+              main.kind = 'orchestrator';
 
-MERGE (architect:Entity:Agent:Person {slug: 'architect'})
+MERGE (architect:Entity:Agent {slug: 'architect'})
 ON CREATE SET architect.name = 'architect',
-              architect.role = 'planner';
+              architect.domain = 'real',
+              architect.kind = 'planner';
 
-MERGE (coder:Entity:Agent:Person {slug: 'coder'})
+MERGE (coder:Entity:Agent {slug: 'coder'})
 ON CREATE SET coder.name = 'coder',
-              coder.role = 'implementer';
+              coder.domain = 'real',
+              coder.kind = 'implementer';
 
-MERGE (watchdog:Entity:Agent:Person {slug: 'watchdog'})
+MERGE (watchdog:Entity:Agent {slug: 'watchdog'})
 ON CREATE SET watchdog.name = 'watchdog',
-              watchdog.role = 'monitor';
+              watchdog.domain = 'real',
+              watchdog.kind = 'monitor';
 
-MERGE (auditor:Entity:Agent:Person {slug: 'auditor'})
-ON CREATE SET auditor.name = 'auditor',
-              auditor.role = 'reviewer';
-
-MERGE (archivist:Entity:Agent:Person {slug: 'archivist'})
+MERGE (archivist:Entity:Agent {slug: 'archivist'})
 ON CREATE SET archivist.name = 'archivist',
-              archivist.role = 'knowledge-graph-curator';
+              archivist.domain = 'real',
+              archivist.kind = 'curator';
 
-MERGE (gitopsRepo:Entity:Repository:System {slug: 'cluster-gitops'})
+MERGE (auditor:Entity:Agent {slug: 'auditor'})
+ON CREATE SET auditor.name = 'auditor',
+              auditor.domain = 'real',
+              auditor.kind = 'reviewer';
+
+// === Repositories ===
+
+MERGE (gitopsRepo:Entity:Work {slug: 'cluster-gitops'})
 ON CREATE SET gitopsRepo.name = 'cluster-gitops',
-              gitopsRepo.kind = 'gitops';
+              gitopsRepo.domain = 'real',
+              gitopsRepo.kind = 'repository';
 
-MERGE (sandboxRepo:Entity:Repository:System {slug: 'openclaw-sandbox-images'})
+MERGE (sandboxRepo:Entity:Work {slug: 'openclaw-sandbox-images'})
 ON CREATE SET sandboxRepo.name = 'openclaw-sandbox-images',
-              sandboxRepo.kind = 'sandbox-images';
+              sandboxRepo.domain = 'real',
+              sandboxRepo.kind = 'repository';
 
-MATCH (project:Entity:Project:System {slug: 'ai-homebase'})
-MATCH (user:Entity:Person:User {slug: 'user'})
-MATCH (openclaw:Entity:Service:System {slug: 'openclaw'})
-MATCH (nextcloud:Entity:Service:System {slug: 'nextcloud'})
-MATCH (qdrant:Entity:Service:System {slug: 'qdrant'})
-MATCH (memgraph:Entity:Service:System {slug: 'memgraph'})
-MATCH (memgraphLab:Entity:Service:System {slug: 'memgraph-lab'})
-MATCH (gitea:Entity:Service:System {slug: 'gitea'})
-MATCH (argocd:Entity:Service:System {slug: 'argocd'})
-MATCH (registry:Entity:Service:System {slug: 'registry'})
-MATCH (main:Entity:Agent:Person {slug: 'main'})
-MATCH (architect:Entity:Agent:Person {slug: 'architect'})
-MATCH (coder:Entity:Agent:Person {slug: 'coder'})
-MATCH (watchdog:Entity:Agent:Person {slug: 'watchdog'})
-MATCH (auditor:Entity:Agent:Person {slug: 'auditor'})
-MATCH (archivist:Entity:Agent:Person {slug: 'archivist'})
-MATCH (gitopsRepo:Entity:Repository:System {slug: 'cluster-gitops'})
-MATCH (sandboxRepo:Entity:Repository:System {slug: 'openclaw-sandbox-images'})
-MERGE (project)-[:HAS_MEMBER]->(user)
-MERGE (project)-[:USES]->(openclaw)
-MERGE (project)-[:USES]->(nextcloud)
-MERGE (project)-[:USES]->(qdrant)
-MERGE (project)-[:USES]->(memgraph)
-MERGE (project)-[:USES]->(memgraphLab)
-MERGE (project)-[:USES]->(gitea)
-MERGE (project)-[:USES]->(argocd)
-MERGE (project)-[:USES]->(registry)
-MERGE (project)-[:USES]->(gitopsRepo)
-MERGE (project)-[:USES]->(sandboxRepo)
-MERGE (main)-[:PART_OF]->(openclaw)
-MERGE (architect)-[:PART_OF]->(openclaw)
-MERGE (coder)-[:PART_OF]->(openclaw)
-MERGE (watchdog)-[:PART_OF]->(openclaw)
-MERGE (auditor)-[:PART_OF]->(openclaw)
-MERGE (archivist)-[:PART_OF]->(openclaw)
-MERGE (auditor)-[:USES_SERVICE]->(nextcloud)
-MERGE (auditor)-[:USES_SERVICE]->(qdrant)
-MERGE (archivist)-[:MANAGES {role: 'graph-curation'}]->(memgraph)
-MERGE (archivist)-[:MANAGES {role: 'memory-grooming'}]->(qdrant)
-MERGE (archivist)-[:MANAGES {role: 'schema-maintenance'}]->(memgraph)
-MERGE (memgraphLab)-[:USES {role: 'graph-visualization'}]->(memgraph)
+// === Relationships ===
+
+MATCH (project:Entity:Project {slug: 'ai-homebase'})
+MATCH (user:Entity:Person {slug: 'user'})
+MATCH (openclaw:Entity:Service {slug: 'openclaw'})
+MATCH (nextcloud:Entity:Service {slug: 'nextcloud'})
+MATCH (qdrant:Entity:Service {slug: 'qdrant'})
+MATCH (memgraph:Entity:Service {slug: 'memgraph'})
+MATCH (gitea:Entity:Service {slug: 'gitea'})
+MATCH (argocd:Entity:Service {slug: 'argocd'})
+MATCH (registry:Entity:Service {slug: 'registry'})
+MATCH (main:Entity:Agent {slug: 'main'})
+MATCH (architect:Entity:Agent {slug: 'architect'})
+MATCH (coder:Entity:Agent {slug: 'coder'})
+MATCH (watchdog:Entity:Agent {slug: 'watchdog'})
+MATCH (archivist:Entity:Agent {slug: 'archivist'})
+MATCH (auditor:Entity:Agent {slug: 'auditor'})
+MATCH (gitopsRepo:Entity:Work {slug: 'cluster-gitops'})
+MATCH (sandboxRepo:Entity:Work {slug: 'openclaw-sandbox-images'})
+
+// User owns the project
+MERGE (project)-[:HAS_PART {role: 'owner'}]->(user)
+
+// Project uses services
+MERGE (project)-[:HAS_PART {kind: 'service'}]->(openclaw)
+MERGE (project)-[:HAS_PART {kind: 'service'}]->(nextcloud)
+MERGE (project)-[:HAS_PART {kind: 'service'}]->(qdrant)
+MERGE (project)-[:HAS_PART {kind: 'service'}]->(memgraph)
+MERGE (project)-[:HAS_PART {kind: 'service'}]->(gitea)
+MERGE (project)-[:HAS_PART {kind: 'service'}]->(argocd)
+MERGE (project)-[:HAS_PART {kind: 'service'}]->(registry)
+MERGE (project)-[:HAS_PART {kind: 'artifact'}]->(gitopsRepo)
+MERGE (project)-[:HAS_PART {kind: 'artifact'}]->(sandboxRepo)
+
+// Agents are part of OpenClaw
+MERGE (openclaw)-[:HAS_PART {kind: 'agent'}]->(main)
+MERGE (openclaw)-[:HAS_PART {kind: 'agent'}]->(architect)
+MERGE (openclaw)-[:HAS_PART {kind: 'agent'}]->(coder)
+MERGE (openclaw)-[:HAS_PART {kind: 'agent'}]->(watchdog)
+MERGE (openclaw)-[:HAS_PART {kind: 'agent'}]->(archivist)
+MERGE (openclaw)-[:HAS_PART {kind: 'agent'}]->(auditor)
+
+// Archivist manages graph and memory services
+MERGE (archivist)-[:INFLUENCES {kind: 'curates', context: 'graph structure'}]->(memgraph)
+MERGE (archivist)-[:INFLUENCES {kind: 'grooms', context: 'memory consolidation'}]->(qdrant)

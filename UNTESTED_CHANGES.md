@@ -1,5 +1,32 @@
 # Untested Changes
 
+## 2026-04-03 - Task 17: Generalize the Knowledge Graph Schema and Seed Graph
+
+Status: statically validated only. Do not treat this as live Memgraph-bootstrap, bootstrap-generator, or workspace-bootstrap verified yet.
+
+Scope:
+
+- Replaced `charts/platform-stack/files/memgraph-seed.cypher` with a generalized canonical seed using only the compact label set (`Entity`, `Person`, `Agent`, `Project`, `Service`, `Work`) and canonical relationships (`HAS_PART`, `INFLUENCES`).
+- Removed the old domain-specific labels and relationships from the seed, including `System`, `User`, `Repository`, `HAS_MEMBER`, `USES`, `PART_OF`, and `MANAGES`.
+- Kept the same ai-homebase core entities and services in the seed while remapping repositories to `Work` nodes with `kind: "repository"` and preserving the `auditor` agent.
+- Replaced `charts/platform-stack/files/bootstrap-content/ai-homebase/projects/knowledge-graph-schema.md` with the full cross-domain canonical schema, including the label hierarchy, relationship table, specialization properties, and extension rules.
+- Replaced the archivist Cypher guidance in `charts/openclaw/files/workspaces/archivist/TOOLS.md` to point at the compact schema and to emphasize `role` / `kind` / `context` over custom labels and relationships.
+- Updated `scripts/bootstrap-config.py` so the embedded Nextcloud project content, archivist workspace `TOOLS.md`, and inline Memgraph bootstrap Cypher all match the checked-in canonical schema and seed.
+- Updated two remaining bootstrap guidance lines in `scripts/bootstrap-config.py` so repository creation now refers to a `Work` entity with `kind: "repository"` rather than a removed `Repository` label.
+
+What to verify later during a real bootstrap, render, or runtime check:
+
+- A real bootstrap or reseed loads the new canonical Cypher successfully into Memgraph with no syntax or idempotency regressions.
+- The generated bootstrap values from `scripts/bootstrap-config.py` emit the same seed and schema content as the checked-in repo files.
+- A real OpenClaw workspace bootstrap emits the updated archivist `TOOLS.md` and canonical `knowledge-graph-schema.md` content without drift.
+- Existing graph readers, importers, or grooming flows that expected the old labels and relationships still behave correctly or fail in an obvious, actionable way.
+- Any human or agent workflows that query for repository-like nodes correctly use `Work` plus `kind: "repository"` instead of the removed `Repository` label.
+
+Static validation completed:
+
+- `rg -n "knowledge-graph-schema|Cypher guidance|System|User|Repository|USES|PART_OF|MANAGES|HAS_MEMBER" scripts/bootstrap-config.py charts/openclaw/files/workspaces/archivist/TOOLS.md charts/platform-stack/files/bootstrap-content/ai-homebase/projects/knowledge-graph-schema.md charts/platform-stack/files/memgraph-seed.cypher`
+- `git diff -- charts/platform-stack/files/memgraph-seed.cypher charts/platform-stack/files/bootstrap-content/ai-homebase/projects/knowledge-graph-schema.md charts/openclaw/files/workspaces/archivist/TOOLS.md scripts/bootstrap-config.py`
+
 ## 2026-04-03 - Task 16: Enable Qdrant Metadata Filtering and Fix Archivist Grooming Queries
 
 Status: partially validated. Repo lint passed locally in the repo `nix-shell`; the live Qdrant MCP runtime and OpenClaw workspace bootstrap output have not been exercised yet.
