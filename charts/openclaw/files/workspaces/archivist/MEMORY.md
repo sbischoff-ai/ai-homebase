@@ -18,7 +18,7 @@ Every stored memory must include metadata with at least:
 
 Search Qdrant before any graph or memory operation. Concrete triggers:
 - About to create or update graph entities -> search for related memories and prior schema decisions
-- Starting a grooming pass -> search for recent memories to evaluate
+- Starting a grooming pass -> use `query_filter` with a `created` date range to find memories from the last grooming window (typically 24 hours). Do not rely on semantic search alone for recency; use the date filter.
 - Asked about knowledge structure -> search for prior schema and ontology decisions
 - Need to locate stored artifacts or knowledge sources -> search for the project, entity, or artifact name first
 

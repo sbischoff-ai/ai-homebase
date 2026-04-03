@@ -1,5 +1,30 @@
 # Untested Changes
 
+## 2026-04-03 - Task 16: Enable Qdrant Metadata Filtering and Fix Archivist Grooming Queries
+
+Status: partially validated. Repo lint passed locally in the repo `nix-shell`; the live Qdrant MCP runtime and OpenClaw workspace bootstrap output have not been exercised yet.
+
+Scope:
+
+- Updated `charts/qdrant-mcp/values.yaml` to set `QDRANT_ALLOW_ARBITRARY_FILTER="true"` in the Qdrant MCP pod env.
+- Expanded the `toolDescriptions.find` help text in `charts/qdrant-mcp/values.yaml` with `query_filter` guidance and examples for `created`, `agent`, `kind`, and `project` metadata filtering.
+- Updated `charts/openclaw/files/workspaces/archivist/TOOLS.md` to document Qdrant metadata filtering, including the `created` date-range pattern for grooming passes.
+- Updated `charts/openclaw/files/workspaces/archivist/MEMORY.md` so the grooming trigger explicitly requires `query_filter` date filtering instead of relying on semantic search alone for recency.
+- Updated `scripts/bootstrap-config.py` embedded archivist workspace markdown so generated `TOOLS.md` and `MEMORY.md` content matches the checked-in workspace files.
+
+What to verify later during a real bootstrap/render/runtime check:
+
+- The running Qdrant MCP server actually exposes the `query_filter` parameter on `qdrant-find` after deploy.
+- The documented raw Qdrant filter JSON examples are accepted by the installed `mcp-server-qdrant==0.8.0` runtime in the pod.
+- A real OpenClaw bootstrap emits the updated archivist `TOOLS.md` and `MEMORY.md` into the workspace with content matching the checked-in files.
+- An actual archivist grooming pass can retrieve the last 24 hours of memories using `created` date filtering and no longer depends on semantic-search phrasing for recency.
+
+Validation completed:
+
+- `rg -n "QDRANT_ALLOW_ARBITRARY_FILTER|Filtering:|query_filter|Starting a grooming pass" charts/qdrant-mcp/values.yaml charts/openclaw/files/workspaces/archivist/TOOLS.md charts/openclaw/files/workspaces/archivist/MEMORY.md scripts/bootstrap-config.py`
+- `nix-shell -p kubernetes-helm python3 --run './scripts/lint.sh --values-file charts/platform-stack/values.yaml'`
+- `git diff -- charts/qdrant-mcp/values.yaml charts/openclaw/files/workspaces/archivist/TOOLS.md charts/openclaw/files/workspaces/archivist/MEMORY.md scripts/bootstrap-config.py`
+
 ## 2026-04-03 - Task 15: Align Coder Workspace with Coding-Agent Skill Requirements
 
 Status: statically validated only. Do not treat this as live runtime/bootstrap verified yet.
