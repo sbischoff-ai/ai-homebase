@@ -1,5 +1,18 @@
 # Untested Changes
 
+## 2026-04-03 - Task 21: Generalize AGENTS Guardrail for Render-Impacting Changes
+
+Status: documentation-only update.
+
+Scope:
+
+- Replaced the OpenClaw-model-specific checklist in `AGENTS.md` with a broader render-impacting change checklist that applies to any overlapping base/umbrella values and golden fixtures.
+- Kept explicit commands for `scripts/ci/update_golden.sh` and `scripts/ci/check_golden.sh` in the generalized guidance.
+
+Static validation completed:
+
+- `python3 scripts/bootstrap-config.py validate --config bootstrap.example.toml`
+
 ## 2026-04-03 - Task 20: Align OpenClaw Base Chart Model Defaults with Umbrella
 
 Status: statically validated only. Do not treat this as live CI/network-verified yet.
