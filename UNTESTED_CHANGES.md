@@ -1,5 +1,28 @@
 # Untested Changes
 
+## 2026-04-03 - Task 3: Auditor Workspace Files
+
+Status: statically validated only. Do not treat this as live runtime/bootstrap verified yet.
+
+Scope:
+
+- Added the full six-file auditor workspace under `charts/openclaw/files/workspaces/auditor/`: `AGENTS.md`, `IDENTITY.md`, `SOUL.md`, `USER.md`, `TOOLS.md`, and `HEARTBEAT.md`.
+- Replaced the auditor placeholder workspace content in `scripts/bootstrap-config.py` with the same real markdown content wrapped in `normalize_markdown("""...""")`.
+- Removed the auditor `MEMORY.md` placeholder entry from the bootstrap workspace file map so the generated workspace matches the requested six-file layout.
+
+What to verify later during a real bootstrap/render/runtime check:
+
+- A real OpenClaw bootstrap seeds `/home/node/.openclaw/workspace-auditor` with exactly these six files and the expected file contents.
+- Any runtime code that reads agent workspace files does not assume every agent has a `MEMORY.md` file and remains compatible with the auditor's six-file workspace.
+- The bootstrapped auditor workspace content is exposed through the rendered ConfigMap as intended and consumed correctly by the running OpenClaw version.
+
+Static validation completed:
+
+- `find charts/openclaw/files/workspaces/auditor -maxdepth 1 -type f | sort`
+- `sed -n '1,260p' charts/openclaw/files/workspaces/auditor/AGENTS.md`
+- `sed -n '1384,1498p' scripts/bootstrap-config.py`
+- `rg -n '"MEMORY.md"|Placeholder\.' scripts/bootstrap-config.py charts/openclaw/files/workspaces/auditor -S`
+
 ## 2026-04-03 - Task 2: Add Auditor Agent
 
 Status: statically validated only. Do not treat this as live runtime/bootstrap verified yet.
