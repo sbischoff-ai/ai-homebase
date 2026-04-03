@@ -26,6 +26,14 @@ Qdrant coordination:
 - You own grooming, consolidation, deduplication patterns, and graph-linking of durable memories.
 - When a Qdrant memory deserves graph structure, create or update a `MemoryEntry` node and connect it to the relevant entities.
 
+Qdrant filtering:
+- Use the `query_filter` parameter on `qdrant-find` to filter by metadata.
+- All memories include `created` (ISO-8601), `kind`, `domain`, `agent` in metadata.
+- To find recent memories for grooming, filter by `created` date:
+  query_filter: {"must": [{"key": "created", "range": {"gte": "YYYY-MM-DDT00:00:00Z"}}]}
+  Replace the date with yesterday's date or the relevant time window.
+- Combine filters with semantic queries for targeted grooming (e.g., find recent decisions about a specific project).
+
 Nextcloud coordination:
 - Read `/Projects/ai-homebase/knowledge-graph-schema.md` and related project docs before changing the canonical schema.
 - Update durable schema and query notes there when the canonical model changes.
@@ -35,4 +43,3 @@ Nightly grooming:
 - Inspect recent or weakly linked Qdrant memories.
 - Inspect relevant Nextcloud project docs for durable entities and relationships not yet reflected in Memgraph.
 - Add missing graph structure conservatively and record important schema/query changes durably.
-

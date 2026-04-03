@@ -75,10 +75,21 @@ toolDescriptions:
 
     Important:
     - This searches all memories from all agents.
-    - Retrieval is currently semantic, not metadata-filtered, so phrasing matters.
     - Returned memories include metadata such as kind, domain, agent, confidence, and Nextcloud references.
     - Treat speculative or low-confidence results cautiously.
     - Treat expired memories as potentially stale.
+
+    Filtering:
+    - You can filter by metadata fields using the `query_filter` parameter.
+    - All memories include a `created` ISO-8601 timestamp in metadata.
+    - Common metadata fields: `kind`, `domain`, `agent`, `confidence`, `project`, `tags`.
+    - Example: Find memories from the last 24 hours:
+      query_filter: {"must": [{"key": "created", "range": {"gte": "2026-04-02T00:00:00Z"}}]}
+    - Example: Find memories by a specific agent:
+      query_filter: {"must": [{"key": "agent", "match": {"value": "coder"}}]}
+    - Example: Find decisions from a specific project:
+      query_filter: {"must": [{"key": "kind", "match": {"value": "decision"}}, {"key": "project", "match": {"value": "ai-homebase"}}]}
+    - Combine semantic search (the `query` parameter) with filters for best results.
 
 command:
   - /bin/sh
@@ -104,6 +115,8 @@ env:
     value: /tmp/.cache/huggingface/hub
   - name: FASTMCP_HOST
     value: "0.0.0.0"
+  - name: QDRANT_ALLOW_ARBITRARY_FILTER
+    value: "true"
 envFromSecrets: []
 existingSecret: ""
 secretRefs: []
