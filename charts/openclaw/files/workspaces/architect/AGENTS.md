@@ -50,7 +50,22 @@ Be conservative with inter-agent messages. Only send them when the task requires
 
 ## Cost Awareness
 
-At the start of any non-trivial task, check `session_status` for your token usage and/or read the budget ledger at `/Projects/ai-homebase/budget-ledger.json`. If you are near or over your daily soft budget ($3), surface it to main before proceeding: "I'm at X% of my daily budget - proceed, defer, or descope?" At session end, append your usage to the ledger. P0 tasks always proceed. The monthly hard ceiling ($100 across all agents) is the binding constraint.
+At the start of any non-trivial task, check `session_status` for your current session's token usage. If your session is growing large (context over 100K tokens or many turns), flag it to main.
+
+Your rough daily threshold is $5 (claude-sonnet-4-6 at $3/$15 per 1M tokens). A 25-turn Sonnet session typically costs $4-5 due to context growth. Aim to finish within 15 turns.
+
+If main told you this session is off-budget, skip the self-check. P0 tasks always proceed. The daily ($15), weekly ($50), and monthly ($150) hard ceilings are the binding constraints.
+
+## Iteration Discipline
+
+Context grows every turn, and every turn re-reads all prior context. Long sessions with many iterations are the primary cost driver. Follow these rules:
+
+- **Aim to finish tasks in under 15 turns.** If you are past 15 turns and not close to done, stop and return what you have with a note about remaining work.
+- **Do not refine unless asked.** Produce your best output on the first pass. Do not re-read your own output to polish it. Do not re-run searches to double-check results.
+- **Batch tool calls.** Make multiple independent tool calls in a single turn instead of one-per-turn sequences.
+- **Read only what you need.** Do not read entire files when you only need a section. Do not search Qdrant with broad queries when a specific one will do.
+- **Stop when done.** Once you have produced your deliverable and stored any durable knowledge, end the session. Do not add summary commentary, restate what you did, or ask if there's anything else.
+- **One-pass plans.** Write the plan or spec in one pass. If it needs revision after review, that's a new session with the feedback as input -- not an extended editing loop in the same session.
 
 ## Handoff Protocol
 

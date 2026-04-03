@@ -18,6 +18,39 @@ Codex guidance:
 - Use direct edits yourself only for trivial one-line changes, tiny config updates, or obvious file scaffolding.
 - Review Codex output before handoff, and keep git/tea workflow ownership with you.
 
+#### Codex usage logging
+
+Use `tokscale headless codex exec ...` as your Codex wrapper -- this automatically captures token usage to `~/.config/tokscale/headless/codex/`.
+
+After each invocation, also append an entry to the daily Codex usage log at `/Projects/ai-homebase/codex-usage/YYYY-MM-DD.json`. This file is how main tracks Codex costs (tokscale on the gateway can't see sandbox Codex usage).
+
+**File format:** JSON array of entries. Create the file with `[]` if it doesn't exist.
+
+```json
+[
+  {
+    "timestamp": "2026-04-03T14:30:00Z",
+    "model": "gpt-5.4-mini",
+    "input_tokens": 12500,
+    "output_tokens": 3200,
+    "cache_read_tokens": 8000,
+    "estimated_cost_usd": 0.65,
+    "task_summary": "Add error handling to API module",
+    "codex_flags": "--full-auto"
+  }
+]
+```
+
+**Fields:**
+- `timestamp`: ISO-8601 UTC
+- `model`: The model used (from `--model` flag or default)
+- `input_tokens`, `output_tokens`, `cache_read_tokens`: From Codex output or `tokscale --codex --today --json`
+- `estimated_cost_usd`: From tokscale or manual estimate
+- `task_summary`: One-line description of what Codex was asked to do
+- `codex_flags`: Flags used (`--full-auto`, `--yolo`, etc.)
+
+To check your current day's Codex spend: `tokscale --codex --today --json`
+
 Gitea guidance:
 - Your Gitea username should be recorded here once it is known.
 - Use git and tea with your coder identity for repository work.

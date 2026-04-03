@@ -116,7 +116,7 @@ read_message() {
 
 ensure_job "Watchdog heartbeat" \
   --name "Watchdog heartbeat" \
-  --every "15m" \
+  --every "30m" \
   --session isolated \
   --agent watchdog \
   --no-deliver \
@@ -130,13 +130,13 @@ ensure_job "Watchdog platform sweep" \
   --no-deliver \
   --message "$(read_message "watchdog-platform-sweep.md")"
 
-ensure_job "Archivist nightly grooming" \
-  --name "Archivist nightly grooming" \
+ensure_job "Watchdog nightly activity check" \
+  --name "Watchdog nightly activity check" \
   --cron "30 2 * * *" \
   --session isolated \
-  --agent archivist \
+  --agent watchdog \
   --no-deliver \
-  --message "$(read_message "archivist-nightly-grooming.md")"
+  --message "$(read_message "watchdog-nightly-activity-check.md")"
 
 ensure_job "Watchdog daily digest" \
   --name "Watchdog daily digest" \

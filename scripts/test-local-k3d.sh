@@ -583,10 +583,11 @@ verify_openclaw_gateway_tooling() {
   local deployment_name="$1"
 
   step "Checking OpenClaw gateway tooling for watchdog/session-logs"
-  CURRENT_COMMAND="kubectl exec deployment/${deployment_name} -- sh -ceu 'command -v jq && command -v rg'"
+  CURRENT_COMMAND="kubectl exec deployment/${deployment_name} -- sh -ceu 'command -v jq && command -v rg && command -v tokscale'"
   run_checked kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" exec "deployment/${deployment_name}" -- sh -ceu "
     command -v jq >/dev/null
     command -v rg >/dev/null
+    command -v tokscale >/dev/null
   "
 }
 
@@ -653,7 +654,7 @@ names = {job.get("name") for job in jobs}
 expected = {
     "Watchdog heartbeat",
     "Watchdog platform sweep",
-    "Archivist nightly grooming",
+    "Watchdog nightly activity check",
     "Watchdog daily digest",
 }
 if not expected.issubset(names):

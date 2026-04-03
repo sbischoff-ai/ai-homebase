@@ -8,4 +8,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 COPY --from=memgraph-tools /usr/bin/mgconsole /usr/local/bin/mgconsole
 
+RUN npm install -g tokscale && \
+    tokscale --version
+
 USER node

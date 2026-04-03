@@ -259,7 +259,7 @@ openclaw:
           name: Archivist
           workspace: /home/node/.openclaw/workspace-archivist
           model:
-            primary: openai/gpt-5.4
+            primary: openai/gpt-5.4-mini
             fallbacks:
               - anthropic/claude-sonnet-4-6
           sandbox:
@@ -479,7 +479,7 @@ nextcloud:
         - path: archivist-grooming-log.md
         - path: incidents/README.md
         - path: heartbeat.json
-        - path: budget-ledger.json
+        - path: codex-usage/.gitkeep
         - path: audit-log.md
         - path: baselines.md
         - path: escalation-rules.md

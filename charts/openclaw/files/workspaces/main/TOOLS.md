@@ -20,7 +20,7 @@ Nextcloud account details:
 - Calendar events and todos: scheduling, deadlines, recurring tasks
 - `/Projects/<slug>/`: stable coordination artifacts, decision logs, status summaries
 - `/Notes/<slug>/`: draft coordination notes and meeting summaries
-- `/Projects/ai-homebase/budget-ledger.json`: shared agent budget ledger
+- `/Projects/ai-homebase/codex-usage/`: daily Codex usage logs from coder
 - `/Projects/ai-homebase/heartbeat.json`: latest coordination heartbeat
 - Root files: user-facing reference material that does not belong to a project
 
@@ -35,3 +35,15 @@ Nextcloud account details:
 Calendar instruction:
 - Ask the user to create a calendar and share it with `openclaw` so you can track shared planning items there.
 
+### Cost tracking (tokscale)
+
+Tokscale reads OpenClaw and Codex session data and calculates costs using real-time model pricing.
+
+- `tokscale --openclaw --today --json` -- today's total OpenClaw spend (all agents)
+- `tokscale --openclaw --week --json` -- last 7 days
+- `tokscale --openclaw --month --json` -- current month
+- `tokscale --openclaw --since YYYY-MM-DD --until YYYY-MM-DD --json` -- custom range
+- `tokscale --openclaw --today --group-by model --json` -- per-model breakdown
+- `tokscale pricing "model-name"` -- look up current model pricing
+
+Tokscale does not separate per-agent costs. To get the full picture, also read the coder's Codex usage log at `/Projects/ai-homebase/codex-usage/YYYY-MM-DD.json`.

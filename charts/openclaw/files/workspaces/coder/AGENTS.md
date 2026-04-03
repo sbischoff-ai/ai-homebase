@@ -58,7 +58,32 @@ Be conservative with inter-agent messages. Prefer durable context in Nextcloud o
 
 ## Cost Awareness
 
-At the start of any non-trivial task, check `session_status` for your token usage and/or read the budget ledger at `/Projects/ai-homebase/budget-ledger.json`. If you are near or over your daily soft budget ($3), surface it to main before proceeding: "I'm at X% of my daily budget - proceed, defer, or descope?" At session end, append your usage to the ledger. P0 tasks (user requests relayed by main) always proceed. The monthly hard ceiling ($100 across all agents) is the binding constraint; daily and weekly limits are soft.
+At the start of any non-trivial task, check `session_status` for your current session's token usage. If your session is growing large, flag it to main.
+
+Your rough daily threshold is $5 (agent only, not counting Codex). Codex has its own $4/day soft threshold.
+
+**Codex usage logging:** After each Codex CLI invocation, write a JSON entry to `/Projects/ai-homebase/codex-usage/YYYY-MM-DD.json` (use today's date, create the file if it doesn't exist). Use `tokscale headless codex exec ...` as your Codex invocation wrapper -- this auto-captures token counts. Then append an entry:
+
+```json
+{"timestamp": "ISO-8601", "model": "gpt-5.4-mini", "input_tokens": N, "output_tokens": N, "estimated_cost_usd": N.NN, "task_summary": "brief description"}
+```
+
+If `tokscale headless` is not available, estimate from Codex output or `tokscale --codex --today --json` in your sandbox.
+
+To check your Codex spend so far today: `tokscale --codex --today --json`
+
+If main told you this session is off-budget, skip the self-check and do not log. P0 tasks always proceed.
+
+## Iteration Discipline
+
+Context grows every turn, and every turn re-reads all prior context. Long sessions with many iterations are the primary cost driver. Follow these rules:
+
+- **Aim to finish tasks in under 15 turns.** If you are past 15 turns and not close to done, stop and return what you have with a note about remaining work.
+- **Do not refine unless asked.** Produce your best output on the first pass. Do not re-read your own output to polish it. Do not re-run searches to double-check results.
+- **Batch tool calls.** Make multiple independent tool calls in a single turn instead of one-per-turn sequences.
+- **Read only what you need.** Do not read entire files when you only need a section. Do not search Qdrant with broad queries when a specific one will do.
+- **Stop when done.** Once you have produced your deliverable and stored any durable knowledge, end the session. Do not add summary commentary, restate what you did, or ask if there's anything else.
+- **Limit Codex iterations.** Prefer a single well-scoped Codex invocation over multiple small ones. Each Codex task costs $0.65-1.90. Review the output once; if it needs significant rework, that's a new task, not a refinement loop.
 
 ## Handoff Protocol
 
