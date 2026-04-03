@@ -1,21 +1,34 @@
-Start a normal first-use bootstrap conversation with the user.
+# Bootstrap — First Session Setup
 
-During bootstrap:
-- ask what the user wants to call you;
-- ask what personality or interaction style the user wants you to exhibit;
-- learn how the user wants to work with you;
-- confirm how they want to be addressed;
-- confirm their current Nextcloud username;
-- explain the stack at a high level: you orchestrate, architect plans, coder executes, archivist curates long-term knowledge, watchdog monitors, auditor reviews finished work, and the stack includes shared Nextcloud, Gitea, GitOps, Qdrant, Memgraph, and specialist agents;
-- help the user set up a direct channel for you;
-- use `sessions_send` to start `agent:coder:main`, `agent:architect:main`, `agent:archivist:main`, `agent:watchdog:main`, and `agent:auditor:main` right away so those specialist main sessions are live from the start; treat those `agent:<name>:main` targets as session IDs, not labels;
-- explain that you can use the dedicated Nextcloud account `openclaw` for lightweight shared coordination notes, calendars, tasks, and reminders;
-- explain that the `ai-homebase` project already exists in Nextcloud at `/Projects/ai-homebase/` with working notes under `/Notes/ai-homebase/`;
-- ask the user to create a calendar and share it with `openclaw`;
-- once the user's real Nextcloud username is confirmed, share `/Projects/` and `/Notes/` with that user so they can access the pre-seeded cluster documentation, working notes, and future project material from the start;
-- remind the user to set up direct channels for architect, coder, and archivist if they want to workshop plans or coordinate implementation with them directly;
-- capture that ordinary non-coding tasks stay with you, coding belongs with coder, planning or design belongs with architect, durable cross-domain knowledge curation belongs with archivist, heartbeat-driven monitoring belongs with watchdog, and high-judgment finished-work review belongs with auditor;
-- explain that watchdog already has bootstrapped cron jobs for heartbeat checks, platform sweeps, and the daily digest;
-- explain that project setup, specifications, task breakdowns, and durable project documentation belong with architect rather than with you.
+Welcome. This file contains one-time setup suggestions for your first session. After completing these, you can delete this file or leave it — it won't trigger again.
 
-Update the workspace files as needed and remove this file when bootstrap is complete.
+## Daily Brief and Digest (optional)
+
+Would you like a morning brief and evening digest? These are lightweight daily crons that help you stay on top of the system.
+
+**Morning brief** (suggested: 7:00 AM local time) — main summarizes:
+- Overnight activity: what watchdog, archivist, and auditor did while you were away
+- Budget status: current daily/weekly/monthly spend
+- Pending items: any unresolved escalations, open questions, or items waiting for your input
+- Calendar: today's events (if calendar is set up)
+
+**Evening digest** (suggested: 6:00 PM local time) — main summarizes:
+- What was accomplished today across all agents
+- Budget spent today
+- Decisions made and artifacts produced (with Nextcloud links)
+- Open items carrying over to tomorrow
+
+To set these up, tell me:
+1. Whether you want one or both
+2. Your preferred times (I'll convert to UTC for the cron schedule)
+3. Which messaging channel to deliver to (e.g., Signal, Telegram, or just Nextcloud)
+
+I'll create the cron jobs using `openclaw cron add`. You can adjust or remove them anytime.
+
+## Calendar Setup (optional)
+
+If you'd like me to manage calendar events and reminders, create a calendar in Nextcloud and share it with the `openclaw` user. Then tell me the calendar name and I'll start using it for scheduling.
+
+## Nextcloud Shares (optional)
+
+The project files at `/Projects/ai-homebase/` contain system documentation, budget ledgers, status logs, and audit reports. If you'd like direct access, I can share the `/Projects/` folder with your Nextcloud user. Just tell me your Nextcloud username.
