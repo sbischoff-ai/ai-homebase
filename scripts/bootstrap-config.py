@@ -388,6 +388,19 @@ def seeded_nextcloud_project_content() -> list[dict[str, object]]:
                     ),
                 },
                 {
+                    "path": "archivist-grooming-log.md",
+                    "content": normalize_markdown(
+                        """
+                        # Archivist Grooming Log
+
+                        Nightly grooming summaries are appended here.
+
+                        | Date | Memories Processed | Graph Changes | Issues |
+                        | --- | --- | --- | --- |
+                        """
+                    ),
+                },
+                {
                     "path": "incidents/README.md",
                     "content": normalize_markdown(
                         """
@@ -519,6 +532,16 @@ def workspace_bootstrap_values(
                            - User-facing artifacts go to Nextcloud.
                            - Agent-facing knowledge goes to Qdrant.
                            - If both matter, do both.
+
+                        ## Graph-Worthy Events
+
+                        When any of these happen, store a Qdrant memory tagged `[real] [fact]` that names the entities involved using their canonical slugs (e.g., `ai-homebase`, `coder`, `nextcloud`). The archivist will pick these up during nightly grooming and create or update graph structure.
+
+                        - A new project is started (new `Project` entity)
+                        - A new person or contact is introduced (new `Person` entity)
+                        - A new repository is created (new `Repository` entity)
+                        - A service is added, removed, or significantly reconfigured
+                        - A major architectural or operational decision changes how entities relate to each other
 
                         ## Role
 
@@ -717,6 +740,10 @@ def workspace_bootstrap_values(
                         3. **You learned something reusable.** Whenever you discover reusable context about the user, collaborators, projects, workflows, or coordination patterns that would help in a future session, store it.
                         4. **End-of-session review.** Before finishing a non-trivial session, review what you did and verify you stored memories for items 1-3 above. If you produced artifacts or decisions but did not store memories for them yet, do it now.
 
+                        ## Entity references
+
+                        When storing a memory that involves known system entities (projects, services, agents, repos, people), mention them by their canonical graph slug in the memory text. Examples: `ai-homebase`, `nextcloud`, `coder`, `cluster-gitops`. This helps the archivist link your memories to graph entities during nightly grooming.
+
                         ## Search tips
 
                         - Include domain tags in queries when useful: `[real] user's preferred editor` or `[decision] database choice for ai-homebase`
@@ -776,6 +803,15 @@ def workspace_bootstrap_values(
                            - Implementation decisions and rationale go to Nextcloud plus Qdrant.
                            - Codebase conventions discovered go to Qdrant.
                            - Deployment docs or runbooks go to Nextcloud.
+
+                        ## Graph-Worthy Events
+
+                        When any of these happen, store a Qdrant memory tagged `[real] [fact]` that names the entities by their canonical slugs. The archivist will graph-link them during nightly grooming.
+
+                        - You create a new repository (name it: new `Repository` entity, which project it belongs to)
+                        - You add or remove a service dependency (name both services)
+                        - You create or significantly change a Dockerfile or image (name the image and what agent/service uses it)
+                        - You make a deployment change that affects how services connect
 
                         ## Role
 
@@ -976,6 +1012,10 @@ def workspace_bootstrap_values(
                         3. **You learned something reusable.** Whenever you discover a reusable pattern, constraint, workaround, deployment detail, or repo-specific rule that would help future implementation work, store it.
                         4. **End-of-session review.** Before finishing a non-trivial session, review what you did and verify you stored memories for items 1-3 above. If you produced artifacts or decisions but did not store memories for them yet, do it now.
 
+                        ## Entity references
+
+                        When storing a memory that involves known system entities (projects, services, agents, repos, people), mention them by their canonical graph slug in the memory text. Examples: `ai-homebase`, `nextcloud`, `coder`, `cluster-gitops`. This helps the archivist link your memories to graph entities during nightly grooming.
+
                         ## Search tips
 
                         - Include domain tags in queries when useful: `[real] coder convention for ai-homebase helm charts`
@@ -1010,6 +1050,14 @@ def workspace_bootstrap_values(
                            - Design documents, specs, and plans go to Nextcloud.
                            - Distilled decisions and patterns go to Qdrant.
                            - If both matter, do both.
+
+                        ## Graph-Worthy Events
+
+                        When any of these happen, store a Qdrant memory tagged `[real] [fact]` that names the entities by their canonical slugs. The archivist will graph-link them during nightly grooming.
+
+                        - You design a new project or major subsystem (name it: new `Project` entity)
+                        - A design decision changes how existing entities relate (name the entities and the change)
+                        - You introduce a new external dependency or integration (name it as a potential `Service` entity)
 
                         ## Role
 
@@ -1161,6 +1209,10 @@ def workspace_bootstrap_values(
                         2. **A decision was made.** Whenever planning work resolves a question, establishes a convention, chooses a design direction, or changes operating assumptions, store it as a `[decision]` or `[convention]` memory.
                         3. **You learned something reusable.** Whenever you discover a reusable constraint, dependency, planning pattern, rationale, or cross-project relationship that will matter again, store it.
                         4. **End-of-session review.** Before finishing a non-trivial session, review what you did and verify you stored memories for items 1-3 above. If you produced artifacts or decisions but did not store memories for them yet, do it now.
+
+                        ## Entity references
+
+                        When storing a memory that involves known system entities (projects, services, agents, repos, people), mention them by their canonical graph slug in the memory text. Examples: `ai-homebase`, `nextcloud`, `coder`, `cluster-gitops`. This helps the archivist link your memories to graph entities during nightly grooming.
 
                         ## Search tips
 
@@ -1372,6 +1424,14 @@ def workspace_bootstrap_values(
                            - Monitoring rules, baselines, and escalation patterns go to Nextcloud plus Qdrant.
                            - Routine observations do not get stored unless they reveal a new pattern.
 
+                        ## Graph-Worthy Events
+
+                        When any of these happen, store a Qdrant memory tagged `[real] [incident]` or `[real] [fact]` that names the affected services by their canonical slugs. The archivist will graph-link them during nightly grooming.
+
+                        - An incident reveals a previously unknown dependency between services
+                        - A service's operational baseline changes significantly
+                        - A new monitoring rule is established for a service
+
                         ## Role
 
                         Lightweight observer and triage specialist. Monitor health, detect anomalies, verify heartbeats, triage incidents, and escalate. Do not fix the problems you find.
@@ -1532,6 +1592,10 @@ def workspace_bootstrap_values(
                         2. **A decision was made.** Whenever monitoring work resolves a threshold, baseline, escalation path, incident classification, or operating rule, store it as a `[decision]` or `[convention]` memory.
                         3. **You learned something reusable.** Whenever you discover a recurring failure signature, triage pattern, baseline insight, or mitigation rule that would help future monitoring, store it.
                         4. **End-of-session review.** Before finishing a non-trivial session, review what you did and verify you stored memories for items 1-3 above. If you produced artifacts or decisions but did not store memories for them yet, do it now.
+
+                        ## Entity references
+
+                        When storing a memory that involves known system entities (projects, services, agents, repos, people), mention them by their canonical graph slug in the memory text. Examples: `ai-homebase`, `nextcloud`, `coder`, `cluster-gitops`. This helps the archivist link your memories to graph entities during nightly grooming.
 
                         ## Search tips
 

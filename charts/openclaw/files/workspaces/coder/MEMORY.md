@@ -35,6 +35,10 @@ Store a memory when any of these happen during your session:
 3. **You learned something reusable.** Whenever you discover a reusable pattern, constraint, workaround, deployment detail, or repo-specific rule that would help future implementation work, store it.
 4. **End-of-session review.** Before finishing a non-trivial session, review what you did and verify you stored memories for items 1-3 above. If you produced artifacts or decisions but did not store memories for them yet, do it now.
 
+## Entity references
+
+When storing a memory that involves known system entities (projects, services, agents, repos, people), mention them by their canonical graph slug in the memory text. Examples: `ai-homebase`, `nextcloud`, `coder`, `cluster-gitops`. This helps the archivist link your memories to graph entities during nightly grooming.
+
 ## Search tips
 
 - Include domain tags in queries when useful: `[real] coder convention for ai-homebase helm charts`

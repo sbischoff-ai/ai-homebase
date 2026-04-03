@@ -476,6 +476,7 @@ nextcloud:
         - path: project-documentation-model.md
         - path: qdrant-memory-schema.md
         - path: knowledge-graph-schema.md
+        - path: archivist-grooming-log.md
         - path: incidents/README.md
         - path: heartbeat.json
         - path: budget-ledger.json
