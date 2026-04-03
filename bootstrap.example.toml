@@ -53,6 +53,10 @@ fallback_models = ["anthropic/claude-sonnet-4-6"]
 model = "openai/gpt-4.1-nano"
 fallback_models = ["anthropic/claude-haiku-4-5"]
 
+[openclaw.agents.auditor]
+model = "anthropic/claude-opus-4-6"
+fallback_models = ["openai/gpt-5.4"]
+
 [admin]
 name = "Homebase Admin"
 username = "homebase-admin"

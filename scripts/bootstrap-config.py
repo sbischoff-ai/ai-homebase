@@ -32,6 +32,8 @@ DEFAULT_ARCHIVIST_MODEL = "openai/gpt-5.4"
 DEFAULT_ARCHIVIST_FALLBACK_MODELS = ["anthropic/claude-sonnet-4-6"]
 DEFAULT_WATCHDOG_MODEL = "openai/gpt-4.1-nano"
 DEFAULT_WATCHDOG_FALLBACK_MODELS = ["anthropic/claude-haiku-4-5"]
+DEFAULT_AUDITOR_MODEL = "anthropic/claude-opus-4-6"
+DEFAULT_AUDITOR_FALLBACK_MODELS = ["openai/gpt-5.4"]
 SHARED_MCP_BRIDGE_PATH = "/opt/openclaw-runtime/mcp/mcp-http-bridge.mjs"
 NEXTCLOUD_MCP_USERNAME = "openclaw"
 DEFAULT_CODER_GITEA_USERNAME = "coder"
@@ -185,13 +187,14 @@ def seeded_nextcloud_project_content() -> list[dict[str, object]]:
                         """
                         # Multi-Agent Topology
 
-                        The cluster bootstraps five standing OpenClaw agents:
+                        The cluster bootstraps six standing OpenClaw agents:
 
                         - `main`: user-facing coordinator and manager of work
                         - `architect`: project planner, designer, and documentation owner
                         - `coder`: implementation and GitOps executor
                         - `archivist`: long-horizon knowledge graph curator and memory steward
                         - `watchdog`: low-cost monitoring, polling, heartbeat, and triage specialist
+                        - `auditor`: high-judgment reviewer for periodic and risk-triggered audits
 
                         Coordination model:
                         - `main` is the user-facing project manager and generalist for ordinary non-coding tasks.
@@ -200,8 +203,9 @@ def seeded_nextcloud_project_content() -> list[dict[str, object]]:
                         - work goes to `coder` when it needs coding, repository changes, testing, debugging, automation, infrastructure edits, GitOps execution, or external repository work.
                         - work goes to `archivist` when it needs durable cross-domain recall, graph curation, schema stewardship, or large-context knowledge synthesis across Qdrant and Nextcloud.
                         - work goes to `watchdog` when it is mainly monitoring, polling, heartbeat watch duty, triage, or escalation.
+                        - work goes to `auditor` for high-judgment review of finished work on demand, risk-triggered escalations, or weekly scheduled audits.
                         - `architect` returns actionable work items to `main`.
-                        - `main` then routes those items to the user, `coder`, `watchdog`, or itself.
+                        - `main` then routes those items to the user, `coder`, `watchdog`, `auditor`, or itself.
                         """
                     ),
                 },
@@ -642,7 +646,7 @@ def workspace_bootstrap_values(
                         """
                         # Memory - Main Agent
 
-                        All five agents share one Qdrant collection for durable semantic memory.
+                        All six agents share one Qdrant collection for durable semantic memory.
 
                         Search Qdrant before answering questions about user preferences, prior decisions, established conventions, people, relationships, project history, or anything that may have been discussed before.
 
@@ -669,15 +673,15 @@ def workspace_bootstrap_values(
                         - learn how the user wants to work with you;
                         - confirm how they want to be addressed;
                         - confirm that their Nextcloud username is `{user_nextcloud_username}`;
-                        - explain the stack at a high level: you orchestrate, architect plans, coder executes, archivist curates long-term knowledge, watchdog monitors, and the stack includes shared Nextcloud, Gitea, GitOps, Qdrant, Memgraph, and specialist agents;
+                        - explain the stack at a high level: you orchestrate, architect plans, coder executes, archivist curates long-term knowledge, watchdog monitors, auditor performs high-judgment review, and the stack includes shared Nextcloud, Gitea, GitOps, Qdrant, Memgraph, and specialist agents;
                         - help the user set up a direct channel for you;
-                        - use `sessions_send` to start `agent:coder:main`, `agent:architect:main`, `agent:archivist:main`, and `agent:watchdog:main` right away so those specialist main sessions are live from the start; treat those `agent:<name>:main` targets as session IDs, not labels;
+                        - use `sessions_send` to start `agent:coder:main`, `agent:architect:main`, `agent:archivist:main`, `agent:watchdog:main`, and `agent:auditor:main` right away so those specialist main sessions are live from the start; treat those `agent:<name>:main` targets as session IDs, not labels;
                         - explain that you can use the dedicated Nextcloud account `{NEXTCLOUD_MCP_USERNAME}` for lightweight shared coordination notes, calendars, tasks, and reminders;
                         - explain that the `ai-homebase` project already exists in Nextcloud at `/Projects/ai-homebase/` with working notes under `/Notes/ai-homebase/`;
                         - ask the user to create a calendar and share it with `{NEXTCLOUD_MCP_USERNAME}`;
                         - once the user's real Nextcloud username is confirmed, share `/Projects/` and `/Notes/` with that user so they can access the pre-seeded cluster documentation, working notes, and future project material from the start;
                         - remind the user to set up direct channels for architect, coder, and archivist if they want to workshop plans or coordinate implementation with them directly;
-                        - capture that ordinary non-coding tasks stay with you, coding belongs with coder, planning or design belongs with architect, durable cross-domain knowledge curation belongs with archivist, and heartbeat-driven monitoring belongs with watchdog;
+                        - capture that ordinary non-coding tasks stay with you, coding belongs with coder, planning or design belongs with architect, durable cross-domain knowledge curation belongs with archivist, heartbeat-driven monitoring belongs with watchdog, and high-judgment review belongs with auditor;
                         - explain that watchdog already has bootstrapped cron jobs for heartbeat checks, platform sweeps, and the daily digest;
                         - explain that project setup, specifications, task breakdowns, and durable project documentation belong with architect rather than with you.
 
@@ -846,7 +850,7 @@ def workspace_bootstrap_values(
 
                         Agent communication:
                         - Use `sessions_send` to communicate with other agents through their main sessions.
-                        - Session targets like `agent:main:main`, `agent:architect:main`, and `agent:watchdog:main` are session IDs, not labels.
+                        - Session targets like `agent:main:main`, `agent:architect:main`, `agent:watchdog:main`, and `agent:auditor:main` are session IDs, not labels.
                         - Your normal coordination target is `agent:main:main`.
                         - If work is mainly recurring monitoring, polling, or watch duty, route that need back through main so watchdog can own it.
                         - Do not use `sessions_spawn`; main owns sub-agent spawning.
@@ -876,7 +880,7 @@ def workspace_bootstrap_values(
                         """
                         # Memory - Coder Agent
 
-                        All five agents share one Qdrant collection for durable semantic memory.
+                        All six agents share one Qdrant collection for durable semantic memory.
 
                         Search Qdrant before working on a codebase, deployment path, toolchain, convention, or implementation area that may have prior context.
 
@@ -1030,7 +1034,7 @@ def workspace_bootstrap_values(
                         """
                         # Memory - Architect Agent
 
-                        All five agents share one Qdrant collection for durable semantic memory.
+                        All six agents share one Qdrant collection for durable semantic memory.
 
                         Search Qdrant before planning, designing, or specifying work that may have prior decisions, tradeoffs, or project history.
                         Escalate to archivist when the design depends on stable entity relationships, large durable context maps, or graph-backed recall.
@@ -1167,7 +1171,7 @@ def workspace_bootstrap_values(
                         """
                         # Memory - Archivist Agent
 
-                        All five agents share one Qdrant collection for durable semantic memory.
+                        All six agents share one Qdrant collection for durable semantic memory.
 
                         Search Qdrant before graph edits and use Memgraph traversal before storing new graph facts.
 
@@ -1360,7 +1364,7 @@ def workspace_bootstrap_values(
                         """
                         # Memory - Watchdog Agent
 
-                        All five agents share one Qdrant collection for durable semantic memory.
+                        All six agents share one Qdrant collection for durable semantic memory.
 
                         Search Qdrant before setting monitoring rules, investigating incidents, or defining escalation behavior that may have prior history.
 
@@ -1375,6 +1379,16 @@ def workspace_bootstrap_values(
                         `{"kind": "...", "domain": "...", "agent": "watchdog", "created": "ISO-8601"}`
                         """
                     ),
+                },
+            },
+            "auditor": {
+                "workspace": "/home/node/.openclaw/workspace-auditor",
+                "files": {
+                    "AGENTS.md": normalize_markdown("# Auditor\n\nPlaceholder."),
+                    "USER.md": normalize_markdown("# Auditor\n\nPlaceholder."),
+                    "IDENTITY.md": normalize_markdown("# Auditor\n\nPlaceholder."),
+                    "HEARTBEAT.md": normalize_markdown("# Auditor\n\nPlaceholder."),
+                    "MEMORY.md": normalize_markdown("# Auditor\n\nPlaceholder."),
                 },
             },
         },
@@ -1460,6 +1474,7 @@ def resolve_agent_models(data: dict[str, object], providers: dict[str, str]) -> 
             data, "archivist", DEFAULT_ARCHIVIST_MODEL, DEFAULT_ARCHIVIST_FALLBACK_MODELS
         ),
         "watchdog": resolve_agent_model_config(data, "watchdog", DEFAULT_WATCHDOG_MODEL, DEFAULT_WATCHDOG_FALLBACK_MODELS),
+        "auditor": resolve_agent_model_config(data, "auditor", DEFAULT_AUDITOR_MODEL, DEFAULT_AUDITOR_FALLBACK_MODELS),
     }
     for agent_id, model_config in agent_models.items():
         primary = require_string(model_config["primary"], f"openclaw.agents.{agent_id}.model")
@@ -1484,6 +1499,7 @@ def resolved_values(data: dict[str, object]) -> dict[str, str]:
     architect_model = require_string(agent_models["architect"]["primary"], "openclaw.agents.architect.model")
     archivist_model = require_string(agent_models["archivist"]["primary"], "openclaw.agents.archivist.model")
     watchdog_model = require_string(agent_models["watchdog"]["primary"], "openclaw.agents.watchdog.model")
+    auditor_model = require_string(agent_models["auditor"]["primary"], "openclaw.agents.auditor.model")
 
     admin_name = nested_string(data, ("admin", "name"), "Homebase Admin")
     admin_username = nested_string(data, ("admin", "username"), "homebase-admin")
@@ -1590,6 +1606,7 @@ def resolved_values(data: dict[str, object]) -> dict[str, str]:
         "OPENCLAW_ARCHITECT_MODEL": architect_model,
         "OPENCLAW_ARCHIVIST_MODEL": archivist_model,
         "OPENCLAW_WATCHDOG_MODEL": watchdog_model,
+        "OPENCLAW_AUDITOR_MODEL": auditor_model,
     }
     gitops_table = data.get("gitops")
     if isinstance(gitops_table, dict) and "repo_private" in gitops_table:
@@ -1645,6 +1662,7 @@ def command_render_values(args: argparse.Namespace) -> int:
         ("architect", "Architect"),
         ("archivist", "Archivist"),
         ("watchdog", "Watchdog"),
+        ("auditor", "Auditor"),
     ):
         model_config = agent_models[agent_id]
         for model_id in [require_string(model_config["primary"], f"openclaw.agents.{agent_id}.model"), *require_string_list(model_config["fallbacks"], f"openclaw.agents.{agent_id}.fallback_models")]:
@@ -1741,7 +1759,7 @@ def command_render_values(args: argparse.Namespace) -> int:
                         ),
                     },
                     "subagents": {
-                        "allowAgents": ["coder", "architect", "archivist"],
+                        "allowAgents": ["coder", "architect", "archivist", "auditor"],
                     },
                 },
                 {
@@ -1833,6 +1851,22 @@ def command_render_values(args: argparse.Namespace) -> int:
                         "mode": "off",
                     },
                 },
+                {
+                    "id": "auditor",
+                    "name": "Auditor",
+                    "workspace": "/home/node/.openclaw/workspace-auditor",
+                    "model": {
+                        "primary": require_string(agent_models["auditor"]["primary"], "openclaw.agents.auditor.model"),
+                        **(
+                            {"fallbacks": require_string_list(agent_models["auditor"]["fallbacks"], "openclaw.agents.auditor.fallback_models")}
+                            if require_string_list(agent_models["auditor"]["fallbacks"], "openclaw.agents.auditor.fallback_models")
+                            else {}
+                        ),
+                    },
+                    "sandbox": {
+                        "mode": "off",
+                    },
+                },
             ],
         },
         "tools": {
@@ -1841,7 +1875,7 @@ def command_render_values(args: argparse.Namespace) -> int:
             },
             "agentToAgent": {
                 "enabled": True,
-                "allow": ["main", "coder", "architect", "archivist", "watchdog"],
+                "allow": ["main", "coder", "architect", "archivist", "watchdog", "auditor"],
             }
         },
     }
@@ -2183,6 +2217,10 @@ def command_render_values(args: argparse.Namespace) -> int:
                 ON CREATE SET watchdog.name = 'watchdog',
                               watchdog.role = 'monitor';
 
+                MERGE (auditor:Agent:Person {slug: 'auditor'})
+                ON CREATE SET auditor.name = 'auditor',
+                              auditor.role = 'reviewer';
+
                 MERGE (archivist:Agent:Person {slug: 'archivist'})
                 ON CREATE SET archivist.name = 'archivist',
                               archivist.role = 'knowledge-graph-curator';
@@ -2209,6 +2247,7 @@ def command_render_values(args: argparse.Namespace) -> int:
                 MATCH (architect:Agent:Person {slug: 'architect'})
                 MATCH (coder:Agent:Person {slug: 'coder'})
                 MATCH (watchdog:Agent:Person {slug: 'watchdog'})
+                MATCH (auditor:Agent:Person {slug: 'auditor'})
                 MATCH (archivist:Agent:Person {slug: 'archivist'})
                 MATCH (gitopsRepo:Repository:System {slug: 'cluster-gitops'})
                 MATCH (sandboxRepo:Repository:System {slug: 'openclaw-sandbox-images'})
@@ -2227,6 +2266,7 @@ def command_render_values(args: argparse.Namespace) -> int:
                 MERGE (openclaw)-[:COORDINATES]->(architect)
                 MERGE (openclaw)-[:COORDINATES]->(coder)
                 MERGE (openclaw)-[:COORDINATES]->(watchdog)
+                MERGE (openclaw)-[:COORDINATES]->(auditor)
                 MERGE (openclaw)-[:COORDINATES]->(archivist)
                 MERGE (archivist)-[:CURATES]->(memgraph)
                 MERGE (archivist)-[:GROOMS]->(qdrant)

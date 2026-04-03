@@ -1,0 +1,1 @@
+- Added the `auditor` agent scaffolding/configuration updates across bootstrap and Helm values (Task 2).
