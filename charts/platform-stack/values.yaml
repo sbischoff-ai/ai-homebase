@@ -388,7 +388,7 @@ nextcloud:
   enabled: true
   image:
     repository: nextcloud
-    tag: "33.0.0-apache"
+    tag: "33.0.2-apache"
     pullPolicy: IfNotPresent
   service:
     type: ClusterIP
