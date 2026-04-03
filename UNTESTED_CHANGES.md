@@ -1,5 +1,33 @@
 # Untested Changes
 
+## 2026-04-03 - Task 11: Main Agent BOOTSTRAP.md Morning Brief and Evening Digest
+
+Status: statically validated only. Do not treat this as live runtime/bootstrap verified yet.
+
+Scope:
+
+- Replaced the existing checked-in main workspace bootstrap prompt in `charts/openclaw/files/workspaces/main/BOOTSTRAP.md` with a first-session setup note that offers optional morning brief and evening digest cron setup, optional calendar setup, and optional Nextcloud sharing guidance.
+- Updated the embedded main workspace file map in `scripts/bootstrap-config.py` so generated bootstrap output now includes the same `BOOTSTRAP.md` content wrapped in `normalize_markdown("""...""")`.
+- Added `scripts/cron-messages/main-morning-brief.md` as the on-demand template for a concise morning brief covering overnight activity, budget status, pending items, and calendar events.
+- Added `scripts/cron-messages/main-evening-digest.md` as the on-demand template for a concise evening digest covering today's work, budget spent, artifacts produced, and open items.
+- Kept the behavior explicitly opt-in: the bootstrap text tells main to create these jobs later with `openclaw cron add` only after the user chooses whether to enable them.
+
+What to verify later during a real bootstrap/render/runtime check:
+
+- A real OpenClaw bootstrap emits the updated `BOOTSTRAP.md` into the main workspace with the exact opt-in wording and without restoring the older first-use conversation instructions.
+- The generated workspace content from `scripts/bootstrap-config.py` remains aligned with the checked-in `charts/openclaw/files/workspaces/main/BOOTSTRAP.md` after a real bootstrap path is exercised.
+- Main can successfully reference `scripts/cron-messages/main-morning-brief.md` and `scripts/cron-messages/main-evening-digest.md` when creating user-requested cron jobs with `openclaw cron add`.
+- The bootstrap flow does not auto-install either cron job on fresh deploy, and the user is prompted first as intended.
+
+Static validation completed:
+
+- `sed -n '1,220p' charts/openclaw/files/workspaces/main/BOOTSTRAP.md`
+- `sed -n '812,860p' scripts/bootstrap-config.py`
+- `sed -n '1,200p' scripts/cron-messages/main-morning-brief.md`
+- `sed -n '1,200p' scripts/cron-messages/main-evening-digest.md`
+- `rg --files scripts/cron-messages`
+- `git diff -- charts/openclaw/files/workspaces/main/BOOTSTRAP.md scripts/bootstrap-config.py scripts/cron-messages/main-morning-brief.md scripts/cron-messages/main-evening-digest.md`
+
 ## 2026-04-03 - Task 9: Strengthen Graph Population and Archivist Coordination
 
 Status: statically validated only. Do not treat this as live runtime/bootstrap verified yet.
