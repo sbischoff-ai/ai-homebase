@@ -1,5 +1,29 @@
 # Untested Changes
 
+## 2026-04-02 - Task 18: Update Default Agent Model Assignments
+
+Status: statically validated only. Do not treat this as live-runtime verified yet.
+
+Scope:
+
+- Updated bootstrap default constants in `scripts/bootstrap-config.py` for `main`, `architect`, `coder`, `archivist`, and `watchdog` model assignments to the new lineup.
+- Updated `bootstrap.example.toml` per-agent model and fallback selections to match the new defaults.
+- Updated `charts/platform-stack/values.yaml` OpenClaw agent defaults model aliases plus all five `openclaw.agents.list` model primary/fallback entries to match the new lineup.
+- Removed old primary-model alias entries no longer used by any agent primary and added aliases for the new OpenAI model IDs.
+
+What to verify later during a real runtime/bootstrap check:
+
+- Bootstrapping with `bootstrap.local.toml` defaults still renders and applies valid OpenClaw model objects in `openclaw.json` for all five agents.
+- Agent runtime behavior still honors the configured fallback model order when primary providers are unavailable.
+- Any downstream automation or operator docs expecting old model IDs (for example `openai/gpt-4.1` or `anthropic/claude-opus-4-6`) is updated where needed outside this change.
+
+Static validation completed:
+
+- `python3 scripts/bootstrap-config.py validate --config bootstrap.example.toml`
+- `rg -n 'gpt-4\.1(?!-nano)' scripts/bootstrap-config.py bootstrap.example.toml charts/platform-stack/values.yaml`
+- `rg -n 'opus-4-6' scripts/bootstrap-config.py bootstrap.example.toml charts/platform-stack/values.yaml`
+
+
 ## 2026-04-02 - Task 17: Golden Snapshot Coverage for Rendered OpenClaw ConfigMap
 
 Status: CI-level render validation completed. Do not treat this as live install or runtime verified yet.
