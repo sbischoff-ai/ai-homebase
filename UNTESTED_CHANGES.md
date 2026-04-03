@@ -1,5 +1,26 @@
 # Untested Changes
 
+## 2026-04-03 - Task 20: Align OpenClaw Base Chart Model Defaults with Umbrella
+
+Status: statically validated only. Do not treat this as live CI/network-verified yet.
+
+Scope:
+
+- Updated `charts/openclaw/values.yaml` default model aliases and `agents.list` primary/fallback entries to the same lineup already set in umbrella values/bootstrap defaults.
+- Documented a mandatory model-default update checklist in `AGENTS.md` so future changes also touch base chart defaults and regenerate golden fixtures in one commit.
+
+Root cause addressed:
+
+- Helm values merge retained legacy model alias keys from `charts/openclaw/values.yaml` (`openai/gpt-4.1` and `anthropic/claude-opus-4-6`) even after umbrella overrides changed, causing golden snapshots generated in CI to include unexpected extra model alias entries.
+
+What to verify later during a real CI run:
+
+- `scripts/ci/check_golden.sh` passes on GitHub Actions with network access to configured Helm chart repositories.
+
+Static validation completed:
+
+- `rg -n 'claude-opus-4-6|openai/gpt-4\.1(?!-nano)|gpt-4\.1-mini' charts/openclaw/values.yaml tests/golden --pcre2`
+
 ## 2026-04-03 - Task 19: Refresh Golden Snapshots for Agent Model Lineup
 
 Status: statically validated only. Do not treat this as live CI/network-verified yet.

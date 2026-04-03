@@ -36,6 +36,15 @@
 - Change docs in `docs/` and command references in `README.md` whenever operators must do something new, a default/toggle meaning changes, or validation steps change.
 - Do not encode persistent environment decisions only as CLI `--set`; store them in overlay values files.
 
+
+### Required updates when OpenClaw agent model defaults change
+When changing default agent model IDs, aliases, or fallback order, update these in the same change to avoid Helm merge drift and golden mismatches:
+- `scripts/bootstrap-config.py` default agent model constants.
+- `bootstrap.example.toml` per-agent model sections.
+- `charts/platform-stack/values.yaml` under `openclaw.openclaw.agents.defaults.models` and `openclaw.openclaw.agents.list`.
+- `charts/openclaw/values.yaml` matching `openclaw.agents.defaults.models` and `openclaw.agents.list` defaults (base chart values still merge with umbrella overrides).
+- `tests/golden/*.yaml` via `scripts/ci/update_golden.sh` and verify with `scripts/ci/check_golden.sh`.
+
 ## Required updates when toggles/values change
 When adding/removing/renaming/changing a value key or toggle semantics, update all applicable files in the same change:
 - Source values definitions/defaults in chart values files.
