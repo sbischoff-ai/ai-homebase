@@ -37,13 +37,12 @@
 - Do not encode persistent environment decisions only as CLI `--set`; store them in overlay values files.
 
 
-### Required updates when OpenClaw agent model defaults change
-When changing default agent model IDs, aliases, or fallback order, update these in the same change to avoid Helm merge drift and golden mismatches:
-- `scripts/bootstrap-config.py` default agent model constants.
-- `bootstrap.example.toml` per-agent model sections.
-- `charts/platform-stack/values.yaml` under `openclaw.openclaw.agents.defaults.models` and `openclaw.openclaw.agents.list`.
-- `charts/openclaw/values.yaml` matching `openclaw.agents.defaults.models` and `openclaw.agents.list` defaults (base chart values still merge with umbrella overrides).
-- `tests/golden/*.yaml` via `scripts/ci/update_golden.sh` and verify with `scripts/ci/check_golden.sh`.
+### Required updates for any render-impacting default changes
+When a change affects rendered manifests (especially values that exist in both base service charts and umbrella overrides), update all active layers in one commit to avoid Helm merge drift and repeated golden failures:
+- Update every source-of-truth values file that contributes to the same rendered key path (for example both `charts/<service>/values.yaml` and `charts/platform-stack/values.yaml` when both define that subtree).
+- Update any bootstrap/config generator defaults that feed those same rendered values.
+- Regenerate golden fixtures with `scripts/ci/update_golden.sh` and verify with `scripts/ci/check_golden.sh` before merge.
+- If the diff still surprises you, inspect the merged render output first (`./scripts/template.sh ...`) before editing fixtures by hand.
 
 ## Required updates when toggles/values change
 When adding/removing/renaming/changing a value key or toggle semantics, update all applicable files in the same change:
