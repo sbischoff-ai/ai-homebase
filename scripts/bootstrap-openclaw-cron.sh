@@ -145,3 +145,11 @@ ensure_job "Watchdog daily digest" \
   --agent watchdog \
   --no-deliver \
   --message "$(read_message "watchdog-daily-digest.md")"
+
+ensure_job "Auditor weekly review" \
+  --name "Auditor weekly review" \
+  --cron "0 3 * * 0" \
+  --session isolated \
+  --agent auditor \
+  --no-deliver \
+  --message "$(read_message "auditor-weekly-review.md")"

@@ -479,6 +479,7 @@ nextcloud:
         - path: incidents/README.md
         - path: heartbeat.json
         - path: budget-ledger.json
+        - path: audit-log.md
         - path: baselines.md
         - path: escalation-rules.md
       notesFilesDir: bootstrap-content/ai-homebase/notes
