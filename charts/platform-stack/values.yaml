@@ -350,15 +350,11 @@ openclaw:
     openaiApiKey: OPENAI_API_KEY
     anthropicApiKey: ANTHROPIC_API_KEY
     braveApiKey: BRAVE_API_KEY
-    kimiApiKey: KIMI_API_KEY
     moonshotApiKey: MOONSHOT_API_KEY
-    tavilyApiKey: TAVILY_API_KEY
     perplexityApiKey: PERPLEXITY_API_KEY
     geminiApiKey: GEMINI_API_KEY
     xaiApiKey: XAI_API_KEY
     githubToken: GITHUB_TOKEN
-    googleApiKey: GOOGLE_API_KEY
-    braveSearchApiKey: BRAVE_SEARCH_API_KEY
   secretRefs:
     - name: openclaw-nextcloud-mcp-secrets
       key: OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER
@@ -629,10 +625,21 @@ qdrantMcp:
 
       Important:
       - This searches all memories from all agents.
-      - Retrieval is currently semantic, not metadata-filtered, so phrasing matters.
       - Returned memories include metadata such as kind, domain, agent, confidence, and Nextcloud references.
       - Treat speculative or low-confidence results cautiously.
       - Treat expired memories as potentially stale.
+ 
+      Filtering:
+      - You can filter by metadata fields using the `query_filter` parameter.
+      - All memories include a `created` ISO-8601 timestamp in metadata.
+      - Common metadata fields: `kind`, `domain`, `agent`, `confidence`, `project`, `tags`.
+      - Example: Find memories from the last 24 hours:
+        query_filter: {"must": [{"key": "created", "range": {"gte": "2026-04-02T00:00:00Z"}}]}
+      - Example: Find memories by a specific agent:
+        query_filter: {"must": [{"key": "agent", "match": {"value": "coder"}}]}
+      - Example: Find decisions from a specific project:
+        query_filter: {"must": [{"key": "kind", "match": {"value": "decision"}}, {"key": "project", "match": {"value": "ai-homebase"}}]}
+      - Combine semantic search (the `query` parameter) with filters for best results.
 
 memgraph:
   enabled: true

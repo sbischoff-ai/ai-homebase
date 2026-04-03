@@ -70,14 +70,12 @@ spec:
 
               write_managed_file() {
                 target="$1"
-                temp_file="$(mktemp)"
-                cat >"${temp_file}"
-                if [ ! -f "${target}" ] || ! cmp -s "${temp_file}" "${target}"; then
-                  cp "${temp_file}" "${target}"
+                source_file="$2"
+                if [ ! -f "${target}" ] || ! cmp -s "${source_file}" "${target}"; then
+                  cp "${source_file}" "${target}"
                   chown 33:33 "${target}"
                   chmod 0640 "${target}"
                 fi
-                rm -f "${temp_file}"
               }
 
               {{- range $projectIndex, $project := .Values.bootstrapProjectContent }}
@@ -90,11 +88,11 @@ spec:
               chmod 0750 "${project_root}" "${notes_root}"
               {{- range $fileIndex, $file := ($project.projectsFiles | default (list)) }}
               ensure_parent_dir "${project_root}/{{ $file.path }}"
-              write_managed_file "${project_root}/{{ $file.path }}" <"/bootstrap-content/project-{{ $projectIndex }}-file-{{ $fileIndex }}"
+              write_managed_file "${project_root}/{{ $file.path }}" "/bootstrap-content/project-{{ $projectIndex }}-file-{{ $fileIndex }}"
               {{- end }}
               {{- range $noteIndex, $note := ($project.notes | default (list)) }}
               ensure_parent_dir "${notes_root}/{{ $note.path }}"
-              write_managed_file "${notes_root}/{{ $note.path }}" <"/bootstrap-content/project-{{ $projectIndex }}-note-{{ $noteIndex }}"
+              write_managed_file "${notes_root}/{{ $note.path }}" "/bootstrap-content/project-{{ $projectIndex }}-note-{{ $noteIndex }}"
               {{- end }}
               su -s /bin/sh www-data -c "cd /var/www/html && php occ files:scan --path='${owner_username}/files/Projects/${project_slug}'"
               su -s /bin/sh www-data -c "cd /var/www/html && php occ files:scan --path='${owner_username}/files/Notes/${project_slug}'"

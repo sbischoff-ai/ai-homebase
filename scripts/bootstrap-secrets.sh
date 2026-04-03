@@ -38,6 +38,7 @@ PAPERLESS_SECRET_KEY=""
 GITHUB_TOKEN=""
 REGISTRY_USERNAME=""
 REGISTRY_PASSWORD=""
+CODER_GITEA_PASSWORD=""
 REMOTE_DOCKER_SECRET_NAME="${REMOTE_DOCKER_SECRET_NAME:-openclaw-remote-docker-ssh}"
 REMOTE_DOCKER_HOST="${REMOTE_DOCKER_HOST:-}"
 REMOTE_DOCKER_PORT="${REMOTE_DOCKER_PORT:-2222}"
@@ -345,6 +346,7 @@ PAPERLESS_ADMIN_PASSWORD="$(resolve_from_existing_secret_or_generate "$PAPERLESS
 PAPERLESS_SECRET_KEY="$(resolve_paperless_secret_key)"
 REGISTRY_USERNAME="${REGISTRY_USERNAME:-coder}"
 REGISTRY_PASSWORD="$(resolve_from_existing_secret_or_generate "$REGISTRY_PASSWORD" registry-auth-secret '{.data.password}')"
+CODER_GITEA_PASSWORD="$(resolve_from_existing_secret_or_generate "${CODER_GITEA_PASSWORD:-}" coder-credentials '{.data.CODER_GITEA_PASSWORD}')"
 GITEA_REDIS_URI="redis://:${REDIS_PASSWORD}@platform-stack-shared-redis:6379/0?pool_size=100&idle_timeout=180s"
 PAPERLESS_REDIS_URI="redis://:${REDIS_PASSWORD}@platform-stack-shared-redis:6379/0"
 REGISTRY_HTPASSWD="$(generate_htpasswd_entry "$REGISTRY_USERNAME" "$REGISTRY_PASSWORD")"
@@ -430,6 +432,10 @@ create_and_apply_secret registry-auth-secret \
   --from-literal=username="${REGISTRY_USERNAME}" \
   --from-literal=password="${REGISTRY_PASSWORD}" \
   --from-literal=htpasswd="${REGISTRY_HTPASSWD}"
+
+create_and_apply_secret coder-credentials \
+  --from-literal=CODER_GITEA_PASSWORD="${CODER_GITEA_PASSWORD}" \
+  --from-literal=CODER_REGISTRY_PASSWORD="${REGISTRY_PASSWORD}"
 
 OPENCLAW_SECRET_ARGS=(
   --from-literal=OPENCLAW_GATEWAY_TOKEN="$OPENCLAW_GATEWAY_TOKEN"

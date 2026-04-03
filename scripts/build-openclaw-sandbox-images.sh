@@ -49,14 +49,22 @@ if ! command -v docker >/dev/null 2>&1; then
   exit 1
 fi
 
-echo "Building ${GATEWAY_IMAGE} from ${GATEWAY_DOCKERFILE}"
-docker build -f "${GATEWAY_DOCKERFILE}" -t "${GATEWAY_IMAGE}" .
+build_image() {
+  local image="$1"
+  local dockerfile="$2"
+  local context_dir
 
-echo "Building ${BASE_IMAGE} from ${BASE_DOCKERFILE}"
-docker build -f "${BASE_DOCKERFILE}" -t "${BASE_IMAGE}" .
+  if [[ ! -f "$dockerfile" ]]; then
+    echo "Dockerfile not found: ${dockerfile}" >&2
+    exit 1
+  fi
 
-echo "Building ${ARCHIVIST_IMAGE} from ${ARCHIVIST_DOCKERFILE}"
-docker build -f "${ARCHIVIST_DOCKERFILE}" -t "${ARCHIVIST_IMAGE}" .
+  context_dir="$(dirname "$dockerfile")"
+  echo "Building ${image} from ${dockerfile} (context: ${context_dir})"
+  docker build -f "$dockerfile" -t "$image" "$context_dir"
+}
 
-echo "Building ${CODER_IMAGE} from ${CODER_DOCKERFILE}"
-docker build -f "${CODER_DOCKERFILE}" -t "${CODER_IMAGE}" .
+build_image "${GATEWAY_IMAGE}" "${GATEWAY_DOCKERFILE}"
+build_image "${BASE_IMAGE}" "${BASE_DOCKERFILE}"
+build_image "${ARCHIVIST_IMAGE}" "${ARCHIVIST_DOCKERFILE}"
+build_image "${CODER_IMAGE}" "${CODER_DOCKERFILE}"
