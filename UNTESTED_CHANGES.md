@@ -1,5 +1,34 @@
 # Untested Changes
 
+## 2026-04-03 - Task 9: Strengthen Graph Population and Archivist Coordination
+
+Status: statically validated only. Do not treat this as live runtime/bootstrap verified yet.
+
+Scope:
+
+- Added `## Graph-Worthy Events` guidance to `charts/openclaw/files/workspaces/{main,coder,architect,watchdog}/AGENTS.md` so non-archivist agents explicitly record graph-worthy events in Qdrant using canonical slugs.
+- Added `## Entity references` guidance to `charts/openclaw/files/workspaces/{main,coder,architect,watchdog}/MEMORY.md` so stored memories mention canonical graph slugs for projects, services, agents, repos, and people.
+- Replaced `scripts/cron-messages/archivist-nightly-grooming.md` with a concrete 5-step nightly grooming procedure covering memory discovery, `MemoryEntry` linking, stale/orphan review, schema-doc updates, and grooming-log updates.
+- Added bootstrap project content file `charts/platform-stack/files/bootstrap-content/ai-homebase/projects/archivist-grooming-log.md`.
+- Updated `charts/platform-stack/values.yaml` so Nextcloud bootstrap project content includes `archivist-grooming-log.md`.
+- Updated `scripts/bootstrap-config.py` embedded workspace markdown and seeded project-content definitions so bootstrap-generated files match the checked-in workspace docs and include the new grooming log file.
+
+What to verify later during a real bootstrap/render/runtime check:
+
+- A real OpenClaw bootstrap emits the updated `AGENTS.md` and `MEMORY.md` files for `main`, `coder`, `architect`, and `watchdog` with the new graph-related sections present and matching the checked-in files.
+- The bootstrapped Nextcloud project content includes `/Projects/ai-homebase/archivist-grooming-log.md` with the expected starter table.
+- The running archivist cron job receives the new nightly grooming prompt and follows the intended 5-step procedure without regressions in its existing runtime flow.
+- The generated bootstrap content from `scripts/bootstrap-config.py` stays aligned with the checked-in workspace files and project bootstrap markdown after a real bootstrap or render path is exercised.
+- Agents actually begin producing Qdrant memories with canonical slugs often enough for archivist graph-linking to become easier in practice.
+
+Static validation completed:
+
+- `rg -n "## Graph-Worthy Events" charts/openclaw/files/workspaces/{main,coder,architect,watchdog}/AGENTS.md scripts/bootstrap-config.py`
+- `rg -n "## Entity references|canonical graph slug" charts/openclaw/files/workspaces/{main,coder,architect,watchdog}/MEMORY.md scripts/bootstrap-config.py`
+- `sed -n '1,220p' scripts/cron-messages/archivist-nightly-grooming.md`
+- `rg -n "archivist-grooming-log\\.md" charts/platform-stack/values.yaml scripts/bootstrap-config.py charts/platform-stack/files/bootstrap-content/ai-homebase/projects/archivist-grooming-log.md`
+- `git diff -- charts/openclaw/files/workspaces/main/AGENTS.md charts/openclaw/files/workspaces/coder/AGENTS.md charts/openclaw/files/workspaces/architect/AGENTS.md charts/openclaw/files/workspaces/watchdog/AGENTS.md charts/openclaw/files/workspaces/main/MEMORY.md charts/openclaw/files/workspaces/coder/MEMORY.md charts/openclaw/files/workspaces/architect/MEMORY.md charts/openclaw/files/workspaces/watchdog/MEMORY.md scripts/cron-messages/archivist-nightly-grooming.md charts/platform-stack/values.yaml charts/platform-stack/files/bootstrap-content/ai-homebase/projects/archivist-grooming-log.md scripts/bootstrap-config.py`
+
 ## 2026-04-03 - Task 8: Strengthen Memory Discipline Across All Agent Workspace Files
 
 Status: statically validated only. Do not treat this as live runtime/bootstrap verified yet.
