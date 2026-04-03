@@ -175,11 +175,12 @@ assert rendered_values["openclaw"]["openclaw"]["skills"]["allowBundled"] == [
 assert rendered_values["openclaw"]["openclaw"]["agents"]["defaults"]["models"] == {
     "openai/gpt-4.1": {"alias": "Main / Coder"},
     "anthropic/claude-sonnet-4-6": {"alias": "Main / Coder / Archivist"},
-    "anthropic/claude-opus-4-6": {"alias": "Architect"},
+    "anthropic/claude-opus-4-6": {"alias": "Architect / Auditor"},
     "openai/o3": {"alias": "Architect"},
     "openai/gpt-4.1-mini": {"alias": "Archivist"},
     "openai/gpt-4.1-nano": {"alias": "Watchdog"},
     "anthropic/claude-haiku-4-5": {"alias": "Watchdog"},
+    "openai/gpt-5.4": {"alias": "Auditor"},
 }
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][0]["id"] == "main"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][0]["default"] is True
@@ -224,10 +225,11 @@ assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][4]["workspace"]
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][4]["model"]["primary"] == "openai/gpt-4.1-nano"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][4]["model"]["fallbacks"] == ["anthropic/claude-haiku-4-5"]
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][4]["sandbox"]["mode"] == "off"
-assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][0]["subagents"]["allowAgents"] == ["coder", "architect", "archivist"]
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][0]["subagents"]["allowAgents"] == ["coder", "architect", "archivist", "auditor"]
 assert rendered_values["openclaw"]["openclaw"]["tools"]["agentToAgent"]["enabled"] is True
-assert rendered_values["openclaw"]["openclaw"]["tools"]["agentToAgent"]["allow"] == ["main", "coder", "architect", "archivist", "watchdog"]
+assert rendered_values["openclaw"]["openclaw"]["tools"]["agentToAgent"]["allow"] == ["main", "coder", "architect", "archivist", "watchdog", "auditor"]
 assert rendered_values["openclaw"]["openclaw"]["tools"]["sessions"]["visibility"] == "all"
+assert rendered_values["openclaw"]["openclaw"]["plugins"]["slots"]["memory"] == "none"
 assert rendered_values["openclaw"]["workspaceBootstrap"]["enabled"] is True
 assert rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["workspace"] == "/home/node/.openclaw/workspace"
 assert "openclaw" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["TOOLS.md"]
@@ -239,13 +241,29 @@ assert "## Task Classification Gate (mandatory)" in rendered_values["openclaw"][
 assert "## Handoff Protocol" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["AGENTS.md"]
 assert "## Task Handoff" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["AGENTS.md"]
 assert "Main is the only agent that spawns sub-agents." in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["AGENTS.md"]
-assert "what the user wants to call you" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
-assert "sessions_send" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
-assert "archivist curates long-term knowledge" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
-assert "ordinary non-coding tasks stay with you" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
-assert "project setup, specifications, task breakdowns, and durable project documentation belong with architect" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
+assert "Would you like a morning brief and evening digest?" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
+assert "Ask the user how they want to be addressed." in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
+assert "Ask how they want to address you." in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
+assert "Ask for their preferred conversation style or personality." in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
+assert "Ask what they want to do with this setup." in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
+assert "The bootstrapped Nextcloud username for the user is currently `test-admin`." in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
+assert "share these existing top-level folders with that username" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
+assert "- `/Projects/`" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
+assert "- `/Notes/`" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
+assert "Use `sessions_send` to target these literal session keys" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
+assert "`agent:coder:main`" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
+assert "`agent:architect:main`" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
+assert "`agent:archivist:main`" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
+assert "`agent:watchdog:main`" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
+assert "`agent:auditor:main`" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
+assert "Ask each agent for a short readiness confirmation and verify they respond." in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
+assert "Morning brief" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
+assert "Evening digest" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
+assert "I'll create the cron jobs using `openclaw cron add`." in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
+assert "share it with the `openclaw` user" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
 assert "/Projects/ai-homebase/" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
-assert "share `/Projects/` and `/Notes/` with that user" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
+assert "/Notes/ai-homebase/" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
+assert "I should share both `/Projects/` and `/Notes/` with your user." in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
 assert "# Memory - Main Agent" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["MEMORY.md"]
 assert '[domain] [kind] Complete statement here.' in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["MEMORY.md"]
 assert '"agent": "main"' in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["MEMORY.md"]

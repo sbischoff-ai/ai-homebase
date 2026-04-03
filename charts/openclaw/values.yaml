@@ -291,6 +291,10 @@ openclaw:
       - tmux
       - summarize
       - github
+  plugins:
+    entries: {}
+    slots:
+      memory: none
   commands:
     mcp: true
   mcp:
@@ -313,9 +317,6 @@ openclaw:
           - ${OPENCLAW_QDRANT_MCP_INTERNAL_URL}
           - --url
           - ${OPENCLAW_QDRANT_MCP_EXTERNAL_URL}
-  plugins:
-    entries: {}
-
 env: []
 envFromSecrets: []
 # Secret injection conventions:
