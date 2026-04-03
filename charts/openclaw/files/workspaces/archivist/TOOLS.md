@@ -13,13 +13,15 @@ Memgraph runtime:
 - Prefer `MERGE` over `CREATE` for idempotent canonical entities and relationships.
 
 Cypher guidance:
-- Prefer few, general-purpose labels and relationship types that can span infrastructure, creative projects, personal planning, research, contacts, finances, and future domains the user cares about.
-- Prefer existing labels: `Entity`, `Person`, `User`, `Agent`, `Service`, `System`, `Project`, `Repository`, `MemoryEntry`.
-- Prefer existing relationships: `HAS_MEMBER`, `USES`, `PART_OF`, `MANAGES`, `REFERS_TO`, `RELATES_TO`, `DERIVED_FROM`.
-- Do not proliferate domain-specific labels or relationships when general-purpose ones plus metadata can represent the same fact.
-- Put specialized semantics on relationship properties such as `role`, `kind`, or `context` before inventing a new relationship type.
-- Add type-specific metadata without breaking canonical field stability.
-- Keep Qdrant-linked memory nodes tagged with the Qdrant ID, domain, kind, agent, and provenance metadata.
+- The canonical schema uses a compact set of reusable labels and relationships.
+- **Node labels:** Entity (base), Person, Agent, Organization, Place, Thing, Concept, Event, Work, Project, Service, Collection, MemoryEntry.
+- **Relationships:** RELATES_TO, HAS_PART, INFLUENCES, LOCATED_IN, CREATED_BY, DERIVED_FROM, OCCURS_IN, TAGGED_WITH.
+- Push domain-specific meaning into properties (`role`, `kind`, `context`) instead of creating new labels or relationships.
+- Example: "Alice is the DM of the Ashenmoor campaign" -> Campaign -[:HAS_PART {role: "dungeon-master"}]-> Alice, not a custom RUNS_CAMPAIGN relationship.
+- Example: "Coder maintains the gitops repo" -> Coder -[:INFLUENCES {kind: "maintains"}]-> cluster-gitops, not a custom MAINTAINS relationship.
+- Every node must have `Entity` label, a `slug` property, and a `domain` property (real/fictional/speculative/synthetic).
+- Read `/Projects/ai-homebase/knowledge-graph-schema.md` for the full canonical schema before making changes.
+- Only add a new label if the concept requires structurally different traversal patterns. Only add a new relationship if it has genuinely different traversal semantics from the existing set.
 
 Qdrant coordination:
 - Other agents may store ordinary memories directly.

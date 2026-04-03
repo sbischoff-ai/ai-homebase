@@ -354,38 +354,77 @@ def seeded_nextcloud_project_content() -> list[dict[str, object]]:
                         """
                         # Knowledge Graph Schema
 
-                        This document defines the initial canonical Memgraph schema for long-term OpenClaw knowledge.
+                        This document defines the canonical Memgraph schema for the user's long-term cross-domain world model.
 
-                        Stable label vocabulary:
-                        - `Entity`
-                        - `Person`
-                        - `User`
-                        - `Agent`
-                        - `Service`
-                        - `System`
-                        - `Project`
-                        - `Repository`
-                        - `MemoryEntry`
+                        ## Canonical node labels
 
-                        Stable relationship vocabulary:
-                        - `HAS_USER`
-                        - `USES_SERVICE`
-                        - `USES_REPOSITORY`
-                        - `COORDINATES`
-                        - `CURATES`
-                        - `GROOMS`
-                        - `MAINTAINS_SCHEMA_FOR`
-                        - `VISUALIZES`
-                        - `REFERS_TO`
-                        - `RELATES_TO`
-                        - `DERIVED_FROM`
+                        Every node must have the `Entity` label plus one or more specialized labels from this hierarchy:
 
-                        Rules:
-                        - prefer existing labels and relationships over inventing new ones;
-                        - use multiple labels when an entity belongs to several stable types;
-                        - attach type-specific metadata but keep canonical fields stable;
-                        - represent Qdrant memories as `MemoryEntry` nodes with their Qdrant ID in metadata;
-                        - connect memory nodes to entities so graph traversal and semantic search can be composed.
+                        ```text
+                        Entity                    — base label, all nodes have this
+                        ├── Person                — humans, fictional characters, contacts, personas
+                        ├── Agent                 — AI agents (subtype of Person in this system)
+                        ├── Organization          — companies, teams, groups, factions, guilds
+                        ├── Place                 — locations, venues, regions, fictional lands
+                        ├── Thing                 — physical objects, items, equipment, artifacts
+                        ├── Concept               — abstract ideas, topics, skills, fields, genres
+                        ├── Event                 — occurrences with temporal extent (meetings, incidents, sessions, campaigns)
+                        ├── Work                  — creative or intellectual outputs (documents, code, art, publications)
+                        ├── Project               — tracked efforts with goals (software projects, campaigns, trips, research)
+                        ├── Service               — running systems, APIs, platforms, tools
+                        ├── Collection            — named groupings (playlists, reading lists, inventories, tag bundles)
+                        └── MemoryEntry           — Qdrant-linked memory nodes (grooming artifacts)
+                        ```
+
+                        ### Properties for specialization
+
+                        Use properties instead of inventing more labels unless traversal semantics truly require a new one:
+
+                        - `domain`: `real` | `fictional` | `speculative` | `synthetic`
+                        - `kind`: freeform string for subtype (for example `repository`, `NPC`, `recipe`, `medication`)
+                        - `category`: freeform grouping (for example `source-control`, `fantasy`)
+                        - `status`: `active` | `archived` | `draft` | `completed` | `abandoned`
+                        - `slug`: stable identifier for `MERGE`-based idempotency
+                        - `name`: human-readable display name
+
+                        ### When to add a new label
+
+                        Only add a new label if the concept requires structurally different traversal patterns or if it would be queried independently by label very frequently. If the concept can be represented with `kind` on an existing label, do not add a label.
+
+                        ## Canonical relationships
+
+                        Use this compact set of reusable relationships and push domain-specific semantics into relationship properties:
+
+                        | Relationship | Meaning | Key properties |
+                        | --- | --- | --- |
+                        | `RELATES_TO` | General association; fallback when nothing more specific fits | `role`, `kind`, `context`, `weight` |
+                        | `HAS_PART` | Composition or membership: project has member, organization has department, collection has item, system has component | `role`, `kind`, `since`, `until` |
+                        | `INFLUENCES` | Causal or directional effect: person influences decision, event influences project, concept influences work, medication influences condition | `kind`, `strength`, `context` |
+                        | `LOCATED_IN` | Spatial containment: person lives in place, event happens at place, service runs on infrastructure, item stored in location | `kind`, `since`, `until` |
+                        | `CREATED_BY` | Authorship or origin: work created by person, project started by organization, memory stored by agent, artifact made by character | `role`, `context` |
+                        | `DERIVED_FROM` | Provenance or lineage: work based on work, decision derived from plan, fork from repo, adaptation from source material | `kind`, `context` |
+                        | `OCCURS_IN` | Temporal or narrative containment: event occurs in project, scene occurs in campaign, transaction occurs in period, session occurs in day | `kind`, `sequence` |
+                        | `TAGGED_WITH` | Classification or annotation: any entity tagged with a concept, topic, or category | `confidence`, `context` |
+
+                        ### Relationship properties
+
+                        Every relationship may use these properties for specialization:
+
+                        - `role`: the specific role of this connection (for example `maintainer`, `antagonist`, `primary-care`)
+                        - `kind`: sub-type of the relationship (for example on `HAS_PART`: `member`, `component`, `chapter`)
+                        - `context`: freeform note about why this relationship exists
+                        - `since` / `until`: ISO-8601 timestamps for temporal relationships
+                        - `weight` / `strength`: numeric relevance from `0.0` to `1.0` for weighted traversals
+                        - `confidence`: for inferred relationships (`high`, `medium`, `low`)
+
+                        ### When to add a new relationship
+
+                        Only add a new relationship if it has genuinely different traversal semantics that cannot be expressed with `kind` or `role` on an existing one. If an existing relationship plus properties can express the fact, do not add a new relationship.
+
+                        Examples:
+
+                        - "Person X plays in Campaign Y" becomes `Campaign -[:HAS_PART {role: "player"}]-> Person`
+                        - "Doctor prescribed medication" becomes `Person -[:INFLUENCES {kind: "prescription"}]-> Thing`
                         """
                     ),
                 },
@@ -545,7 +584,7 @@ def workspace_bootstrap_values(
 
                         - A new project is started (new `Project` entity)
                         - A new person or contact is introduced (new `Person` entity)
-                        - A new repository is created (new `Repository` entity)
+                        - A new repository is created (new `Work` entity with `kind: "repository"`)
                         - A service is added, removed, or significantly reconfigured
                         - A major architectural or operational decision changes how entities relate to each other
 
@@ -882,7 +921,7 @@ def workspace_bootstrap_values(
 
                         When any of these happen, store a Qdrant memory tagged `[real] [fact]` that names the entities by their canonical slugs. The archivist will graph-link them during nightly grooming.
 
-                        - You create a new repository (name it: new `Repository` entity, which project it belongs to)
+                        - You create a new repository (name it: new `Work` entity with `kind: "repository"`, which project it belongs to)
                         - You add or remove a service dependency (name both services)
                         - You create or significantly change a Dockerfile or image (name the image and what agent/service uses it)
                         - You make a deployment change that affects how services connect
@@ -1588,26 +1627,31 @@ def workspace_bootstrap_values(
                         """
                     ),
                     "TOOLS.md": normalize_markdown(
-                        f"""
-                        Use Memgraph CLI, Qdrant, and Nextcloud together to maintain the long-term knowledge system.
+                        """
+                        Use Memgraph, Qdrant, and Nextcloud together to maintain the long-term knowledge system.
 
                         Memgraph runtime:
-                        - Preferred Memgraph host: `{memgraph_host}` if reachable externally.
-                        - In-cluster Memgraph service: `platform-stack-memgraph:7687`.
-                        - Memgraph Lab UI is the human-friendly browser companion, but your canonical write path is Cypher through `mgconsole`.
+                        - `neo4j-driver` is globally installed in the archivist sandbox image. Use `require('neo4j-driver')` for all Bolt connections.
+                        - Do not use `mgconsole`. It was removed because of GLIBC incompatibility with the sandbox base image.
+                        - Connection target: use the Memgraph ingress hostname from `global.hosts.memgraph` in the Helm values on port `7687`.
+                        - Memgraph Lab UI is the human-friendly browser companion, but your canonical write path is Cypher over Bolt via `neo4j-driver`.
                         - Reusable query files belong in this workspace.
 
-                        `mgconsole` guidance:
-                        - Inspect connectivity first: `mgconsole --host platform-stack-memgraph --port 7687`
-                        - Run one-shot Cypher with `-e` for small changes.
-                        - Keep reusable multi-statement Cypher in checked, named query files in your workspace.
+                        `neo4j-driver` guidance:
+                        - Inspect connectivity with a small Node script that opens a Bolt session to `${MEMGRAPH_HOST}:7687` using `require('neo4j-driver')`.
+                        - Keep reusable multi-statement Cypher in checked, named query files in your workspace and execute them through small Node runners when needed.
                         - Prefer `MERGE` over `CREATE` for idempotent canonical entities and relationships.
 
                         Cypher guidance:
-                        - Prefer existing labels: `Entity`, `Person`, `User`, `Agent`, `Service`, `System`, `Project`, `Repository`, `MemoryEntry`.
-                        - Prefer existing relationships: `HAS_USER`, `USES_SERVICE`, `USES_REPOSITORY`, `COORDINATES`, `CURATES`, `GROOMS`, `MAINTAINS_SCHEMA_FOR`, `VISUALIZES`, `REFERS_TO`, `RELATES_TO`, `DERIVED_FROM`.
-                        - Add type-specific metadata without breaking canonical field stability.
-                        - Keep Qdrant-linked memory nodes tagged with the Qdrant ID, domain, kind, agent, and provenance metadata.
+                        - The canonical schema uses a compact set of reusable labels and relationships.
+                        - **Node labels:** Entity (base), Person, Agent, Organization, Place, Thing, Concept, Event, Work, Project, Service, Collection, MemoryEntry.
+                        - **Relationships:** RELATES_TO, HAS_PART, INFLUENCES, LOCATED_IN, CREATED_BY, DERIVED_FROM, OCCURS_IN, TAGGED_WITH.
+                        - Push domain-specific meaning into properties (`role`, `kind`, `context`) instead of creating new labels or relationships.
+                        - Example: "Alice is the DM of the Ashenmoor campaign" -> Campaign -[:HAS_PART {role: "dungeon-master"}]-> Alice, not a custom RUNS_CAMPAIGN relationship.
+                        - Example: "Coder maintains the gitops repo" -> Coder -[:INFLUENCES {kind: "maintains"}]-> cluster-gitops, not a custom MAINTAINS relationship.
+                        - Every node must have `Entity` label, a `slug` property, and a `domain` property (real/fictional/speculative/synthetic).
+                        - Read `/Projects/ai-homebase/knowledge-graph-schema.md` for the full canonical schema before making changes.
+                        - Only add a new label if the concept requires structurally different traversal patterns. Only add a new relationship if it has genuinely different traversal semantics from the existing set.
 
                         Qdrant coordination:
                         - Other agents may store ordinary memories directly.
@@ -2950,120 +2994,145 @@ def command_render_values(args: argparse.Namespace) -> int:
             "enabled": True,
             "seedCypher": textwrap.dedent(
                 """
-                MERGE (project:Project:System {slug: 'ai-homebase'})
+                // === Core entities ===
+
+                MERGE (project:Entity:Project {slug: 'ai-homebase'})
                 ON CREATE SET project.name = 'ai-homebase',
                               project.domain = 'real',
-                              project.kind = 'platform';
+                              project.kind = 'platform',
+                              project.status = 'active';
 
-                MERGE (user:Person:User {slug: 'user'})
+                MERGE (user:Entity:Person {slug: 'user'})
                 ON CREATE SET user.name = 'User',
-                              user.domain = 'real';
+                              user.domain = 'real',
+                              user.kind = 'owner';
 
-                MERGE (openclaw:Service:System {slug: 'openclaw'})
+                // === Services ===
+
+                MERGE (openclaw:Entity:Service {slug: 'openclaw'})
                 ON CREATE SET openclaw.name = 'OpenClaw',
-                              openclaw.category = 'agent-runtime';
+                              openclaw.domain = 'real',
+                              openclaw.kind = 'agent-runtime';
 
-                MERGE (nextcloud:Service:System {slug: 'nextcloud'})
+                MERGE (nextcloud:Entity:Service {slug: 'nextcloud'})
                 ON CREATE SET nextcloud.name = 'Nextcloud',
-                              nextcloud.category = 'knowledge-store';
+                              nextcloud.domain = 'real',
+                              nextcloud.kind = 'knowledge-store';
 
-                MERGE (qdrant:Service:System {slug: 'qdrant'})
+                MERGE (qdrant:Entity:Service {slug: 'qdrant'})
                 ON CREATE SET qdrant.name = 'Qdrant',
-                              qdrant.category = 'vector-memory';
+                              qdrant.domain = 'real',
+                              qdrant.kind = 'vector-memory';
 
-                MERGE (memgraph:Service:System {slug: 'memgraph'})
+                MERGE (memgraph:Entity:Service {slug: 'memgraph'})
                 ON CREATE SET memgraph.name = 'Memgraph',
-                              memgraph.category = 'graph-memory';
+                              memgraph.domain = 'real',
+                              memgraph.kind = 'graph-memory';
 
-                MERGE (memgraphLab:Service:System {slug: 'memgraph-lab'})
-                ON CREATE SET memgraphLab.name = 'Memgraph Lab',
-                              memgraphLab.category = 'graph-ui';
-
-                MERGE (gitea:Service:System {slug: 'gitea'})
+                MERGE (gitea:Entity:Service {slug: 'gitea'})
                 ON CREATE SET gitea.name = 'Gitea',
-                              gitea.category = 'source-control';
+                              gitea.domain = 'real',
+                              gitea.kind = 'source-control';
 
-                MERGE (argocd:Service:System {slug: 'argocd'})
+                MERGE (argocd:Entity:Service {slug: 'argocd'})
                 ON CREATE SET argocd.name = 'Argo CD',
-                              argocd.category = 'gitops';
+                              argocd.domain = 'real',
+                              argocd.kind = 'gitops';
 
-                MERGE (registry:Service:System {slug: 'registry'})
+                MERGE (registry:Entity:Service {slug: 'registry'})
                 ON CREATE SET registry.name = 'Registry',
-                              registry.category = 'artifact-store';
+                              registry.domain = 'real',
+                              registry.kind = 'artifact-store';
 
-                MERGE (main:Agent:Person {slug: 'main'})
+                // === Agents ===
+
+                MERGE (main:Entity:Agent {slug: 'main'})
                 ON CREATE SET main.name = 'main',
-                              main.role = 'orchestrator';
+                              main.domain = 'real',
+                              main.kind = 'orchestrator';
 
-                MERGE (architect:Agent:Person {slug: 'architect'})
+                MERGE (architect:Entity:Agent {slug: 'architect'})
                 ON CREATE SET architect.name = 'architect',
-                              architect.role = 'planner';
+                              architect.domain = 'real',
+                              architect.kind = 'planner';
 
-                MERGE (coder:Agent:Person {slug: 'coder'})
+                MERGE (coder:Entity:Agent {slug: 'coder'})
                 ON CREATE SET coder.name = 'coder',
-                              coder.role = 'implementer';
+                              coder.domain = 'real',
+                              coder.kind = 'implementer';
 
-                MERGE (watchdog:Agent:Person {slug: 'watchdog'})
+                MERGE (watchdog:Entity:Agent {slug: 'watchdog'})
                 ON CREATE SET watchdog.name = 'watchdog',
-                              watchdog.role = 'monitor';
+                              watchdog.domain = 'real',
+                              watchdog.kind = 'monitor';
 
-                MERGE (auditor:Agent:Person {slug: 'auditor'})
-                ON CREATE SET auditor.name = 'auditor',
-                              auditor.role = 'reviewer';
-
-                MERGE (archivist:Agent:Person {slug: 'archivist'})
+                MERGE (archivist:Entity:Agent {slug: 'archivist'})
                 ON CREATE SET archivist.name = 'archivist',
-                              archivist.role = 'knowledge-graph-curator';
+                              archivist.domain = 'real',
+                              archivist.kind = 'curator';
 
-                MERGE (gitopsRepo:Repository:System {slug: 'cluster-gitops'})
+                MERGE (auditor:Entity:Agent {slug: 'auditor'})
+                ON CREATE SET auditor.name = 'auditor',
+                              auditor.domain = 'real',
+                              auditor.kind = 'reviewer';
+
+                // === Repositories ===
+
+                MERGE (gitopsRepo:Entity:Work {slug: 'cluster-gitops'})
                 ON CREATE SET gitopsRepo.name = 'cluster-gitops',
-                              gitopsRepo.kind = 'gitops';
+                              gitopsRepo.domain = 'real',
+                              gitopsRepo.kind = 'repository';
 
-                MERGE (sandboxRepo:Repository:System {slug: 'openclaw-sandbox-images'})
+                MERGE (sandboxRepo:Entity:Work {slug: 'openclaw-sandbox-images'})
                 ON CREATE SET sandboxRepo.name = 'openclaw-sandbox-images',
-                              sandboxRepo.kind = 'sandbox-images';
+                              sandboxRepo.domain = 'real',
+                              sandboxRepo.kind = 'repository';
 
-                MATCH (project:Project:System {slug: 'ai-homebase'})
-                MATCH (user:Person:User {slug: 'user'})
-                MATCH (openclaw:Service:System {slug: 'openclaw'})
-                MATCH (nextcloud:Service:System {slug: 'nextcloud'})
-                MATCH (qdrant:Service:System {slug: 'qdrant'})
-                MATCH (memgraph:Service:System {slug: 'memgraph'})
-                MATCH (memgraphLab:Service:System {slug: 'memgraph-lab'})
-                MATCH (gitea:Service:System {slug: 'gitea'})
-                MATCH (argocd:Service:System {slug: 'argocd'})
-                MATCH (registry:Service:System {slug: 'registry'})
-                MATCH (main:Agent:Person {slug: 'main'})
-                MATCH (architect:Agent:Person {slug: 'architect'})
-                MATCH (coder:Agent:Person {slug: 'coder'})
-                MATCH (watchdog:Agent:Person {slug: 'watchdog'})
-                MATCH (auditor:Agent:Person {slug: 'auditor'})
-                MATCH (archivist:Agent:Person {slug: 'archivist'})
-                MATCH (gitopsRepo:Repository:System {slug: 'cluster-gitops'})
-                MATCH (sandboxRepo:Repository:System {slug: 'openclaw-sandbox-images'})
-                MERGE (project)-[:HAS_USER]->(user)
-                MERGE (project)-[:USES_SERVICE]->(openclaw)
-                MERGE (project)-[:USES_SERVICE]->(nextcloud)
-                MERGE (project)-[:USES_SERVICE]->(qdrant)
-                MERGE (project)-[:USES_SERVICE]->(memgraph)
-                MERGE (project)-[:USES_SERVICE]->(memgraphLab)
-                MERGE (project)-[:USES_SERVICE]->(gitea)
-                MERGE (project)-[:USES_SERVICE]->(argocd)
-                MERGE (project)-[:USES_SERVICE]->(registry)
-                MERGE (project)-[:USES_REPOSITORY]->(gitopsRepo)
-                MERGE (project)-[:USES_REPOSITORY]->(sandboxRepo)
-                MERGE (openclaw)-[:COORDINATES]->(main)
-                MERGE (openclaw)-[:COORDINATES]->(architect)
-                MERGE (openclaw)-[:COORDINATES]->(coder)
-                MERGE (openclaw)-[:COORDINATES]->(watchdog)
-                MERGE (openclaw)-[:COORDINATES]->(auditor)
-                MERGE (openclaw)-[:COORDINATES]->(archivist)
-                MERGE (auditor)-[:USES_SERVICE]->(nextcloud)
-                MERGE (auditor)-[:USES_SERVICE]->(qdrant)
-                MERGE (archivist)-[:CURATES]->(memgraph)
-                MERGE (archivist)-[:GROOMS]->(qdrant)
-                MERGE (memgraphLab)-[:VISUALIZES]->(memgraph)
-                MERGE (archivist)-[:MAINTAINS_SCHEMA_FOR]->(memgraph)
+                // === Relationships ===
+
+                MATCH (project:Entity:Project {slug: 'ai-homebase'})
+                MATCH (user:Entity:Person {slug: 'user'})
+                MATCH (openclaw:Entity:Service {slug: 'openclaw'})
+                MATCH (nextcloud:Entity:Service {slug: 'nextcloud'})
+                MATCH (qdrant:Entity:Service {slug: 'qdrant'})
+                MATCH (memgraph:Entity:Service {slug: 'memgraph'})
+                MATCH (gitea:Entity:Service {slug: 'gitea'})
+                MATCH (argocd:Entity:Service {slug: 'argocd'})
+                MATCH (registry:Entity:Service {slug: 'registry'})
+                MATCH (main:Entity:Agent {slug: 'main'})
+                MATCH (architect:Entity:Agent {slug: 'architect'})
+                MATCH (coder:Entity:Agent {slug: 'coder'})
+                MATCH (watchdog:Entity:Agent {slug: 'watchdog'})
+                MATCH (archivist:Entity:Agent {slug: 'archivist'})
+                MATCH (auditor:Entity:Agent {slug: 'auditor'})
+                MATCH (gitopsRepo:Entity:Work {slug: 'cluster-gitops'})
+                MATCH (sandboxRepo:Entity:Work {slug: 'openclaw-sandbox-images'})
+
+                // User owns the project
+                MERGE (project)-[:HAS_PART {role: 'owner'}]->(user)
+
+                // Project uses services
+                MERGE (project)-[:HAS_PART {kind: 'service'}]->(openclaw)
+                MERGE (project)-[:HAS_PART {kind: 'service'}]->(nextcloud)
+                MERGE (project)-[:HAS_PART {kind: 'service'}]->(qdrant)
+                MERGE (project)-[:HAS_PART {kind: 'service'}]->(memgraph)
+                MERGE (project)-[:HAS_PART {kind: 'service'}]->(gitea)
+                MERGE (project)-[:HAS_PART {kind: 'service'}]->(argocd)
+                MERGE (project)-[:HAS_PART {kind: 'service'}]->(registry)
+                MERGE (project)-[:HAS_PART {kind: 'artifact'}]->(gitopsRepo)
+                MERGE (project)-[:HAS_PART {kind: 'artifact'}]->(sandboxRepo)
+
+                // Agents are part of OpenClaw
+                MERGE (openclaw)-[:HAS_PART {kind: 'agent'}]->(main)
+                MERGE (openclaw)-[:HAS_PART {kind: 'agent'}]->(architect)
+                MERGE (openclaw)-[:HAS_PART {kind: 'agent'}]->(coder)
+                MERGE (openclaw)-[:HAS_PART {kind: 'agent'}]->(watchdog)
+                MERGE (openclaw)-[:HAS_PART {kind: 'agent'}]->(archivist)
+                MERGE (openclaw)-[:HAS_PART {kind: 'agent'}]->(auditor)
+
+                // Archivist manages graph and memory services
+                MERGE (archivist)-[:INFLUENCES {kind: 'curates', context: 'graph structure'}]->(memgraph)
+                MERGE (archivist)-[:INFLUENCES {kind: 'grooms', context: 'memory consolidation'}]->(qdrant)
             """
         ).strip(),
         },
