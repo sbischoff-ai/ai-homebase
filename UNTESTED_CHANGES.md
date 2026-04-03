@@ -1,5 +1,35 @@
 # Untested Changes
 
+## 2026-04-03 - Task 15: Align Coder Workspace with Coding-Agent Skill Requirements
+
+Status: statically validated only. Do not treat this as live runtime/bootstrap verified yet.
+
+Scope:
+
+- Updated `charts/openclaw/files/workspaces/coder/TOOLS.md` to add a `#### Codex invocation patterns` subsection ahead of the existing Codex model-selection and usage-logging guidance.
+- Added explicit PTY-required examples for one-shot and `--full-auto` Codex execution.
+- Added the standard long-running background-session pattern, including `process action:log`, `process action:poll`, `process action:submit`, and `process action:kill`.
+- Added the Codex git-repository requirement with a scratch-work `git init` example.
+- Added workspace-isolation guidance warning never to run Codex in `~/.openclaw/` and to always set `workdir` to the target project.
+- Added the `openclaw system event --text "Done: [brief summary]" --mode now` auto-notify completion pattern for long Codex runs.
+- Added a parallel-work example using git worktrees and multiple background Codex sessions.
+- Updated `charts/openclaw/files/workspaces/coder/AGENTS.md` to add `### Codex execution rules`, including PTY usage, background-mode guidance, slow-session monitoring discipline, the `~/.openclaw/` warning, and the orchestrator rule not to silently hand-code patches after spawning Codex.
+- Updated `scripts/bootstrap-config.py` embedded workspace markdown so the generated coder `TOOLS.md` and `AGENTS.md` content matches the checked-in files.
+
+What to verify later during a real bootstrap/render/runtime check:
+
+- A real OpenClaw bootstrap emits the updated coder `TOOLS.md` with the new invocation-patterns subsection before the existing model-selection and cost-tracking guidance.
+- A real OpenClaw bootstrap emits the updated coder `AGENTS.md` with the new Codex execution rules section intact.
+- The generated workspace content from `scripts/bootstrap-config.py` remains aligned with the checked-in coder workspace files after a real bootstrap path is exercised.
+- The documented PTY and background-session patterns behave correctly in the actual OpenClaw runtime environment, especially for long-running Codex tasks and `process action:*` monitoring.
+- The workspace-isolation warning reflects real runtime behavior and successfully prevents Codex from reading the wrong docs when launched from the wrong directory.
+
+Static validation completed:
+
+- `sed -n '1,220p' UNTESTED_CHANGES.md`
+- `git diff -- charts/openclaw/files/workspaces/coder/TOOLS.md charts/openclaw/files/workspaces/coder/AGENTS.md scripts/bootstrap-config.py`
+- `rg -n 'Codex invocation patterns|PTY mode is required|Background mode for long-running tasks|Git repo required|Workspace isolation rules|Auto-notify on completion|Parallel work|Codex execution rules|Orchestrator discipline|process action:log' charts/openclaw/files/workspaces/coder/TOOLS.md charts/openclaw/files/workspaces/coder/AGENTS.md scripts/bootstrap-config.py`
+
 ## 2026-04-03 - Task 14: Version Bumps (OpenClaw and Nextcloud)
 
 Status: partially validated. Helm lint and base render checks passed locally in the repo `nix-shell`; the version bumps have not been exercised through a live deploy/upgrade yet.

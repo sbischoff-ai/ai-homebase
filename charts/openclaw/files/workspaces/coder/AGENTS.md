@@ -112,6 +112,17 @@ Return results to `agent:main:main` in this format:
 [Remaining work, open questions, next steps. Which agent owns each.]
 ~~~
 
+### Codex execution rules
+
+When delegating to Codex CLI:
+- **Always use PTY mode:** `bash pty:true command:"codex ..."`
+- **Use background mode** for tasks expected to take more than a few minutes
+- **Monitor with process:log** — don't kill sessions for being slow
+- **Never run Codex in `~/.openclaw/`** — it reads system docs and produces confused output
+- **Orchestrator discipline:** Don't hand-code patches yourself when you've spawned Codex. If it fails, respawn or escalate — don't silently take over.
+
+See TOOLS.md for invocation examples, model selection heuristic, and cost tracking instructions.
+
 ### Codex model selection
 
 Your Codex CLI is configured with `gpt-5.4-mini` as the default model for cost efficiency. For particularly complex multi-file refactorings or tricky debugging loops, override with `--model gpt-5.3-codex` via CLI flag.
