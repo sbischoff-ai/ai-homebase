@@ -1,5 +1,30 @@
 # Untested Changes
 
+## 2026-04-03 - Task 2: Add Auditor Agent
+
+Status: statically validated only. Do not treat this as live runtime/bootstrap verified yet.
+
+Scope:
+
+- Added a sixth OpenClaw agent, `auditor`, to `scripts/bootstrap-config.py` with default model/fallback constants, rendered `openclaw.json` agent config, `main` subagent allowlist wiring, and placeholder workspace bootstrap files.
+- Added `[openclaw.agents.auditor]` defaults to `bootstrap.example.toml`.
+- Updated both `charts/platform-stack/values.yaml` and `charts/openclaw/values.yaml` so the chart-owned OpenClaw defaults include the new auditor workspace, model aliases, agent list entry, and `allowAgents` wiring.
+- Added the placeholder workspace file at `charts/openclaw/files/workspaces/auditor/AGENTS.md`.
+- Updated repo docs and embedded bootstrap markdown to describe a six-agent topology instead of five agents where relevant.
+
+What to verify later during a real bootstrap/render/runtime check:
+
+- A real OpenClaw bootstrap still seeds all six agent workspaces correctly, including the new `/home/node/.openclaw/workspace-auditor` path and placeholder files.
+- The rendered `openclaw.json` is accepted by the running OpenClaw version with `sandbox.mode = "off"` on `auditor` and the configured Opus primary plus GPT-5.4 fallback.
+- `main` can delegate to `auditor` successfully through the bootstrapped agent-to-agent session flow.
+- Any runtime assumptions, cron wiring, or UI surfaces that previously assumed exactly five standing agents are updated or remain compatible.
+
+Static validation completed:
+
+- `nix-shell -p python3 --run "python3 scripts/bootstrap-config.py validate --config bootstrap.example.toml"`
+- `rg -n 'five agents|five standing' scripts/bootstrap-config.py`
+- `rg -n 'allowAgents:|"allowAgents": \\[|auditor' scripts/bootstrap-config.py charts/platform-stack/values.yaml charts/openclaw/values.yaml bootstrap.example.toml charts/openclaw/files/workspaces/auditor/AGENTS.md`
+
 ## 2026-04-03 - Task 21: Generalize AGENTS Guardrail for Render-Impacting Changes
 
 Status: documentation-only update.
