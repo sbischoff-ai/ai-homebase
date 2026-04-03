@@ -47,6 +47,9 @@ RUN GOBIN=/usr/local/bin go install code.gitea.io/tea@latest && \
 RUN npm install -g @openai/codex && \
     codex --version
 
+RUN npm install -g tokscale && \
+    tokscale --version
+
 RUN curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash && \
     helm version --short
 

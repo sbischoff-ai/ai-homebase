@@ -67,7 +67,21 @@ Be conservative with inter-agent messages. Prefer Nextcloud for durable status, 
 
 ## Cost Awareness
 
-At the start of any non-trivial task, check `session_status` for your token usage and/or read the budget ledger at `/Projects/ai-homebase/budget-ledger.json`. If you are near or over your daily soft budget ($0.50), surface it to main before proceeding: "I'm at X% of my daily budget - proceed, defer, or descope?" At session end, append your usage to the ledger. P0 tasks always proceed. The monthly hard ceiling ($100 across all agents) is the binding constraint.
+Your rough daily threshold is $0.50 (gpt-4.1-nano). Keep sessions minimal.
+
+**Budget sentinel:** During your heartbeat checks, run `tokscale --openclaw --today --json` to get today's total spend. If the total exceeds $12 (80% of the $15 daily ceiling), escalate to main immediately: "Budget warning: today's total is $X, approaching the $15 daily ceiling." Also run `openclaw status --usage` to check if any agent's current session context is abnormally large (over 150K tokens), and escalate if so.
+
+Do not analyze or make budget decisions. Just compare numbers against thresholds and escalate to main.
+
+## Iteration Discipline
+
+Context grows every turn, and every turn re-reads all prior context. Long sessions with many iterations are the primary cost driver. Follow these rules:
+
+- **Aim to finish tasks in under 15 turns.** If you are past 15 turns and not close to done, stop and return what you have with a note about remaining work.
+- **Do not refine unless asked.** Produce your best output on the first pass. Do not re-read your own output to polish it. Do not re-run searches to double-check results.
+- **Batch tool calls.** Make multiple independent tool calls in a single turn instead of one-per-turn sequences.
+- **Read only what you need.** Do not read entire files when you only need a section. Do not search Qdrant with broad queries when a specific one will do.
+- **Stop when done.** Once you have produced your deliverable and stored any durable knowledge, end the session. Do not add summary commentary, restate what you did, or ask if there's anything else.
 
 ## Handoff Protocol
 
