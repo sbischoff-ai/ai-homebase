@@ -200,6 +200,47 @@ Static/CI-style validation completed:
 - `nix-shell -p kubernetes-helm python3Packages.pyyaml --run './scripts/ci/update_golden.sh'`
 - `nix-shell -p kubernetes-helm python3Packages.pyyaml --run './scripts/ci/check_golden.sh'`
 
+## 2026-04-03 - Task 6: Auditor Weekly Cron Job and Bootstrap Content
+
+Status: statically updated and base-render validated only. Do not treat this as live cron-runtime, live Nextcloud-bootstrap, or gateway-job verified yet.
+
+Scope:
+
+- Added `scripts/cron-messages/auditor-weekly-review.md` with the weekly scheduled audit prompt for the `auditor` agent.
+- Added a fifth `ensure_job` entry to `scripts/bootstrap-openclaw-cron.sh` for `Auditor weekly review`.
+- Scheduled the new job at `0 3 * * 0` so it runs Sunday at 03:00 UTC, after the existing archivist nightly grooming job at `30 2 * * *`.
+- Added seeded Nextcloud project content at `charts/platform-stack/files/bootstrap-content/ai-homebase/projects/audit-log.md`.
+- Updated `charts/platform-stack/values.yaml` to include `audit-log.md` in the explicit `nextcloud.bootstrapProjectContent[0].projectsFiles` allowlist.
+- Kept `charts/platform-stack/templates/nextcloud-bootstrap-project-content.yaml` unchanged because it already renders the file-backed project-content allowlist generically.
+
+What to verify later during a real runtime, bootstrap, or reseed test:
+
+- Running `scripts/bootstrap-openclaw-cron.sh` against a live OpenClaw deployment creates the `Auditor weekly review` job exactly once and leaves the existing four jobs intact.
+- Listing cron jobs back from the gateway shows the new schedule as `0 3 * * 0`, the agent as `auditor`, and the stored message content matching `scripts/cron-messages/auditor-weekly-review.md`.
+- The Sunday 03:00 UTC schedule does not create an operational conflict with the existing `Archivist nightly grooming` job at 02:30 UTC when both run in the same environment.
+- A fresh Nextcloud bootstrap or explicit reseed creates `/Projects/ai-homebase/audit-log.md` with the expected table formatting.
+- The auditor agent can append one-line summaries to `/Projects/ai-homebase/audit-log.md` and create `/Projects/ai-homebase/audit-reports/weekly-YYYY-MM-DD.md` without path or permission issues.
+- Existing environments are handled intentionally:
+  confirm whether already-seeded project files remain unchanged, are overwritten, or require an explicit reseed path before `audit-log.md` appears.
+
+Static/render validation completed:
+
+- `sed -n '1,120p' scripts/cron-messages/auditor-weekly-review.md`
+- `sed -n '100,180p' scripts/bootstrap-openclaw-cron.sh`
+- `sed -n '466,486p' charts/platform-stack/values.yaml`
+- `nix-shell -p kubernetes-helm --run './scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values.yaml > /tmp/platform-stack.yaml && rg -n "write_managed_file .*audit-log|project-0-file" /tmp/platform-stack.yaml'`
+
+Known validation gap:
+
+- No live OpenClaw cron jobs were created or exercised in this session, and no real Nextcloud bootstrap or reseed was run against a cluster.
+
+Suggested later test sequence:
+
+1. Use a disposable environment, not the long-running local stack.
+2. Run `scripts/bootstrap-openclaw-cron.sh` against a live OpenClaw deployment, then list jobs back from the gateway and confirm the fifth `Auditor weekly review` entry is present with the intended schedule and full message.
+3. Trigger or wait for one weekly auditor run and confirm it stores `/Projects/ai-homebase/audit-reports/weekly-YYYY-MM-DD.md`, appends a one-line entry to `/Projects/ai-homebase/audit-log.md`, and only sends to `main` when it finds critical issues.
+4. Bootstrap or reseed the `ai-homebase` Nextcloud project content and confirm `/Projects/ai-homebase/audit-log.md` appears with the expected header and Markdown table intact.
+
 ## 2026-04-02 - Task 16: Extract Cron Job Messages into Standalone Files
 
 Status: statically validated only. Do not treat this as live-runtime verified yet.
