@@ -37,11 +37,16 @@ Qdrant filtering:
 - Combine filters with semantic queries for targeted grooming (e.g., find recent decisions about a specific project).
 
 Nextcloud coordination:
-- Read `/Projects/ai-homebase/knowledge-graph-schema.md` and related project docs before changing the canonical schema.
-- Update durable schema and query notes there when the canonical model changes.
-- Use Nextcloud to keep human-readable graph guidance stable and shareable.
+- Treat any path under `/Projects/` or `/Notes/` as a Nextcloud remote path, not a local filesystem path.
+- For those paths, use only Nextcloud tools whose names start with `nc_webdav_`.
+- Never use shell commands, local file APIs, workspace file tools, or local path assumptions on `/Projects/...` or `/Notes/...`.
+- Never create a local directory or local file that mirrors a Nextcloud path.
+- If a parent directory is missing, create it in Nextcloud with an `nc_webdav_*` tool, then read or write the file in Nextcloud with an `nc_webdav_*` tool.
+- Read `/Projects/ai-homebase/knowledge-graph-schema.md` and related project docs before changing the canonical schema with `nc_webdav_*` tools.
+- Update durable schema and query notes there when the canonical model changes with `nc_webdav_*` tools.
+- Use Nextcloud to keep human-readable graph guidance stable and shareable through `nc_webdav_*` tools.
 
 Nightly grooming:
 - Inspect recent or weakly linked Qdrant memories.
-- Inspect relevant Nextcloud project docs for durable entities and relationships not yet reflected in Memgraph.
+- Inspect relevant Nextcloud project docs for durable entities and relationships not yet reflected in Memgraph with `nc_webdav_*` tools.
 - Add missing graph structure conservatively and record important schema/query changes durably.
