@@ -2737,6 +2737,7 @@ def command_render_values(args: argparse.Namespace) -> int:
                 "workspace": "/home/node/.openclaw/workspace",
                 "models": allowed_models,
                 "sandbox": {
+                    "workspaceAccess": "none",
                     "docker": {
                         "image": values["OPENCLAW_DEFAULT_SANDBOX_IMAGE"],
                     },
@@ -2774,9 +2775,15 @@ def command_render_values(args: argparse.Namespace) -> int:
                     },
                     "sandbox": {
                         "mode": "all",
+                        "workspaceAccess": "rw",
                         "docker": {
                             "image": values["OPENCLAW_CODER_SANDBOX_IMAGE"],
                             "env": {
+                                "HOME": "/workspace/.home",
+                                "CODEX_HOME": "/workspace/.home/.codex",
+                                "XDG_CONFIG_HOME": "/workspace/.home/.config",
+                                "XDG_CACHE_HOME": "/workspace/.home/.cache",
+                                "XDG_STATE_HOME": "/workspace/.home/.local/state",
                                 "CODER_GITEA_BASE_URL": gitea_base_url,
                                 "CODER_GITEA_HOST": values["GITEA_HOST"],
                                 "CODER_GITEA_USERNAME": values["CODER_GITEA_USERNAME"],

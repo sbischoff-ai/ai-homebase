@@ -225,6 +225,11 @@
                     "backend": { "type": "string", "default": "docker" },
                     "mode": { "type": "string", "default": "non-main" },
                     "scope": { "type": "string", "default": "agent" },
+                    "workspaceAccess": {
+                      "type": "string",
+                      "enum": ["none", "ro", "rw"],
+                      "default": "none"
+                    },
                     "docker": {
                       "type": "object",
                       "additionalProperties": true,

@@ -191,7 +191,13 @@ assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["workspace"]
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["model"]["primary"] == "anthropic/claude-sonnet-4-6"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["model"]["fallbacks"] == ["openai/gpt-4.1"]
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["mode"] == "all"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["workspaceAccess"] == "rw"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["image"] == "registry.test.internal/coder-bot/openclaw-sandbox-coder:bookworm-slim"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["HOME"] == "/workspace/.home"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["CODEX_HOME"] == "/workspace/.home/.codex"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["XDG_CONFIG_HOME"] == "/workspace/.home/.config"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["XDG_CACHE_HOME"] == "/workspace/.home/.cache"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["XDG_STATE_HOME"] == "/workspace/.home/.local/state"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["CODER_GITEA_USERNAME"] == "coder-bot"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["CODER_GITEA_HOST"] == "gitea.test.internal"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["CODER_GITEA_BASE_URL"] == "https://gitea.test.internal"
@@ -211,6 +217,7 @@ assert "machine gitea.test.internal" in rendered_values["openclaw"]["openclaw"][
 assert "tea login add --name coder" in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["setupCommand"]
 assert 'docker login ' in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["setupCommand"]
 assert "${CODER_GITEA_USERNAME}" not in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["setupCommand"]
+assert "/workspace" not in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"].get("tmpfs", [])
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["id"] == "architect"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["workspace"] == "/home/node/.openclaw/workspace-architect"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["model"]["primary"] == "anthropic/claude-opus-4-6"

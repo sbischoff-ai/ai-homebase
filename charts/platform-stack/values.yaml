@@ -162,6 +162,7 @@ openclaw:
           backend: docker
           mode: non-main
           scope: agent
+          workspaceAccess: none
           sessionToolsVisibility: "all"
           docker:
             image: registry.homebase.local/coder/openclaw-sandbox:bookworm-slim
@@ -213,6 +214,7 @@ openclaw:
               - openai/gpt-5.4
           sandbox:
             mode: all
+            workspaceAccess: rw
             docker:
               image: registry.homebase.local/coder/openclaw-sandbox-coder:bookworm-slim
               binds:
@@ -221,7 +223,6 @@ openclaw:
                 - /tmp
                 - /var/tmp
                 - /run
-                - /workspace
               env:
                 HOME: /workspace/.home
                 CODEX_HOME: /workspace/.home/.codex
