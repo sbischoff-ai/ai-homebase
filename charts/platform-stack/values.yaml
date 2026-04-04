@@ -95,6 +95,13 @@ openclaw:
     storageClass: ""
   autoscaling:
     enabled: false
+  env:
+    - name: MEMGRAPH_HOST
+      value: memgraph.homebase.local
+    - name: MEMGRAPH_PORT
+      value: "7687"
+    - name: MEMGRAPH_BOLT_URI
+      value: bolt://memgraph.homebase.local:7687
   remoteDocker:
     enabled: true
     dockerHost: "ssh://docker-remote@openclaw-sandbox:2222"
@@ -165,13 +172,17 @@ openclaw:
           workspaceAccess: none
           sessionToolsVisibility: "all"
           docker:
-            image: registry.homebase.local/coder/openclaw-sandbox:bookworm-slim
+            image: registry.homebase.local/coder/openclaw-sandbox:trixie-slim
             workdir: /workspace
             readOnlyRoot: true
             tmpfs:
               - /tmp
               - /var/tmp
               - /run
+            env:
+              MEMGRAPH_HOST: memgraph.homebase.local
+              MEMGRAPH_PORT: "7687"
+              MEMGRAPH_BOLT_URI: bolt://memgraph.homebase.local:7687
             user: 1000:1000
             capDrop:
               - ALL
@@ -216,7 +227,7 @@ openclaw:
             mode: all
             workspaceAccess: rw
             docker:
-              image: registry.homebase.local/coder/openclaw-sandbox-coder:bookworm-slim
+              image: registry.homebase.local/coder/openclaw-sandbox-coder:trixie-slim
               binds:
                 - /var/run/docker.sock:/var/run/docker.sock
               tmpfs:
@@ -266,8 +277,6 @@ openclaw:
               - anthropic/claude-sonnet-4-6
           sandbox:
             mode: non-main
-            docker:
-              image: registry.homebase.local/coder/openclaw-sandbox-archivist:bookworm-slim
         - id: watchdog
           name: Watchdog
           workspace: /home/node/.openclaw/workspace-watchdog

@@ -650,12 +650,12 @@ verify_openclaw_mcp_bootstrap_config() {
     exit 1
   fi
 
-  if [[ "$openclaw_json" != *'registry.localtest.me/openclaw/openclaw-sandbox:bookworm-slim'* ]]; then
+  if [[ "$openclaw_json" != *'registry.localtest.me/openclaw/openclaw-sandbox:trixie-slim'* ]]; then
     fail "OpenClaw bootstrap config in ConfigMap/${configmap_name} is not using the canonical registry-backed default sandbox image"
     exit 1
   fi
 
-  if [[ "$openclaw_json" != *'registry.localtest.me/openclaw/openclaw-sandbox-coder:bookworm-slim'* ]]; then
+  if [[ "$openclaw_json" != *'registry.localtest.me/openclaw/openclaw-sandbox-coder:trixie-slim'* ]]; then
     fail "OpenClaw bootstrap config in ConfigMap/${configmap_name} is not using the canonical registry-backed coder sandbox image"
     exit 1
   fi
@@ -718,8 +718,9 @@ verify_openclaw_workspace_bootstrap() {
     grep -F "gpt-5.4-mini" /home/node/.openclaw/workspace-coder/TOOLS.md >/dev/null
 
     test -f /home/node/.openclaw/workspace-archivist/TOOLS.md
-    grep -F "query_filter" /home/node/.openclaw/workspace-archivist/TOOLS.md >/dev/null
+    grep -F "Use \`mgconsole\` as the canonical Memgraph client" /home/node/.openclaw/workspace-archivist/TOOLS.md >/dev/null
     grep -F "MemoryEntry" /home/node/.openclaw/workspace-archivist/TOOLS.md >/dev/null
+    test -f /home/node/.openclaw/workspace-archivist/queries/entity-by-slug.cypher
 
     test -f /home/node/.openclaw/workspace-architect/AGENTS.md
     grep -F "Quality review and systemic audit -> auditor" /home/node/.openclaw/workspace-architect/AGENTS.md >/dev/null
@@ -795,7 +796,7 @@ verify_coder_sandbox_runtime() {
   step "Checking coder sandbox runtime image on the Incus Docker host"
   CURRENT_COMMAND="incus exec ${INCUS_VM_NAME} -- sh -ceu 'docker run coder sandbox validation'"
   run_checked incus exec "$INCUS_VM_NAME" -- sh -ceu "
-    docker image inspect openclaw-sandbox-coder:bookworm-slim >/dev/null
+    docker image inspect openclaw-sandbox-coder:trixie-slim >/dev/null
     docker run --rm --entrypoint sh \
       -e HOME=/workspace/.home \
       -e CODEX_HOME=/workspace/.home/.codex \
@@ -803,7 +804,7 @@ verify_coder_sandbox_runtime() {
       -e XDG_CACHE_HOME=/workspace/.home/.cache \
       -e XDG_STATE_HOME=/workspace/.home/.local/state \
       -e CODEX_DEFAULT_MODEL=gpt-5.4-mini \
-      openclaw-sandbox-coder:bookworm-slim -ceu '
+      openclaw-sandbox-coder:trixie-slim -ceu '
         command -v codex >/dev/null
         command -v tokscale >/dev/null
         /usr/local/bin/coder-init.sh >/tmp/coder-init.log
@@ -825,27 +826,10 @@ verify_archivist_sandbox_runtime() {
   step "Checking archivist sandbox runtime image on the Incus Docker host"
   CURRENT_COMMAND="incus exec ${INCUS_VM_NAME} -- sh -ceu 'docker run archivist sandbox validation'"
   run_checked incus exec "$INCUS_VM_NAME" -- sh -ceu "
-    docker image inspect openclaw-sandbox-archivist:bookworm-slim >/dev/null
-    docker run --rm --entrypoint sh openclaw-sandbox-archivist:bookworm-slim -ceu '
-      command -v node >/dev/null
-      node -e \"require(\\\"neo4j-driver\\\"); console.log(\\\"neo4j-driver-ok\\\")\" >/tmp/neo4j-driver-check.log
-      node <<\"NODE\"
-const neo4j = require(\"neo4j-driver\");
-const driver = neo4j.driver(\"bolt://${memgraph_host}:7687\");
-(async () => {
-  try {
-    const result = await driver.executeQuery(\"RETURN 1 AS ok\");
-    if (!result.records.length || result.records[0].get(\"ok\").toNumber() !== 1) {
-      throw new Error(\"unexpected Memgraph result\");
-    }
-  } finally {
-    await driver.close();
-  }
-})().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
-NODE
+    docker image inspect openclaw-sandbox:trixie-slim >/dev/null
+    docker run --rm --entrypoint sh openclaw-sandbox:trixie-slim -ceu '
+      command -v mgconsole >/dev/null
+      printf "RETURN 1;\\n" | mgconsole --host "'"${memgraph_host}"'" --port 7687 --output-format csv | grep -F "\"1\"" >/dev/null
     '
   "
 }

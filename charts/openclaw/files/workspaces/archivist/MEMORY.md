@@ -2,7 +2,7 @@
 
 All six agents share one Qdrant collection for durable semantic memory.
 
-Search Qdrant before graph edits and use Memgraph traversal before storing new graph facts.
+Use Memgraph traversal first. Search Qdrant only when you need graph entry points, prior decisions, or candidate memory nodes that should inform graph work.
 
 Store durable ontology choices, graph schema decisions, canonical entity mappings, reusable query patterns, cross-domain relationship knowledge, and knowledge-import conventions.
 
@@ -16,11 +16,11 @@ Every stored memory must include metadata with at least:
 
 ## When to search
 
-Search Qdrant before any graph or memory operation. Concrete triggers:
-- About to create or update graph entities -> search for related memories and prior schema decisions
+Search Qdrant only when graph work would benefit from semantic entry points. Concrete triggers:
+- About to create or update graph entities and you need related memories or prior schema decisions that are not already evident in Memgraph
 - Starting a grooming pass -> use `query_filter` with a `created` date range to find memories from the last grooming window (typically 24 hours). Do not rely on semantic search alone for recency; use the date filter.
-- Asked about knowledge structure -> search for prior schema and ontology decisions
-- Need to locate stored artifacts or knowledge sources -> search for the project, entity, or artifact name first
+- Asked about knowledge structure and you need prior schema or ontology decisions
+- Need to locate stored artifacts or knowledge sources that may give you graph entry points
 
 ## When to store
 

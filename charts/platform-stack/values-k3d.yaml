@@ -22,7 +22,7 @@ openclaw:
   replicaCount: 1
   image:
     repository: openclaw-remote-docker
-    tag: "bookworm-slim"
+    tag: "trixie-slim"
     pullPolicy: IfNotPresent
   ingress:
     enabled: true
@@ -52,6 +52,12 @@ openclaw:
   env:
     - name: NODE_OPTIONS
       value: --max-old-space-size=2048
+    - name: MEMGRAPH_HOST
+      value: memgraph.localtest.me
+    - name: MEMGRAPH_PORT
+      value: "7687"
+    - name: MEMGRAPH_BOLT_URI
+      value: bolt://memgraph.localtest.me:7687
   existingSecret: openclaw-secrets
   secretKeys:
     gatewayToken: OPENCLAW_GATEWAY_TOKEN

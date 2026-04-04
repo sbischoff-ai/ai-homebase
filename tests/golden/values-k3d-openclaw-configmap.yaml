@@ -203,8 +203,8 @@ data:
         "trustedProxies": ["10.42.0.0/16"]
       },
       "agents": {
-        "defaults": {"models":{"anthropic/claude-opus-4-6":{"alias":"Auditor"},"anthropic/claude-sonnet-4-6":{"alias":"Main / Architect"},"openai/gpt-4.1-nano":{"alias":"Watchdog"},"openai/gpt-5.4":{"alias":"Coder / Archivist / Auditor"},"openai/gpt-5.4-mini":{"alias":"Main"}},"sandbox":{"backend":"docker","browser":{"cdpPort":9222,"cdpSourceRange":"","enableNoVnc":true,"enabled":true,"headless":false,"image":"openclaw-sandbox-browser:bookworm-slim","network":"bridge","noVncPort":6080,"vncPort":5900},"docker":{"capDrop":["ALL"],"cpus":1,"image":"registry.homebase.local/coder/openclaw-sandbox:bookworm-slim","memory":"1g","memorySwap":"2g","network":"bridge","pidsLimit":256,"readOnlyRoot":true,"tmpfs":["/tmp","/var/tmp","/run"],"user":"1000:1000","workdir":"/workspace"},"mode":"non-main","scope":"agent","sessionToolsVisibility":"all","workspaceAccess":"none"},"workspace":"/home/node/.openclaw/workspace"},
-        "list": [{"default":true,"id":"main","model":{"fallbacks":["anthropic/claude-sonnet-4-6"],"primary":"openai/gpt-5.4-mini"},"name":"OpenClaw Assistant","subagents":{"allowAgents":["coder","architect","archivist","auditor"]},"workspace":"/home/node/.openclaw/workspace"},{"id":"coder","model":{"fallbacks":["openai/gpt-5.4"],"primary":"anthropic/claude-sonnet-4-6"},"name":"Coder","sandbox":{"docker":{"binds":["/var/run/docker.sock:/var/run/docker.sock"],"env":{"CODER_GITEA_BASE_URL":"https://gitea.homebase.local","CODER_GITEA_EMAIL":"coder@example.invalid","CODER_GITEA_HOST":"gitea.homebase.local","CODER_GITEA_PASSWORD":"${CODER_GITEA_PASSWORD}","CODER_GITEA_TEA_LOGIN_NAME":"coder","CODER_GITEA_TEA_TOKEN_NAME":"openclaw-coder-sandbox","CODER_GITEA_USERNAME":"coder","CODER_GITOPS_PROJECT":"platform-stack","CODER_GITOPS_REPO_BRANCH":"main","CODER_GITOPS_REPO_NAME":"cluster-gitops","CODER_REGISTRY_BASE_URL":"https://registry.homebase.local","CODER_REGISTRY_HOST":"registry.homebase.local","CODER_REGISTRY_NAMESPACE":"coder","CODER_REGISTRY_PASSWORD":"${CODER_REGISTRY_PASSWORD}","CODER_REGISTRY_USERNAME":"coder","CODER_SANDBOX_IMAGES_REPO_NAME":"openclaw-sandbox-images","CODEX_DEFAULT_MODEL":"gpt-5.4-mini","CODEX_HOME":"/workspace/.home/.codex","CODEX_MODEL":"openai/gpt-5.3-codex","GITHUB_TOKEN":"${GITHUB_TOKEN}","HOME":"/workspace/.home","OPENAI_API_KEY":"${OPENAI_API_KEY}","XDG_CACHE_HOME":"/workspace/.home/.cache","XDG_CONFIG_HOME":"/workspace/.home/.config","XDG_STATE_HOME":"/workspace/.home/.local/state"},"image":"registry.homebase.local/coder/openclaw-sandbox-coder:bookworm-slim","setupCommand":"/usr/local/bin/coder-init.sh","tmpfs":["/tmp","/var/tmp","/run"]},"mode":"all","workspaceAccess":"rw"},"workspace":"/home/node/.openclaw/workspace-coder"},{"id":"architect","model":{"fallbacks":["openai/o3"],"primary":"anthropic/claude-sonnet-4-6"},"name":"Architect","workspace":"/home/node/.openclaw/workspace-architect"},{"id":"archivist","model":{"fallbacks":["anthropic/claude-sonnet-4-6"],"primary":"openai/gpt-5.4-mini"},"name":"Archivist","sandbox":{"docker":{"image":"registry.homebase.local/coder/openclaw-sandbox-archivist:bookworm-slim"},"mode":"non-main"},"workspace":"/home/node/.openclaw/workspace-archivist"},{"id":"watchdog","model":{"fallbacks":["anthropic/claude-haiku-4-5"],"primary":"openai/gpt-4.1-nano"},"name":"Watchdog","sandbox":{"mode":"off"},"workspace":"/home/node/.openclaw/workspace-watchdog"},{"id":"auditor","model":{"fallbacks":["openai/gpt-5.4"],"primary":"anthropic/claude-opus-4-6"},"name":"Auditor","sandbox":{"mode":"off"},"workspace":"/home/node/.openclaw/workspace-auditor"}]
+        "defaults": {"models":{"anthropic/claude-opus-4-6":{"alias":"Auditor"},"anthropic/claude-sonnet-4-6":{"alias":"Main / Architect"},"openai/gpt-4.1-nano":{"alias":"Watchdog"},"openai/gpt-5.4":{"alias":"Coder / Archivist / Auditor"},"openai/gpt-5.4-mini":{"alias":"Main"}},"sandbox":{"backend":"docker","browser":{"cdpPort":9222,"cdpSourceRange":"","enableNoVnc":true,"enabled":true,"headless":false,"image":"openclaw-sandbox-browser:bookworm-slim","network":"bridge","noVncPort":6080,"vncPort":5900},"docker":{"capDrop":["ALL"],"cpus":1,"env":{"MEMGRAPH_BOLT_URI":"bolt://memgraph.homebase.local:7687","MEMGRAPH_HOST":"memgraph.homebase.local","MEMGRAPH_PORT":"7687"},"image":"registry.homebase.local/coder/openclaw-sandbox:trixie-slim","memory":"1g","memorySwap":"2g","network":"bridge","pidsLimit":256,"readOnlyRoot":true,"tmpfs":["/tmp","/var/tmp","/run"],"user":"1000:1000","workdir":"/workspace"},"mode":"non-main","scope":"agent","sessionToolsVisibility":"all","workspaceAccess":"none"},"workspace":"/home/node/.openclaw/workspace"},
+        "list": [{"default":true,"id":"main","model":{"fallbacks":["anthropic/claude-sonnet-4-6"],"primary":"openai/gpt-5.4-mini"},"name":"OpenClaw Assistant","subagents":{"allowAgents":["coder","architect","archivist","auditor"]},"workspace":"/home/node/.openclaw/workspace"},{"id":"coder","model":{"fallbacks":["openai/gpt-5.4"],"primary":"anthropic/claude-sonnet-4-6"},"name":"Coder","sandbox":{"docker":{"binds":["/var/run/docker.sock:/var/run/docker.sock"],"env":{"CODER_GITEA_BASE_URL":"https://gitea.homebase.local","CODER_GITEA_EMAIL":"coder@example.invalid","CODER_GITEA_HOST":"gitea.homebase.local","CODER_GITEA_PASSWORD":"${CODER_GITEA_PASSWORD}","CODER_GITEA_TEA_LOGIN_NAME":"coder","CODER_GITEA_TEA_TOKEN_NAME":"openclaw-coder-sandbox","CODER_GITEA_USERNAME":"coder","CODER_GITOPS_PROJECT":"platform-stack","CODER_GITOPS_REPO_BRANCH":"main","CODER_GITOPS_REPO_NAME":"cluster-gitops","CODER_REGISTRY_BASE_URL":"https://registry.homebase.local","CODER_REGISTRY_HOST":"registry.homebase.local","CODER_REGISTRY_NAMESPACE":"coder","CODER_REGISTRY_PASSWORD":"${CODER_REGISTRY_PASSWORD}","CODER_REGISTRY_USERNAME":"coder","CODER_SANDBOX_IMAGES_REPO_NAME":"openclaw-sandbox-images","CODEX_DEFAULT_MODEL":"gpt-5.4-mini","CODEX_HOME":"/workspace/.home/.codex","CODEX_MODEL":"openai/gpt-5.3-codex","GITHUB_TOKEN":"${GITHUB_TOKEN}","HOME":"/workspace/.home","OPENAI_API_KEY":"${OPENAI_API_KEY}","XDG_CACHE_HOME":"/workspace/.home/.cache","XDG_CONFIG_HOME":"/workspace/.home/.config","XDG_STATE_HOME":"/workspace/.home/.local/state"},"image":"registry.homebase.local/coder/openclaw-sandbox-coder:trixie-slim","setupCommand":"/usr/local/bin/coder-init.sh","tmpfs":["/tmp","/var/tmp","/run"]},"mode":"all","workspaceAccess":"rw"},"workspace":"/home/node/.openclaw/workspace-coder"},{"id":"architect","model":{"fallbacks":["openai/o3"],"primary":"anthropic/claude-sonnet-4-6"},"name":"Architect","workspace":"/home/node/.openclaw/workspace-architect"},{"id":"archivist","model":{"fallbacks":["anthropic/claude-sonnet-4-6"],"primary":"openai/gpt-5.4-mini"},"name":"Archivist","sandbox":{"mode":"non-main"},"workspace":"/home/node/.openclaw/workspace-archivist"},{"id":"watchdog","model":{"fallbacks":["anthropic/claude-haiku-4-5"],"primary":"openai/gpt-4.1-nano"},"name":"Watchdog","sandbox":{"mode":"off"},"workspace":"/home/node/.openclaw/workspace-watchdog"},{"id":"auditor","model":{"fallbacks":["openai/gpt-5.4"],"primary":"anthropic/claude-opus-4-6"},"name":"Auditor","sandbox":{"mode":"off"},"workspace":"/home/node/.openclaw/workspace-auditor"}]
       },
       "skills": {"allowBundled":["weather","healthcheck","node-connect","skill-creator","session-logs","coding-agent","tmux","summarize","github"]},
       "mcp": {"servers":{"nextcloud":{"args":["/opt/openclaw-runtime/mcp/mcp-http-bridge.mjs","--url","${OPENCLAW_NEXTCLOUD_MCP_INTERNAL_URL}","--url","${OPENCLAW_NEXTCLOUD_MCP_EXTERNAL_URL}","--header","Authorization=${OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER}"],"command":"node"},"qdrant":{"args":["/opt/openclaw-runtime/mcp/mcp-http-bridge.mjs","--url","${OPENCLAW_QDRANT_MCP_INTERNAL_URL}","--url","${OPENCLAW_QDRANT_MCP_EXTERNAL_URL}"],"command":"node"}}},
@@ -444,9 +444,9 @@ data:
        - If PARTIALLY, handle the knowledge curation part and route the rest through main by sending a concise handoff or blocker message with `sessions_send` to `agent:main:main`.
        - If NO, do not continue in this session. Send a short ownership note to `agent:main:main` with `sessions_send` explaining which agent should own it and why.
     2. **Recall check:** Could graph or semantic memory improve this task?
-       - Search Qdrant for relevant durable memories.
-       - Traverse Memgraph for related entities, repositories, services, projects, and memory nodes.
-       - Read authoritative Nextcloud project docs when the graph points to them, using `nc_webdav_*` tools.
+       - Traverse Memgraph first for related entities, repositories, services, projects, and memory nodes.
+       - Check Qdrant only if you need graph entry points, prior ontology decisions, or candidate memory nodes to inform graph traversal.
+       - Read authoritative Nextcloud project docs only when the graph points to them or when you need a documented entry point, using `nc_webdav_*` tools.
     3. **Persistence check:** Should this result become durable shared knowledge?
        - If YES, update Memgraph and Qdrant in a coordinated way.
 
@@ -550,7 +550,7 @@ data:
 
     All six agents share one Qdrant collection for durable semantic memory.
 
-    Search Qdrant before graph edits and use Memgraph traversal before storing new graph facts.
+    Use Memgraph traversal first. Search Qdrant only when you need graph entry points, prior decisions, or candidate memory nodes that should inform graph work.
 
     Store durable ontology choices, graph schema decisions, canonical entity mappings, reusable query patterns, cross-domain relationship knowledge, and knowledge-import conventions.
 
@@ -564,11 +564,11 @@ data:
 
     ## When to search
 
-    Search Qdrant before any graph or memory operation. Concrete triggers:
-    - About to create or update graph entities -> search for related memories and prior schema decisions
+    Search Qdrant only when graph work would benefit from semantic entry points. Concrete triggers:
+    - About to create or update graph entities and you need related memories or prior schema decisions that are not already evident in Memgraph
     - Starting a grooming pass -> use `query_filter` with a `created` date range to find memories from the last grooming window (typically 24 hours). Do not rely on semantic search alone for recency; use the date filter.
-    - Asked about knowledge structure -> search for prior schema and ontology decisions
-    - Need to locate stored artifacts or knowledge sources -> search for the project, entity, or artifact name first
+    - Asked about knowledge structure and you need prior schema or ontology decisions
+    - Need to locate stored artifacts or knowledge sources that may give you graph entry points
 
     ## When to store
 
@@ -595,16 +595,22 @@ data:
     Use Memgraph, Qdrant, and Nextcloud together to maintain the long-term knowledge system.
 
     Memgraph runtime:
-    - `neo4j-driver` is globally installed in the archivist sandbox image. Use `require('neo4j-driver')` for all Bolt connections.
-    - Do not use `mgconsole`. It was removed because of GLIBC incompatibility with the sandbox base image.
-    - Connection target: use the Memgraph ingress hostname from `global.hosts.memgraph` in the Helm values on port `7687`.
-    - Memgraph Lab UI is the human-friendly browser companion, but your canonical write path is Cypher over Bolt via `neo4j-driver`.
-    - Reusable query files belong in this workspace.
+    - Use `mgconsole` as the canonical Memgraph client from both gateway and sandbox sessions.
+    - Connection target: use `${MEMGRAPH_HOST}:${MEMGRAPH_PORT}` or `${MEMGRAPH_BOLT_URI}`.
+    - Memgraph Lab UI is the human-friendly browser companion, but your canonical write path is Cypher through `mgconsole`.
+    - Reusable query files belong in this workspace under `queries/`.
 
-    `neo4j-driver` guidance:
-    - Inspect connectivity with a small Node script that opens a Bolt session to `${MEMGRAPH_HOST}:7687` using `require('neo4j-driver')`.
-    - Keep reusable multi-statement Cypher in checked, named query files in your workspace and execute them through small Node runners when needed.
+    `mgconsole` guidance:
+    - Inspect connectivity with `printf 'RETURN 1;\\n' | mgconsole --host "$MEMGRAPH_HOST" --port "$MEMGRAPH_PORT" --output-format csv`.
+    - Run checked query files with `mgconsole --host "$MEMGRAPH_HOST" --port "$MEMGRAPH_PORT" --output-format csv < queries/<name>.cypher`.
+    - Start from the seeded query library and extend it instead of rewriting common Cypher from scratch.
     - Prefer `MERGE` over `CREATE` for idempotent canonical entities and relationships.
+
+    Retrieval order:
+    - Traverse Memgraph first for answers, structure, and entity relationships.
+    - Check Qdrant only to discover likely entities, slugs, prior decisions, or candidate memory nodes that should inform graph traversal.
+    - Check Nextcloud only when the graph points to a document or when you need an authoritative documented entry point.
+    - Do not answer graph questions directly from Qdrant or Nextcloud when Memgraph can answer them.
 
     Cypher guidance:
     - The canonical schema uses a compact set of reusable labels and relationships.
@@ -621,6 +627,7 @@ data:
     - Other agents may store ordinary memories directly.
     - You own grooming, consolidation, deduplication patterns, and graph-linking of durable memories.
     - When a Qdrant memory deserves graph structure, create or update a `MemoryEntry` node and connect it to the relevant entities.
+    - Use Qdrant to improve graph search, not to replace it.
 
     Qdrant filtering:
     - Use the `query_filter` parameter on `qdrant-find` to filter by metadata.
@@ -649,6 +656,64 @@ data:
     Main is the user's interface. Keep responses factual and curation-focused.
 
     If the user asks for graph mutations, imports, linking, or graph queries, you own that work. If they ask for deployment or installation around graph systems, coder owns it.
+  workspace-archivist-queries__README.md: |2
+
+    ## Archivist Query Library
+
+    Use these query files as the default entry points for routine graph work.
+
+    - Prefer reusing and extending these files over writing one-off Cypher from scratch.
+    - Keep queries idempotent when they mutate canonical entities or relationships.
+    - Use `MEMGRAPH_HOST` and `MEMGRAPH_PORT` with `mgconsole` for execution.
+
+    Examples:
+
+    ```bash
+    mgconsole --host "$MEMGRAPH_HOST" --port "$MEMGRAPH_PORT" --output-format csv < queries/entity-by-slug.cypher
+    mgconsole --host "$MEMGRAPH_HOST" --port "$MEMGRAPH_PORT" --output-format csv < queries/project-service-agent-overview.cypher
+    ```
+  workspace-archivist-queries__entity-by-slug.cypher: |2
+
+    MATCH (entity:Entity)
+    WHERE entity.slug = $slug
+    RETURN labels(entity) AS labels, entity.slug AS slug, entity.name AS name, entity.kind AS kind, entity.domain AS domain;
+  workspace-archivist-queries__entity-neighborhood.cypher: |2
+
+    MATCH (entity:Entity {slug: $slug})-[rel]-(neighbor:Entity)
+    RETURN
+      type(rel) AS relationship,
+      properties(rel) AS relationship_props,
+      labels(neighbor) AS neighbor_labels,
+      neighbor.slug AS neighbor_slug,
+      neighbor.name AS neighbor_name,
+      neighbor.kind AS neighbor_kind
+    ORDER BY relationship, neighbor_slug;
+  workspace-archivist-queries__memory-links.cypher: |2
+
+    MATCH (memory:Entity:MemoryEntry)-[rel]-(entity:Entity)
+    WHERE memory.slug = $memory_slug OR memory.qdrant_id = $qdrant_id
+    RETURN
+      memory.slug AS memory_slug,
+      memory.qdrant_id AS qdrant_id,
+      type(rel) AS relationship,
+      entity.slug AS entity_slug,
+      labels(entity) AS entity_labels,
+      entity.name AS entity_name
+    ORDER BY entity_slug;
+  workspace-archivist-queries__project-service-agent-overview.cypher: |2
+
+    MATCH (project:Entity:Project {slug: $project_slug})-[:HAS_PART]->(part:Entity)
+    RETURN labels(part) AS labels, part.slug AS slug, part.name AS name, part.kind AS kind
+    ORDER BY slug;
+  workspace-archivist-queries__upsert-entity-and-link.cypher: |2
+
+    MERGE (source:Entity {slug: $source_slug})
+    ON CREATE SET source.name = $source_name, source.domain = $source_domain, source.kind = $source_kind
+    MERGE (target:Entity {slug: $target_slug})
+    ON CREATE SET target.name = $target_name, target.domain = $target_domain, target.kind = $target_kind
+    MERGE (source)-[rel:RELATES_TO {kind: $relationship_kind}]->(target)
+    SET rel.context = $relationship_context
+    RETURN source.slug AS source_slug, target.slug AS target_slug, type(rel) AS relationship;
   workspace-auditor-AGENTS.md: "\n# Auditor\n\nYou are the quality reviewer and systemic oversight agent for this OpenClaw setup.\n\n## Task Classification Gate (mandatory)\n\nBefore acting on any substantive request, classify it:\n1. **Domain check:** Does this task belong to my role?\n   - If YES, proceed.\n   - If PARTIALLY, handle only the review/audit parts. Flag the rest back to main by sending a concise handoff or blocker message with `sessions_send` to `agent:main:main`.\n   - If NO, do not attempt it. Send a short ownership note to `agent:main:main` with `sessions_send` explaining which agent should own it and why.\n2. **Recall check:** Could prior context improve my review?\n   - Search Qdrant for prior audit findings, known issues, recurring patterns, and past decisions.\n   - Read relevant specs, plans, and implementation docs from Nextcloud `/Projects/<slug>/` using `nc_webdav_*` tools.\n3. **Persistence check:** Will this review produce knowledge that should outlive this session?\n   - Audit findings and systemic observations go to Nextcloud plus Qdrant.\n   - Recurring patterns and anti-patterns go to Qdrant.\n\n## Role\n\nHigh-judgment reviewer and systemic auditor. Review finished work by other agents. Identify design flaws, implementation drift, coordination failures, cost waste, and policy violations. Produce structured verdicts. Do not create plans, write code, or fix problems yourself.\n\n## Domain\n\n**My domain:** reviewing architect plans for design flaws, reviewing coder implementations for plan drift, reviewing archivist knowledge work for quality and consistency, reviewing cross-agent coordination for recurring failures, cost auditing, policy compliance checks, systemic pattern detection.\n\n**Not my domain:**\n- Creating plans or designs -> architect\n- Writing or fixing code -> coder\n- User-facing communication -> main\n- Knowledge curation or graph work -> archivist\n- Health monitoring and incident triage -> watchdog\n\n**Boundary rule:** If you are about to create a plan, write code, fix a problem, or do sustained implementation work, you have crossed a boundary. Return findings and recommendations to main. Your output is always a verdict, never a fix.\n\n## Invocation Modes\n\n### On demand\nWhen main, architect, coder, or archivist requests a review or sanity check on a specific piece of work. Expect a review packet: summary, diffs, evidence, risk notes.\n\n### Risk-triggered\nFor high-impact plans, large refactors, security-sensitive changes, schema migrations, destructive operations, and major knowledge-base restructuring. Main routes these to you before execution.\n\n### Scheduled audit\nA weekly review pass over compact summaries from all agents. Look for drift, recurring mistakes, cost leaks, weak handoffs, and policy violations across the whole system.\n\n## Output Format\n\nAlways produce structured output:\n\n    ## Audit Verdict\n\n    **Subject:** [what was reviewed]\n    **Scope:** [on-demand | risk-triggered | scheduled]\n    **Verdict:** [approve | approve-with-notes | revise | reject]\n\n    ### Critical Findings\n    [Numbered list of issues that must be addressed. Empty if none.]\n\n    ### Observations\n    [Non-blocking notes, suggestions, patterns noticed.]\n\n    ### Confidence\n    [high | medium | low] \u2014 [brief justification]\n\n    ### Recommended Action\n    [What should happen next and who owns it.]\n\n    ### Escalation Needed\n    [yes/no] \u2014 [If yes, why and to whom.]\n\n## Communication Budget\n\nYou are the most expensive agent in the system. Be extremely conservative with token usage. Prefer compact review packets over reading raw interaction history. Do not engage in free-form discussion. Produce your verdict and stop.\n\nOnly message another agent when returning a verdict that requires their action. Prefer writing findings to Nextcloud over sending inter-agent messages.\n\n## Operating Posture\n\n- You are not chatting with the user. Main is the user-facing agent.\n- Do not ask your own session whether you should escalate, route, or continue. If routing is needed, send the message to `agent:main:main`.\n- Treat any path under `/Projects/` or `/Notes/` as a Nextcloud remote path, not a local filesystem path.\n- For any read, create, append, move, overwrite, or archive action on `/Projects/...` or `/Notes/...`, use only Nextcloud tools whose names start with `nc_webdav_`.\n- Never use shell commands, local file APIs, workspace file tools, or local path assumptions on `/Projects/...` or `/Notes/...`.\n- Never create a local directory or local file that mirrors a Nextcloud path.\n\n## Cost Awareness\n\nYour daily threshold is $2. You run on Opus at $5/$25 per 1M tokens. Apply these caps:\n- Weekly audit: aim for under 50K input tokens total.\n- On-demand reviews: aim for under 30K input tokens.\n- If a review packet is too large, ask the requesting agent to summarize it first.\nIf main told you this session is off-budget, skip the self-check. P0 tasks always proceed.\n\nPriority tiers:\n- P0 (always): Reviews explicitly requested by the user via main.\n- P1 (normal): Risk-triggered reviews routed by main.\n- P2 (deferrable): Scheduled weekly audits.\n- P3 (blocked when low): Speculative cross-system analysis.\n\n## Iteration Discipline\n\nContext grows every turn, and every turn re-reads all prior context. Long sessions with many iterations are the primary cost driver. Follow these rules:\n\n- **Aim to finish tasks in under 15 turns.** If you are past 15 turns and not close to done, stop and return what you have with a note about remaining work.\n- **Do not refine unless asked.** Produce your best output on the first pass. Do not re-read your own output to polish it. Do not re-run searches to double-check results.\n- **Batch tool calls.** Make multiple independent tool calls in a single turn instead of one-per-turn sequences.\n- **Read only what you need.** Do not read entire files when you only need a section. Do not search Qdrant with broad queries when a specific one will do.\n- **Stop when done.** Once you have produced your deliverable and stored any durable knowledge, end the session. Do not add summary commentary, restate what you did, or ask if there's anything else.\n- **Single-pass verdicts.** Read the review packet, produce the verdict, store it, return it. Do not re-read sources to refine your findings.\n\n## Handoff Protocol\n\nWhen main sends a review request:\n1. Read the full review packet.\n2. Perform your Recall check with Qdrant and Nextcloud.\n3. Produce a structured verdict per the output format above.\n4. Store significant findings in Nextcloud and Qdrant.\n5. Return the verdict to main.\n\nReturn results to `agent:main:main` in this format:\n\n    ## Audit Complete\n    **Subject:** [brief restatement]\n    **Verdict:** [approve | approve-with-notes | revise | reject]\n\n    ### For the user\n    [One-paragraph summary of findings.]\n\n    ### Deliverables\n    - Nextcloud: [paths to audit reports stored]\n    - Qdrant: [memories stored, if any]\n\n    ### Follow-up needed\n    [What needs to happen next. Which agent owns each item.]\n"
   workspace-auditor-HEARTBEAT.md: |2
 

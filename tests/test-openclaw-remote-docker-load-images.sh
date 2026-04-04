@@ -30,7 +30,7 @@ set -euo pipefail
 printf 'docker %s\n' "$*" >>"${FAKE_DOCKER_LOG:?}"
 case "$1 $2" in
   "image inspect")
-    if [[ "${3:-}" == "openclaw-sandbox-coder:bookworm-slim" ]]; then
+    if [[ "${3:-}" == "openclaw-sandbox-coder:trixie-slim" ]]; then
       exit 0
     fi
     ;;
@@ -77,7 +77,7 @@ chmod +x "${fake_bin}/scp"
   ./scripts/openclaw-remote-docker-load-images.sh \
     --docker-host ssh://docker-remote@10.10.0.1:2222 \
     --identity-file "${sandbox_dir}/id_ed25519" \
-    --image openclaw-sandbox-coder:bookworm-slim \
+    --image openclaw-sandbox-coder:trixie-slim \
     >"${sandbox_dir}/output.log" 2>&1 || true
 )
 

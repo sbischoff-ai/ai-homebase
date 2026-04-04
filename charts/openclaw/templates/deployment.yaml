@@ -12,6 +12,7 @@
 {{- $launcherPath := .Values.config.launcher.path | default "/opt/openclaw-runtime/mcp/mcp-http-bridge.mjs" }}
 {{- $launcherDir := dir $launcherPath }}
 {{- $remoteDockerCliInstallPath := .Values.remoteDocker.cli.installPath | default "/opt/openclaw-tools/bin" }}
+{{- $memgraphToolsInstallPath := "/opt/memgraph-tools/bin" }}
 {{- $nextcloudMcpHost := .Values.global.hosts.nextcloudMcp | default "" }}
 {{- $qdrantMcpHost := .Values.global.hosts.qdrantMcp | default "" }}
 {{- $nextcloudMcpExternalScheme := ternary "http" "https" (hasSuffix ".localtest.me" $nextcloudMcpHost) }}
@@ -224,6 +225,46 @@ spec:
               mountPath: /runtime-target
         {{- end }}
         {{- end }}
+        - name: memgraph-cli-runtime
+          image: "memgraph/memgraph:3.8.1"
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -eu
+              mkdir -p /tools-target/bin /tools-target/lib /tools-target/lib64
+              cp -f /usr/bin/mgconsole /tools-target/lib/mgconsole || {
+                echo >&2 "Failed to copy /usr/bin/mgconsole into the shared Memgraph tools volume."
+                exit 1
+              }
+              cp -f /lib/x86_64-linux-gnu/libssl.so.3 /tools-target/lib/libssl.so.3
+              cp -f /lib/x86_64-linux-gnu/libcrypto.so.3 /tools-target/lib/libcrypto.so.3
+              cp -f /lib/x86_64-linux-gnu/libc.so.6 /tools-target/lib/libc.so.6
+              cp -f /lib64/ld-linux-x86-64.so.2 /tools-target/lib64/ld-linux-x86-64.so.2
+              cat >/tools-target/bin/mgconsole <<'EOF'
+              #!/bin/sh
+              set -eu
+              exec /opt/memgraph-tools/lib64/ld-linux-x86-64.so.2 \
+                --library-path /opt/memgraph-tools/lib \
+                /opt/memgraph-tools/lib/mgconsole "$@"
+              EOF
+              chmod 0755 /tools-target/bin/mgconsole /tools-target/lib/mgconsole
+              chown -R 1000:1000 /tools-target
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: false
+            runAsUser: 0
+            runAsGroup: 0
+            capabilities:
+              drop:
+                - ALL
+              add:
+                - CHOWN
+          volumeMounts:
+            - name: memgraph-tools-runtime
+              mountPath: /tools-target
         {{- if $remoteDockerEnabled }}
         {{- if $remoteDockerCliEnabled }}
         - name: remote-docker-cli
@@ -392,6 +433,8 @@ spec:
               value: {{ $configPath | quote }}
             - name: OPENCLAW_SANDBOX
               value: {{ ternary "1" "0" (ne (toString $sandboxMode) "off") | quote }}
+            - name: PATH
+              value: {{ ternary (printf "%s:%s:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" $memgraphToolsInstallPath $remoteDockerCliInstallPath) (printf "%s:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" $memgraphToolsInstallPath) (and $remoteDockerEnabled $remoteDockerCliEnabled) | quote }}
             - name: OPENCLAW_NEXTCLOUD_MCP_INTERNAL_URL
               value: {{ $nextcloudMcpInternalUrl | quote }}
             - name: OPENCLAW_NEXTCLOUD_MCP_EXTERNAL_URL
@@ -405,10 +448,6 @@ spec:
               value: {{ .Values.remoteDocker.dockerHost | quote }}
             - name: HOME
               value: {{ .Values.remoteDocker.home | quote }}
-            {{- if $remoteDockerCliEnabled }}
-            - name: PATH
-              value: {{ printf "%s:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" $remoteDockerCliInstallPath | quote }}
-            {{- end }}
             {{- end }}
             {{- with .Values.global.env }}
             {{- toYaml . | nindent 12 }}
@@ -571,6 +610,9 @@ spec:
               mountPath: {{ $launcherDir }}
               readOnly: true
             {{- end }}
+            - name: memgraph-tools-runtime
+              mountPath: /opt/memgraph-tools
+              readOnly: true
             {{- if $remoteDockerEnabled }}
             {{- if $remoteDockerCliEnabled }}
             - name: remote-docker-cli
@@ -612,6 +654,8 @@ spec:
           emptyDir: {}
         {{- end }}
         {{- end }}
+        - name: memgraph-tools-runtime
+          emptyDir: {}
         {{- if $remoteDockerEnabled }}
         {{- if $remoteDockerCliEnabled }}
         - name: remote-docker-cli

@@ -148,13 +148,17 @@ openclaw:
         workspaceAccess: none
         sessionToolsVisibility: "all"
         docker:
-          image: registry.example.com/coder/openclaw-sandbox:bookworm-slim
+          image: registry.example.com/coder/openclaw-sandbox:trixie-slim
           workdir: /workspace
           readOnlyRoot: true
           tmpfs:
             - /tmp
             - /var/tmp
             - /run
+          env:
+            MEMGRAPH_HOST: memgraph.example.com
+            MEMGRAPH_PORT: "7687"
+            MEMGRAPH_BOLT_URI: bolt://memgraph.example.com:7687
           user: 1000:1000
           capDrop:
             - ALL
@@ -199,7 +203,7 @@ openclaw:
           mode: all
           workspaceAccess: rw
           docker:
-            image: registry.example.com/coder/openclaw-sandbox-coder:bookworm-slim
+            image: registry.example.com/coder/openclaw-sandbox-coder:trixie-slim
             binds:
               - /var/run/docker.sock:/var/run/docker.sock
             tmpfs:
@@ -249,8 +253,6 @@ openclaw:
             - anthropic/claude-sonnet-4-6
         sandbox:
           mode: non-main
-          docker:
-            image: registry.example.com/coder/openclaw-sandbox-archivist:bookworm-slim
       - id: watchdog
         name: Watchdog
         workspace: /home/node/.openclaw/workspace-watchdog
@@ -318,7 +320,13 @@ openclaw:
           - ${OPENCLAW_QDRANT_MCP_INTERNAL_URL}
           - --url
           - ${OPENCLAW_QDRANT_MCP_EXTERNAL_URL}
-env: []
+env:
+  - name: MEMGRAPH_HOST
+    value: ""
+  - name: MEMGRAPH_PORT
+    value: "7687"
+  - name: MEMGRAPH_BOLT_URI
+    value: ""
 envFromSecrets: []
 # Secret injection conventions:
 # - Secret names: kebab-case (example: openclaw-secrets)

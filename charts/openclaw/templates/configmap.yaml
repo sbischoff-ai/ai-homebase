@@ -39,7 +39,7 @@ data:
   {{- range $agentId, $agentConfig := .Values.workspaceBootstrap.agents }}
   {{- $filesDir := $agentConfig.filesDir | default "" }}
   {{- if $filesDir }}
-  {{- range $path, $_ := $.Files.Glob (printf "files/%s/*" $filesDir) }}
+  {{- range $path, $_ := $.Files.Glob (printf "files/%s/**" $filesDir) }}
   {{- $filePath := trimPrefix (printf "files/%s/" $filesDir) $path }}
   {{ printf "workspace-%s-%s" $agentId (replace "/" "__" $filePath) }}: |
 {{ $.Files.Get $path | nindent 4 }}
