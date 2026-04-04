@@ -24,7 +24,7 @@
   - `./scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values.yaml --values-file charts/platform-stack/values-k3s.yaml > /tmp/platform-stack-k3s.yaml`
 - Render with explicit toggle checks:
   - `./scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values.yaml --disable-service nextcloud --disable-service gitea > /tmp/platform-stack-core-only.yaml`
-- Update golden snapshots after render-impacting changes:
+- Update golden snapshots whenever your change modifies rendered manifests for any golden-covered profile (`values`, `values-k3d`, or `values-k3s`):
   - `nix-shell -p kubernetes-helm python3Packages.pyyaml --run "./scripts/ci/update_golden.sh"`
 - Verify golden snapshots are current:
   - `nix-shell -p kubernetes-helm python3Packages.pyyaml --run "./scripts/ci/check_golden.sh"`
@@ -43,6 +43,17 @@ When a change affects rendered manifests (especially values that exist in both b
 - Update any bootstrap/config generator defaults that feed those same rendered values.
 - Regenerate golden fixtures with `scripts/ci/update_golden.sh` and verify with `scripts/ci/check_golden.sh` before merge.
 - If the diff still surprises you, inspect the merged render output first (`./scripts/template.sh ...`) before editing fixtures by hand.
+
+### Golden snapshot trigger rules
+Call `scripts/ci/update_golden.sh` in the same change whenever you modify anything that can change Helm render output for the covered profiles. Common triggers include:
+- Helm templates, helper templates, `Chart.yaml`, or dependency wiring under `charts/`.
+- Any chart `values.yaml`, umbrella values, or supported overlay values (`values-k3d.yaml`, `values-k3s.yaml`).
+- Files consumed by templates through `.Files`, ConfigMap/Secret seed content, bootstrap content, or workspace seed files under chart-owned `files/` directories.
+- Bootstrap/config-rendering code or defaults that feed Helm values or rendered manifests.
+- Service toggles, ingress hosts, secret wiring, init containers, probes, resources, persistence, or image defaults that alter rendered YAML.
+
+Do not skip the update just because the change looks textual. If the output of `./scripts/template.sh ...` would differ, regenerate snapshots.
+If you are unsure whether the render changed, run `scripts/ci/check_golden.sh`; if it reports a mismatch and the diff is intentional, run `scripts/ci/update_golden.sh`, then rerun `scripts/ci/check_golden.sh`.
 
 ## Required updates when toggles/values change
 When adding/removing/renaming/changing a value key or toggle semantics, update all applicable files in the same change:
