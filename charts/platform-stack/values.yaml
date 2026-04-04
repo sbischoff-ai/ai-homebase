@@ -484,6 +484,7 @@ nextcloud:
         - path: gitops-workflow.md
         - path: cluster-architecture.md
         - path: project-documentation-model.md
+        - path: worker-design-guide.md
         - path: qdrant-memory-schema.md
         - path: knowledge-graph-schema.md
         - path: archivist-grooming-log.md
