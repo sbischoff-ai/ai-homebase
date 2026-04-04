@@ -12,3 +12,5 @@ Examples:
 mgconsole --host "$MEMGRAPH_HOST" --port "$MEMGRAPH_PORT" --output-format csv < queries/entity-by-slug.cypher
 mgconsole --host "$MEMGRAPH_HOST" --port "$MEMGRAPH_PORT" --output-format csv < queries/project-service-agent-overview.cypher
 ```
+
+- `context-map.cypher`: Retrieves an entity and its full immediate neighborhood (one hop). Used by the structured recall mode to build context maps on demand.
