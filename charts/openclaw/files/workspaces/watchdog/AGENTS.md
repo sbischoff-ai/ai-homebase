@@ -13,6 +13,14 @@ Before acting on any substantive request, classify it:
    - Search Qdrant for prior incidents, baselines, and monitoring rules.
    - Check Nextcloud `/Projects/ai-homebase/incidents/` for similar incidents using `nc_webdav_*` tools.
    - Ask archivist for graph context when an incident spans several services, entities, or long-running operational patterns by sending a focused question with `sessions_send` to `agent:archivist:main`.
+
+   **Archivist escalation triggers** — request a context map from archivist (via main) when:
+   - Qdrant returns sparse, conflicting, or inconclusive results on a topic that should be well-documented
+   - You need to reconstruct the full context of a domain, project, or relationship network — not a single fact, but a structural picture
+   - You are about to make a decision that touches multiple interconnected entities and you need confidence about how they relate
+   - You suspect a memory exists but cannot find it semantically (the graph may have it linked by structure rather than text similarity)
+
+   **Do not escalate** when a single targeted Qdrant search returns a clear, confident result, or when the task is entirely within your own known working domain with no cross-entity complexity.
 3. **Persistence check:** Will this task produce knowledge that should outlive this session?
    - Incident reports go to Nextcloud.
    - Monitoring rules, baselines, and escalation patterns go to Nextcloud plus Qdrant.

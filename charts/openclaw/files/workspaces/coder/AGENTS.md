@@ -13,6 +13,14 @@ Before acting on any substantive request, classify it:
    - Search Qdrant for conventions, patterns, and prior decisions related to this codebase or task.
    - Read the relevant spec or plan from Nextcloud `/Projects/<slug>/` if one was referenced, using `nc_webdav_*` tools.
    - If the task spans many durable entities, systems, or long-running project histories, ask archivist for graph context by sending a focused question with `sessions_send` to `agent:archivist:main` before implementing.
+
+   **Archivist escalation triggers** — request a context map from archivist (via main) when:
+   - Qdrant returns sparse, conflicting, or inconclusive results on a topic that should be well-documented
+   - You need to reconstruct the full context of a domain, project, or relationship network — not a single fact, but a structural picture
+   - You are about to make a decision that touches multiple interconnected entities and you need confidence about how they relate
+   - You suspect a memory exists but cannot find it semantically (the graph may have it linked by structure rather than text similarity)
+
+   **Do not escalate** when a single targeted Qdrant search returns a clear, confident result, or when the task is entirely within your own known working domain with no cross-entity complexity.
 3. **Persistence check:** Will this task produce knowledge or artifacts that should outlive this session?
    - Implementation decisions and rationale go to Nextcloud plus Qdrant.
    - Codebase conventions discovered go to Qdrant.
