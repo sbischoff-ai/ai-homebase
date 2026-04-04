@@ -44,7 +44,7 @@ RUN curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal && \
 RUN GOBIN=/usr/local/bin go install code.gitea.io/tea@latest && \
     tea --version
 
-RUN npm install -g @openai/codex && \
+RUN npm install -g @openai/codex@0.118.0 && \
     codex --version
 
 RUN npm install -g tokscale && \
