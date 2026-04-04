@@ -186,6 +186,7 @@ assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][0]["id"] == "ma
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][0]["default"] is True
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][0]["model"]["primary"] == "openai/gpt-4.1"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][0]["model"]["fallbacks"] == ["anthropic/claude-sonnet-4-6"]
+assert rendered_values["openclaw"]["openclaw"]["agents"]["defaults"]["sandbox"]["workspaceAccess"] == "rw"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["id"] == "coder"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["workspace"] == "/home/node/.openclaw/workspace-coder"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["model"]["primary"] == "anthropic/claude-sonnet-4-6"
@@ -222,6 +223,7 @@ assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["id"] == "ar
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["workspace"] == "/home/node/.openclaw/workspace-architect"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["model"]["primary"] == "anthropic/claude-opus-4-6"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["model"]["fallbacks"] == ["openai/o3"]
+assert "sandbox" not in rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]
 assert "tools" not in rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][3]["id"] == "archivist"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][3]["workspace"] == "/home/node/.openclaw/workspace-archivist"

@@ -2811,7 +2811,7 @@ def command_render_values(args: argparse.Namespace) -> int:
                 "workspace": "/home/node/.openclaw/workspace",
                 "models": allowed_models,
                 "sandbox": {
-                    "workspaceAccess": "none",
+                    "workspaceAccess": "rw",
                     "docker": {
                         "image": values["OPENCLAW_DEFAULT_SANDBOX_IMAGE"],
                         "env": {
