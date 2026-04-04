@@ -126,7 +126,7 @@ spec:
               }
               {{- $filesDir := $agentConfig.filesDir | default "" }}
               {{- if $filesDir }}
-              {{- range $path, $_ := $.Files.Glob (printf "files/%s/*" $filesDir) }}
+              {{- range $path, $_ := $.Files.Glob (printf "files/%s/**" $filesDir) }}
               {{- $filePath := trimPrefix (printf "files/%s/" $filesDir) $path }}
               target_path="${workspace_dir}/{{ $filePath }}"
               target_parent="$(dirname "${target_path}")"

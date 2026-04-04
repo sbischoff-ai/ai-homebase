@@ -2272,6 +2272,104 @@ spec:
               exit 1
             }
           fi
+          target_path="${workspace_dir}/queries/README.md"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding queries/README.md for agent archivist."
+            exit 1
+          }
+          if [ -e "${target_path}" ]; then
+            echo "Preserving existing queries/README.md in ${workspace_dir}."
+          else
+            cp -f /config-source/workspace-archivist-queries__README.md "${target_path}" || {
+              echo >&2 "Failed to seed queries/README.md into ${workspace_dir} for agent archivist."
+              exit 1
+            }
+          fi
+          target_path="${workspace_dir}/queries/context-map.cypher"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding queries/context-map.cypher for agent archivist."
+            exit 1
+          }
+          if [ -e "${target_path}" ]; then
+            echo "Preserving existing queries/context-map.cypher in ${workspace_dir}."
+          else
+            cp -f /config-source/workspace-archivist-queries__context-map.cypher "${target_path}" || {
+              echo >&2 "Failed to seed queries/context-map.cypher into ${workspace_dir} for agent archivist."
+              exit 1
+            }
+          fi
+          target_path="${workspace_dir}/queries/entity-by-slug.cypher"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding queries/entity-by-slug.cypher for agent archivist."
+            exit 1
+          }
+          if [ -e "${target_path}" ]; then
+            echo "Preserving existing queries/entity-by-slug.cypher in ${workspace_dir}."
+          else
+            cp -f /config-source/workspace-archivist-queries__entity-by-slug.cypher "${target_path}" || {
+              echo >&2 "Failed to seed queries/entity-by-slug.cypher into ${workspace_dir} for agent archivist."
+              exit 1
+            }
+          fi
+          target_path="${workspace_dir}/queries/entity-neighborhood.cypher"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding queries/entity-neighborhood.cypher for agent archivist."
+            exit 1
+          }
+          if [ -e "${target_path}" ]; then
+            echo "Preserving existing queries/entity-neighborhood.cypher in ${workspace_dir}."
+          else
+            cp -f /config-source/workspace-archivist-queries__entity-neighborhood.cypher "${target_path}" || {
+              echo >&2 "Failed to seed queries/entity-neighborhood.cypher into ${workspace_dir} for agent archivist."
+              exit 1
+            }
+          fi
+          target_path="${workspace_dir}/queries/memory-links.cypher"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding queries/memory-links.cypher for agent archivist."
+            exit 1
+          }
+          if [ -e "${target_path}" ]; then
+            echo "Preserving existing queries/memory-links.cypher in ${workspace_dir}."
+          else
+            cp -f /config-source/workspace-archivist-queries__memory-links.cypher "${target_path}" || {
+              echo >&2 "Failed to seed queries/memory-links.cypher into ${workspace_dir} for agent archivist."
+              exit 1
+            }
+          fi
+          target_path="${workspace_dir}/queries/project-service-agent-overview.cypher"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding queries/project-service-agent-overview.cypher for agent archivist."
+            exit 1
+          }
+          if [ -e "${target_path}" ]; then
+            echo "Preserving existing queries/project-service-agent-overview.cypher in ${workspace_dir}."
+          else
+            cp -f /config-source/workspace-archivist-queries__project-service-agent-overview.cypher "${target_path}" || {
+              echo >&2 "Failed to seed queries/project-service-agent-overview.cypher into ${workspace_dir} for agent archivist."
+              exit 1
+            }
+          fi
+          target_path="${workspace_dir}/queries/upsert-entity-and-link.cypher"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding queries/upsert-entity-and-link.cypher for agent archivist."
+            exit 1
+          }
+          if [ -e "${target_path}" ]; then
+            echo "Preserving existing queries/upsert-entity-and-link.cypher in ${workspace_dir}."
+          else
+            cp -f /config-source/workspace-archivist-queries__upsert-entity-and-link.cypher "${target_path}" || {
+              echo >&2 "Failed to seed queries/upsert-entity-and-link.cypher into ${workspace_dir} for agent archivist."
+              exit 1
+            }
+          fi
           workspace_dir="${state_root}/workspace-auditor"
           mkdir -p "${workspace_dir}" || {
             echo >&2 "Failed to create bootstrapped workspace directory ${workspace_dir} for agent auditor."

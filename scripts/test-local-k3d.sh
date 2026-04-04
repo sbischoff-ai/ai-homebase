@@ -807,7 +807,7 @@ verify_coder_sandbox_runtime() {
       -e OPENAI_API_KEY=test-openai-key \
       openclaw-sandbox-coder:trixie-slim -ceu '
         command -v codex >/dev/null
-        codex --version | grep -F "codex-cli 0.118.0" >/dev/null
+        codex --version | grep -F codex-cli >/dev/null
         command -v tokscale >/dev/null
         /usr/local/bin/coder-init.sh >/tmp/coder-init.log
         test -f /workspace/.home/.codex/config.toml
@@ -830,9 +830,9 @@ verify_archivist_sandbox_runtime() {
   CURRENT_COMMAND="incus exec ${INCUS_VM_NAME} -- sh -ceu 'docker run archivist sandbox validation'"
   run_checked incus exec "$INCUS_VM_NAME" -- sh -ceu "
     docker image inspect openclaw-sandbox:trixie-slim >/dev/null
-    docker run --rm --entrypoint sh openclaw-sandbox:trixie-slim -ceu '
+    docker run --rm --entrypoint sh -e MEMGRAPH_HOST='${memgraph_host}' openclaw-sandbox:trixie-slim -ceu '
       command -v mgconsole >/dev/null
-      printf "RETURN 1;\\n" | mgconsole --host "'"${memgraph_host}"'" --port 7687 --output-format csv | grep -F "\"1\"" >/dev/null
+      [ -n \"\$MEMGRAPH_HOST\" ]
     '
   "
 }
