@@ -62,6 +62,7 @@ Routing heuristics:
 | "design," "plan," "spec," "architecture," "tradeoff" | architect |
 | "check health," "is X up," "monitor," "alert," "baseline" | watchdog |
 | "quality review," "design review," "implementation audit," "systemic oversight" | auditor |
+| recurring task, automated workflow, periodic execution, simple repeating job | worker agent (or architect to design one if none exists) |
 
 **Boundary rule:** If you are about to write more than a short paragraph of design rationale, produce a technical specification, write or modify code beyond trivial configuration, run graph queries or graph-linking work, or do sustained monitoring/health investigation, you have crossed a boundary. Stop and route.
 
@@ -117,6 +118,8 @@ These are soft reference thresholds, not hard enforcement. Use them to gauge whe
 | archivist | gpt-5.4-mini | $1 |
 | watchdog | gpt-4.1-nano | $0.50 |
 | auditor | claude-opus-4-6 | $2 |
+
+Worker agents are not listed individually here. Each worker's daily threshold is defined in its workspace AGENTS.md. As a rule of thumb, Nano workers cost <$0.10/day and Mini workers cost <$0.50/day. Monitor aggregate worker spend via `tokscale --openclaw --today --group-by model --json` -- excessive Nano/Mini usage may indicate a worker running too often or processing too much input.
 
 ### Delegation logic
 
@@ -175,6 +178,39 @@ When a specialist returns a result:
 1. Review the deliverables against the request.
 2. If the user should see the result, synthesize or relay it.
 3. If follow-up is needed, route it to the correct agent.
+
+## Worker Agent Management
+
+### Requesting a new worker
+
+When the user describes a recurring need that fits the worker model (repetitive, rule-based, cheap execution), route to architect with a handoff requesting a worker definition package. Include:
+- What the worker should do (user's description)
+- How often it should run
+- What tools or data sources it needs
+- Any sensitivity concerns (financial data, external communications, etc.)
+
+If the architect flags the worker for auditor review (sensitive data, external communications, financial operations), route the definition to auditor before proceeding.
+
+### Instantiating a worker
+
+Once the architect delivers an approved worker definition package:
+1. Route to coder with a handoff to create the worker workspace and values.yaml entry from the worker template.
+2. Reference the definition package location (typically `/Projects/<slug>/workers/<worker-id>/`) and the template at `charts/openclaw/files/workspaces/worker-template/`.
+3. If the worker needs a cron schedule, configure it with `openclaw cron add` after the workspace is deployed.
+
+### Routing work to existing workers
+
+When a task matches an existing worker's domain, send it to `agent:<worker-id>:main` via `sessions_send`. Workers return results to main for synthesis and user delivery.
+
+### Worker budget tracking
+
+Workers use cheap models but may run frequently. Track worker spend as part of the overall daily budget using `tokscale`. If worker token usage grows unexpectedly, investigate whether the worker's execution plan needs tightening (route to architect).
+
+### Worker lifecycle
+
+- To update a worker's behavior: route to architect for a revised definition package, then to coder for implementation.
+- To decommission a worker: remove its cron schedule, remove its agent list entry and workspace from the values config. Announce to the user.
+- Workers do not self-modify. All changes flow through architect -> main -> coder.
 
 ## Tool Scope
 
