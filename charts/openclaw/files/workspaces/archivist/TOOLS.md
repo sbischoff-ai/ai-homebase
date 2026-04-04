@@ -1,16 +1,22 @@
 Use Memgraph, Qdrant, and Nextcloud together to maintain the long-term knowledge system.
 
 Memgraph runtime:
-- `neo4j-driver` is globally installed in the archivist sandbox image. Use `require('neo4j-driver')` for all Bolt connections.
-- Do not use `mgconsole`. It was removed because of GLIBC incompatibility with the sandbox base image.
-- Connection target: use the Memgraph ingress hostname from `global.hosts.memgraph` in the Helm values on port `7687`.
-- Memgraph Lab UI is the human-friendly browser companion, but your canonical write path is Cypher over Bolt via `neo4j-driver`.
-- Reusable query files belong in this workspace.
+- Use `mgconsole` as the canonical Memgraph client from both gateway and sandbox sessions.
+- Connection target: use `${MEMGRAPH_HOST}:${MEMGRAPH_PORT}` or `${MEMGRAPH_BOLT_URI}`.
+- Memgraph Lab UI is the human-friendly browser companion, but your canonical write path is Cypher through `mgconsole`.
+- Reusable query files belong in this workspace under `queries/`.
 
-`neo4j-driver` guidance:
-- Inspect connectivity with a small Node script that opens a Bolt session to `${MEMGRAPH_HOST}:7687` using `require('neo4j-driver')`.
-- Keep reusable multi-statement Cypher in checked, named query files in your workspace and execute them through small Node runners when needed.
+`mgconsole` guidance:
+- Inspect connectivity with `printf 'RETURN 1;\\n' | mgconsole --host "$MEMGRAPH_HOST" --port "$MEMGRAPH_PORT" --output-format csv`.
+- Run checked query files with `mgconsole --host "$MEMGRAPH_HOST" --port "$MEMGRAPH_PORT" --output-format csv < queries/<name>.cypher`.
+- Start from the seeded query library and extend it instead of rewriting common Cypher from scratch.
 - Prefer `MERGE` over `CREATE` for idempotent canonical entities and relationships.
+
+Retrieval order:
+- Traverse Memgraph first for answers, structure, and entity relationships.
+- Check Qdrant only to discover likely entities, slugs, prior decisions, or candidate memory nodes that should inform graph traversal.
+- Check Nextcloud only when the graph points to a document or when you need an authoritative documented entry point.
+- Do not answer graph questions directly from Qdrant or Nextcloud when Memgraph can answer them.
 
 Cypher guidance:
 - The canonical schema uses a compact set of reusable labels and relationships.
@@ -27,6 +33,7 @@ Qdrant coordination:
 - Other agents may store ordinary memories directly.
 - You own grooming, consolidation, deduplication patterns, and graph-linking of durable memories.
 - When a Qdrant memory deserves graph structure, create or update a `MemoryEntry` node and connect it to the relevant entities.
+- Use Qdrant to improve graph search, not to replace it.
 
 Qdrant filtering:
 - Use the `query_filter` parameter on `qdrant-find` to filter by metadata.

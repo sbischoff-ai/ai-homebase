@@ -192,7 +192,7 @@ assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["model"]["pr
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["model"]["fallbacks"] == ["openai/gpt-4.1"]
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["mode"] == "all"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["workspaceAccess"] == "rw"
-assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["image"] == "registry.test.internal/coder-bot/openclaw-sandbox-coder:bookworm-slim"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["image"] == "registry.test.internal/coder-bot/openclaw-sandbox-coder:trixie-slim"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["HOME"] == "/workspace/.home"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["CODEX_HOME"] == "/workspace/.home/.codex"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["XDG_CONFIG_HOME"] == "/workspace/.home/.config"
@@ -227,6 +227,7 @@ assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][3]["id"] == "ar
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][3]["workspace"] == "/home/node/.openclaw/workspace-archivist"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][3]["model"]["primary"] == "anthropic/claude-sonnet-4-6"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][3]["model"]["fallbacks"] == ["openai/gpt-4.1-mini"]
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][3]["sandbox"] == {"mode": "non-main"}
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][4]["id"] == "watchdog"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][4]["workspace"] == "/home/node/.openclaw/workspace-watchdog"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][4]["model"]["primary"] == "openai/gpt-4.1-nano"
@@ -303,15 +304,19 @@ assert "The Gitea ingress hostname `gitea.test.internal` should resolve from you
 assert "The registry hostname `registry.test.internal` should resolve from your sandbox runtime" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
 assert "skills/gitea-tea/SKILL.md" not in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]
 assert "skills/gitops-homebase/SKILL.md" not in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]
-assert "Decision records should be appended to `/Projects/<slug>/decisions.md`." in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["TOOLS.md"]
-assert "archive it with an `-archived-YYYY-MM-DD` suffix" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["TOOLS.md"]
-assert "store a Qdrant memory summarizing the key decisions" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["TOOLS.md"]
+assert "/Projects/<slug>/decisions.md" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["TOOLS.md"]
+assert "-archived-YYYY-MM-DD" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["TOOLS.md"]
+assert "Qdrant memory summarizing the key decisions" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["TOOLS.md"]
 assert "Existing seeded project:" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["MEMORY.md"]
 assert "/Projects/ai-homebase/" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["MEMORY.md"]
 assert "/Notes/ai-homebase/" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["MEMORY.md"]
 assert '[domain] [kind] Complete statement here.' in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["MEMORY.md"]
 assert '"agent": "architect"' in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["MEMORY.md"]
 assert '# Memory - Coder Agent' in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["MEMORY.md"]
+assert "Traverse Memgraph first" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["archivist"]["files"]["AGENTS.md"]
+assert "Use `mgconsole` as the canonical Memgraph client" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["archivist"]["files"]["TOOLS.md"]
+assert "queries/entity-by-slug.cypher" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["archivist"]["files"]
+assert "MEMGRAPH_HOST" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["archivist"]["files"]["queries/README.md"]
 assert "knowledge-graph-schema.md" in json.dumps(rendered_values["nextcloud"]["bootstrapProjectContent"])
 assert rendered_values["memgraph"]["ingress"]["hosts"][0]["host"] == "memgraph.test.internal"
 assert rendered_values["memgraphLab"]["ingress"]["hosts"][0]["host"] == "memgraph-lab.test.internal"
@@ -364,10 +369,20 @@ assert rendered_values["paperlessNgx"]["admin"]["mail"] == "admin@example.invali
 assert rendered_values["paperlessNgx"]["ingress"]["hosts"][0]["host"] == "paperless.test.internal"
 assert rendered_values["global"]["mail"]["smtpHost"] == "smtp.example.com"
 assert rendered_values["global"]["hosts"]["registry"] == "registry.test.internal"
-assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][3]["sandbox"]["docker"]["image"] == "registry.test.internal/coder-bot/openclaw-sandbox-archivist:bookworm-slim"
+assert rendered_values["openclaw"]["env"] == [
+    {"name": "MEMGRAPH_HOST", "value": "memgraph.test.internal"},
+    {"name": "MEMGRAPH_PORT", "value": "7687"},
+    {"name": "MEMGRAPH_BOLT_URI", "value": "bolt://memgraph.test.internal:7687"},
+]
+assert rendered_values["openclaw"]["openclaw"]["agents"]["defaults"]["sandbox"]["docker"]["env"] == {
+    "MEMGRAPH_HOST": "memgraph.test.internal",
+    "MEMGRAPH_PORT": "7687",
+    "MEMGRAPH_BOLT_URI": "bolt://memgraph.test.internal:7687",
+}
 
 coder_dockerfile = (REPO_ROOT / "images" / "openclaw-sandbox-coder" / "Dockerfile").read_text(encoding="utf-8")
-archivist_dockerfile = (REPO_ROOT / "images" / "openclaw-sandbox-archivist" / "Dockerfile").read_text(encoding="utf-8")
+base_dockerfile = (REPO_ROOT / "images" / "openclaw-sandbox-base" / "Dockerfile").read_text(encoding="utf-8")
+gateway_dockerfile = (REPO_ROOT / "images" / "openclaw-remote-docker" / "Dockerfile").read_text(encoding="utf-8")
 qdrant_mcp_values = (REPO_ROOT / "charts" / "qdrant-mcp" / "values.yaml").read_text(encoding="utf-8")
 assert "usermod --home /home/sandbox sandbox" in coder_dockerfile
 assert "mkdir -p /home/sandbox /workspace" in coder_dockerfile
@@ -375,9 +390,11 @@ assert "ENV HOME=/workspace" not in coder_dockerfile
 assert "WORKDIR /workspace" in coder_dockerfile
 assert "tmux" in coder_dockerfile
 assert "@openai/codex" in coder_dockerfile
-assert "npm install -g neo4j-driver" in archivist_dockerfile
-assert "rm -f /usr/local/bin/mgconsole" in archivist_dockerfile
-assert "WORKDIR /home/sandbox" in archivist_dockerfile
+assert "debian:trixie-slim" in base_dockerfile
+assert "COPY --from=memgraph-tools /usr/bin/mgconsole /usr/local/bin/mgconsole" in base_dockerfile
+assert "debian:trixie-slim" in gateway_dockerfile
+assert "COPY --from=openclaw-runtime /app /app" in gateway_dockerfile
+assert "COPY --from=memgraph-tools /usr/bin/mgconsole /usr/local/bin/mgconsole" in gateway_dockerfile
 assert "toolDescriptions:" in qdrant_mcp_values
 assert "Store a memory for cross-agent recall." in qdrant_mcp_values
 assert "Search shared semantic memory across all agents." in qdrant_mcp_values

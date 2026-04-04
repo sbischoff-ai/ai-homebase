@@ -234,7 +234,7 @@
                       "type": "object",
                       "additionalProperties": true,
                       "properties": {
-                        "image": { "type": "string", "default": "registry.example.com/coder/openclaw-sandbox:bookworm-slim" },
+                        "image": { "type": "string", "default": "registry.example.com/coder/openclaw-sandbox:trixie-slim" },
                         "workdir": { "type": "string", "default": "/workspace" },
                         "readOnlyRoot": { "type": "boolean", "default": true },
                         "tmpfs": {

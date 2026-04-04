@@ -94,7 +94,7 @@ Remote Docker mode now installs the Docker CLI into the pod via the `remoteDocke
 
 If the OpenClaw image does not include `ssh`, the Deployment now fails early in init with an explicit error instead of starting a pod that cannot reach the remote Docker daemon.
 
-This repo includes a repo-managed gateway Dockerfile at `images/openclaw-remote-docker/Dockerfile` that extends `ghcr.io/openclaw/openclaw:2026.3.28` with `docker.io`, `openssh-client`, `jq`, and `ripgrep` for the supported watchdog/session-logs posture. It also ships `images/openclaw-sandbox-base/Dockerfile`, which already carries `jq` and `ripgrep` for the regular sandbox image, plus `images/openclaw-sandbox-coder/Dockerfile`, a coder-specific sandbox image layered on top of that base. Any sandbox image used for remote agent execution should expose the same shared MCP bridge path `/opt/openclaw-runtime/mcp/mcp-http-bridge.mjs` if you want MCP bridges to work inside sandboxed agents too.
+This repo includes a repo-managed gateway Dockerfile at `images/openclaw-remote-docker/Dockerfile` that rebases the OpenClaw runtime onto a newer Debian userland so `mgconsole` works natively, while still carrying `docker.io`, `openssh-client`, `jq`, and `ripgrep` for the supported watchdog/session-logs posture. It also ships `images/openclaw-sandbox-base/Dockerfile`, which uses the same newer glibc baseline and carries `jq`, `ripgrep`, and `mgconsole` for the regular sandbox image, plus `images/openclaw-sandbox-coder/Dockerfile`, a coder-specific sandbox image layered on top of that base. The Deployment also seeds a compatible `mgconsole` wrapper plus runtime libraries into the gateway pod at `/opt/memgraph-tools` so Memgraph access stays available even when the upstream OpenClaw image is still in use. Any sandbox image used for remote agent execution should expose the same shared MCP bridge path `/opt/openclaw-runtime/mcp/mcp-http-bridge.mjs` if you want MCP bridges to work inside sandboxed agents too.
 
 The SSH Secret referenced by `remoteDocker.ssh.secretName` must include these exact keys:
 
@@ -197,7 +197,7 @@ openclaw:
     defaults:
       sandbox:
         docker:
-          image: registry.example.com/coder/openclaw-sandbox:bookworm-slim
+          image: registry.example.com/coder/openclaw-sandbox:trixie-slim
         browser:
           image: openclaw-sandbox-browser:bookworm-slim
           cdpSourceRange: 10.42.0.0/16

@@ -10,7 +10,6 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 INCLUDED_PATHS = (
     Path("images/openclaw-sandbox-base/Dockerfile"),
-    Path("images/openclaw-sandbox-archivist/Dockerfile"),
     Path("images/openclaw-sandbox-coder/Dockerfile"),
     Path("images/openclaw-remote-docker/Dockerfile"),
     Path("scripts/build-openclaw-sandbox-images.sh"),
@@ -38,7 +37,6 @@ This repository is the canonical source for the OpenClaw sandbox runtime images 
 
 Images owned here:
 - `openclaw-sandbox`
-- `openclaw-sandbox-archivist`
 - `openclaw-sandbox-coder`
 - `openclaw-remote-docker`
 
@@ -53,10 +51,9 @@ Default registry namespace:
 - namespace: `{repo_owner}`
 
 Canonical image names:
-- `{registry_host}/{repo_owner}/openclaw-sandbox:bookworm-slim`
-- `{registry_host}/{repo_owner}/openclaw-sandbox-archivist:bookworm-slim`
-- `{registry_host}/{repo_owner}/openclaw-sandbox-coder:bookworm-slim`
-- `{registry_host}/{repo_owner}/openclaw-remote-docker:bookworm-slim`
+- `{registry_host}/{repo_owner}/openclaw-sandbox:trixie-slim`
+- `{registry_host}/{repo_owner}/openclaw-sandbox-coder:trixie-slim`
+- `{registry_host}/{repo_owner}/openclaw-remote-docker:trixie-slim`
 """
 
 

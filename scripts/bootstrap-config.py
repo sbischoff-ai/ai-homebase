@@ -153,7 +153,7 @@ def normalize_markdown(text: str) -> str:
     return textwrap.dedent(text).strip() + "\n"
 
 
-def registry_image_ref(registry_host: str, namespace: str, image_name: str, tag: str = "bookworm-slim") -> str:
+def registry_image_ref(registry_host: str, namespace: str, image_name: str, tag: str = "trixie-slim") -> str:
     if not registry_host or not namespace:
         return f"{image_name}:{tag}"
     return f"{registry_host}/{namespace}/{image_name}:{tag}"
@@ -1650,9 +1650,9 @@ def workspace_bootstrap_values(
                            - If PARTIALLY, handle the knowledge curation part and route the rest through main by sending a concise handoff or blocker message with `sessions_send` to `agent:main:main`.
                            - If NO, do not continue in this session. Send a short ownership note to `agent:main:main` with `sessions_send` explaining which agent should own it and why.
                         2. **Recall check:** Could graph or semantic memory improve this task?
-                           - Search Qdrant for relevant durable memories.
-                           - Traverse Memgraph for related entities, repositories, services, projects, and memory nodes.
-                           - Read authoritative Nextcloud project docs when the graph points to them, using `nc_webdav_*` tools.
+                           - Traverse Memgraph first for related entities, repositories, services, projects, and memory nodes.
+                           - Check Qdrant only if you need graph entry points, prior ontology decisions, or candidate memory nodes to inform graph traversal.
+                           - Read authoritative Nextcloud project docs only when the graph points to them or when you need a documented entry point, using `nc_webdav_*` tools.
                         3. **Persistence check:** Should this result become durable shared knowledge?
                            - If YES, update Memgraph and Qdrant in a coordinated way.
 
@@ -1747,16 +1747,22 @@ def workspace_bootstrap_values(
                         Use Memgraph, Qdrant, and Nextcloud together to maintain the long-term knowledge system.
 
                         Memgraph runtime:
-                        - `neo4j-driver` is globally installed in the archivist sandbox image. Use `require('neo4j-driver')` for all Bolt connections.
-                        - Do not use `mgconsole`. It was removed because of GLIBC incompatibility with the sandbox base image.
-                        - Connection target: use the Memgraph ingress hostname from `global.hosts.memgraph` in the Helm values on port `7687`.
-                        - Memgraph Lab UI is the human-friendly browser companion, but your canonical write path is Cypher over Bolt via `neo4j-driver`.
-                        - Reusable query files belong in this workspace.
+                        - Use `mgconsole` as the canonical Memgraph client from both gateway and sandbox sessions.
+                        - Connection target: use `${MEMGRAPH_HOST}:${MEMGRAPH_PORT}` or `${MEMGRAPH_BOLT_URI}`.
+                        - Memgraph Lab UI is the human-friendly browser companion, but your canonical write path is Cypher through `mgconsole`.
+                        - Reusable query files belong in this workspace under `queries/`.
 
-                        `neo4j-driver` guidance:
-                        - Inspect connectivity with a small Node script that opens a Bolt session to `${MEMGRAPH_HOST}:7687` using `require('neo4j-driver')`.
-                        - Keep reusable multi-statement Cypher in checked, named query files in your workspace and execute them through small Node runners when needed.
+                        `mgconsole` guidance:
+                        - Inspect connectivity with `printf 'RETURN 1;\\n' | mgconsole --host "$MEMGRAPH_HOST" --port "$MEMGRAPH_PORT" --output-format csv`.
+                        - Run checked query files with `mgconsole --host "$MEMGRAPH_HOST" --port "$MEMGRAPH_PORT" --output-format csv < queries/<name>.cypher`.
+                        - Start from the seeded query library and extend it instead of rewriting common Cypher from scratch.
                         - Prefer `MERGE` over `CREATE` for idempotent canonical entities and relationships.
+
+                        Retrieval order:
+                        - Traverse Memgraph first for answers, structure, and entity relationships.
+                        - Check Qdrant only to discover likely entities, slugs, prior decisions, or candidate memory nodes that should inform graph traversal.
+                        - Check Nextcloud only when the graph points to a document or when you need an authoritative documented entry point.
+                        - Do not answer graph questions directly from Qdrant or Nextcloud when Memgraph can answer them.
 
                         Cypher guidance:
                         - The canonical schema uses a compact set of reusable labels and relationships.
@@ -1773,6 +1779,7 @@ def workspace_bootstrap_values(
                         - Other agents may store ordinary memories directly.
                         - You own grooming, consolidation, deduplication patterns, and graph-linking of durable memories.
                         - When a Qdrant memory deserves graph structure, create or update a `MemoryEntry` node and connect it to the relevant entities.
+                        - Use Qdrant to improve graph search, not to replace it.
 
                         Qdrant filtering:
                         - Use the `query_filter` parameter on `qdrant-find` to filter by metadata.
@@ -1804,7 +1811,7 @@ def workspace_bootstrap_values(
 
                         All six agents share one Qdrant collection for durable semantic memory.
 
-                        Search Qdrant before graph edits and use Memgraph traversal before storing new graph facts.
+                        Use Memgraph traversal first. Search Qdrant only when you need graph entry points, prior decisions, or candidate memory nodes that should inform graph work.
 
                         Store durable ontology choices, graph schema decisions, canonical entity mappings, reusable query patterns, and cross-domain relationship knowledge.
 
@@ -1818,11 +1825,11 @@ def workspace_bootstrap_values(
 
                         ## When to search
 
-                        Search Qdrant before any graph or memory operation. Concrete triggers:
-                        - About to create or update graph entities -> search for related memories and prior schema decisions
+                        Search Qdrant only when graph work would benefit from semantic entry points. Concrete triggers:
+                        - About to create or update graph entities and you need related memories or prior schema decisions that are not already evident in Memgraph
                         - Starting a grooming pass -> use `query_filter` with a `created` date range to find memories from the last grooming window (typically 24 hours). Do not rely on semantic search alone for recency; use the date filter.
-                        - Asked about knowledge structure -> search for prior schema and ontology decisions
-                        - Need to locate stored artifacts or knowledge sources -> search for the project, entity, or artifact name first
+                        - Asked about knowledge structure and you need prior schema or ontology decisions
+                        - Need to locate stored artifacts or knowledge sources that may give you graph entry points
 
                         ## When to store
 
@@ -1839,6 +1846,76 @@ def workspace_bootstrap_values(
                         - Be specific: `archivist canonical entity mapping for OpenClaw agents` works better than `entities`
                         - If a search returns nothing, try rephrasing; semantic search is sensitive to wording
                         - If results mix real and fictional content, re-query with an explicit `[real]` or `[fictional]` prefix
+                        """
+                    ),
+                    "queries/README.md": normalize_markdown(
+                        """
+                        ## Archivist Query Library
+
+                        Use these query files as the default entry points for routine graph work.
+
+                        - Prefer reusing and extending these files over writing one-off Cypher from scratch.
+                        - Keep queries idempotent when they mutate canonical entities or relationships.
+                        - Use `MEMGRAPH_HOST` and `MEMGRAPH_PORT` with `mgconsole` for execution.
+
+                        Examples:
+
+                        ```bash
+                        mgconsole --host "$MEMGRAPH_HOST" --port "$MEMGRAPH_PORT" --output-format csv < queries/entity-by-slug.cypher
+                        mgconsole --host "$MEMGRAPH_HOST" --port "$MEMGRAPH_PORT" --output-format csv < queries/project-service-agent-overview.cypher
+                        ```
+                        """
+                    ),
+                    "queries/entity-by-slug.cypher": normalize_markdown(
+                        """
+                        MATCH (entity:Entity)
+                        WHERE entity.slug = $slug
+                        RETURN labels(entity) AS labels, entity.slug AS slug, entity.name AS name, entity.kind AS kind, entity.domain AS domain;
+                        """
+                    ),
+                    "queries/entity-neighborhood.cypher": normalize_markdown(
+                        """
+                        MATCH (entity:Entity {slug: $slug})-[rel]-(neighbor:Entity)
+                        RETURN
+                          type(rel) AS relationship,
+                          properties(rel) AS relationship_props,
+                          labels(neighbor) AS neighbor_labels,
+                          neighbor.slug AS neighbor_slug,
+                          neighbor.name AS neighbor_name,
+                          neighbor.kind AS neighbor_kind
+                        ORDER BY relationship, neighbor_slug;
+                        """
+                    ),
+                    "queries/project-service-agent-overview.cypher": normalize_markdown(
+                        """
+                        MATCH (project:Entity:Project {slug: $project_slug})-[:HAS_PART]->(part:Entity)
+                        RETURN labels(part) AS labels, part.slug AS slug, part.name AS name, part.kind AS kind
+                        ORDER BY slug;
+                        """
+                    ),
+                    "queries/memory-links.cypher": normalize_markdown(
+                        """
+                        MATCH (memory:Entity:MemoryEntry)-[rel]-(entity:Entity)
+                        WHERE memory.slug = $memory_slug OR memory.qdrant_id = $qdrant_id
+                        RETURN
+                          memory.slug AS memory_slug,
+                          memory.qdrant_id AS qdrant_id,
+                          type(rel) AS relationship,
+                          entity.slug AS entity_slug,
+                          labels(entity) AS entity_labels,
+                          entity.name AS entity_name
+                        ORDER BY entity_slug;
+                        """
+                    ),
+                    "queries/upsert-entity-and-link.cypher": normalize_markdown(
+                        """
+                        MERGE (source:Entity {slug: $source_slug})
+                        ON CREATE SET source.name = $source_name, source.domain = $source_domain, source.kind = $source_kind
+                        MERGE (target:Entity {slug: $target_slug})
+                        ON CREATE SET target.name = $target_name, target.domain = $target_domain, target.kind = $target_kind
+                        MERGE (source)-[rel:RELATES_TO {kind: $relationship_kind}]->(target)
+                        SET rel.context = $relationship_context
+                        RETURN source.slug AS source_slug, target.slug AS target_slug, type(rel) AS relationship;
                         """
                     ),
                     "SOUL.md": normalize_markdown(
@@ -2611,9 +2688,6 @@ def resolved_values(data: dict[str, object]) -> dict[str, str]:
     values["OPENCLAW_DEFAULT_SANDBOX_IMAGE"] = registry_image_ref(
         values["REGISTRY_HOST"], values["CODER_GITEA_USERNAME"], "openclaw-sandbox"
     )
-    values["OPENCLAW_ARCHIVIST_SANDBOX_IMAGE"] = registry_image_ref(
-        values["REGISTRY_HOST"], values["CODER_GITEA_USERNAME"], "openclaw-sandbox-archivist"
-    )
     values["OPENCLAW_CODER_SANDBOX_IMAGE"] = registry_image_ref(
         values["REGISTRY_HOST"], values["CODER_GITEA_USERNAME"], "openclaw-sandbox-coder"
     )
@@ -2740,6 +2814,13 @@ def command_render_values(args: argparse.Namespace) -> int:
                     "workspaceAccess": "none",
                     "docker": {
                         "image": values["OPENCLAW_DEFAULT_SANDBOX_IMAGE"],
+                        "env": {
+                            "MEMGRAPH_HOST": values["MEMGRAPH_HOST"],
+                            "MEMGRAPH_PORT": "7687",
+                            "MEMGRAPH_BOLT_URI": (
+                                f"bolt://{values['MEMGRAPH_HOST']}:7687" if values["MEMGRAPH_HOST"] else ""
+                            ),
+                        },
                     },
                 },
             },
@@ -2835,12 +2916,7 @@ def command_render_values(args: argparse.Namespace) -> int:
                             else {}
                         ),
                     },
-                    "sandbox": {
-                        "mode": "non-main",
-                        "docker": {
-                            "image": values["OPENCLAW_ARCHIVIST_SANDBOX_IMAGE"],
-                        },
-                    },
+                    "sandbox": {"mode": "non-main"},
                 },
                 {
                     "id": "watchdog",
@@ -2896,6 +2972,14 @@ def command_render_values(args: argparse.Namespace) -> int:
             "keepLines": 2000,
         },
     }
+    openclaw["env"] = [
+        {"name": "MEMGRAPH_HOST", "value": values["MEMGRAPH_HOST"]},
+        {"name": "MEMGRAPH_PORT", "value": "7687"},
+        {
+            "name": "MEMGRAPH_BOLT_URI",
+            "value": f"bolt://{values['MEMGRAPH_HOST']}:7687" if values["MEMGRAPH_HOST"] else "",
+        },
+    ]
     if values["GITHUB_TOKEN"]:
         openclaw["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["GITHUB_TOKEN"] = "${GITHUB_TOKEN}"
     openclaw.setdefault("openclaw", {}).setdefault("commands", {})["mcp"] = True

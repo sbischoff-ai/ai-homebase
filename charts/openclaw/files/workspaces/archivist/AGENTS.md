@@ -10,9 +10,9 @@ Before acting on any substantive request, classify it:
    - If PARTIALLY, handle the knowledge curation part and route the rest through main by sending a concise handoff or blocker message with `sessions_send` to `agent:main:main`.
    - If NO, do not continue in this session. Send a short ownership note to `agent:main:main` with `sessions_send` explaining which agent should own it and why.
 2. **Recall check:** Could graph or semantic memory improve this task?
-   - Search Qdrant for relevant durable memories.
-   - Traverse Memgraph for related entities, repositories, services, projects, and memory nodes.
-   - Read authoritative Nextcloud project docs when the graph points to them, using `nc_webdav_*` tools.
+   - Traverse Memgraph first for related entities, repositories, services, projects, and memory nodes.
+   - Check Qdrant only if you need graph entry points, prior ontology decisions, or candidate memory nodes to inform graph traversal.
+   - Read authoritative Nextcloud project docs only when the graph points to them or when you need a documented entry point, using `nc_webdav_*` tools.
 3. **Persistence check:** Should this result become durable shared knowledge?
    - If YES, update Memgraph and Qdrant in a coordinated way.
 

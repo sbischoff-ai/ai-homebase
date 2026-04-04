@@ -36,12 +36,10 @@ CERT_MANAGER_DEPLOYMENTS=(
   cert-manager-cainjector
   cert-manager-webhook
 )
-CODER_SANDBOX_IMAGE_TAG="${CODER_SANDBOX_IMAGE_TAG:-openclaw-sandbox-coder:bookworm-slim}"
-DEFAULT_SANDBOX_IMAGE_TAG="${DEFAULT_SANDBOX_IMAGE_TAG:-openclaw-sandbox:bookworm-slim}"
-ARCHIVIST_SANDBOX_IMAGE_TAG="${ARCHIVIST_SANDBOX_IMAGE_TAG:-openclaw-sandbox-archivist:bookworm-slim}"
-GATEWAY_IMAGE_TAG="${GATEWAY_IMAGE_TAG:-openclaw-remote-docker:bookworm-slim}"
+CODER_SANDBOX_IMAGE_TAG="${CODER_SANDBOX_IMAGE_TAG:-openclaw-sandbox-coder:trixie-slim}"
+DEFAULT_SANDBOX_IMAGE_TAG="${DEFAULT_SANDBOX_IMAGE_TAG:-openclaw-sandbox:trixie-slim}"
+GATEWAY_IMAGE_TAG="${GATEWAY_IMAGE_TAG:-openclaw-remote-docker:trixie-slim}"
 CANONICAL_DEFAULT_SANDBOX_IMAGE="${CANONICAL_DEFAULT_SANDBOX_IMAGE:-}"
-CANONICAL_ARCHIVIST_SANDBOX_IMAGE="${CANONICAL_ARCHIVIST_SANDBOX_IMAGE:-}"
 CANONICAL_CODER_SANDBOX_IMAGE="${CANONICAL_CODER_SANDBOX_IMAGE:-}"
 REGISTRY_HOST_VALUE="${REGISTRY_HOST_VALUE:-}"
 REGISTRY_USERNAME_VALUE="${REGISTRY_USERNAME_VALUE:-}"
@@ -144,7 +142,6 @@ prepare_openclaw_runtime_images() {
   local build_args=()
   local gateway_image_needed=0
   local default_image_needed=0
-  local archivist_image_needed=0
   local coder_image_needed=0
 
   if values_reference "repository: ${GATEWAY_IMAGE_TAG%%:*}" || values_reference "$GATEWAY_IMAGE_TAG"; then
@@ -154,10 +151,6 @@ prepare_openclaw_runtime_images() {
   if values_reference "openclaw-sandbox:"; then
     default_image_needed=1
     build_args+=(--base-image "$DEFAULT_SANDBOX_IMAGE_TAG")
-  fi
-  if values_reference "openclaw-sandbox-archivist:"; then
-    archivist_image_needed=1
-    build_args+=(--archivist-image "$ARCHIVIST_SANDBOX_IMAGE_TAG")
   fi
   if values_reference "openclaw-sandbox-coder:"; then
     coder_image_needed=1
@@ -174,7 +167,7 @@ prepare_openclaw_runtime_images() {
     import_image_into_k3d_cluster "$GATEWAY_IMAGE_TAG"
   fi
 
-  if [[ ( "$default_image_needed" -eq 1 || "$archivist_image_needed" -eq 1 || "$coder_image_needed" -eq 1 ) && -n "$REMOTE_DOCKER_HOST" && -n "$REMOTE_DOCKER_PORT" ]]; then
+  if [[ ( "$default_image_needed" -eq 1 || "$coder_image_needed" -eq 1 ) && -n "$REMOTE_DOCKER_HOST" && -n "$REMOTE_DOCKER_PORT" ]]; then
     docker_host="ssh://docker-remote@${REMOTE_DOCKER_HOST}:${REMOTE_DOCKER_PORT}"
     load_cmd=(
       ./scripts/openclaw-remote-docker-load-images.sh
@@ -185,9 +178,6 @@ prepare_openclaw_runtime_images() {
     fi
     if [[ "$default_image_needed" -eq 1 ]]; then
       load_cmd+=(--image "$DEFAULT_SANDBOX_IMAGE_TAG")
-    fi
-    if [[ "$archivist_image_needed" -eq 1 ]]; then
-      load_cmd+=(--image "$ARCHIVIST_SANDBOX_IMAGE_TAG")
     fi
     if [[ "$coder_image_needed" -eq 1 ]]; then
       load_cmd+=(--image "$CODER_SANDBOX_IMAGE_TAG")
@@ -206,11 +196,6 @@ prepare_openclaw_runtime_images() {
       publish_cmd+=(--source-image "$DEFAULT_SANDBOX_IMAGE_TAG" --target-image "$CANONICAL_DEFAULT_SANDBOX_IMAGE")
       PUBLISH_SOURCE_IMAGES+=("$DEFAULT_SANDBOX_IMAGE_TAG")
       PUBLISH_TARGET_IMAGES+=("$CANONICAL_DEFAULT_SANDBOX_IMAGE")
-    fi
-    if [[ "$archivist_image_needed" -eq 1 && -n "$CANONICAL_ARCHIVIST_SANDBOX_IMAGE" ]]; then
-      publish_cmd+=(--source-image "$ARCHIVIST_SANDBOX_IMAGE_TAG" --target-image "$CANONICAL_ARCHIVIST_SANDBOX_IMAGE")
-      PUBLISH_SOURCE_IMAGES+=("$ARCHIVIST_SANDBOX_IMAGE_TAG")
-      PUBLISH_TARGET_IMAGES+=("$CANONICAL_ARCHIVIST_SANDBOX_IMAGE")
     fi
     if [[ "$coder_image_needed" -eq 1 && -n "$CANONICAL_CODER_SANDBOX_IMAGE" ]]; then
       publish_cmd+=(--source-image "$CODER_SANDBOX_IMAGE_TAG" --target-image "$CANONICAL_CODER_SANDBOX_IMAGE")
@@ -453,7 +438,6 @@ if [[ -n "$BOOTSTRAP_CONFIG_PATH" ]]; then
   python3 ./scripts/bootstrap-config.py render-values --config "$BOOTSTRAP_CONFIG_PATH" >"$BOOTSTRAP_VALUES_FILE"
   eval "$(python3 ./scripts/bootstrap-config.py shell-vars --config "$BOOTSTRAP_CONFIG_PATH")"
   CANONICAL_DEFAULT_SANDBOX_IMAGE="${OPENCLAW_DEFAULT_SANDBOX_IMAGE:-$CANONICAL_DEFAULT_SANDBOX_IMAGE}"
-  CANONICAL_ARCHIVIST_SANDBOX_IMAGE="${OPENCLAW_ARCHIVIST_SANDBOX_IMAGE:-$CANONICAL_ARCHIVIST_SANDBOX_IMAGE}"
   CANONICAL_CODER_SANDBOX_IMAGE="${OPENCLAW_CODER_SANDBOX_IMAGE:-$CANONICAL_CODER_SANDBOX_IMAGE}"
   REGISTRY_HOST_VALUE="${REGISTRY_HOST:-$REGISTRY_HOST_VALUE}"
   REGISTRY_USERNAME_VALUE="${REGISTRY_USERNAME:-$REGISTRY_USERNAME_VALUE}"

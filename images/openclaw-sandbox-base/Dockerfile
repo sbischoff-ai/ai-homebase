@@ -2,7 +2,7 @@
 
 FROM memgraph/memgraph:3.8.1 AS memgraph-tools
 
-FROM debian:bookworm-slim@sha256:98f4b71de414932439ac6ac690d7060df1f27161073c5036a7553723881bffbe
+FROM debian:trixie-slim@sha256:26f98ccd92fd0a44d6928ce8ff8f4921b4d2f535bfa07555ee5d18f61429cf0c
 
 ENV DEBIAN_FRONTEND=noninteractive
 
