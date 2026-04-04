@@ -1,17 +1,65 @@
 # Multi-Agent Topology
 
-The cluster bootstraps five standing OpenClaw agents:
+## Three-Layer Architecture
 
-- `main`: user-facing coordinator and manager of work
-- `architect`: project planner, designer, and documentation owner
-- `coder`: implementation and GitOps executor
-- `archivist`: long-horizon knowledge graph curator and memory steward
-- `watchdog`: low-cost monitoring, polling, heartbeat, and triage specialist
+Top layer: intelligence and validation.
 
-Coordination model:
-- `main` decides whether work is a small task or a larger project.
-- small tasks may be handled directly by `main` when lightweight and low-risk.
-- projects go to `architect` first for planning, design, decomposition, and durable project documentation.
-- work goes to `archivist` when it needs durable graph curation, cross-domain context synthesis, or stable long-term memory structure.
+- `architect` (Claude Sonnet 4.6) and `auditor` (Claude Opus 4.6) are general-purpose frontier thinkers.
+- Their scope is any domain that needs deep reasoning, design, or validation, not just cluster or coding work.
+- They produce execution-ready specifications, plans, worker definitions, and structured validation verdicts.
+- Their outputs must be unambiguous and executable without interpretation.
+
+Middle layer: coordination, state, and integration.
+
+- `main` (GPT-5.4 Mini), `archivist` (GPT-5.4 Mini), and `coder` (Claude Sonnet 4.6 plus Codex CLI on GPT-5.4 Mini) handle variability, integration, shared state, and complex implementation.
+- These agents have meaningful reasoning capacity.
+- They do not replace top-layer reasoning, but they are not purely mechanical either.
+
+Bottom layer: execution.
+
+- `watchdog` (GPT-5.4 Nano) and worker agents (GPT-5.4 Mini or Nano) execute predefined workflows repeatedly and cheaply.
+- They do not make independent creative or strategic decisions.
+- They escalate when ambiguity appears.
+
+Design principle:
+- intelligence is concentrated at the top and amortized through cheap execution at the bottom.
+- worker agents should consume the bulk of total system tokens.
+
+## Agent Roster
+
+- `main` | middle | GPT-5.4 Mini | user-facing coordinator, task router, budget manager
+- `architect` | top | Claude Sonnet 4.6 | general-purpose planner, designer, specification author, worker agent designer
+- `coder` | middle | Claude Sonnet 4.6 + Codex CLI with GPT-5.4 Mini | implementation executor, GitOps, Codex delegation
+- `archivist` | middle | GPT-5.4 Mini | knowledge graph curator, cross-agent memory steward, structured recall service
+- `watchdog` | bottom | GPT-5.4 Nano | lightweight monitoring, heartbeat checks, triage
+- `auditor` | top | Claude Opus 4.6 | general-purpose quality reviewer, validation gate for high-stakes outputs
+
+Worker agents are not standing agents.
+They are instantiated on demand from architect-defined worker definitions and configured by `main`.
+
+## Coordination Model
+
+- `main` receives user requests and classifies them.
+- Small tasks inside `main`'s domain are handled directly.
+- Design, planning, and specification work goes to `architect`.
 - `architect` returns actionable work items to `main`.
-- `main` then routes those items to the user, `coder`, `archivist`, `watchdog`, or itself.
+- `main` routes those items to `coder`, `archivist`, `watchdog`, worker agents, or itself.
+- High-stakes outputs go to `auditor` for validation before delivery.
+- `archivist` serves as a structured recall service; any agent can request graph-backed context through `main` when Qdrant semantic search is insufficient.
+
+## Worker Agents
+
+- Worker agents are domain-specific execution units designed by `architect`.
+- Each worker has an execution plan, reference documentation, a scheduling model, and escalation rules defined before instantiation.
+- Workers use GPT-5.4 Nano or GPT-5.4 Mini depending on task complexity.
+- Workers must not redesign workflows, make strategic decisions, or interpret ambiguous instructions.
+- Workers escalate exclusively to `main`.
+- Example worker types: `accountant`, `mail_clerk`, `reporter`, `market_tracker`, `habit_helper`
+
+## System Invariants
+
+- Intelligence resides at the top; workers do not compensate for poor specifications.
+- The middle layer handles variability; it does not replace top-layer reasoning.
+- `archivist` is the graph of record; Qdrant is the semantic search index; they complement each other.
+- `main` is the only agent that spawns sessions or instantiates workers.
+- All escalations route through `main`.
