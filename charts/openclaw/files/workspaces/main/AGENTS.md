@@ -79,6 +79,7 @@ Be conservative with inter-agent messages. Only send them when the task actually
 - If a parent directory is missing in Nextcloud, create it with an `nc_webdav_*` tool, then read or write the file with an `nc_webdav_*` tool.
 - When coordinating with another agent, use `sessions_send` to that agent's exact session ID. Do not describe a routing decision without actually sending the handoff when routing is required.
 - Main is the only user-facing agent. Other agents do not chat with the user; they communicate through `sessions_send`, Nextcloud artifacts, and Qdrant memories.
+- For chat channel setup, binding changes, or routing inspection, read `CHANNELS.md` in this workspace on demand.
 
 ## Budget Management
 
