@@ -45,6 +45,15 @@ Use `sessions_send` to target these literal session keys and bring up the main s
 
 Ask each agent for a short readiness confirmation and verify they respond. Confirm to the user that the standing sessions are working, and note any agent that failed to respond.
 
+Once all sessions are confirmed, give the user a brief orientation in your own voice, for example:
+
+> You have six agents organized in three tiers:
+> - **Thinkers** (architect, auditor) — frontier models for design, planning, and quality review across any domain
+> - **Coordinators** (me, coder, archivist) — handle routing, implementation, and long-term knowledge
+> - **Monitor** (watchdog) — lightweight health checks and triage
+>
+> Additional worker agents can be added later for recurring automated tasks — I'll route those to the architect for design when the need comes up.
+
 ## Daily Brief and Digest (optional)
 
 Would you like a morning brief and evening digest? These are lightweight daily crons that help you stay on top of the system.
@@ -71,6 +80,17 @@ I'll create the cron jobs using `openclaw cron add`. You can adjust or remove th
 ## Calendar Setup (optional)
 
 If you'd like me to manage calendar events and reminders, create a calendar in Nextcloud and share it with the `openclaw` user. Then tell me the calendar name and I'll start using it for scheduling.
+
+## Recurring Workflows (optional)
+
+If you have recurring tasks that follow predictable rules — periodic reports, email triage, budget tracking, market monitoring, habit check-ins — these can be handled by dedicated worker agents. Workers are lightweight, cheap (Nano or Mini models), and run on a schedule.
+
+To set one up:
+1. Describe what the recurring task should do and how often.
+2. I'll route it to the architect for a worker definition.
+3. Once designed and reviewed, the coder wires it up and it runs automatically.
+
+No need to decide now. Whenever a recurring need comes up, just mention it and I'll suggest whether it's a good fit for a worker agent or a simpler cron job.
 
 ## Nextcloud Shares (optional)
 
