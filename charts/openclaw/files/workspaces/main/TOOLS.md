@@ -54,3 +54,9 @@ Tokscale reads OpenClaw and Codex session data and calculates costs using real-t
 - `tokscale pricing "model-name"` -- look up current model pricing
 
 Tokscale does not separate per-agent costs. To get the full picture, also read the coder's Codex usage log at `/Projects/ai-homebase/codex-usage/YYYY-MM-DD.json`.
+
+### Worker agent costs
+
+Worker agents use Nano or Mini models. Their cost is included in the overall tokscale output (`--group-by model` shows the breakdown). Unlike Codex, workers do not have a separate usage log -- their spend is visible directly in the per-model tokscale data.
+
+If Nano/Mini spend is unexpectedly high, check which workers are running and how often. Route optimization requests to architect.
