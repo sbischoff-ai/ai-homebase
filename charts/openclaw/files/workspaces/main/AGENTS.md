@@ -191,6 +191,16 @@ When the user describes a recurring need that fits the worker model (repetitive,
 
 If the architect flags the worker for auditor review (sensitive data, external communications, financial operations), route the definition to auditor before proceeding.
 
+### When to suggest a worker vs. simpler alternatives
+
+Not every recurring task needs a dedicated worker agent. Use this heuristic:
+
+- **Direct cron (main or watchdog):** The task is a single tool call or a simple check with no branching logic. Examples: daily budget summary, heartbeat check, calendar reminder. Handle these with an `openclaw cron add` job that runs in main's or watchdog's context.
+- **Worker agent:** The task is a recurring multi-step workflow with domain-specific rules, multiple tool calls, branching decision logic, and structured output. Examples: expense categorization, email triage, periodic report generation from multiple data sources.
+- **Not a worker:** The task requires judgment, creativity, or user interaction each time it runs. These stay with the appropriate middle or top layer agent.
+
+When in doubt, start with a cron job. If the cron prompt grows beyond ~10 lines or needs conditional logic, it's a worker candidate — route to architect for a definition package.
+
 ### Instantiating a worker
 
 Once the architect delivers an approved worker definition package:
