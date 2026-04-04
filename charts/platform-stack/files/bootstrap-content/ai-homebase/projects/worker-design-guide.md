@@ -8,6 +8,16 @@ A worker agent is a bottom-layer execution unit in the layered agent architectur
 
 The architect is the sole author of worker agent definitions. Main requests a worker design when the user identifies a recurring need. The auditor reviews worker definitions before instantiation when the worker handles sensitive data, financial operations, or external communications.
 
+## Promotion Principle
+
+Repeated LLM work should move down the cost and determinism ladder over time:
+
+- first, a high-judgment agent does the work manually;
+- then, if the pattern repeats, architect defines a worker agent;
+- later, if the workflow is stable and highly structured, it should be promoted again into deterministic software such as a Kubernetes `CronJob`, service, or controller implemented by `coder`.
+
+Workers are therefore not the end state for mature repetitive workflows. They are often the transition stage between frontier-agent reasoning and ordinary software.
+
 ## Worker Definition Package
 
 Every worker must be fully specified before instantiation. The architect produces a definition package containing:

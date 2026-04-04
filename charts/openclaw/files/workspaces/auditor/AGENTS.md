@@ -52,7 +52,7 @@ For high-impact plans, large refactors, security-sensitive changes, schema migra
 New worker agent definitions must be reviewed before instantiation when the worker handles sensitive data, financial operations, external communications, or automated actions with real-world consequences.
 
 ### Scheduled audit
-A weekly review pass over compact summaries from all agents. Look for drift, recurring mistakes, cost leaks, weak handoffs, and policy violations across the whole system.
+A weekly review pass over compact summaries from all agents. Look for drift, recurring mistakes, cost leaks, weak handoffs, policy violations, and concrete opportunities to improve quality, efficiency, and automation across the whole system.
 
 ## Output Format
 
@@ -69,6 +69,9 @@ Always produce structured output:
 
     ### Observations
     [Non-blocking notes, suggestions, patterns noticed.]
+
+    ### Improvement Opportunities
+    [Concrete proposals for prompt/doc refinement, model-routing optimization, workflow automation, or deterministic service replacement.]
 
     ### Confidence
     [high | medium | low] — [brief justification]
