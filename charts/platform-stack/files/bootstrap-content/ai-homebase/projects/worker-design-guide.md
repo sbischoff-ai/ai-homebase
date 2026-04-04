@@ -38,14 +38,19 @@ Every worker must be fully specified before instantiation. The architect produce
 
 ## How Workers Are Instantiated
 
-1. Architect produces the definition package and writes it to `/Projects/<project-slug>/workers/<worker-id>/`.
+1. Architect produces the definition package and writes it to `/Projects/<project-slug>/workers/<worker-id>/` in Nextcloud.
 2. If risk-triggered review is warranted, main routes the definition to auditor.
-3. Main (or coder, on main's behalf) adds the worker to the platform config:
-   - New entry in the agent list in `charts/platform-stack/values.yaml`
-   - New workspace directory under `charts/openclaw/files/workspaces/<worker-id>/` created from the worker template
-   - Placeholder values in the template filled in from the definition package
-   - New entry in the `workspaceBootstrap.agents` section of `charts/platform-stack/values.yaml`
-4. Cron schedule (if any) is configured via `openclaw cron add`.
+3. Main instantiates the worker at runtime:
+   a. Create the workspace directory (e.g., `~/.openclaw/workspace-<worker-id>`).
+   b. Write the workspace files (AGENTS.md, SOUL.md, IDENTITY.md, MEMORY.md, TOOLS.md, HEARTBEAT.md, USER.md) by filling in the worker template placeholders with values from the architect's definition package.
+   c. Run `openclaw agents add <worker-id> --workspace ~/.openclaw/workspace-<worker-id> --model <model-id>` to register the agent.
+   d. If the worker needs a cron schedule, configure it with `openclaw cron add`.
+4. Main confirms to the user that the worker is active.
+
+To decommission a worker:
+1. Remove its cron schedule with `openclaw cron remove` (if any).
+2. Run `openclaw agents delete <worker-id>`.
+3. Announce to the user.
 
 ## Worker Behavior Invariants
 
@@ -64,4 +69,4 @@ Workers must NOT:
 
 ## Template Location
 
-The worker workspace template is at `charts/openclaw/files/workspaces/worker-template/`. Copy it to a new directory named after the worker ID and fill in the `{{PLACEHOLDER}}` values from the definition package.
+The worker workspace template is at `charts/openclaw/files/workspaces/worker-template/` in the ai-homebase repo. Main uses this as a reference when creating workspace files for new workers — it is not deployed as a live agent workspace.

@@ -204,9 +204,12 @@ When in doubt, start with a cron job. If the cron prompt grows beyond ~10 lines 
 ### Instantiating a worker
 
 Once the architect delivers an approved worker definition package:
-1. Route to coder with a handoff to create the worker workspace and values.yaml entry from the worker template.
-2. Reference the definition package location (typically `/Projects/<slug>/workers/<worker-id>/`) and the template at `charts/openclaw/files/workspaces/worker-template/`.
-3. If the worker needs a cron schedule, configure it with `openclaw cron add` after the workspace is deployed.
+1. Read the definition package from Nextcloud (typically `/Projects/<slug>/workers/<worker-id>/`).
+2. Create the workspace directory at `~/.openclaw/workspace-<worker-id>`.
+3. Write the workspace files by filling in the worker template placeholders with values from the definition package. Use the template at `charts/openclaw/files/workspaces/worker-template/` as a reference for file structure.
+4. Register the agent: `openclaw agents add <worker-id> --workspace ~/.openclaw/workspace-<worker-id> --model <model-id>`.
+5. If the worker needs a cron schedule, configure it with `openclaw cron add`.
+6. Confirm to the user that the worker is active.
 
 ### Routing work to existing workers
 
@@ -218,9 +221,9 @@ Workers use cheap models but may run frequently. Track worker spend as part of t
 
 ### Worker lifecycle
 
-- To update a worker's behavior: route to architect for a revised definition package, then to coder for implementation.
-- To decommission a worker: remove its cron schedule, remove its agent list entry and workspace from the values config. Announce to the user.
-- Workers do not self-modify. All changes flow through architect -> main -> coder.
+- To update a worker's behavior: route to architect for a revised definition package, then update the workspace files in `~/.openclaw/workspace-<worker-id>`.
+- To decommission a worker: remove its cron schedule with `openclaw cron remove`, then run `openclaw agents delete <worker-id>`. Announce to the user.
+- Workers do not self-modify. All design changes flow through architect → main.
 
 ## Tool Scope
 
