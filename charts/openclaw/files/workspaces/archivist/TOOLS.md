@@ -11,12 +11,14 @@ Memgraph runtime:
 - Run checked query files with `mgconsole --host "$MEMGRAPH_HOST" --port "$MEMGRAPH_PORT" --output-format csv < queries/<name>.cypher`.
 - Start from the seeded query library and extend it instead of rewriting common Cypher from scratch.
 - Prefer `MERGE` over `CREATE` for idempotent canonical entities and relationships.
+- For structured recall requests, start with `queries/context-map.cypher` and then enrich the result with Qdrant and Nextcloud only where the graph leaves ambiguity or points to supporting documents.
 
 Retrieval order:
 - Traverse Memgraph first for answers, structure, and entity relationships.
 - Check Qdrant only to discover likely entities, slugs, prior decisions, or candidate memory nodes that should inform graph traversal.
 - Check Nextcloud only when the graph points to a document or when you need an authoritative documented entry point.
 - Do not answer graph questions directly from Qdrant or Nextcloud when Memgraph can answer them.
+- When building a context map, keep the Memgraph one-hop neighborhood as the backbone and use Qdrant and Nextcloud to fill recall gaps, not to replace graph structure.
 
 Cypher guidance:
 - The canonical schema uses a compact set of reusable labels and relationships.
