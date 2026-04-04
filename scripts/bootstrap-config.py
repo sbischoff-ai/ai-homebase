@@ -22,7 +22,7 @@ PROVIDER_ENV_VARS = (
     "MOONSHOT_API_KEY",
 )
 
-DEFAULT_MAIN_MODEL = "openai/gpt-5.4-mini"
+DEFAULT_MAIN_MODEL = "openai/gpt-4.1"
 DEFAULT_MAIN_FALLBACK_MODELS = ["anthropic/claude-sonnet-4-6"]
 DEFAULT_CODER_MODEL = "anthropic/claude-sonnet-4-6"
 DEFAULT_CODER_FALLBACK_MODELS = ["openai/gpt-5.4"]
@@ -33,7 +33,7 @@ DEFAULT_ARCHITECT_MODEL = "anthropic/claude-sonnet-4-6"
 DEFAULT_ARCHITECT_FALLBACK_MODELS = ["openai/o3"]
 DEFAULT_ARCHIVIST_MODEL = "openai/gpt-5.4-mini"
 DEFAULT_ARCHIVIST_FALLBACK_MODELS = ["anthropic/claude-sonnet-4-6"]
-DEFAULT_WATCHDOG_MODEL = "openai/gpt-4.1-nano"
+DEFAULT_WATCHDOG_MODEL = "openai/gpt-5.4-nano"
 DEFAULT_WATCHDOG_FALLBACK_MODELS = ["anthropic/claude-haiku-4-5"]
 DEFAULT_AUDITOR_MODEL = "anthropic/claude-opus-4-6"
 DEFAULT_AUDITOR_FALLBACK_MODELS = ["openai/gpt-5.4"]
