@@ -11,7 +11,7 @@ Top layer: intelligence and validation.
 
 Middle layer: coordination, state, and integration.
 
-- `main` (GPT-5.4 Mini), `archivist` (GPT-5.4 Mini), and `coder` (Claude Sonnet 4.6 plus Codex CLI on GPT-5.4 Mini) handle variability, integration, shared state, and complex implementation.
+- `main` (GPT-4.1), `archivist` (GPT-5.4 Mini), and `coder` (Claude Sonnet 4.6 plus Codex CLI on GPT-5.4 Mini) handle variability, integration, shared state, and complex implementation.
 - These agents have meaningful reasoning capacity.
 - They do not replace top-layer reasoning, but they are not purely mechanical either.
 
@@ -27,7 +27,7 @@ Design principle:
 
 ## Agent Roster
 
-- `main` | middle | GPT-5.4 Mini | user-facing coordinator, task router, budget manager
+- `main` | middle | GPT-4.1 | user-facing coordinator, task router, budget manager
 - `architect` | top | Claude Sonnet 4.6 | general-purpose planner, designer, specification author, worker agent designer
 - `coder` | middle | Claude Sonnet 4.6 + Codex CLI with GPT-5.4 Mini | implementation executor, GitOps, Codex delegation
 - `archivist` | middle | GPT-5.4 Mini | knowledge graph curator, cross-agent memory steward, structured recall service
