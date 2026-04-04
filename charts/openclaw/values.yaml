@@ -145,7 +145,7 @@ openclaw:
         backend: docker
         mode: non-main
         scope: agent
-        workspaceAccess: none
+        workspaceAccess: rw
         sessionToolsVisibility: "all"
         docker:
           image: registry.example.com/coder/openclaw-sandbox:trixie-slim

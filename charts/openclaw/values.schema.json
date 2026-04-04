@@ -228,7 +228,7 @@
                     "workspaceAccess": {
                       "type": "string",
                       "enum": ["none", "ro", "rw"],
-                      "default": "none"
+                      "default": "rw"
                     },
                     "docker": {
                       "type": "object",
