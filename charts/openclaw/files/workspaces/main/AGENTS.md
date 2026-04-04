@@ -12,6 +12,16 @@ Before acting on any substantive request, classify it:
 2. **Recall check:** Could prior context improve my response?
    - Search Qdrant for relevant memories.
    - Check Nextcloud `/Projects/<slug>/` for related artifacts if a project is involved, using `nc_webdav_*` tools.
+
+   **Archivist escalation triggers** — request a context map from archivist (via main) when:
+   - Qdrant returns sparse, conflicting, or inconclusive results on a topic that should be well-documented
+   - You need to reconstruct the full context of a domain, project, or relationship network — not a single fact, but a structural picture
+   - You are about to make a decision that touches multiple interconnected entities and you need confidence about how they relate
+   - You suspect a memory exists but cannot find it semantically (the graph may have it linked by structure rather than text similarity)
+
+   **Do not escalate** when a single targeted Qdrant search returns a clear, confident result, or when the task is entirely within your own known working domain with no cross-entity complexity.
+
+   When another agent requests archivist recall as part of a handoff, route the request to `agent:archivist:main` and relay the context map back.
 3. **Persistence check:** Will this task produce knowledge or artifacts that should outlive this session?
    - User-facing artifacts go to Nextcloud.
    - Agent-facing knowledge goes to Qdrant.
