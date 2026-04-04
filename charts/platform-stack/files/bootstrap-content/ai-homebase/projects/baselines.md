@@ -5,7 +5,7 @@
 - Startup time: ~30-60 seconds after pod creation
 
 ## Sessions
-- Standing sessions after bootstrap: 5 (main, architect, coder, archivist, watchdog)
+- Standing sessions after bootstrap: 6 (main, architect, coder, archivist, watchdog, auditor)
 - Cold-start session response time: 5-30 seconds (expected, not a fault)
 
 ## Services

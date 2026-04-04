@@ -9,7 +9,7 @@ Execution rules:
 Read the heartbeat file at `/Projects/ai-homebase/heartbeat.json` with an `nc_webdav_*` tool to see when main was last active. Check today's Codex usage log at `/Projects/ai-homebase/codex-usage/YYYY-MM-DD.json` (use today's date) with an `nc_webdav_*` tool for coder activity.
 
 If any of these are true, send a grooming trigger to archivist via `sessions_send` to `agent:archivist:main`:
-- Main's heartbeat shows activity in the last 12 hours with significant coordination (multiple agent handoffs logged)
+- Main's heartbeat shows activity in the last 12 hours
 - A Codex usage log exists for today with 3 or more entries
 - You observed significant architect or coder activity during your heartbeat checks today
 

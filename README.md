@@ -1,20 +1,73 @@
 # ai-homebase
 
-`ai-homebase` is an opinionated homelab platform for running OpenClaw as the center of a personal AI control plane. It combines a multi-agent OpenClaw setup with supporting services such as Nextcloud, a dedicated Nextcloud MCP gateway, Gitea, an in-cluster Docker registry, Paperless-ngx, Vaultwarden, shared PostgreSQL/Redis, an in-cluster Postfix relay for application email, shared Qdrant/Qdrant MCP memory services for cross-agent RAG context, and Memgraph plus Memgraph Lab for graph-structured long-term knowledge.
+`ai-homebase` is a practical homelab platform for building a personal AI control plane that can iteratively redesign, re-code, and re-deploy itself.
 
-The point of the repo is not just “a pile of charts.” It gives you one coherent platform shape that works in two places: `k3d` for fast local iteration and `k3s` for the long-running homelab deployment. The bootstrap flow, secrets model, hostnames, multi-agent topology, MCP posture, and service contracts stay aligned between those targets so local validation is actually useful before you touch the real server.
+This repo is not just “some Helm charts” and it is not just “an OpenClaw install.” It is a controlled self-improvement system: a multi-agent stack with durable documentation, memory, source control, image publishing, and GitOps delivery wired together so the cluster can take a requirement and push it all the way toward running software. 🚀
 
-Characteristic features of this stack:
+The core loop is:
 
-- OpenClaw bootstrapped as a multi-agent system with `main`, `architect`, `coder`, `archivist`, `watchdog`, and `auditor`
-- Architect-oriented project documentation seeded into Nextcloud so the cluster can document and evolve itself from day one
-- remote Docker sandboxes for specialist agents, including a coder-specific sandbox image with developer tooling
-- Nextcloud shared with OpenClaw through a dedicated MCP gateway and shared-account operating conventions
-- GitOps handoff into an in-cluster Gitea repository with Argo CD bootstrapped, initially synced, and then kept in manual-sync mode
-- an in-cluster authenticated registry for coder-built application images
-- one bootstrap input model for both local and homelab targets through `bootstrap.local.toml`
+- you describe what you want
+- `architect` turns it into an execution-ready plan
+- `coder` implements it, updates repos, and publishes runtime images
+- Gitea and the in-cluster registry become the durable artifact layer
+- Argo CD applies reviewed cluster changes
+- `watchdog`, `auditor`, and `archivist` feed observations, quality checks, and durable knowledge back into the next iteration
 
-The intended long-running target today is a single-node `k3s` install on a Hetzner A42U-class machine with a Ryzen 7 Pro 8700GE, 64 GB RAM, and roughly 3 TB of storage. The repo now assumes that target should have headroom not only for the current stack, but also for additional heavier services such as Qdrant, Memgraph, and future coder-deployed web services.
+In other words: this cluster can become almost anything you want, limited mainly by hardware, budget, and the consistency of the documentation, memory, and graph it maintains about itself.
+
+## Why This Exists
+
+Most “AI homelab” setups stop at chat, tools, or a single coding agent. `ai-homebase` goes further:
+
+- 🧠 a standing multi-agent OpenClaw topology with clear role separation
+- 🗂️ Nextcloud as durable shared project documentation and operator-facing memory
+- 🕸️ Qdrant plus Memgraph for semantic and structural long-term knowledge
+- 🧪 remote Docker sandboxes so specialist agents can safely execute real work
+- 🧱 Gitea plus an in-cluster registry for code and runtime artifacts
+- 🔁 Argo CD as the reviewed path from repo state to cluster state
+
+The result is an AI system that can propose, implement, document, and operationalize change instead of just talking about it.
+
+## Controlled Self-Mutation
+
+The mutation path is deliberate, not magical:
+
+```mermaid
+flowchart LR
+    U[User requirements] --> M[main]
+    M --> A[architect]
+    A --> C[coder]
+    C --> G[Gitea repos]
+    C --> R[Registry images]
+    G --> AR[Argo CD]
+    R --> AR
+    AR --> K[Running cluster]
+    K --> W[watchdog]
+    K --> AU[auditor]
+    K --> H[archivist]
+    H --> A
+    W --> M
+    AU --> A
+    AU --> M
+```
+
+Today’s hard control boundary is still intentional:
+
+- agents can plan, implement, document, review, monitor, and prepare mutations
+- the user still reviews the diff and manually syncs Argo CD for cluster-state changes
+
+That is the current safety model: bold automation inside the loop, explicit operator approval at the deployment gate.
+
+## What You Get
+
+- OpenClaw bootstrapped as `main`, `architect`, `coder`, `archivist`, `watchdog`, and `auditor`
+- repo-managed specialist workspaces and seeded cluster-self-documentation in Nextcloud
+- a coder flow that goes from specification to code to Gitea to GitOps to cluster
+- an in-cluster sandbox-images repo and registry for evolving the agent runtime itself
+- a weekly auditor loop that can identify quality issues, cost leaks, workflow bottlenecks, and candidates to replace repeated LLM work with deterministic Kubernetes services or CronJobs
+- one bootstrap input model for both fast local iteration in `k3d` and long-running deployment in `k3s`
+
+The intended long-running target today is a single-node `k3s` install on a Hetzner A42U-class machine with a Ryzen 7 Pro 8700GE, 64 GB RAM, and roughly 3 TB of storage. That posture assumes headroom for the current stack plus heavier services such as Qdrant, Memgraph, and future coder-deployed applications.
 
 ## Start Here
 
@@ -45,7 +98,11 @@ cp bootstrap.example.toml bootstrap.local.toml
 
 Use [docs/runbook-homelab.md](./docs/runbook-homelab.md) for the full Ubuntu host-prep and integrated bootstrap path.
 
-In both cases, fill in the new `[mail]` section and the per-agent model sections in `bootstrap.local.toml` before bootstrapping so Nextcloud/Vaultwarden mail and the bootstrapped OpenClaw `main`, `architect`, `coder`, `archivist`, `watchdog`, and `auditor` agents are configured correctly. Each agent supports `model` plus optional `fallback_models` in the bootstrap config, and `coder` also supports `codex_model` for the provider-qualified Codex CLI model used inside its sandbox, defaulting to `openai/gpt-5.4-mini` with `openai/gpt-5.3-codex` available as a higher-cost override. The sandbox init writes a modern `~/.codex/config.toml` with top-level `model = "<bare-model>"`, forces API-key login mode, and seeds `~/.codex/auth.json` with `codex login --with-api-key` from `OPENAI_API_KEY`, so the default CLI model stays Helm-configurable without rebuilding the image and the built-in OpenAI provider can use its normal websocket path. Provider tokens and the migrated application Secrets should now be managed through the SOPS workflow documented in [docs/secrets.md](./docs/secrets.md) rather than committed in values files or created imperatively during bootstrap. The default coder posture now assumes a Claude-based orchestrator delegating substantial coding to Codex, so the standard bootstrap expects both `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` to be present through the `openclaw-secrets` Secret. The same bootstrap flow also creates a dedicated `openclaw` Nextcloud user, seeds the OpenClaw gateway config with the standard Nextcloud MCP server definition, pre-seeds specialist workspace files for the multi-agent topology, and seeds the initial Memgraph knowledge graph baseline for the cluster.
+In both cases, fill in the `[mail]` section and the per-agent model sections in `bootstrap.local.toml` before bootstrapping so Nextcloud/Vaultwarden mail and the bootstrapped OpenClaw `main`, `architect`, `coder`, `archivist`, `watchdog`, and `auditor` agents are configured correctly. Each agent supports `model` plus optional `fallback_models` in the bootstrap config, and `coder` also supports `codex_model` for the provider-qualified Codex CLI model used inside its sandbox, defaulting to `openai/gpt-5.4-mini` with `openai/gpt-5.3-codex` available as a higher-cost override.
+
+The sandbox init writes a modern `~/.codex/config.toml` with top-level `model = "<bare-model>"`, forces API-key login mode, and seeds `~/.codex/auth.json` with `codex login --with-api-key` from `OPENAI_API_KEY`, so the default CLI model stays Helm-configurable without rebuilding the image and the built-in OpenAI provider can use its normal websocket path. Provider tokens and migrated application Secrets should be managed through the SOPS workflow documented in [docs/secrets.md](./docs/secrets.md). The default coder posture assumes a Claude-based orchestrator delegating substantial coding to Codex, so the standard bootstrap expects both `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` through the `openclaw-secrets` Secret.
+
+The same bootstrap flow also creates a dedicated `openclaw` Nextcloud user, seeds the standard Nextcloud MCP server definition, pre-seeds specialist workspace files for the multi-agent topology, and seeds the initial Memgraph knowledge graph baseline for the cluster.
 
 ## Documentation Map
 

@@ -34,8 +34,21 @@ Design principle:
 - `watchdog` | bottom | GPT-5.4 Nano | lightweight monitoring, heartbeat checks, triage
 - `auditor` | top | Claude Opus 4.6 | general-purpose quality reviewer, validation gate for high-stakes outputs
 
-Worker agents are not standing agents.
-They are instantiated on demand from architect-defined worker definitions and configured by `main`.
+Standing specialists:
+- `main`, `architect`, `coder`, `archivist`, `watchdog`, and `auditor` are part of the standard standing topology.
+- `auditor` is expected to be invoked sparsely, but it is still part of the standing specialist set.
+
+Worker agents are not standing agents. They are instantiated on demand from architect-defined worker definitions and configured by `main`.
+
+## Controlled Self-Improvement Loop
+
+- `main` turns raw user intent into routed work.
+- `architect` produces execution-ready specs, plans, and worker definitions.
+- `coder` mutates repositories, runtime images, and deployment definitions.
+- Gitea, the registry, and Argo CD carry those mutations toward the running cluster.
+- `watchdog` detects drift, recurring failures, and weak spots in operation.
+- `auditor` reviews finished work and proposes improvements, optimizations, and automation opportunities.
+- `archivist` preserves decisions, relationships, and cross-project structure so the system can reason from durable context instead of isolated chat history.
 
 ## Coordination Model
 
@@ -63,3 +76,4 @@ They are instantiated on demand from architect-defined worker definitions and co
 - `archivist` is the graph of record; Qdrant is the semantic search index; they complement each other.
 - `main` is the only agent that spawns sessions or instantiates workers.
 - All escalations route through `main`.
+- The deployment gate stays outside the agents: cluster-state mutation is prepared by agents but applied through reviewed GitOps and manual Argo CD sync.
