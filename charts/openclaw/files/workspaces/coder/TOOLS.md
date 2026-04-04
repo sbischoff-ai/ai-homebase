@@ -7,6 +7,8 @@ Runtime environment:
 - `/workspace` is your repo working tree; persistent tool state lives under `/workspace/.home`.
 - Common tools available include `bash`, `curl`, `jq`, `yq`, `rg`, `make`, `git`, `tea`, `helm`, `node`, `npm`, `python3`, `pip`, `uv`, `cargo`, `rustc`, `go`, `ssh`, `tmux`, and `codex`.
 - `HOME`, `CODEX_HOME`, and XDG directories are preconfigured inside `/workspace/.home` so Codex CLI and related tooling have durable writable state.
+- Codex sandbox bootstrap pre-seeds login for the built-in OpenAI provider. Your default model is written to `~/.codex/config.toml`, and cached API-key auth lives in `~/.codex/auth.json`.
+- Under normal sandbox operation, you should not need to run `codex login` manually. If Codex reports an auth failure anyway, treat that as a sandbox/bootstrap problem and surface it back through main rather than inventing a new login flow.
 - Shared MCP tools remain available in the sandbox, including the Nextcloud tools.
 - The configured Gitea ingress hostname should resolve from your sandbox runtime.
 - The configured registry hostname should resolve from your sandbox runtime, but Docker and cluster runtimes must trust the platform internal CA before registry pushes or pulls will succeed over HTTPS.

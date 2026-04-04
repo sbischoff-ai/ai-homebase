@@ -804,13 +804,16 @@ verify_coder_sandbox_runtime() {
       -e XDG_CACHE_HOME=/workspace/.home/.cache \
       -e XDG_STATE_HOME=/workspace/.home/.local/state \
       -e CODEX_DEFAULT_MODEL=gpt-5.4-mini \
+      -e OPENAI_API_KEY=test-openai-key \
       openclaw-sandbox-coder:trixie-slim -ceu '
         command -v codex >/dev/null
+        codex --version | grep -F "codex-cli 0.118.0" >/dev/null
         command -v tokscale >/dev/null
         /usr/local/bin/coder-init.sh >/tmp/coder-init.log
         test -f /workspace/.home/.codex/config.toml
-        grep -F \"default = \\\"gpt-5.4-mini\\\"\" /workspace/.home/.codex/config.toml >/dev/null
-        grep -F \"provider = \\\"openai\\\"\" /workspace/.home/.codex/config.toml >/dev/null
+        grep -F \"model = \\\"gpt-5.4-mini\\\"\" /workspace/.home/.codex/config.toml >/dev/null
+        grep -F \"forced_login_method = \\\"api\\\"\" /workspace/.home/.codex/config.toml >/dev/null
+        test -f /workspace/.home/.codex/auth.json
       '
   "
 }

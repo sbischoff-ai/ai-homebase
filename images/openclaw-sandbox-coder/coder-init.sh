@@ -44,15 +44,19 @@ cat > "${CODEX_HOME}/config.toml" <<EOF
 # Note: The coding-agent skill documents gpt-5.2-codex as the default.
 # This deployment uses gpt-5.4-mini for cost efficiency, with selective
 # override to gpt-5.3-codex for complex multi-file refactorings.
-
-[model]
-default = "${CODEX_DEFAULT_MODEL}"
-
-[api]
-provider = "openai"
+model = "${CODEX_DEFAULT_MODEL}"
+forced_login_method = "api"
 EOF
 
 echo "Codex config.toml created at ${CODEX_HOME}/config.toml"
+
+if [ -n "${OPENAI_API_KEY:-}" ]; then
+  if ! printf '%s' "${OPENAI_API_KEY}" | codex login --with-api-key >/dev/null 2>&1; then
+    echo >&2 "Failed to seed Codex API-key login state with OPENAI_API_KEY."
+    exit 1
+  fi
+  echo "Codex API-key login seeded at ${CODEX_HOME}/auth.json"
+fi
 
 git config --global user.name "${CODER_GITEA_USERNAME}"
 git config --global user.email "${CODER_GITEA_EMAIL}"
