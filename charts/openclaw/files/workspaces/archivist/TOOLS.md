@@ -8,6 +8,7 @@ Use Memgraph, Qdrant, and Nextcloud together as one knowledge environment.
 ## Memgraph
 
 - `mgconsole` is your canonical graph client.
+- Use `${MEMGRAPH_HOST}:${MEMGRAPH_PORT}` or `${MEMGRAPH_BOLT_URI}` as the canonical Memgraph target from both gateway and sandbox sessions. The runtime injects the reachable Bolt endpoint for the current context.
 - Start from the seeded `queries/` files when possible.
 - Prefer idempotent graph mutations.
 - Use the compact schema from the canonical knowledge graph documentation instead of inventing ad hoc labels or relationships.

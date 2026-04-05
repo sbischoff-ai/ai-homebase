@@ -716,6 +716,7 @@ data:
     ## Memgraph
 
     - `mgconsole` is your canonical graph client.
+    - Use `${MEMGRAPH_HOST}:${MEMGRAPH_PORT}` or `${MEMGRAPH_BOLT_URI}` as the canonical Memgraph target from both gateway and sandbox sessions. The runtime injects the reachable Bolt endpoint for the current context.
     - Start from the seeded `queries/` files when possible.
     - Prefer idempotent graph mutations.
     - Use the compact schema from the canonical knowledge graph documentation instead of inventing ad hoc labels or relationships.
@@ -789,7 +790,7 @@ data:
 
     - Prefer reusing and extending these files over writing one-off Cypher from scratch.
     - Keep queries idempotent when they mutate canonical entities or relationships.
-    - Use `MEMGRAPH_HOST` and `MEMGRAPH_PORT` with `mgconsole` for execution.
+    - Use `MEMGRAPH_HOST` and `MEMGRAPH_PORT` with `mgconsole` for execution. The same command should work unchanged from both the gateway and the archivist sandbox because the runtime injects the correct reachable endpoint.
 
     Examples:
 

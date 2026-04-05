@@ -1748,7 +1748,7 @@ def workspace_bootstrap_values(
 
                         Memgraph runtime:
                         - Use `mgconsole` as the canonical Memgraph client from both gateway and sandbox sessions.
-                        - Connection target: use `${MEMGRAPH_HOST}:${MEMGRAPH_PORT}` or `${MEMGRAPH_BOLT_URI}`.
+                        - Connection target: use `${MEMGRAPH_HOST}:${MEMGRAPH_PORT}` or `${MEMGRAPH_BOLT_URI}`. The runtime injects the correct reachable Bolt endpoint for the current context.
                         - Memgraph Lab UI is the human-friendly browser companion, but your canonical write path is Cypher through `mgconsole`.
                         - Reusable query files belong in this workspace under `queries/`.
 
@@ -1856,7 +1856,7 @@ def workspace_bootstrap_values(
 
                         - Prefer reusing and extending these files over writing one-off Cypher from scratch.
                         - Keep queries idempotent when they mutate canonical entities or relationships.
-                        - Use `MEMGRAPH_HOST` and `MEMGRAPH_PORT` with `mgconsole` for execution.
+                        - Use `MEMGRAPH_HOST` and `MEMGRAPH_PORT` with `mgconsole` for execution. The same command should work unchanged from both the gateway and the archivist sandbox because the runtime injects the correct reachable endpoint.
 
                         Examples:
 
@@ -2941,11 +2941,11 @@ def command_render_values(args: argparse.Namespace) -> int:
         },
     }
     openclaw["env"] = [
-        {"name": "MEMGRAPH_HOST", "value": values["MEMGRAPH_HOST"]},
+        {"name": "MEMGRAPH_HOST", "value": '{{ printf "%s-memgraph" .Release.Name | trunc 63 | trimSuffix "-" }}'},
         {"name": "MEMGRAPH_PORT", "value": "7687"},
         {
             "name": "MEMGRAPH_BOLT_URI",
-            "value": f"bolt://{values['MEMGRAPH_HOST']}:7687" if values["MEMGRAPH_HOST"] else "",
+            "value": 'bolt://{{ printf "%s-memgraph" .Release.Name | trunc 63 | trimSuffix "-" }}:7687',
         },
     ]
     if values["GITHUB_TOKEN"]:

@@ -78,6 +78,14 @@ openclaw:
             - ${OPENCLAW_NEXTCLOUD_MCP_EXTERNAL_URL}
             - --header
             - Authorization=${OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER}
+    agents:
+      defaults:
+        sandbox:
+          docker:
+            env:
+              MEMGRAPH_HOST: memgraph.vpn.homebase.internal
+              MEMGRAPH_PORT: "7687"
+              MEMGRAPH_BOLT_URI: bolt://memgraph.vpn.homebase.internal:7687
 
 
 nextcloud:

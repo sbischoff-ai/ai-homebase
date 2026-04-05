@@ -4,7 +4,7 @@ Use these query files as the default entry points for routine graph work.
 
 - Prefer reusing and extending these files over writing one-off Cypher from scratch.
 - Keep queries idempotent when they mutate canonical entities or relationships.
-- Use `MEMGRAPH_HOST` and `MEMGRAPH_PORT` with `mgconsole` for execution.
+- Use `MEMGRAPH_HOST` and `MEMGRAPH_PORT` with `mgconsole` for execution. The same command should work unchanged from both the gateway and the archivist sandbox because the runtime injects the correct reachable endpoint.
 
 Examples:
 

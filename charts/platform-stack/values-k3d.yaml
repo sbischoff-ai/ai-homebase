@@ -53,11 +53,11 @@ openclaw:
     - name: NODE_OPTIONS
       value: --max-old-space-size=2048
     - name: MEMGRAPH_HOST
-      value: memgraph.localtest.me
+      value: '{{ printf "%s-memgraph" .Release.Name | trunc 63 | trimSuffix "-" }}'
     - name: MEMGRAPH_PORT
       value: "7687"
     - name: MEMGRAPH_BOLT_URI
-      value: bolt://memgraph.localtest.me:7687
+      value: 'bolt://{{ printf "%s-memgraph" .Release.Name | trunc 63 | trimSuffix "-" }}:7687'
   existingSecret: openclaw-secrets
   secretKeys:
     gatewayToken: OPENCLAW_GATEWAY_TOKEN
@@ -97,6 +97,14 @@ openclaw:
             - ${OPENCLAW_NEXTCLOUD_MCP_EXTERNAL_URL}
             - --header
             - Authorization=${OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER}
+    agents:
+      defaults:
+        sandbox:
+          docker:
+            env:
+              MEMGRAPH_HOST: memgraph.localtest.me
+              MEMGRAPH_PORT: "7687"
+              MEMGRAPH_BOLT_URI: bolt://memgraph.localtest.me:7687
 
 
 nextcloud:

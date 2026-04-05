@@ -785,6 +785,19 @@ verify_memgraph_bootstrap() {
   "
 }
 
+verify_gateway_memgraph_runtime() {
+  local deployment_name="$1"
+  local expected_host="${RELEASE_NAME}-memgraph"
+
+  step "Checking gateway Memgraph runtime env"
+  CURRENT_COMMAND="kubectl exec deployment/${deployment_name} -- sh -ceu 'check gateway Memgraph env'"
+  run_checked kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" exec "deployment/${deployment_name}" -- sh -ceu "
+    [ \"\$MEMGRAPH_HOST\" = \"${expected_host}\" ]
+    [ \"\$MEMGRAPH_PORT\" = \"7687\" ]
+    [ \"\$MEMGRAPH_BOLT_URI\" = \"bolt://${expected_host}:7687\" ]
+  "
+}
+
 verify_coder_sandbox_runtime() {
   local memgraph_host="$1"
 
@@ -835,9 +848,15 @@ verify_archivist_sandbox_runtime() {
   CURRENT_COMMAND="incus exec ${INCUS_VM_NAME} -- sh -ceu 'docker run archivist sandbox validation'"
   run_checked incus exec "$INCUS_VM_NAME" -- sh -ceu "
     docker image inspect openclaw-sandbox:trixie-slim >/dev/null
-    docker run --rm --entrypoint sh -e MEMGRAPH_HOST='${memgraph_host}' openclaw-sandbox:trixie-slim -ceu '
+    docker run --rm --entrypoint sh \
+      -e MEMGRAPH_HOST='${memgraph_host}' \
+      -e MEMGRAPH_PORT='7687' \
+      -e MEMGRAPH_BOLT_URI='bolt://${memgraph_host}:7687' \
+      openclaw-sandbox:trixie-slim -ceu '
       command -v mgconsole >/dev/null
-      [ -n \"\$MEMGRAPH_HOST\" ]
+      [ \"\$MEMGRAPH_HOST\" = \"${memgraph_host}\" ]
+      [ \"\$MEMGRAPH_PORT\" = \"7687\" ]
+      [ \"\$MEMGRAPH_BOLT_URI\" = \"bolt://${memgraph_host}:7687\" ]
     '
   "
 }
@@ -1044,6 +1063,7 @@ wait_for_workload memgraph "$MEMGRAPH_WAIT_TIMEOUT"
 MEMGRAPH_DEPLOYMENT_NAME="$(resolve_deployment_name memgraph)"
 verify_labeled_service memgraph
 verify_memgraph_bootstrap "$MEMGRAPH_DEPLOYMENT_NAME"
+verify_gateway_memgraph_runtime "$(resolve_deployment_name openclaw)"
 if [[ -n "$HOST_LISTEN_ADDRESS_VALUE" ]]; then
   verify_archivist_sandbox_runtime "$MEMGRAPH_INGRESS_HOST"
   verify_coder_sandbox_runtime "$MEMGRAPH_INGRESS_HOST"

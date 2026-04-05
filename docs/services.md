@@ -136,6 +136,7 @@ The supported `k3s` posture is currently a deliberately single-node deployment o
 - The Service now pins `ipFamilies: [IPv4]` with `ipFamilyPolicy: SingleStack` so sandbox DNS resolution does not drift onto unusable IPv6 answers for Bolt.
 - The stack now also renders a repo-managed Memgraph bootstrap Job that waits for the database and loads an idempotent initial graph covering the user, core services, core agents, and the GitOps repositories.
 - Archivist is the canonical graph steward. Other agents may still use Qdrant directly for ordinary memories, but durable graph curation, graph schema changes, and graph-linked memory grooming belong with archivist.
+- Archivist uses one canonical CLI contract in both runtimes: `MEMGRAPH_HOST` / `MEMGRAPH_PORT` resolve to the in-cluster Memgraph Service on the gateway and to the routed external Memgraph hostname inside the Docker sandbox, so the same `mgconsole` commands work unchanged in both places.
 - The canonical graph schema now lives in [`docs/knowledge-graph-schema.md`](./knowledge-graph-schema.md) and is also seeded into the bootstrap Nextcloud project as `/Projects/ai-homebase/knowledge-graph-schema.md`.
 
 ### Memgraph Lab

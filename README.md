@@ -102,7 +102,7 @@ In both cases, fill in the `[mail]` section and the per-agent model sections in 
 
 The sandbox init writes a modern `~/.codex/config.toml` with top-level `model = "<bare-model>"`, forces API-key login mode, and seeds `~/.codex/auth.json` with `codex login --with-api-key` from `OPENAI_API_KEY`, so the default CLI model stays Helm-configurable without rebuilding the image and the built-in OpenAI provider can use its normal websocket path. Provider tokens and migrated application Secrets should be managed through the SOPS workflow documented in [docs/secrets.md](./docs/secrets.md). The default coder posture assumes a Claude-based orchestrator delegating substantial coding to Codex, so the standard bootstrap expects both `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` through the `openclaw-secrets` Secret.
 
-The same bootstrap flow also creates a dedicated `openclaw` Nextcloud user, seeds the standard Nextcloud MCP server definition, pre-seeds specialist workspace files for the multi-agent topology, and seeds the initial Memgraph knowledge graph baseline for the cluster.
+The same bootstrap flow also creates a dedicated `openclaw` Nextcloud user, seeds the standard Nextcloud MCP server definition, pre-seeds specialist workspace files for the multi-agent topology, and seeds the initial Memgraph knowledge graph baseline for the cluster. Archivist keeps one canonical `mgconsole` command surface in both runtimes: the gateway gets the in-cluster Memgraph Service as `MEMGRAPH_HOST`, while the Docker sandbox gets the routed external Memgraph hostname under that same variable.
 
 ## Documentation Map
 

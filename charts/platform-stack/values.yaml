@@ -97,11 +97,11 @@ openclaw:
     enabled: false
   env:
     - name: MEMGRAPH_HOST
-      value: memgraph.homebase.local
+      value: '{{ printf "%s-memgraph" .Release.Name | trunc 63 | trimSuffix "-" }}'
     - name: MEMGRAPH_PORT
       value: "7687"
     - name: MEMGRAPH_BOLT_URI
-      value: bolt://memgraph.homebase.local:7687
+      value: 'bolt://{{ printf "%s-memgraph" .Release.Name | trunc 63 | trimSuffix "-" }}:7687'
   remoteDocker:
     enabled: true
     dockerHost: "ssh://docker-remote@openclaw-sandbox:2222"
