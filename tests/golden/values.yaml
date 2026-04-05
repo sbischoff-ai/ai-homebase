@@ -1819,7 +1819,7 @@ spec:
         - name: MCP_DEPLOYMENT_MODE
           value: multi_user_basic
         - name: NEXTCLOUD_ENABLED_APPS
-          value: notes,webdav,sharing,tables,calendar
+          value: webdav,sharing,tables,calendar
         - name: ENABLE_MULTI_USER_BASIC_AUTH
           value: 'true'
         image: ghcr.io/cbcoutinho/nextcloud-mcp-server:0.65.3

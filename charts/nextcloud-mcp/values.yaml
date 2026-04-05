@@ -45,7 +45,6 @@ command:
   - /opt/nextcloud-mcp/run-nextcloud-mcp.py
 
 enabledApps:
-  - notes
   - webdav
   - sharing
   - tables

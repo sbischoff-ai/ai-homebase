@@ -549,7 +549,6 @@ nextcloudMcp:
   authentication:
     mode: multi_user_basic
   enabledApps:
-    - notes
     - webdav
     - sharing
     - tables
