@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "nextcloud.fullname" . }}-post-install-config-hook
+  labels:
+    {{- include "nextcloud.labels" . | nindent 4 }}
+data:
+  00-pre-install-config.sh: |
+    #!/bin/sh
+    set -eu
+
+    mkdir -p /var/www/html/config
+    cat > /var/www/html/config/zz-skeletondirectory.config.php <<'EOF'
+    <?php
+    $CONFIG = json_decode(<<<'JSON'
+{{ dict "skeletondirectory" .Values.skeletonDirectory | toJson | nindent 6 }}
+    JSON, true, 512, JSON_THROW_ON_ERROR);
+    EOF
+    chown 33:33 /var/www/html/config/zz-skeletondirectory.config.php
+    chmod 0640 /var/www/html/config/zz-skeletondirectory.config.php
+  50-post-install-config.sh: |
+    #!/bin/sh
+    set -eu
+
+    cd /var/www/html
+    php occ config:system:set skeletondirectory --value={{ .Values.skeletonDirectory | quote }}

@@ -472,6 +472,7 @@ nextcloud:
     - tables
     - calendar
     - tasks
+  skeletonDirectory: ""
   bootstrapProjectContent:
     - slug: ai-homebase
       ownerUsername: openclaw

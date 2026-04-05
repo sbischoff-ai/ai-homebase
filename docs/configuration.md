@@ -116,6 +116,8 @@ Use service-specific blocks when behavior must diverge, especially for:
 - Persistence and ingress controls
 - OpenClaw sandbox settings
 
+For Nextcloud, keep system-level bootstrap behavior such as `nextcloud.skeletonDirectory` in chart values rather than ad-hoc operator commands so fresh installs, restarts, and post-upgrade reconciliations converge on the same user-creation posture.
+
 `certManager.resourcesEnabled` separately controls whether the umbrella chart renders `cert-manager.io/v1` resources at all. Keep it `false` for first-install/bootstrap renders where the CRDs may not exist yet, then enable it after the cert-manager controller stack is ready.
 
 Use the canonical lowercase `cert-manager:` top-level key in umbrella values files for upstream chart settings such as `crds.enabled` and `crds.keep`; reserve `certManager:` for umbrella-specific enablement, namespace fallback, and internal PKI resources.

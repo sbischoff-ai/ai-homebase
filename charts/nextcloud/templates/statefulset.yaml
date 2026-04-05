@@ -86,6 +86,23 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /var/www/html
+        - name: reconcile-system-settings
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - /bin/sh
+            - -ceu
+            - |
+              if ! su -s /bin/sh www-data -c 'cd /var/www/html && php occ status --output=json 2>/dev/null | grep -q "\"installed\":true"'; then
+                exit 0
+              fi
+              su -s /bin/sh www-data -c "cd /var/www/html && php occ config:system:set skeletondirectory --value=${NEXTCLOUD_SKELETONDIRECTORY}"
+          env:
+            - name: NEXTCLOUD_SKELETONDIRECTORY
+              value: {{ .Values.skeletonDirectory | quote }}
+          volumeMounts:
+            - name: data
+              mountPath: /var/www/html
       containers:
         - name: nextcloud
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -210,6 +227,14 @@ spec:
             {{- if .Values.persistence.enabled }}
             - name: data
               mountPath: /var/www/html
+            - name: post-install-config-hook
+              mountPath: /docker-entrypoint-hooks.d/pre-installation/00-pre-install-config.sh
+              subPath: 00-pre-install-config.sh
+              readOnly: true
+            - name: post-install-config-hook
+              mountPath: /docker-entrypoint-hooks.d/post-installation/50-post-install-config.sh
+              subPath: 50-post-install-config.sh
+              readOnly: true
             {{- end }}
             {{- if .Values.initialApps }}
             - name: initial-apps-hook
@@ -242,6 +267,10 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: {{ include "nextcloud.dataPvcName" . }}
+        - name: post-install-config-hook
+          configMap:
+            name: {{ include "nextcloud.fullname" . }}-post-install-config-hook
+            defaultMode: 0755
         {{- end }}
         {{- if .Values.initialApps }}
         - name: initial-apps-hook

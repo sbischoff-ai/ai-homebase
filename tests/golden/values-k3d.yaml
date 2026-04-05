@@ -409,6 +409,36 @@ metadata:
 ---
 apiVersion: v1
 data:
+  00-pre-install-config.sh: |
+    #!/bin/sh
+    set -eu
+
+    mkdir -p /var/www/html/config
+    cat > /var/www/html/config/zz-skeletondirectory.config.php <<'EOF'
+    <?php
+    $CONFIG = json_decode(<<<'JSON'
+
+      {"skeletondirectory":""}
+    JSON, true, 512, JSON_THROW_ON_ERROR);
+    EOF
+    chown 33:33 /var/www/html/config/zz-skeletondirectory.config.php
+    chmod 0640 /var/www/html/config/zz-skeletondirectory.config.php
+  50-post-install-config.sh: |
+    #!/bin/sh
+    set -eu
+
+    cd /var/www/html
+    php occ config:system:set skeletondirectory --value=""
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nextcloud
+  name: platform-stack-nextcloud-post-install-config-hook
+---
+apiVersion: v1
+data:
   mcp-http-bridge.mjs: |
     import process from "node:process";
 
@@ -4591,6 +4621,8 @@ spec:
             echo "waiting for nextcloud bootstrap"
             sleep 5
           done
+
+          su -s /bin/sh www-data -c "cd /var/www/html && php occ config:system:set skeletondirectory --value=${NEXTCLOUD_SKELETONDIRECTORY}"
           username_var="BOOTSTRAP_USER_0_USERNAME"
           display_name_var="BOOTSTRAP_USER_0_DISPLAY_NAME"
           password_var="BOOTSTRAP_USER_0_PASSWORD"
@@ -4629,6 +4661,8 @@ spec:
             secretKeyRef:
               key: REDIS_HOST_PASSWORD
               name: nextcloud-config-secrets
+        - name: NEXTCLOUD_SKELETONDIRECTORY
+          value: ''
         - name: BOOTSTRAP_USER_0_USERNAME
           value: openclaw
         - name: BOOTSTRAP_USER_0_DISPLAY_NAME
@@ -5881,6 +5915,14 @@ spec:
         volumeMounts:
         - mountPath: /var/www/html
           name: data
+        - mountPath: /docker-entrypoint-hooks.d/pre-installation/00-pre-install-config.sh
+          name: post-install-config-hook
+          readOnly: true
+          subPath: 00-pre-install-config.sh
+        - mountPath: /docker-entrypoint-hooks.d/post-installation/50-post-install-config.sh
+          name: post-install-config-hook
+          readOnly: true
+          subPath: 50-post-install-config.sh
       initContainers:
       - command:
         - /bin/sh
@@ -5925,6 +5967,23 @@ spec:
         volumeMounts:
         - mountPath: /var/www/html
           name: data
+      - command:
+        - /bin/sh
+        - -ceu
+        - |
+          if ! su -s /bin/sh www-data -c 'cd /var/www/html && php occ status --output=json 2>/dev/null | grep -q "\"installed\":true"'; then
+            exit 0
+          fi
+          su -s /bin/sh www-data -c "cd /var/www/html && php occ config:system:set skeletondirectory --value=${NEXTCLOUD_SKELETONDIRECTORY}"
+        env:
+        - name: NEXTCLOUD_SKELETONDIRECTORY
+          value: ''
+        image: nextcloud:33.0.2-apache
+        imagePullPolicy: IfNotPresent
+        name: reconcile-system-settings
+        volumeMounts:
+        - mountPath: /var/www/html
+          name: data
       securityContext:
         fsGroup: 33
         fsGroupChangePolicy: OnRootMismatch
@@ -5934,6 +5993,10 @@ spec:
       - name: data
         persistentVolumeClaim:
           claimName: data
+      - configMap:
+          defaultMode: 493
+          name: platform-stack-nextcloud-post-install-config-hook
+        name: post-install-config-hook
 ---
 apiVersion: apps/v1
 kind: StatefulSet

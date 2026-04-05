@@ -127,6 +127,10 @@
         }
       }
     },
+    "skeletonDirectory": {
+      "type": "string",
+      "description": "Nextcloud system skeletondirectory value. Empty string disables example-file seeding for newly created users."
+    },
     "bootstrapApps": {
       "type": "array",
       "items": {

@@ -153,6 +153,10 @@ php:
 
 initHtaccess: true
 
+# Empty string disables the default example-file skeleton for newly created
+# users. Set a custom path if you want a managed skeleton tree instead.
+skeletonDirectory: ""
+
 smtp:
   host: ""
   port: 587
