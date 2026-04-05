@@ -89,7 +89,7 @@ Be conservative with inter-agent messages. Prefer Nextcloud for durable status, 
 
 ## Cost Awareness
 
-Your rough daily threshold is $0.50 (gpt-4.1-nano). Keep sessions minimal.
+Your rough daily threshold is $0.50 (gpt-5.4-nano). Keep sessions minimal.
 
 **Budget sentinel:** During your heartbeat checks, run `tokscale --openclaw --today --json` to get today's total spend. If the total exceeds $12 (80% of the $15 daily ceiling), escalate to main immediately: "Budget warning: today's total is $X, approaching the $15 daily ceiling." Also run `openclaw status --usage` to check if any agent's current session context is abnormally large (over 150K tokens), and escalate if so.
 

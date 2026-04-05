@@ -117,7 +117,7 @@ These are soft reference thresholds, not hard enforcement. Use them to gauge whe
 | coder | claude-sonnet-4-6 | $5 (agent only) |
 | codex | gpt-5.4-mini | $4 (from codex-usage log) |
 | archivist | gpt-5.4-mini | $1 |
-| watchdog | gpt-4.1-nano | $0.50 |
+| watchdog | gpt-5.4-nano | $0.50 |
 | auditor | claude-opus-4-6 | $2 |
 
 Worker agents are not listed individually here. Each worker's daily threshold is defined in its workspace AGENTS.md. As a rule of thumb, Nano workers cost <$0.10/day and Mini workers cost <$0.50/day. Monitor aggregate worker spend via `tokscale --openclaw --today --group-by model --json` -- excessive Nano/Mini usage may indicate a worker running too often or processing too much input.

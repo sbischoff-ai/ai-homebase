@@ -22,7 +22,7 @@ PROVIDER_ENV_VARS = (
     "MOONSHOT_API_KEY",
 )
 
-DEFAULT_MAIN_MODEL = "openai/gpt-4.1"
+DEFAULT_MAIN_MODEL = "openai/gpt-5.4"
 DEFAULT_MAIN_FALLBACK_MODELS = ["anthropic/claude-sonnet-4-6"]
 DEFAULT_CODER_MODEL = "anthropic/claude-sonnet-4-6"
 DEFAULT_CODER_FALLBACK_MODELS = ["openai/gpt-5.4"]
@@ -30,7 +30,7 @@ DEFAULT_CODER_FALLBACK_MODELS = ["openai/gpt-5.4"]
 # at roughly 3x the cost ($2.275 / $18.20 per 1M tokens).
 DEFAULT_CODEX_MODEL = "openai/gpt-5.4-mini"
 DEFAULT_ARCHITECT_MODEL = "anthropic/claude-sonnet-4-6"
-DEFAULT_ARCHITECT_FALLBACK_MODELS = ["openai/o3"]
+DEFAULT_ARCHITECT_FALLBACK_MODELS = ["openai/gpt-5.4"]
 DEFAULT_ARCHIVIST_MODEL = "openai/gpt-5.4-mini"
 DEFAULT_ARCHIVIST_FALLBACK_MODELS = ["anthropic/claude-sonnet-4-6"]
 DEFAULT_WATCHDOG_MODEL = "openai/gpt-5.4-nano"
@@ -683,7 +683,7 @@ def workspace_bootstrap_values(
                         | coder | claude-sonnet-4-6 | $5 (agent only) |
                         | codex | gpt-5.4-mini | $4 (from codex-usage log) |
                         | archivist | gpt-5.4-mini | $1 |
-                        | watchdog | gpt-4.1-nano | $0.50 |
+                        | watchdog | gpt-5.4-nano | $0.50 |
                         | auditor | claude-opus-4-6 | $2 |
 
                         ### Delegation logic
@@ -2028,7 +2028,7 @@ def workspace_bootstrap_values(
 
                         ## Cost Awareness
 
-                        Your rough daily threshold is $0.50 (gpt-4.1-nano). Keep sessions minimal.
+                        Your rough daily threshold is $0.50 (gpt-5.4-nano). Keep sessions minimal.
 
                         **Budget sentinel:** During your heartbeat checks, run `tokscale --openclaw --today --json` to get today's total spend. If the total exceeds $12 (80% of the $15 daily ceiling), escalate to main immediately: "Budget warning: today's total is $X, approaching the $15 daily ceiling." Also run `openclaw status --usage` to check if any agent's current session context is abnormally large (over 150K tokens), and escalate if so.
 

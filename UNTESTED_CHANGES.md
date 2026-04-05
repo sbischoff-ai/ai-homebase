@@ -388,7 +388,7 @@ Scope:
 
 Root cause addressed:
 
-- Helm values merge retained legacy model alias keys from `charts/openclaw/values.yaml` (`openai/gpt-4.1` and `anthropic/claude-opus-4-6`) even after umbrella overrides changed, causing golden snapshots generated in CI to include unexpected extra model alias entries.
+- Helm values merge retained legacy model alias keys from `charts/openclaw/values.yaml` (`openai/gpt-5.4` and `anthropic/claude-opus-4-6`) even after umbrella overrides changed, causing golden snapshots generated in CI to include unexpected extra model alias entries.
 
 What to verify later during a real CI run:
 
@@ -431,7 +431,7 @@ What to verify later during a real runtime/bootstrap check:
 
 - Bootstrapping with `bootstrap.local.toml` defaults still renders and applies valid OpenClaw model objects in `openclaw.json` for all five agents.
 - Agent runtime behavior still honors the configured fallback model order when primary providers are unavailable.
-- Any downstream automation or operator docs expecting old model IDs (for example `openai/gpt-4.1` or `anthropic/claude-opus-4-6`) is updated where needed outside this change.
+- Any downstream automation or operator docs expecting old model IDs (for example `openai/gpt-5.4` or `anthropic/claude-opus-4-6`) is updated where needed outside this change.
 
 Static validation completed:
 
@@ -748,7 +748,7 @@ Status: statically validated only. Do not treat this as live-runtime or provider
 Scope:
 
 - Changed the shared OpenClaw agent model aliases to the diversified provider mix:
-  `openai/gpt-4.1` as Main, `anthropic/claude-sonnet-4-6` as Coder / Archivist, `anthropic/claude-opus-4-6` as Architect, and `openai/gpt-4.1-nano` as Watchdog.
+  `openai/gpt-5.4` as Main, `anthropic/claude-sonnet-4-6` as Coder / Archivist, `anthropic/claude-opus-4-6` as Architect, and `openai/gpt-5.4-nano` as Watchdog.
 - Updated each explicit agent config to use a structured `model` object with `primary` plus `fallbacks`.
 - Extended `bootstrap.local.toml` handling so each agent now supports `model` plus optional `fallback_models`, and updated `bootstrap.example.toml` to the new diversified primary/fallback defaults.
 - Kept architect pinned to `anthropic/claude-opus-4-6` as the primary model.
@@ -775,7 +775,7 @@ What to verify later during a real runtime or bootstrap test:
 - The gateway pod receives `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, and `GITHUB_TOKEN` in its actual process environment, not just in the rendered Deployment manifest.
 - The coder sandbox still receives `OPENAI_API_KEY` and `GITHUB_TOKEN` through the rendered sandbox env block and can use them successfully for Codex/GitHub-backed workflows.
 - Any environment that previously depended on Anthropic-only agent routing does not hit unexpected provider quota, auth, or rate-limit issues after the split.
-- Watchdog remains low-cost and functional on `openai/gpt-4.1-nano` for its scheduled heartbeat and triage workload.
+- Watchdog remains low-cost and functional on `openai/gpt-5.4-nano` for its scheduled heartbeat and triage workload.
 - No bootstrap-generated override values or environment-specific overlays silently revert agents back to the previous single-provider defaults.
 
 Static validation completed:
