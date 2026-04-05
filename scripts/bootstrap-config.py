@@ -2765,38 +2765,6 @@ def command_render_values(args: argparse.Namespace) -> int:
     full_mail_from = f"{values['MAIL_FROM_LOCALPART']}@{values['MAIL_DOMAIN']}"
     gitea_scheme = "http" if values["GITEA_HOST"].endswith(".localtest.me") else "https"
     gitea_base_url = f"{gitea_scheme}://{values['GITEA_HOST']}"
-    coder_setup_command = textwrap.dedent(
-        f"""
-        set -eu
-        export HOME=/workspace/.home
-        export CODEX_HOME="$HOME/.codex"
-        export XDG_CONFIG_HOME="$HOME/.config"
-        export XDG_CACHE_HOME="$HOME/.cache"
-        export XDG_STATE_HOME="$HOME/.local/state"
-        mkdir -p "$CODEX_HOME" "$XDG_CONFIG_HOME/tea" "$XDG_CACHE_HOME" "$XDG_STATE_HOME" "$HOME/.docker"
-        git config --global user.name {shlex.quote(values["CODER_GITEA_USERNAME"])}
-        git config --global user.email {shlex.quote(values["CODER_GITEA_EMAIL"])}
-        cat > "$HOME/.netrc" <<'EOF'
-        machine {values["GITEA_HOST"]}
-          login {values["CODER_GITEA_USERNAME"]}
-          password {values["CODER_GITEA_PASSWORD"]}
-        EOF
-        chmod 0600 "$HOME/.netrc"
-        existing_token_ids="$(curl -fsS -u {shlex.quote(values["CODER_GITEA_USERNAME"] + ":" + values["CODER_GITEA_PASSWORD"])} {shlex.quote(gitea_base_url + f"/api/v1/users/{values['CODER_GITEA_USERNAME']}/tokens")} | jq -r '.[] | select(.name == "openclaw-coder-sandbox") | .id' || true)"
-        if [ -n "$existing_token_ids" ]; then
-          for token_id in $existing_token_ids; do
-            curl -fsS -X DELETE -u {shlex.quote(values["CODER_GITEA_USERNAME"] + ":" + values["CODER_GITEA_PASSWORD"])} {shlex.quote(gitea_base_url + f"/api/v1/users/{values['CODER_GITEA_USERNAME']}/tokens/")}$token_id >/dev/null || true
-          done
-        fi
-        token="$(curl -fsS -u {shlex.quote(values["CODER_GITEA_USERNAME"] + ":" + values["CODER_GITEA_PASSWORD"])} -H 'Content-Type: application/json' -d '{{"name":"openclaw-coder-sandbox","scopes":["all"]}}' {shlex.quote(gitea_base_url + f"/api/v1/users/{values['CODER_GITEA_USERNAME']}/tokens")} 2>/dev/null | jq -r '.sha1 // empty' || true)"
-        if [ -n "$token" ]; then
-          tea login add --name coder --url {shlex.quote(gitea_base_url)} --token "$token" >/dev/null 2>&1 || true
-        fi
-        if [ -n "${{CODER_REGISTRY_HOST:-}}" ] && [ -n "${{CODER_REGISTRY_USERNAME:-}}" ] && [ -n "${{CODER_REGISTRY_PASSWORD:-}}" ]; then
-          printf '%s' "$CODER_REGISTRY_PASSWORD" | docker login "$CODER_REGISTRY_HOST" --username "$CODER_REGISTRY_USERNAME" --password-stdin >/dev/null 2>&1 || true
-        fi
-        """
-    ).strip()
     openclaw["openclaw"] = {
         "skills": {
             "allowBundled": BUNDLED_SKILLS,
@@ -2887,7 +2855,7 @@ def command_render_values(args: argparse.Namespace) -> int:
                                 "CODEX_MODEL": values["CODEX_MODEL"],
                                 "OPENAI_API_KEY": "${OPENAI_API_KEY}",
                             },
-                            "setupCommand": coder_setup_command,
+                            "setupCommand": "/usr/local/bin/coder-init.sh",
                         },
                     },
                 },

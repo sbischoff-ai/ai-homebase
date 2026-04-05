@@ -208,14 +208,7 @@ assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["CODER_REGISTRY_NAMESPACE"] == "coder-bot"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["OPENAI_API_KEY"] == "${OPENAI_API_KEY}"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["GITHUB_TOKEN"] == "${GITHUB_TOKEN}"
-assert 'export HOME=/workspace/.home' in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["setupCommand"]
-assert 'export CODEX_HOME="$HOME/.codex"' in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["setupCommand"]
-assert 'mkdir -p "$CODEX_HOME" "$XDG_CONFIG_HOME/tea" "$XDG_CACHE_HOME" "$XDG_STATE_HOME" "$HOME/.docker"' in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["setupCommand"]
-assert "git config --global user.name" in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["setupCommand"]
-assert "machine gitea.test.internal" in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["setupCommand"]
-assert "tea login add --name coder" in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["setupCommand"]
-assert 'docker login ' in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["setupCommand"]
-assert "${CODER_GITEA_USERNAME}" not in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["setupCommand"]
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["setupCommand"] == "/usr/local/bin/coder-init.sh"
 assert "/workspace" not in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"].get("tmpfs", [])
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["id"] == "architect"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["workspace"] == "/home/node/.openclaw/workspace-architect"

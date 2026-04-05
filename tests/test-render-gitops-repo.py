@@ -143,7 +143,7 @@ project = "platform-stack"
         assert "/opt/openclaw-runtime/mcp/mcp-http-bridge.mjs" in bootstrap_values
         assert "openclaw-sandbox-coder:trixie-slim" in bootstrap_values
         assert "openclaw-sandbox-archivist" not in bootstrap_values
-        assert 'export HOME=/workspace/.home' in bootstrap_values
+        assert '/usr/local/bin/coder-init.sh' in bootstrap_values
         assert 'CODEX_HOME' in bootstrap_values
         assert '/.codex' in bootstrap_values
         assert '/workspace` is your repo working tree; persistent tool state lives under `/workspace/.home`' in bootstrap_values
