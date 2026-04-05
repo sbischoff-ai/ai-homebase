@@ -806,14 +806,19 @@ verify_coder_sandbox_runtime() {
       -e CODEX_DEFAULT_MODEL=gpt-5.4-mini \
       -e OPENAI_API_KEY=test-openai-key \
       openclaw-sandbox-coder:trixie-slim -ceu '
+        passwd_home="$(getent passwd sandbox | cut -d: -f6)"
+        [ "$passwd_home" = "/workspace/.home" ]
+        test -w "$passwd_home"
         command -v codex >/dev/null
         codex --version | grep -F codex-cli >/dev/null
+        command -v tea >/dev/null
         command -v tokscale >/dev/null
         /usr/local/bin/coder-init.sh >/tmp/coder-init.log
         test -f /workspace/.home/.codex/config.toml
         grep -F \"model = \\\"gpt-5.4-mini\\\"\" /workspace/.home/.codex/config.toml >/dev/null
         grep -F \"forced_login_method = \\\"api\\\"\" /workspace/.home/.codex/config.toml >/dev/null
         test -f /workspace/.home/.codex/auth.json
+        test -d /workspace/.home/.config/tea
       '
   "
 }

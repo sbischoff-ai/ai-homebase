@@ -384,8 +384,9 @@ coder_dockerfile = (REPO_ROOT / "images" / "openclaw-sandbox-coder" / "Dockerfil
 base_dockerfile = (REPO_ROOT / "images" / "openclaw-sandbox-base" / "Dockerfile").read_text(encoding="utf-8")
 gateway_dockerfile = (REPO_ROOT / "images" / "openclaw-remote-docker" / "Dockerfile").read_text(encoding="utf-8")
 qdrant_mcp_values = (REPO_ROOT / "charts" / "qdrant-mcp" / "values.yaml").read_text(encoding="utf-8")
-assert "usermod --home /home/sandbox sandbox" in coder_dockerfile
-assert "mkdir -p /home/sandbox /workspace" in coder_dockerfile
+assert "usermod --home /workspace/.home sandbox" in coder_dockerfile
+assert "mkdir -p /workspace/.home" in coder_dockerfile
+assert "ln -sfn /workspace/.home /home/sandbox" in coder_dockerfile
 assert "ENV HOME=/workspace" not in coder_dockerfile
 assert "WORKDIR /workspace" in coder_dockerfile
 assert "tmux" in coder_dockerfile

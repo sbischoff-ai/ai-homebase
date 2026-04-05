@@ -55,9 +55,10 @@ RUN curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm
 
 COPY coder-init.sh /usr/local/bin/coder-init.sh
 
-RUN usermod --home /home/sandbox sandbox && \
-    mkdir -p /home/sandbox /workspace && \
-    chown sandbox:sandbox /home/sandbox /workspace && \
+RUN usermod --home /workspace/.home sandbox && \
+    mkdir -p /workspace/.home && \
+    ln -sfn /workspace/.home /home/sandbox && \
+    chown -R sandbox:sandbox /workspace && \
     chmod 0755 /usr/local/bin/coder-init.sh
 
 USER sandbox
