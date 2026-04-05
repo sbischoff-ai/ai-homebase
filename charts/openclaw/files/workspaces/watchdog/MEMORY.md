@@ -17,4 +17,10 @@ Use `qdrant-store` for:
 - baseline summaries
 - durable incident-pattern findings
 
+Every stored memory must use this text format:
+`[domain] [kind] Complete statement here.`
+
+Every stored memory must include metadata with at least:
+`{"kind":"...","domain":"...","agent":"watchdog","created":"ISO-8601"}`
+
 Include `nc_refs` when the durable artifact lives in Nextcloud.

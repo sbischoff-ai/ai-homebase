@@ -18,4 +18,10 @@ Use `qdrant-store` for:
 - reusable design patterns
 - summaries of major specs or plans
 
+Every stored memory must use this text format:
+`[domain] [kind] Complete statement here.`
+
+Every stored memory must include metadata with at least:
+`{"kind":"...","domain":"...","agent":"architect","created":"ISO-8601"}`
+
 Include `nc_refs` when the source of truth lives in Nextcloud.

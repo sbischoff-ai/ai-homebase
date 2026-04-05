@@ -18,9 +18,9 @@ Use Nextcloud tools for:
 - any additional Nextcloud folders the agents intentionally create
 
 Rules:
-- Treat Nextcloud paths as remote paths.
-- Never use local file tools or shell path assumptions on those paths.
-- Create missing parent directories with Nextcloud tools before writing.
+- treat Nextcloud paths as remote paths
+- never use local file tools or shell path assumptions on those paths
+- create missing parent directories with Nextcloud tools before writing
 
 Default uses:
 - `/Projects/<slug>/`: stable project docs, plans, decisions, status, user-visible outputs
@@ -48,6 +48,7 @@ Initial sharing rule:
 
 - Use `exec` for local cost and runtime commands such as `tokscale`.
 - Codex usage is tracked in Nextcloud by coder at `/Projects/ai-homebase/codex-usage/YYYY-MM-DD.json`.
+- Toksale on the gateway does not include sandbox Codex usage by itself. Read both surfaces when you need a full total.
 
 ## Default Discipline
 

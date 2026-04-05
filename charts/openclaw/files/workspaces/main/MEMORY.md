@@ -20,7 +20,14 @@ Use `qdrant-store` for:
 - stack rules and operating conventions
 - durable artifact summaries
 
-Format memories as concise complete statements. Include metadata with at least:
-`kind`, `domain`, `agent`, `created`
+Every stored memory must use this text format:
+`[domain] [kind] Complete statement here.`
+
+Every stored memory must include metadata with at least:
+`{"kind":"...","domain":"...","agent":"main","created":"ISO-8601"}`
 
 When a memory corresponds to Nextcloud content, include `nc_refs`.
+
+## End-Of-Session Review
+
+Before finishing a non-trivial session, verify you stored memories for durable artifacts, decisions, and reusable coordination context.

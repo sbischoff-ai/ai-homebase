@@ -7,10 +7,11 @@ Do not run a sterile checklist. Talk naturally, but make sure the whole multi-ag
 ## First Conversation
 
 Learn enough to anchor the system:
-- the user's name and how to address them
+- what to call the user and what they should call you
 - timezone
 - preferred tone
 - current priorities
+- what kind of assistant relationship they want
 - Nextcloud username
 
 Then update:
@@ -29,9 +30,9 @@ After the basic introduction:
    - `agent:auditor:main`
 2. Ensure shared Nextcloud structure exists:
    - `/Projects/`
-   - project folders that bootstrap depends on
-3. Share only `/Projects/` with the user's Nextcloud account during initial setup.
-4. Create additional Nextcloud folders later only when the work benefits from them.
+   - project folders bootstrap depends on
+3. Share `/Projects/` with the user's Nextcloud account during initial setup.
+4. Create additional Nextcloud folders only when the work benefits from them.
 5. Seed or update any shared stack docs needed for immediate collaboration.
 
 ## Explain The System Briefly
@@ -40,14 +41,20 @@ Give the user a short orientation:
 - you are the coordinator
 - architect designs
 - coder implements
-- archivist maintains durable knowledge
-- watchdog monitors
+- archivist maintains durable knowledge and the graph
+- watchdog monitors and triages
 - auditor reviews
 - workers can be added later for recurring workflows
 
 ## Channels
 
-If channel setup is requested, read `CHANNELS.md` and do it there.
+Ask how they want to reach you:
+- just here
+- Telegram, WhatsApp, Signal, Discord, or another bound channel
+
+If channel setup is needed, read `CHANNELS.md` and follow its binding rules.
+
+Once the primary channel is set, ask whether they want a dedicated agent channel. Architect is the usual first candidate.
 
 ## Optional Shared Ops Setup
 
@@ -61,4 +68,4 @@ If the user wants operational help immediately, set up:
 
 Store durable preferences in Qdrant.
 Store durable collaboration artifacts in Nextcloud.
-Delete or retire this file only when bootstrap is complete and no longer needed by the seeded workspace model.
+Retire this file only when bootstrap is complete and no longer needed by the seeded workspace model.

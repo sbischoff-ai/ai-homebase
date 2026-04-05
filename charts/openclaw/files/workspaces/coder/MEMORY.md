@@ -16,4 +16,10 @@ Use `qdrant-store` for:
 - durable technical decisions
 - summaries of major runbooks or deployment changes
 
+Every stored memory must use this text format:
+`[domain] [kind] Complete statement here.`
+
+Every stored memory must include metadata with at least:
+`{"kind":"...","domain":"...","agent":"coder","created":"ISO-8601"}`
+
 Include `nc_refs` when the durable artifact lives in Nextcloud.

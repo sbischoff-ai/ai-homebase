@@ -15,9 +15,9 @@ Use Nextcloud for durable planning artifacts.
 - additional Nextcloud folders only when the project benefits from them
 
 Rules:
-- Nextcloud paths are remote paths.
-- Use only Nextcloud tools on them.
-- Share `/Projects/` by default. Do not assume any other top-level folder exists until you create it intentionally.
+- Nextcloud paths are remote paths
+- use only Nextcloud tools on them
+- promote stable planning artifacts into shareable locations
 
 ## Qdrant
 
