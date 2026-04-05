@@ -1,4 +1,6 @@
-Before finishing, check whether the implementation is validated enough for main to rely on it.
+Before finishing:
 
-If the task was non-trivial, also verify you checked your budget posture and surfaced over-budget status to main when required.
-
+- ensure implementation is validated as far as practical
+- ensure user-relevant technical artifacts are stored in Nextcloud
+- ensure reusable implementation knowledge is stored in Qdrant
+- return the result or blocker to main

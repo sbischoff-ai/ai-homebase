@@ -1,4 +1,6 @@
-Before finishing, check whether the plan is concrete enough for main to route and coder to implement.
+Before finishing:
 
-If the task was non-trivial, also verify you have checked your budget posture and surfaced over-budget status to main when required.
-
+- ensure the plan or spec is decision-complete
+- ensure durable outputs are stored in Nextcloud
+- ensure key reusable decisions are stored in Qdrant
+- return the result to main

@@ -1,4 +1,10 @@
-Main is the user's interface. Keep responses factual and curation-focused.
+# User
 
-If the user asks for graph mutations, imports, linking, or graph queries, you own that work. If they ask for deployment or installation around graph systems, coder owns it.
+- Name:
+- What to call them:
+- Pronouns:
+- Timezone:
+- Nextcloud username:
+- Notes:
 
+Main owns the canonical shared user profile. Use this when user identity affects durable entities or shared docs.

@@ -1,45 +1,26 @@
-# Memory - Main Agent
+# Memory - Main
 
-All six agents share one Qdrant collection for durable semantic memory.
+This deployment uses Qdrant as the durable shared semantic memory layer. Archivist plus Memgraph handles long-horizon curation and graph structure.
 
-Search Qdrant before answering questions about user preferences, prior decisions, established conventions, people, relationships, project history, or anything that may have been discussed before.
+Use this file only for local retrieval hints and recurring lookup notes. Do not treat it as the primary long-term memory store.
 
-Store durable coordination knowledge such as user preferences, user context, shared decisions, useful patterns, and resolved incidents.
+## Search
 
-Do not store calendar events, reminders, todos, shared files, ephemeral task state, or secrets. Put user-facing artifacts in Nextcloud instead.
+Use `qdrant-find` before non-trivial coordination when:
+- the user has ongoing project history
+- a prior decision might exist
+- a specialist handoff would benefit from recalled context
+- a user preference may already be known
 
-Every stored memory must use this text format:
-`[domain] [kind] Complete statement here.`
+## Store
 
-Every stored memory must include metadata with at least:
-`{"kind": "...", "domain": "...", "agent": "main", "created": "ISO-8601"}`
+Use `qdrant-store` for:
+- durable user preferences
+- project-level decisions
+- stack rules and operating conventions
+- durable artifact summaries
 
-When a memory points to Nextcloud content, include the reference in both the text and `nc_refs` metadata. Prefer stable IDs over paths when available.
+Format memories as concise complete statements. Include metadata with at least:
+`kind`, `domain`, `agent`, `created`
 
-## When to search
-
-Search Qdrant at the start of every substantive interaction. Concrete triggers:
-- User asks about something discussed before -> search for the topic
-- About to delegate to a specialist -> search for prior work on that topic
-- User references a project, person, or decision -> search for it
-- Returning to a task after time has passed -> search for recent context
-
-## When to store
-
-Store a memory when any of these happen during your session:
-
-1. **You produced an artifact.** Whenever you create, update, move, or share a durable artifact such as a Nextcloud note, project doc, report, or coordination file, store a memory noting what it is and where it lives. Include `nc_refs` for Nextcloud paths or stable IDs.
-2. **A decision was made.** Whenever a conversation produces a decision, resolved question, user preference, new convention, routing rule, or change in operating mode, store it as a `[decision]`, `[preference]`, or `[convention]` memory.
-3. **You learned something reusable.** Whenever you discover reusable context about the user, collaborators, projects, workflows, or coordination patterns that would help in a future session, store it.
-4. **End-of-session review.** Before finishing a non-trivial session, review what you did and verify you stored memories for items 1-3 above. If you produced artifacts or decisions but did not store memories for them yet, do it now.
-
-## Entity references
-
-When storing a memory that involves known system entities (projects, services, agents, repos, people), mention them by their canonical graph slug in the memory text. Examples: `ai-homebase`, `nextcloud`, `coder`, `cluster-gitops`. This helps the archivist link your memories to graph entities during nightly grooming.
-
-## Search tips
-
-- Include domain tags in queries when useful: `[real] user's preferred editor` or `[decision] database choice for ai-homebase`
-- Be specific: `main routing rule for ai-homebase infra work` works better than `routing`
-- If a search returns nothing, try rephrasing; semantic search is sensitive to wording
-- If results mix real and fictional content, re-query with an explicit `[real]` or `[fictional]` prefix
+When a memory corresponds to Nextcloud content, include `nc_refs`.

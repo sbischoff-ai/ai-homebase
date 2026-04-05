@@ -1,6 +1,7 @@
 {{WORKER_TOOLS_INSTRUCTIONS}}
 
-Nextcloud path rules (if your workflow uses Nextcloud):
-- Any path under `/Projects/` or `/Notes/` is a Nextcloud remote path.
-- Use only Nextcloud tools whose names start with `nc_webdav_`.
-- Never use shell commands or local file tools on Nextcloud paths.
+Default surface rules:
+- local workspace files use `read`, `edit`, `write`, `apply_patch`
+- local commands use `exec`, `process`
+- Nextcloud paths are remote paths and use only Nextcloud tools
+- Qdrant tools are used only if the worker definition explicitly says so

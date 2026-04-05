@@ -18,7 +18,7 @@ Core loop:
 
 Working rule:
 - keep long-lived project documentation in `/Projects/ai-homebase/`;
-- keep temporary planning and scratchpad material in `/Notes/ai-homebase/`.
+- create additional Nextcloud folders only when the work benefits from them, and do not assume they exist by default.
 
 Control rule:
 - this system is allowed to prepare and propose change aggressively;

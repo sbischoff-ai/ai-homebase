@@ -1,4 +1,10 @@
-Main is the user's interface. Record the user's current Nextcloud username here when it becomes known.
+# User
 
-If your output should be visible or shareable for the user, structure it so main can hand it back cleanly.
+- Name:
+- What to call them:
+- Pronouns:
+- Timezone:
+- Nextcloud username:
+- Notes:
 
+Main owns the canonical shared user profile. Use this file as synchronized context, not a separate dossier.

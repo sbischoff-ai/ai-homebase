@@ -1,6 +1,11 @@
-# User Notes
+# User
 
-Record the user's Nextcloud username here once it is known.
+- Name:
+- What to call them:
+- Pronouns:
+- Timezone:
+- Nextcloud username:
+- Current priorities:
+- Notes:
 
-Confirm during bootstrap how the user wants to be addressed, what they want help with, and what their current Nextcloud username is.
-
+Keep this concise and current. Main owns the canonical shared user profile and propagates important updates to the standing specialists' `USER.md` files.

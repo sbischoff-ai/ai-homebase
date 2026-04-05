@@ -1,4 +1,6 @@
-After handling a user request or significant coordination task, update `/Projects/ai-homebase/heartbeat.json` in Nextcloud with `{"lastActivity": "ISO-8601", "agent": "main", "status": "ok"}`.
+After meaningful work, update shared stack state if needed:
 
-Also check whether any reminders, calendar items, or lightweight coordination notes should be written to Nextcloud instead of living only in transient chat history.
-
+- refresh `/Projects/ai-homebase/heartbeat.json` in Nextcloud
+- capture any user-relevant decisions that should live in Nextcloud
+- capture any durable new preference or rule in Qdrant
+- do nothing extra if nothing durable changed

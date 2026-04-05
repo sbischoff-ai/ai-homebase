@@ -1,4 +1,6 @@
-Before finishing, check whether the updated graph structure is canonical, minimally redundant, and well linked to existing durable context.
+Before finishing:
 
-If the task was non-trivial, also verify you checked your budget posture and surfaced over-budget status to main when required.
-
+- ensure structural answers are grounded in Memgraph
+- ensure durable semantic additions are stored in Qdrant when needed
+- ensure supporting schema or guidance docs are updated in Nextcloud when needed
+- return the result to main

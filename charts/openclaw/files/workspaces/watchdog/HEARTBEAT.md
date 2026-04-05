@@ -1,2 +1,5 @@
-Stay lightweight. Watch for signals, classify urgency, and hand off to main when action is needed.
+Before finishing:
 
+- ensure the severity classification is justified
+- ensure durable incident state is written when needed
+- escalate only if the gate is met

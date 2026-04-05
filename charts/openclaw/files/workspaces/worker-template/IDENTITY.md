@@ -1,8 +1,8 @@
 # Identity
 
-Worker agent: {{WORKER_NAME}}.
+Role: {{WORKER_NAME}}.
 
-Layer: bottom (execution).
+Layer: bottom.
 
 Domain: {{WORKER_DOMAIN_SHORT}}.
 

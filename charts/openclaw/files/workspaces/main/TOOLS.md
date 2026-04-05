@@ -1,62 +1,55 @@
-You have a dedicated Nextcloud account available through your visible Nextcloud MCP tools.
+Use your visible tools as your operating environment.
 
-Nextcloud account details:
-- Agent account username: `openclaw`
-- Record the user's Nextcloud username here once it is known.
+## Local Workspace
 
-### Nextcloud Usage - Main
+- Use `read`, `edit`, `write`, and `apply_patch` for local workspace files.
+- Use `exec` and `process` for shell commands, automation, and local inspection.
+- Use `browser`, `web_search`, and `web_fetch` when the task needs current web context.
 
-Nextcloud path rules:
-- Any path under `/Projects/` or `/Notes/` is a Nextcloud remote path, not a local filesystem path.
-- For those paths, use only Nextcloud tools whose names start with `nc_webdav_`.
-- Never use shell commands, local file APIs, workspace file tools, or local path assumptions on `/Projects/...` or `/Notes/...`.
-- Never create a local directory or local file that mirrors a Nextcloud path.
-- If a parent directory is missing, create it in Nextcloud with an `nc_webdav_*` tool, then read or write the file in Nextcloud with an `nc_webdav_*` tool.
+## Nextcloud
 
-**When to write:**
-- After making a coordination decision that affects a project, store or update it in `/Projects/<slug>/`, typically `decisions.md` or a status summary, with an `nc_webdav_*` tool.
-- When the user provides information that should remain durably accessible, write it to the appropriate Nextcloud artifact with an `nc_webdav_*` tool.
-- When synthesizing specialist outputs into a user-facing summary, store stable versions in `/Projects/<slug>/` and drafts in `/Notes/<slug>/` with `nc_webdav_*` tools.
-- When creating or updating calendar events, todos, or tasks that track work.
+The `openclaw` Nextcloud account is part of your normal operating space, not just a file dump.
 
-**When to read:**
-- Before routing work to a specialist, check `/Projects/<slug>/` for specs, plans, and decisions the specialist needs with `nc_webdav_*` tools.
-- Before answering questions about project state, prefer the authoritative Nextcloud artifact over memory alone and read it with an `nc_webdav_*` tool.
+Use Nextcloud tools for:
+- `/Projects/...` files
+- calendar events and todos
+- tables that track ongoing work
+- shares with the user
+- any additional Nextcloud folders the agents intentionally create
 
-**What goes where:**
-- Calendar events and todos: scheduling, deadlines, recurring tasks
-- `/Projects/<slug>/`: stable coordination artifacts, decision logs, status summaries
-- `/Notes/<slug>/`: draft coordination notes and meeting summaries
-- `/Projects/ai-homebase/codex-usage/`: daily Codex usage logs from coder
-- `/Projects/ai-homebase/heartbeat.json`: latest coordination heartbeat
-- Root files: user-facing reference material that does not belong to a project
+Rules:
+- Treat Nextcloud paths as remote paths.
+- Never use local file tools or shell path assumptions on those paths.
+- Create missing parent directories with Nextcloud tools before writing.
 
-**What does not go in Nextcloud:**
-- Internal routing decisions or transient triage reasoning
-- Raw specialist output before synthesis, unless the specialist explicitly asked you to publish it
+Default uses:
+- `/Projects/<slug>/`: stable project docs, plans, decisions, status, user-visible outputs
+- calendar: deadlines, reminders, recurring coordination
+- tables: structured trackers when a flat markdown file is no longer enough
+- shares: expose durable folders or artifacts to the user
 
-**Cross-reference with Qdrant:**
-- When you store a coordination decision in Qdrant, include `nc_refs` to the Nextcloud artifact.
-- When you write a durable Nextcloud artifact that embodies a decision, store a Qdrant memory summarizing it.
+Initial sharing rule:
+- share `/Projects/` by default
+- do not assume any other top-level Nextcloud folder exists or is shared until you create it intentionally
 
-Calendar instruction:
-- Ask the user to create a calendar and share it with `openclaw` so you can track shared planning items there.
+## Qdrant
 
-### Cost tracking (tokscale)
+- Use `qdrant-find` before non-trivial coordination when prior context may matter.
+- Use `qdrant-store` for durable preferences, decisions, and stack rules.
+- When a memory points to a Nextcloud artifact, include `nc_refs`.
 
-Tokscale reads OpenClaw and Codex session data and calculates costs using real-time model pricing.
+## Sessions
 
-- `tokscale --openclaw --today --json` -- today's total OpenClaw spend (all agents)
-- `tokscale --openclaw --week --json` -- last 7 days
-- `tokscale --openclaw --month --json` -- current month
-- `tokscale --openclaw --since YYYY-MM-DD --until YYYY-MM-DD --json` -- custom range
-- `tokscale --openclaw --today --group-by model --json` -- per-model breakdown
-- `tokscale pricing "model-name"` -- look up current model pricing
+- Use `sessions_send` for specialist handoffs and result collection.
+- Use `sessions_spawn` only when bringing up new isolated sessions or workers.
+- Use `session_status` or `sessions_list` when you need to inspect live session state.
 
-Tokscale does not separate per-agent costs. To get the full picture, also read the coder's Codex usage log at `/Projects/ai-homebase/codex-usage/YYYY-MM-DD.json`.
+## Budget And Cost
 
-### Worker agent costs
+- Use `exec` for local cost and runtime commands such as `tokscale`.
+- Codex usage is tracked in Nextcloud by coder at `/Projects/ai-homebase/codex-usage/YYYY-MM-DD.json`.
 
-Worker agents use Nano or Mini models. Their cost is included in the overall tokscale output (`--group-by model` shows the breakdown). Unlike Codex, workers do not have a separate usage log -- their spend is visible directly in the per-model tokscale data.
+## Default Discipline
 
-If Nano/Mini spend is unexpectedly high, check which workers are running and how often. Route optimization requests to architect.
+- Prefer specialized tools over generic shell work when a specialized tool exists.
+- Prefer writing durable shared state once to Nextcloud over repeating it in long inter-agent messages.

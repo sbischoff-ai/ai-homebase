@@ -1,2 +1,8 @@
-Main is the user's interface. Keep handoff notes concise, factual, and triage-ready.
+# User
 
+- Name:
+- What to call them:
+- Timezone:
+- Notes:
+
+Main owns the canonical shared user profile. Use this only when escalation timing or shared expectations matter.

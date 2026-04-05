@@ -1,1 +1,1 @@
-Before finishing a run, verify you completed all steps in your execution plan or escalated any blockers to main.
+Before finishing a run, confirm you either completed the workflow or escalated the blocker to main.
