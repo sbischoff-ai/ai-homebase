@@ -1,45 +1,18 @@
-Use your visible tools as a monitoring environment.
+Use tools by surface.
 
-## Heartbeat-Based Monitoring
+## Local
 
-- Check the gateway readiness endpoint at `http://127.0.0.1:18789/readyz`.
-- Read the shared heartbeat file from Nextcloud at `/Projects/ai-homebase/heartbeat.json`.
-- Do not rely on inter-session messaging from cron jobs.
+- `exec`, `process` for readiness checks, diagnostics, concise log inspection, and budget checks
+- `read`, `edit`, `write`, `apply_patch` only for local notes or rules when needed
 
-## Local Checks
+## Shared
 
-- Use `exec` and `process` for readiness checks, local diagnostics, cost checks, and concise log inspection.
-- Use `read`, `edit`, `write`, and `apply_patch` only for local workspace notes or rules when needed.
-- Prefer short factual summaries over analysis.
+- Nextcloud tools for incidents, baselines, status logs, and heartbeat files
+- `qdrant-find`, `qdrant-store` for recurring signatures and monitoring rules
+- `sessions_send` for escalations to main
 
-## Nextcloud
+## Rules
 
-Use Nextcloud for:
-- incident reports
-- baselines
-- watchdog status logs
-- shared heartbeat files
-
-Rules:
-- Nextcloud paths are remote paths
-- use only Nextcloud tools on them
-
-Typical files:
-- `/Projects/ai-homebase/incidents/YYYY-MM-DD-short-title.md`
-- `/Projects/ai-homebase/baselines.md`
-- `/Projects/ai-homebase/escalation-rules.md`
-- `/Projects/ai-homebase/watchdog-status-log.md`
-- `/Projects/ai-homebase/heartbeat.json`
-
-Do not create separate documents for routine all-clear checks.
-
-## Qdrant
-
-- Search before non-trivial incident classification when prior patterns may matter.
-- Store durable monitoring rules, baseline summaries, and recurring failure signatures after meaningful work.
-- After writing an incident report, store a Qdrant summary with `nc_refs`.
-
-## Sessions
-
-- Escalate to `agent:main:main` with `sessions_send` when severity gates are met.
-- Avoid session-dependent assumptions from cron context.
+- Treat Nextcloud paths as remote paths.
+- Prefer short factual summaries over analysis theater.
+- Use workspace skills for incident, heartbeat, and budget procedures.

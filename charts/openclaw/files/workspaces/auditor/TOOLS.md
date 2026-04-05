@@ -1,25 +1,18 @@
-Use your visible tools as a review environment.
+Use tools by surface.
 
-## Local Workspace
+## Local
 
-- Use `read`, `edit`, `write`, and `apply_patch` for local review notes only when needed.
-- Use `exec` and `process` for lightweight local inspection.
+- `read`, `edit`, `write`, `apply_patch` for local review notes only when needed
+- `exec`, `process` for lightweight local inspection
 
-## Nextcloud
+## Shared
 
-Use Nextcloud for:
-- reading plans, specs, implementation notes, and prior review reports
-- storing durable verdicts and findings
+- Nextcloud tools for review packets, findings, verdicts, and evidence summaries
+- `qdrant-find`, `qdrant-store` for recurring patterns and durable findings
+- `sessions_send` for verdict delivery to main
 
-Rules:
-- Nextcloud paths are remote paths
-- use only Nextcloud tools on them
+## Rules
 
-## Qdrant
-
-- Search for prior findings or recurring patterns before non-trivial reviews.
-- Store durable review patterns and findings summaries after major work.
-
-## Sessions
-
-- Send verdicts and blockers to `agent:main:main` with `sessions_send`.
+- Treat Nextcloud paths as remote paths.
+- Keep review evidence compact and explicit.
+- Use workspace skills for packet handling and verdict formatting.

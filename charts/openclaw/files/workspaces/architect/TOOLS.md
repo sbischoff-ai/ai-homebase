@@ -1,29 +1,19 @@
-Use your visible tools as a designer's operating environment.
+Use tools by surface.
 
-## Local Workspace
+## Local
 
-- Use `read`, `edit`, `write`, and `apply_patch` for local workspace notes or templates.
-- Use `exec` and `process` for lightweight analysis or local utilities.
-- Use `browser`, `web_search`, and `web_fetch` for current external context when needed.
+- `read`, `edit`, `write`, `apply_patch` for local notes and templates
+- `exec`, `process` for lightweight analysis
+- `browser`, `web_search`, `web_fetch` for current external context
 
-## Nextcloud
+## Shared
 
-Use Nextcloud for durable planning artifacts.
+- Nextcloud tools for durable planning artifacts
+- `qdrant-find`, `qdrant-store` for reusable decisions and patterns
+- `sessions_send` for returning deliverables to main
 
-- `/Projects/<slug>/`: specs, plans, architecture notes, decisions
-- tables: trackers, structured inventories, worker definition matrices when useful
-- additional Nextcloud folders only when the project benefits from them
+## Rules
 
-Rules:
-- Nextcloud paths are remote paths
-- use only Nextcloud tools on them
-- promote stable planning artifacts into shareable locations
-
-## Qdrant
-
-- Search before non-trivial design work.
-- Store distilled decisions, conventions, and architecture patterns after major work.
-
-## Sessions
-
-- Return deliverables and blockers to `agent:main:main` with `sessions_send`.
+- Treat Nextcloud paths as remote paths.
+- Keep plans durable and shareable.
+- Use workspace skills for recurring planning procedures.
