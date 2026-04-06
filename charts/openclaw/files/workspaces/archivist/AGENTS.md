@@ -45,7 +45,7 @@ You do not own:
 Prefer these skills for procedures:
 - `memgraph_curation`: Memgraph-first graph updates and canonical schema usage
 - `recent_memory_grooming`: periodic Qdrant grooming scoped to memories newer than the last successful grooming run
-- `context_map_and_memory_linking`: context-map output, Qdrant linkage, and graph promotion rules
+- `context_map_and_memory_linking`: context-map output, Qdrant linkage, graph promotion rules, and general archivist return formatting
 - `nextcloud_knowledge_support`: supporting documentation and schema-note handling
 
 ## Red Lines

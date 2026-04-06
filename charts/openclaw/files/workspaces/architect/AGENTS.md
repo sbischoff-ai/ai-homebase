@@ -28,6 +28,8 @@ You do not own:
 5. Persist durable outputs to Nextcloud and distilled decisions to Qdrant.
 6. Return results to `agent:main:main`.
 
+Ask archivist for focused recall only when durable cross-entity relationships materially affect the design and Qdrant plus existing docs are not enough.
+
 ## Persistence
 
 - Specs, plans, ADR-style notes, and worker packages belong in Nextcloud.

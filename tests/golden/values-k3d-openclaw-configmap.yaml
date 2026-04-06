@@ -242,6 +242,8 @@ data:
     5. Persist durable outputs to Nextcloud and distilled decisions to Qdrant.
     6. Return results to `agent:main:main`.
 
+    Ask archivist for focused recall only when durable cross-entity relationships materially affect the design and Qdrant plus existing docs are not enough.
+
     ## Persistence
 
     - Specs, plans, ADR-style notes, and worker packages belong in Nextcloud.
@@ -381,6 +383,19 @@ data:
     ### Follow-up needed
     <remaining work and owner>
     ```
+
+    ## Recall And Escalation
+
+    Before returning non-trivial planning work:
+    1. Search Qdrant for relevant decisions and patterns.
+    2. Read existing Nextcloud project docs when they exist.
+    3. Ask archivist for focused recall only when semantic recall is insufficient and durable relationships materially affect the design.
+
+    Store a durable Qdrant memory with canonical slugs when:
+    - a new project or subsystem is designed
+    - a decision changes how existing entities relate
+    - a new external dependency or integration is introduced
+    - a new worker agent is designed
 
     ## Rules
 
@@ -531,7 +546,7 @@ data:
     Prefer these skills for procedures:
     - `memgraph_curation`: Memgraph-first graph updates and canonical schema usage
     - `recent_memory_grooming`: periodic Qdrant grooming scoped to memories newer than the last successful grooming run
-    - `context_map_and_memory_linking`: context-map output, Qdrant linkage, and graph promotion rules
+    - `context_map_and_memory_linking`: context-map output, Qdrant linkage, graph promotion rules, and general archivist return formatting
     - `nextcloud_knowledge_support`: supporting documentation and schema-note handling
 
     ## Red Lines
@@ -755,6 +770,27 @@ data:
     - Nextcloud references third for supporting docs
     - when a Qdrant memory deserves graph structure, represent it as linked `MemoryEntry` structure
     - include `nc_refs` when a memory points to a Nextcloud artifact
+
+    ## General Archivist Return Format
+
+    Use this when the task is curation work but not primarily a context-map response:
+
+    ```markdown
+    ## Handoff Complete
+    **Task:** <brief restatement>
+    **Status:** <complete | partial - needs X | blocked - needs Y>
+
+    ### Deliverables
+    - Memgraph: <nodes, edges, schema or query updates>
+    - Qdrant: <memories stored, linked, groomed>
+    - Nextcloud: <paths updated, if any>
+
+    ### For the user
+    <concise explanation of what durable context was added or clarified>
+
+    ### Follow-up needed
+    <which agent should do what next>
+    ```
   workspace-archivist-skills__memgraph_curation__SKILL.md: |2
 
     ---
@@ -1084,12 +1120,7 @@ data:
     ## Cost Awareness
 
     You are the most expensive standing agent. Be conservative.
-
-    Targets:
-    - daily threshold: about $2
-    - on-demand reviews: aim under 30K input tokens
-    - weekly audits: aim under 50K input tokens total
-
+    Use `/Projects/ai-homebase/budget-policy.md` for the current review-budget posture and token guidance.
     If the review packet is too large, prefer a summarized packet over reading raw history.
     Stop once the verdict is clear.
 
@@ -1383,10 +1414,12 @@ data:
 
     - Gitea is the default internal source of truth.
     - Default in-cluster repos are `cluster-gitops` and `openclaw-sandbox-images`.
+    - Use `git` and `tea` with the coder identity for repo creation, collaborator management, repo inspection, and pull requests.
     - Treat GitOps as deployment definition, not a planning scratchpad.
     - Prefer branches and pull requests on shared repos.
     - When you create a new repo for a user project, invite the user once their Gitea username is known.
-    - Tell main when user review and manual Argo CD sync are required.
+    - Tell main when the user needs to review and merge.
+    - Tell main when manual Argo CD sync is required after GitOps changes.
 
     ## Validation
 
@@ -1496,6 +1529,7 @@ data:
     - review, verdict, audit, systemic quality judgment -> auditor
 
     If a task crosses boundaries, do only the coordination share and route the rest.
+    Use archivist when Qdrant is sparse or conflicting, when structural relationship context matters, when a decision touches many durable entities, or when memory likely exists but semantic search did not surface it.
 
     ## Persistence
 
@@ -1577,6 +1611,7 @@ data:
     - watchdog monitors and triages
     - auditor reviews
     - workers can be added later for recurring workflows
+    - `/Projects/ai-homebase/budget-policy.md` is shared with them and is the user-visible place to review or change LLM budget policy
 
     ## Channels
 
@@ -1731,15 +1766,17 @@ data:
        - `/Projects/`
        - only the project folders immediately needed
     5. Share `/Projects/` with the user's Nextcloud account during initial setup.
-    6. Seed or update shared stack docs only when they are needed for immediate collaboration.
-    7. Store durable preferences in Qdrant.
-    8. Retire `BOOTSTRAP.md` only when first-run bootstrap is actually complete.
+    6. Tell the user that `/Projects/ai-homebase/budget-policy.md` is part of the shared project folder and is the place to review or change LLM budget policy.
+    7. Seed or update shared stack docs only when they are needed for immediate collaboration.
+    8. Store durable preferences in Qdrant.
+    9. Retire `BOOTSTRAP.md` only when first-run bootstrap is actually complete.
 
     ## Output
 
     - synchronized `USER.md` files
     - verified specialist availability
     - shared `/Projects/` folder
+    - user informed about the shared budget policy file
     - durable bootstrap facts in Qdrant and Nextcloud
 
     ## Boundaries
@@ -1769,21 +1806,26 @@ data:
     Coder's Codex usage is tracked separately in Nextcloud at:
     - `/Projects/ai-homebase/codex-usage/YYYY-MM-DD.json`
 
+    Tokscale reads session data directly from the gateway.
+    It groups spend by model, not by agent, so use the standing agent model assignments as an approximation when you need per-agent posture.
+
     ## Procedure
 
     1. Check gateway-side spend with `tokscale`.
     2. If coder Codex usage matters, read the matching Nextcloud usage file and add it to the daily picture.
-    3. Compare posture against the stack thresholds:
-       - daily hard ceiling: `$15`
-       - weekly hard ceiling: `$50`
-       - monthly hard ceiling: `$150`
+    3. Compare posture against `/Projects/ai-homebase/budget-policy.md`.
     4. Before non-trivial delegation, decide whether the specialist should keep the session short.
     5. If the user explicitly marks the work as off-budget, note that in the handoff.
     6. Use the result to guide work classes:
        - `P0` direct user requests always proceed
        - `P1` active handoffs proceed unless a hard ceiling is at risk
-       - `P2` proactive work defers once the daily ceiling is reached or weekly spend exceeds `$40`
-       - `P3` speculative work skips when monthly spend exceeds `$120` or weekly spend exceeds `$40`
+       - `P2` proactive work defers according to the shared budget policy
+       - `P3` speculative work skips according to the shared budget policy
+
+    ## Off-Budget Handling
+
+    - If the user explicitly marks the work as off-budget, note that in the handoff.
+    - Tell delegated specialists they may skip their self-checks.
 
     ## Output
 
@@ -1927,6 +1969,16 @@ data:
     2. Check Nextcloud `/Projects/<slug>/` for existing artifacts when a project is involved.
     3. Include those findings in the handoff.
 
+    ## Archivist Escalation
+
+    Route to archivist when:
+    - Qdrant results are sparse, conflicting, or inconclusive on a topic that should be documented
+    - the task needs a structural picture of entities and relationships rather than a single fact
+    - a decision touches many durable entities and confidence about their relationships matters
+    - memory likely exists but semantic search is not surfacing it
+
+    Do not escalate to archivist when a focused Qdrant search already returns a clear result.
+
     ## Handoff Format
 
     ```markdown
@@ -1989,17 +2041,20 @@ data:
     2. Create the workspace directory.
     3. Fill the worker-template files.
     4. Register the agent with `openclaw agents add`.
-    5. Add cron if needed.
-    6. Confirm activation to the user.
+    5. Update `/Projects/ai-homebase/budget-policy.md` if the new agent changes the stack's ongoing LLM spend posture, expected daily budget, or token guidance.
+    6. Add cron if needed.
+    7. Confirm activation to the user.
 
     ## Worker Lifecycle Rules
 
+    - when agents are added, retired, or materially re-scoped, keep `/Projects/ai-homebase/budget-policy.md` current if budget posture changes
     - updates go through architect first
     - decommission by removing cron, deleting the agent, and informing the user
 
     ## Boundaries
 
     - Main owns instantiation, scheduling, and retirement after approval.
+    - Main also owns keeping the shared budget policy aligned with live agent changes it makes.
     - Do not skip architect when the workflow needs a real worker definition.
   workspace-watchdog-AGENTS.md: |2
 
@@ -2158,7 +2213,7 @@ data:
     1. Check readiness.
     2. Read the shared heartbeat file when heartbeat-based monitoring is relevant.
     3. Compare against known baselines before calling something a deviation.
-    4. If total spend exceeds `$12`, alert main that the stack is approaching the daily ceiling.
+    4. Compare spend posture against `/Projects/ai-homebase/budget-policy.md` and alert main when the shared policy says the stack is approaching a ceiling.
     5. From cron, do not depend on session visibility or session messaging unless the cron prompt explicitly requires it.
 
     ## Boundaries

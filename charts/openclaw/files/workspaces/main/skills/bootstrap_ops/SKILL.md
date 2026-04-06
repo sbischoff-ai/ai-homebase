@@ -34,15 +34,17 @@ Use this skill only for first-run bootstrap or explicit stack re-alignment.
    - `/Projects/`
    - only the project folders immediately needed
 5. Share `/Projects/` with the user's Nextcloud account during initial setup.
-6. Seed or update shared stack docs only when they are needed for immediate collaboration.
-7. Store durable preferences in Qdrant.
-8. Retire `BOOTSTRAP.md` only when first-run bootstrap is actually complete.
+6. Tell the user that `/Projects/ai-homebase/budget-policy.md` is part of the shared project folder and is the place to review or change LLM budget policy.
+7. Seed or update shared stack docs only when they are needed for immediate collaboration.
+8. Store durable preferences in Qdrant.
+9. Retire `BOOTSTRAP.md` only when first-run bootstrap is actually complete.
 
 ## Output
 
 - synchronized `USER.md` files
 - verified specialist availability
 - shared `/Projects/` folder
+- user informed about the shared budget policy file
 - durable bootstrap facts in Qdrant and Nextcloud
 
 ## Boundaries

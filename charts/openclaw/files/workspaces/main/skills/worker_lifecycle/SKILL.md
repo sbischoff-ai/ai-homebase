@@ -26,15 +26,18 @@ When asking architect for a worker, include:
 2. Create the workspace directory.
 3. Fill the worker-template files.
 4. Register the agent with `openclaw agents add`.
-5. Add cron if needed.
-6. Confirm activation to the user.
+5. Update `/Projects/ai-homebase/budget-policy.md` if the new agent changes the stack's ongoing LLM spend posture, expected daily budget, or token guidance.
+6. Add cron if needed.
+7. Confirm activation to the user.
 
 ## Worker Lifecycle Rules
 
+- when agents are added, retired, or materially re-scoped, keep `/Projects/ai-homebase/budget-policy.md` current if budget posture changes
 - updates go through architect first
 - decommission by removing cron, deleting the agent, and informing the user
 
 ## Boundaries
 
 - Main owns instantiation, scheduling, and retirement after approval.
+- Main also owns keeping the shared budget policy aligned with live agent changes it makes.
 - Do not skip architect when the workflow needs a real worker definition.

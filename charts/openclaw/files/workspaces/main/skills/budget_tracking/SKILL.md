@@ -17,21 +17,26 @@ Main is the budget manager for the stack.
 Coder's Codex usage is tracked separately in Nextcloud at:
 - `/Projects/ai-homebase/codex-usage/YYYY-MM-DD.json`
 
+Tokscale reads session data directly from the gateway.
+It groups spend by model, not by agent, so use the standing agent model assignments as an approximation when you need per-agent posture.
+
 ## Procedure
 
 1. Check gateway-side spend with `tokscale`.
 2. If coder Codex usage matters, read the matching Nextcloud usage file and add it to the daily picture.
-3. Compare posture against the stack thresholds:
-   - daily hard ceiling: `$15`
-   - weekly hard ceiling: `$50`
-   - monthly hard ceiling: `$150`
+3. Compare posture against `/Projects/ai-homebase/budget-policy.md`.
 4. Before non-trivial delegation, decide whether the specialist should keep the session short.
 5. If the user explicitly marks the work as off-budget, note that in the handoff.
 6. Use the result to guide work classes:
    - `P0` direct user requests always proceed
    - `P1` active handoffs proceed unless a hard ceiling is at risk
-   - `P2` proactive work defers once the daily ceiling is reached or weekly spend exceeds `$40`
-   - `P3` speculative work skips when monthly spend exceeds `$120` or weekly spend exceeds `$40`
+   - `P2` proactive work defers according to the shared budget policy
+   - `P3` speculative work skips according to the shared budget policy
+
+## Off-Budget Handling
+
+- If the user explicitly marks the work as off-budget, note that in the handoff.
+- Tell delegated specialists they may skip their self-checks.
 
 ## Output
 

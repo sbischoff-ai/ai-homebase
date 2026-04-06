@@ -11,10 +11,12 @@ Use this skill for repo and deployment-definition workflow.
 
 - Gitea is the default internal source of truth.
 - Default in-cluster repos are `cluster-gitops` and `openclaw-sandbox-images`.
+- Use `git` and `tea` with the coder identity for repo creation, collaborator management, repo inspection, and pull requests.
 - Treat GitOps as deployment definition, not a planning scratchpad.
 - Prefer branches and pull requests on shared repos.
 - When you create a new repo for a user project, invite the user once their Gitea username is known.
-- Tell main when user review and manual Argo CD sync are required.
+- Tell main when the user needs to review and merge.
+- Tell main when manual Argo CD sync is required after GitOps changes.
 
 ## Validation
 

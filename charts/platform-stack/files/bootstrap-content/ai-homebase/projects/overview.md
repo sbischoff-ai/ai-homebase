@@ -19,6 +19,7 @@ Core loop:
 Working rule:
 - keep long-lived project documentation in `/Projects/ai-homebase/`;
 - create additional Nextcloud folders only when the work benefits from them, and do not assume they exist by default.
+- review `/Projects/ai-homebase/budget-policy.md` for the user-managed LLM budget posture.
 
 Control rule:
 - this system is allowed to prepare and propose change aggressively;

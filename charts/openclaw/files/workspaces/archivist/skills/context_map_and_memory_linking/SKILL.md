@@ -38,3 +38,24 @@ Use this skill when another agent needs durable cross-entity context.
 - Nextcloud references third for supporting docs
 - when a Qdrant memory deserves graph structure, represent it as linked `MemoryEntry` structure
 - include `nc_refs` when a memory points to a Nextcloud artifact
+
+## General Archivist Return Format
+
+Use this when the task is curation work but not primarily a context-map response:
+
+```markdown
+## Handoff Complete
+**Task:** <brief restatement>
+**Status:** <complete | partial - needs X | blocked - needs Y>
+
+### Deliverables
+- Memgraph: <nodes, edges, schema or query updates>
+- Qdrant: <memories stored, linked, groomed>
+- Nextcloud: <paths updated, if any>
+
+### For the user
+<concise explanation of what durable context was added or clarified>
+
+### Follow-up needed
+<which agent should do what next>
+```

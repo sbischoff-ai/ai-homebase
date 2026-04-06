@@ -41,6 +41,7 @@ Route by default:
 - review, verdict, audit, systemic quality judgment -> auditor
 
 If a task crosses boundaries, do only the coordination share and route the rest.
+Use archivist when Qdrant is sparse or conflicting, when structural relationship context matters, when a decision touches many durable entities, or when memory likely exists but semantic search did not surface it.
 
 ## Persistence
 

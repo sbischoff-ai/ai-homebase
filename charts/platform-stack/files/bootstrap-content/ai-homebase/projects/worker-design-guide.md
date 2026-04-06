@@ -54,13 +54,15 @@ Every worker must be fully specified before instantiation. The architect produce
    a. Create the workspace directory (e.g., `~/.openclaw/workspace-<worker-id>`).
    b. Write the workspace files (AGENTS.md, SOUL.md, IDENTITY.md, MEMORY.md, TOOLS.md, HEARTBEAT.md, USER.md) by filling in the worker template placeholders with values from the architect's definition package.
    c. Run `openclaw agents add <worker-id> --workspace ~/.openclaw/workspace-<worker-id> --model <model-id>` to register the agent.
-   d. If the worker needs a cron schedule, configure it with `openclaw cron add`.
+   d. Update `/Projects/ai-homebase/budget-policy.md` if the new worker changes the expected ongoing LLM spend posture.
+   e. If the worker needs a cron schedule, configure it with `openclaw cron add`.
 4. Main confirms to the user that the worker is active.
 
 To decommission a worker:
 1. Remove its cron schedule with `openclaw cron remove` (if any).
 2. Run `openclaw agents delete <worker-id>`.
-3. Announce to the user.
+3. Update `/Projects/ai-homebase/budget-policy.md` if the removal changes expected ongoing spend.
+4. Announce to the user.
 
 ## Worker Behavior Invariants
 

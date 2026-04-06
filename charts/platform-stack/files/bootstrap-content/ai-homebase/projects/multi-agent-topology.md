@@ -53,6 +53,7 @@ Worker agents are not standing agents. They are instantiated on demand from arch
 ## Coordination Model
 
 - `main` receives user requests and classifies them.
+- `main` applies the current budget policy from `/Projects/ai-homebase/budget-policy.md` when making routine delegation decisions.
 - Small tasks inside `main`'s domain are handled directly.
 - Design, planning, and specification work goes to `architect`.
 - `architect` returns actionable work items to `main`.

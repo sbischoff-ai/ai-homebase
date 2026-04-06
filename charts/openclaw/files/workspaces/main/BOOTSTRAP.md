@@ -45,6 +45,7 @@ Give the user a short orientation:
 - watchdog monitors and triages
 - auditor reviews
 - workers can be added later for recurring workflows
+- `/Projects/ai-homebase/budget-policy.md` is shared with them and is the user-visible place to review or change LLM budget policy
 
 ## Channels
 

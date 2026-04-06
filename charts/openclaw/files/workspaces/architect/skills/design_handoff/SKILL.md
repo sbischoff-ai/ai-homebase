@@ -26,6 +26,19 @@ Use this skill when returning completed planning work to main.
 <remaining work and owner>
 ```
 
+## Recall And Escalation
+
+Before returning non-trivial planning work:
+1. Search Qdrant for relevant decisions and patterns.
+2. Read existing Nextcloud project docs when they exist.
+3. Ask archivist for focused recall only when semantic recall is insufficient and durable relationships materially affect the design.
+
+Store a durable Qdrant memory with canonical slugs when:
+- a new project or subsystem is designed
+- a decision changes how existing entities relate
+- a new external dependency or integration is introduced
+- a new worker agent is designed
+
 ## Rules
 
 - Store durable design artifacts before returning.

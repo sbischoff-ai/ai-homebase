@@ -23,6 +23,7 @@ data:
     Working rule:
     - keep long-lived project documentation in `/Projects/ai-homebase/`;
     - create additional Nextcloud folders only when the work benefits from them, and do not assume they exist by default.
+    - review `/Projects/ai-homebase/budget-policy.md` for the user-managed LLM budget posture.
 
     Control rule:
     - this system is allowed to prepare and propose change aggressively;
@@ -84,6 +85,7 @@ data:
     ## Coordination Model
 
     - `main` receives user requests and classifies them.
+    - `main` applies the current budget policy from `/Projects/ai-homebase/budget-policy.md` when making routine delegation decisions.
     - Small tasks inside `main`'s domain are handled directly.
     - Design, planning, and specification work goes to `architect`.
     - `architect` returns actionable work items to `main`.
@@ -110,9 +112,24 @@ data:
     - The deployment gate stays outside the agents: cluster-state mutation is prepared by agents but applied through reviewed GitOps and manual Argo CD sync.
   project-0-file-10: |2
 
+    # Incident Reports
+
+    Watchdog stores durable incident reports in this directory.
+
+    File naming:
+    - `YYYY-MM-DD-short-title.md`
+
+    Recommended contents:
+    - timeline
+    - symptoms
+    - suspected or confirmed cause
+    - resolution
+    - follow-up actions
+  project-0-file-11: |2
+
     {"lastActivity": "1970-01-01T00:00:00Z", "agent": "bootstrap", "status": "initial"}
-  project-0-file-11: ''
-  project-0-file-12: |2
+  project-0-file-12: ''
+  project-0-file-13: |2
 
     # Audit Log
 
@@ -120,7 +137,7 @@ data:
 
     | Date | Scope | Verdict | Report |
     | --- | --- | --- | --- |
-  project-0-file-13: |2
+  project-0-file-14: |2
 
     # Monitoring Baselines
 
@@ -142,7 +159,7 @@ data:
     - First heartbeat after deploy may show stale timestamp (expected - main has not run yet)
 
     Watchdog should update this document as new baselines are established.
-  project-0-file-14: |2
+  project-0-file-15: |2
 
     # Escalation Rules
 
@@ -237,7 +254,7 @@ data:
     - `decisions.md`
 
     Drafts may also live in `/Projects/` when they are part of the project's shared working record. If agents create additional Nextcloud folders later, they should do so intentionally and document their purpose.
-  project-0-file-5: "\n# Worker Agent Design Guide\n\n## What Is a Worker Agent\n\nA worker agent is a bottom-layer execution unit in the layered agent architecture. Workers run cheap models (GPT-5.4 Nano or Mini), follow strict predefined workflows, and escalate when they encounter ambiguity. They are designed to amortize the intelligence of top-layer agents across many cheap, repeated executions.\n\n## Who Designs Workers\n\nThe architect is the sole author of worker agent definitions. Main requests a worker design when the user identifies a recurring need. The auditor reviews worker definitions before instantiation when the worker handles sensitive data, financial operations, or external communications.\n\n## Promotion Principle\n\nRepeated LLM work should move down the cost and determinism ladder over time:\n\n- first, a high-judgment agent does the work manually;\n- then, if the pattern repeats, architect defines a worker agent;\n- later, if the workflow is stable and highly structured, it should be promoted again into deterministic software such as a Kubernetes `CronJob`, service, or controller implemented by `coder`.\n\nWorkers are therefore not the end state for mature repetitive workflows. They are often the transition stage between frontier-agent reasoning and ordinary software.\n\n## Worker Definition Package\n\nEvery worker must be fully specified before instantiation. The architect produces a definition package containing:\n\n### 1. Execution Plan\n- Step-by-step workflow with explicit inputs, outputs, and tool calls\n- Decision rules with no ambiguous branches\n- Error conditions and escalation triggers\n- What to do when input is missing or malformed\n\n### 2. Reference Documentation\n- Templates, schemas, formatting rules\n- Domain-specific constraints and examples\n- Validation criteria\n\n### 3. Schedule\n- Cron expression for recurring tasks, or heartbeat interval\n- Whether the worker responds to user triggers or runs autonomously\n\n### 4. Model Selection\n- Nano: purely procedural tasks with no variance\n- Mini: light conditional logic or tool chaining\n\n### 5. Escalation Rules\n- Workers always escalate to main\n- Standard triggers: rule gaps, unexpected input, tool failures\n- Domain-specific triggers defined per worker\n\n## How Workers Are Instantiated\n\n1. Architect produces the definition package and writes it to `/Projects/<project-slug>/workers/<worker-id>/` in Nextcloud.\n2. If risk-triggered review is warranted, main routes the definition to auditor.\n3. Main instantiates the worker at runtime:\n   a. Create the workspace directory (e.g., `~/.openclaw/workspace-<worker-id>`).\n   b. Write the workspace files (AGENTS.md, SOUL.md, IDENTITY.md, MEMORY.md, TOOLS.md, HEARTBEAT.md, USER.md) by filling in the worker template placeholders with values from the architect's definition package.\n   c. Run `openclaw agents add <worker-id> --workspace ~/.openclaw/workspace-<worker-id> --model <model-id>` to register the agent.\n   d. If the worker needs a cron schedule, configure it with `openclaw cron add`.\n4. Main confirms to the user that the worker is active.\n\nTo decommission a worker:\n1. Remove its cron schedule with `openclaw cron remove` (if any).\n2. Run `openclaw agents delete <worker-id>`.\n3. Announce to the user.\n\n## Worker Behavior Invariants\n\nWorkers must:\n- Follow instructions deterministically\n- Avoid interpretation or creativity\n- Request missing inputs via escalation to main\n- Escalate to main for complex decisions, design changes, and ambiguity\n\nWorkers must NOT:\n- Redesign their own workflows\n- Generate strategy or make creative decisions\n- Improvise structure or output formats\n- Store memories unless their execution plan explicitly requires it\n- Contact agents other than main\n\n## Template Location\n\nThe worker workspace template is at `charts/openclaw/files/workspaces/worker-template/` in the ai-homebase repo. Main uses this as a reference when creating workspace files for new workers \u2014 it is not deployed as a live agent workspace.\n"
+  project-0-file-5: "\n# Worker Agent Design Guide\n\n## What Is a Worker Agent\n\nA worker agent is a bottom-layer execution unit in the layered agent architecture. Workers run cheap models (GPT-5.4 Nano or Mini), follow strict predefined workflows, and escalate when they encounter ambiguity. They are designed to amortize the intelligence of top-layer agents across many cheap, repeated executions.\n\n## Who Designs Workers\n\nThe architect is the sole author of worker agent definitions. Main requests a worker design when the user identifies a recurring need. The auditor reviews worker definitions before instantiation when the worker handles sensitive data, financial operations, or external communications.\n\n## Promotion Principle\n\nRepeated LLM work should move down the cost and determinism ladder over time:\n\n- first, a high-judgment agent does the work manually;\n- then, if the pattern repeats, architect defines a worker agent;\n- later, if the workflow is stable and highly structured, it should be promoted again into deterministic software such as a Kubernetes `CronJob`, service, or controller implemented by `coder`.\n\nWorkers are therefore not the end state for mature repetitive workflows. They are often the transition stage between frontier-agent reasoning and ordinary software.\n\n## Worker Definition Package\n\nEvery worker must be fully specified before instantiation. The architect produces a definition package containing:\n\n### 1. Execution Plan\n- Step-by-step workflow with explicit inputs, outputs, and tool calls\n- Decision rules with no ambiguous branches\n- Error conditions and escalation triggers\n- What to do when input is missing or malformed\n\n### 2. Reference Documentation\n- Templates, schemas, formatting rules\n- Domain-specific constraints and examples\n- Validation criteria\n\n### 3. Schedule\n- Cron expression for recurring tasks, or heartbeat interval\n- Whether the worker responds to user triggers or runs autonomously\n\n### 4. Model Selection\n- Nano: purely procedural tasks with no variance\n- Mini: light conditional logic or tool chaining\n\n### 5. Escalation Rules\n- Workers always escalate to main\n- Standard triggers: rule gaps, unexpected input, tool failures\n- Domain-specific triggers defined per worker\n\n## How Workers Are Instantiated\n\n1. Architect produces the definition package and writes it to `/Projects/<project-slug>/workers/<worker-id>/` in Nextcloud.\n2. If risk-triggered review is warranted, main routes the definition to auditor.\n3. Main instantiates the worker at runtime:\n   a. Create the workspace directory (e.g., `~/.openclaw/workspace-<worker-id>`).\n   b. Write the workspace files (AGENTS.md, SOUL.md, IDENTITY.md, MEMORY.md, TOOLS.md, HEARTBEAT.md, USER.md) by filling in the worker template placeholders with values from the architect's definition package.\n   c. Run `openclaw agents add <worker-id> --workspace ~/.openclaw/workspace-<worker-id> --model <model-id>` to register the agent.\n   d. Update `/Projects/ai-homebase/budget-policy.md` if the new worker changes the expected ongoing LLM spend posture.\n   e. If the worker needs a cron schedule, configure it with `openclaw cron add`.\n4. Main confirms to the user that the worker is active.\n\nTo decommission a worker:\n1. Remove its cron schedule with `openclaw cron remove` (if any).\n2. Run `openclaw agents delete <worker-id>`.\n3. Update `/Projects/ai-homebase/budget-policy.md` if the removal changes expected ongoing spend.\n4. Announce to the user.\n\n## Worker Behavior Invariants\n\nWorkers must:\n- Follow instructions deterministically\n- Avoid interpretation or creativity\n- Request missing inputs via escalation to main\n- Escalate to main for complex decisions, design changes, and ambiguity\n\nWorkers must NOT:\n- Redesign their own workflows\n- Generate strategy or make creative decisions\n- Improvise structure or output formats\n- Store memories unless their execution plan explicitly requires it\n- Contact agents other than main\n\n## Template Location\n\nThe worker workspace template is at `charts/openclaw/files/workspaces/worker-template/` in the ai-homebase repo. Main uses this as a reference when creating workspace files for new workers \u2014 it is not deployed as a live agent workspace.\n"
   project-0-file-6: |2
 
     # Qdrant Semantic Memory Schema
@@ -296,27 +313,96 @@ data:
   project-0-file-7: "\n# Knowledge Graph Schema\n\nThis document defines the canonical Memgraph schema for the user's long-term cross-domain world model.\n\n## Canonical node labels\n\nEvery node must have the `Entity` label plus one or more specialized labels from this hierarchy:\n\n```text\nEntity                    \u2014 base label, all nodes have this\n\u251C\u2500\u2500 Person                \u2014 humans, fictional characters, contacts, personas\n\u251C\u2500\u2500 Agent                 \u2014 AI agents (subtype of Person in this system)\n\u251C\u2500\u2500 Organization          \u2014 companies, teams, groups, factions, guilds\n\u251C\u2500\u2500 Place                 \u2014 locations, venues, regions, fictional lands\n\u251C\u2500\u2500 Thing                 \u2014 physical objects, items, equipment, artifacts\n\u251C\u2500\u2500 Concept               \u2014 abstract ideas, topics, skills, fields, genres\n\u251C\u2500\u2500 Event                 \u2014 occurrences with temporal extent (meetings, incidents, sessions, campaigns)\n\u251C\u2500\u2500 Work                  \u2014 creative or intellectual outputs (documents, code, art, publications)\n\u251C\u2500\u2500 Project               \u2014 tracked efforts with goals (software projects, campaigns, trips, research)\n\u251C\u2500\u2500 Service               \u2014 running systems, APIs, platforms, tools\n\u251C\u2500\u2500 Collection            \u2014 named groupings (playlists, reading lists, inventories, tag bundles)\n\u2514\u2500\u2500 MemoryEntry           \u2014 Qdrant-linked memory nodes (grooming artifacts)\n```\n\n### Properties for specialization\n\nUse properties instead of inventing more labels unless traversal semantics truly require a new one:\n\n- `domain`: `real` | `fictional` | `speculative` | `synthetic`\n- `kind`: freeform string for subtype (for example `repository`, `NPC`, `recipe`, `medication`)\n- `category`: freeform grouping (for example `source-control`, `fantasy`)\n- `status`: `active` | `archived` | `draft` | `completed` | `abandoned`\n- `slug`: stable identifier for `MERGE`-based idempotency\n- `name`: human-readable display name\n\n### When to add a new label\n\nOnly add a new label if the concept requires structurally different traversal patterns or if it would be queried independently by label very frequently. If the concept can be represented with `kind` on an existing label, do not add a label.\n\n## Canonical relationships\n\nUse this compact set of reusable relationships and push domain-specific semantics into relationship properties:\n\n| Relationship | Meaning | Key properties |\n| --- | --- | --- |\n| `RELATES_TO` | General association; fallback when nothing more specific fits | `role`, `kind`, `context`, `weight` |\n| `HAS_PART` | Composition or membership: project has member, organization has department, collection has item, system has component | `role`, `kind`, `since`, `until` |\n| `INFLUENCES` | Causal or directional effect: person influences decision, event influences project, concept influences work, medication influences condition | `kind`, `strength`, `context` |\n| `LOCATED_IN` | Spatial containment: person lives in place, event happens at place, service runs on infrastructure, item stored in location | `kind`, `since`, `until` |\n| `CREATED_BY` | Authorship or origin: work created by person, project started by organization, memory stored by agent, artifact made by character | `role`, `context` |\n| `DERIVED_FROM` | Provenance or lineage: work based on work, decision derived from plan, fork from repo, adaptation from source material | `kind`, `context` |\n| `OCCURS_IN` | Temporal or narrative containment: event occurs in project, scene occurs in campaign, transaction occurs in period, session occurs in day | `kind`, `sequence` |\n| `TAGGED_WITH` | Classification or annotation: any entity tagged with a concept, topic, or category | `confidence`, `context` |\n\n### Relationship properties\n\nEvery relationship may use these properties for specialization:\n\n- `role`: the specific role of this connection (for example `maintainer`, `antagonist`, `primary-care`)\n- `kind`: sub-type of the relationship (for example on `HAS_PART`: `member`, `component`, `chapter`)\n- `context`: freeform note about why this relationship exists\n- `since` / `until`: ISO-8601 timestamps for temporal relationships\n- `weight` / `strength`: numeric relevance from `0.0` to `1.0` for weighted traversals\n- `confidence`: for inferred relationships (`high`, `medium`, `low`)\n\n### When to add a new relationship\n\nOnly add a new relationship if it has genuinely different traversal semantics that cannot be expressed with `kind` or `role` on an existing one. If an existing relationship plus properties can express the fact, do not add a new relationship.\n\nExamples:\n\n- \"Person X plays in Campaign Y\" becomes `Campaign -[:HAS_PART {role: \"player\"}]-> Person`\n- \"Doctor prescribed medication\" becomes `Person -[:INFLUENCES {kind: \"prescription\"}]-> Thing`\n"
   project-0-file-8: |2
 
+    # LLM Budget Policy
+
+    This file is the shared budget policy for the `ai-homebase` stack.
+
+    Purpose:
+    - make the stack's LLM budget rules visible to the user;
+    - define the current spending posture for the standing agents and Codex-assisted work;
+    - give the user one durable place to review and change budget policy.
+
+    Working rule:
+    - `main` is the budget manager for routine delegation decisions;
+    - agents should treat this file as the canonical source for budget thresholds and escalation posture;
+    - if the user wants to change budget behavior, update this file instead of hiding those rules in seeded workspace prompts.
+
+    ## Cost Surfaces
+
+    The stack tracks LLM usage on two main surfaces:
+    - gateway-side OpenClaw session spend via `tokscale`;
+    - Codex usage logged by `coder` in `/Projects/ai-homebase/codex-usage/YYYY-MM-DD.json`.
+
+    Important note:
+    - `tokscale` groups spend by model, not by agent, so per-agent posture is approximate and should be interpreted using the standing model assignments.
+
+    ## Hard Ceilings
+
+    - daily: `$15`
+    - weekly: `$50`
+    - monthly: `$150`
+
+    These are the primary user-managed guardrails for the standard stack posture.
+
+    ## Soft Reference Thresholds
+
+    These are planning references, not hard stops:
+    - `main`: `$1` per day
+    - `architect`: `$5` per day
+    - `coder` agent session: `$5` per day
+    - Codex CLI usage: `$4` per day
+    - `archivist`: `$1` per day
+    - `watchdog`: `$0.50` per day
+    - `auditor`: `$2` per day
+
+    ## Delegation Classes
+
+    - `P0`: direct user requests always proceed
+    - `P1`: active handoffs proceed unless a hard ceiling is at risk
+    - `P2`: proactive work defers once the daily ceiling is reached or weekly spend exceeds `$40`
+    - `P3`: speculative work skips when monthly spend exceeds `$120` or weekly spend exceeds `$40`
+
+    ## Monitoring And Review Posture
+
+    - `watchdog` should alert `main` when total daily spend exceeds `$12`, because the stack is approaching the daily hard ceiling
+    - `auditor` should stay conservative and prefer compact review packets
+    - reference review posture:
+      - on-demand reviews should usually stay under `30K` input tokens
+      - weekly audit passes should usually stay under `50K` input tokens total
+
+    These review numbers are cost-discipline guidance, not hard functional limits.
+
+    ## Off-Budget Sessions
+
+    If the user explicitly says work is off-budget:
+    - note that status in the handoff;
+    - specialists may skip their normal self-checks;
+    - the user is intentionally overriding the default spending posture for that work.
+
+    ## User Control
+
+    This file is intentionally part of `/Projects/ai-homebase/`, which is shared with the user during bootstrap.
+
+    If the user wants a different budget posture, update this document and treat the new values as the current policy.
+
+    ## Maintenance Rule
+
+    `main` must keep this file current when the live agent roster changes.
+
+    Update this document when:
+    - a new worker or other agent is added and it introduces meaningful ongoing LLM spend
+    - an agent is retired and the expected spend posture changes
+    - an existing agent is materially re-scoped and its expected budget guidance changes
+
+    This document should reflect the current live topology, not only the original bootstrap defaults.
+  project-0-file-9: |2
+
     # Archivist Grooming Log
 
     Nightly grooming summaries are appended here.
 
     | Date | Memories Processed | Graph Changes | Issues |
     | --- | --- | --- | --- |
-  project-0-file-9: |2
-
-    # Incident Reports
-
-    Watchdog stores durable incident reports in this directory.
-
-    File naming:
-    - `YYYY-MM-DD-short-title.md`
-
-    Recommended contents:
-    - timeline
-    - symptoms
-    - suspected or confirmed cause
-    - resolution
-    - follow-up actions
   project-0-note-0: |2
 
     # ai-homebase project brief
@@ -674,6 +760,8 @@ data:
     5. Persist durable outputs to Nextcloud and distilled decisions to Qdrant.
     6. Return results to `agent:main:main`.
 
+    Ask archivist for focused recall only when durable cross-entity relationships materially affect the design and Qdrant plus existing docs are not enough.
+
     ## Persistence
 
     - Specs, plans, ADR-style notes, and worker packages belong in Nextcloud.
@@ -813,6 +901,19 @@ data:
     ### Follow-up needed
     <remaining work and owner>
     ```
+
+    ## Recall And Escalation
+
+    Before returning non-trivial planning work:
+    1. Search Qdrant for relevant decisions and patterns.
+    2. Read existing Nextcloud project docs when they exist.
+    3. Ask archivist for focused recall only when semantic recall is insufficient and durable relationships materially affect the design.
+
+    Store a durable Qdrant memory with canonical slugs when:
+    - a new project or subsystem is designed
+    - a decision changes how existing entities relate
+    - a new external dependency or integration is introduced
+    - a new worker agent is designed
 
     ## Rules
 
@@ -963,7 +1064,7 @@ data:
     Prefer these skills for procedures:
     - `memgraph_curation`: Memgraph-first graph updates and canonical schema usage
     - `recent_memory_grooming`: periodic Qdrant grooming scoped to memories newer than the last successful grooming run
-    - `context_map_and_memory_linking`: context-map output, Qdrant linkage, and graph promotion rules
+    - `context_map_and_memory_linking`: context-map output, Qdrant linkage, graph promotion rules, and general archivist return formatting
     - `nextcloud_knowledge_support`: supporting documentation and schema-note handling
 
     ## Red Lines
@@ -1187,6 +1288,27 @@ data:
     - Nextcloud references third for supporting docs
     - when a Qdrant memory deserves graph structure, represent it as linked `MemoryEntry` structure
     - include `nc_refs` when a memory points to a Nextcloud artifact
+
+    ## General Archivist Return Format
+
+    Use this when the task is curation work but not primarily a context-map response:
+
+    ```markdown
+    ## Handoff Complete
+    **Task:** <brief restatement>
+    **Status:** <complete | partial - needs X | blocked - needs Y>
+
+    ### Deliverables
+    - Memgraph: <nodes, edges, schema or query updates>
+    - Qdrant: <memories stored, linked, groomed>
+    - Nextcloud: <paths updated, if any>
+
+    ### For the user
+    <concise explanation of what durable context was added or clarified>
+
+    ### Follow-up needed
+    <which agent should do what next>
+    ```
   workspace-archivist-skills__memgraph_curation__SKILL.md: |2
 
     ---
@@ -1516,12 +1638,7 @@ data:
     ## Cost Awareness
 
     You are the most expensive standing agent. Be conservative.
-
-    Targets:
-    - daily threshold: about $2
-    - on-demand reviews: aim under 30K input tokens
-    - weekly audits: aim under 50K input tokens total
-
+    Use `/Projects/ai-homebase/budget-policy.md` for the current review-budget posture and token guidance.
     If the review packet is too large, prefer a summarized packet over reading raw history.
     Stop once the verdict is clear.
 
@@ -1815,10 +1932,12 @@ data:
 
     - Gitea is the default internal source of truth.
     - Default in-cluster repos are `cluster-gitops` and `openclaw-sandbox-images`.
+    - Use `git` and `tea` with the coder identity for repo creation, collaborator management, repo inspection, and pull requests.
     - Treat GitOps as deployment definition, not a planning scratchpad.
     - Prefer branches and pull requests on shared repos.
     - When you create a new repo for a user project, invite the user once their Gitea username is known.
-    - Tell main when user review and manual Argo CD sync are required.
+    - Tell main when the user needs to review and merge.
+    - Tell main when manual Argo CD sync is required after GitOps changes.
 
     ## Validation
 
@@ -1928,6 +2047,7 @@ data:
     - review, verdict, audit, systemic quality judgment -> auditor
 
     If a task crosses boundaries, do only the coordination share and route the rest.
+    Use archivist when Qdrant is sparse or conflicting, when structural relationship context matters, when a decision touches many durable entities, or when memory likely exists but semantic search did not surface it.
 
     ## Persistence
 
@@ -2009,6 +2129,7 @@ data:
     - watchdog monitors and triages
     - auditor reviews
     - workers can be added later for recurring workflows
+    - `/Projects/ai-homebase/budget-policy.md` is shared with them and is the user-visible place to review or change LLM budget policy
 
     ## Channels
 
@@ -2163,15 +2284,17 @@ data:
        - `/Projects/`
        - only the project folders immediately needed
     5. Share `/Projects/` with the user's Nextcloud account during initial setup.
-    6. Seed or update shared stack docs only when they are needed for immediate collaboration.
-    7. Store durable preferences in Qdrant.
-    8. Retire `BOOTSTRAP.md` only when first-run bootstrap is actually complete.
+    6. Tell the user that `/Projects/ai-homebase/budget-policy.md` is part of the shared project folder and is the place to review or change LLM budget policy.
+    7. Seed or update shared stack docs only when they are needed for immediate collaboration.
+    8. Store durable preferences in Qdrant.
+    9. Retire `BOOTSTRAP.md` only when first-run bootstrap is actually complete.
 
     ## Output
 
     - synchronized `USER.md` files
     - verified specialist availability
     - shared `/Projects/` folder
+    - user informed about the shared budget policy file
     - durable bootstrap facts in Qdrant and Nextcloud
 
     ## Boundaries
@@ -2201,21 +2324,26 @@ data:
     Coder's Codex usage is tracked separately in Nextcloud at:
     - `/Projects/ai-homebase/codex-usage/YYYY-MM-DD.json`
 
+    Tokscale reads session data directly from the gateway.
+    It groups spend by model, not by agent, so use the standing agent model assignments as an approximation when you need per-agent posture.
+
     ## Procedure
 
     1. Check gateway-side spend with `tokscale`.
     2. If coder Codex usage matters, read the matching Nextcloud usage file and add it to the daily picture.
-    3. Compare posture against the stack thresholds:
-       - daily hard ceiling: `$15`
-       - weekly hard ceiling: `$50`
-       - monthly hard ceiling: `$150`
+    3. Compare posture against `/Projects/ai-homebase/budget-policy.md`.
     4. Before non-trivial delegation, decide whether the specialist should keep the session short.
     5. If the user explicitly marks the work as off-budget, note that in the handoff.
     6. Use the result to guide work classes:
        - `P0` direct user requests always proceed
        - `P1` active handoffs proceed unless a hard ceiling is at risk
-       - `P2` proactive work defers once the daily ceiling is reached or weekly spend exceeds `$40`
-       - `P3` speculative work skips when monthly spend exceeds `$120` or weekly spend exceeds `$40`
+       - `P2` proactive work defers according to the shared budget policy
+       - `P3` speculative work skips according to the shared budget policy
+
+    ## Off-Budget Handling
+
+    - If the user explicitly marks the work as off-budget, note that in the handoff.
+    - Tell delegated specialists they may skip their self-checks.
 
     ## Output
 
@@ -2359,6 +2487,16 @@ data:
     2. Check Nextcloud `/Projects/<slug>/` for existing artifacts when a project is involved.
     3. Include those findings in the handoff.
 
+    ## Archivist Escalation
+
+    Route to archivist when:
+    - Qdrant results are sparse, conflicting, or inconclusive on a topic that should be documented
+    - the task needs a structural picture of entities and relationships rather than a single fact
+    - a decision touches many durable entities and confidence about their relationships matters
+    - memory likely exists but semantic search is not surfacing it
+
+    Do not escalate to archivist when a focused Qdrant search already returns a clear result.
+
     ## Handoff Format
 
     ```markdown
@@ -2421,17 +2559,20 @@ data:
     2. Create the workspace directory.
     3. Fill the worker-template files.
     4. Register the agent with `openclaw agents add`.
-    5. Add cron if needed.
-    6. Confirm activation to the user.
+    5. Update `/Projects/ai-homebase/budget-policy.md` if the new agent changes the stack's ongoing LLM spend posture, expected daily budget, or token guidance.
+    6. Add cron if needed.
+    7. Confirm activation to the user.
 
     ## Worker Lifecycle Rules
 
+    - when agents are added, retired, or materially re-scoped, keep `/Projects/ai-homebase/budget-policy.md` current if budget posture changes
     - updates go through architect first
     - decommission by removing cron, deleting the agent, and informing the user
 
     ## Boundaries
 
     - Main owns instantiation, scheduling, and retirement after approval.
+    - Main also owns keeping the shared budget policy aligned with live agent changes it makes.
     - Do not skip architect when the workflow needs a real worker definition.
   workspace-watchdog-AGENTS.md: |2
 
@@ -2590,7 +2731,7 @@ data:
     1. Check readiness.
     2. Read the shared heartbeat file when heartbeat-based monitoring is relevant.
     3. Compare against known baselines before calling something a deviation.
-    4. If total spend exceeds `$12`, alert main that the stack is approaching the daily ceiling.
+    4. Compare spend posture against `/Projects/ai-homebase/budget-policy.md` and alert main when the shared policy says the stack is approaching a ceiling.
     5. From cron, do not depend on session visibility or session messaging unless the cron prompt explicitly requires it.
 
     ## Boundaries
@@ -6016,20 +6157,22 @@ spec:
           write_managed_file "${project_root}/qdrant-memory-schema.md" "/bootstrap-content/project-0-file-6"
           ensure_parent_dir "${project_root}/knowledge-graph-schema.md"
           write_managed_file "${project_root}/knowledge-graph-schema.md" "/bootstrap-content/project-0-file-7"
+          ensure_parent_dir "${project_root}/budget-policy.md"
+          write_managed_file "${project_root}/budget-policy.md" "/bootstrap-content/project-0-file-8"
           ensure_parent_dir "${project_root}/archivist-grooming-log.md"
-          write_managed_file "${project_root}/archivist-grooming-log.md" "/bootstrap-content/project-0-file-8"
+          write_managed_file "${project_root}/archivist-grooming-log.md" "/bootstrap-content/project-0-file-9"
           ensure_parent_dir "${project_root}/incidents/README.md"
-          write_managed_file "${project_root}/incidents/README.md" "/bootstrap-content/project-0-file-9"
+          write_managed_file "${project_root}/incidents/README.md" "/bootstrap-content/project-0-file-10"
           ensure_parent_dir "${project_root}/heartbeat.json"
-          write_managed_file "${project_root}/heartbeat.json" "/bootstrap-content/project-0-file-10"
+          write_managed_file "${project_root}/heartbeat.json" "/bootstrap-content/project-0-file-11"
           ensure_parent_dir "${project_root}/codex-usage/.gitkeep"
-          write_managed_file "${project_root}/codex-usage/.gitkeep" "/bootstrap-content/project-0-file-11"
+          write_managed_file "${project_root}/codex-usage/.gitkeep" "/bootstrap-content/project-0-file-12"
           ensure_parent_dir "${project_root}/audit-log.md"
-          write_managed_file "${project_root}/audit-log.md" "/bootstrap-content/project-0-file-12"
+          write_managed_file "${project_root}/audit-log.md" "/bootstrap-content/project-0-file-13"
           ensure_parent_dir "${project_root}/baselines.md"
-          write_managed_file "${project_root}/baselines.md" "/bootstrap-content/project-0-file-13"
+          write_managed_file "${project_root}/baselines.md" "/bootstrap-content/project-0-file-14"
           ensure_parent_dir "${project_root}/escalation-rules.md"
-          write_managed_file "${project_root}/escalation-rules.md" "/bootstrap-content/project-0-file-14"
+          write_managed_file "${project_root}/escalation-rules.md" "/bootstrap-content/project-0-file-15"
           ensure_parent_dir "${notes_root}/project-brief.md"
           write_managed_file "${notes_root}/project-brief.md" "/bootstrap-content/project-0-note-0"
           ensure_parent_dir "${notes_root}/planning-backlog.md"

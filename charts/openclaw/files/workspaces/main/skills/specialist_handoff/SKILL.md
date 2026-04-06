@@ -13,6 +13,16 @@ Use this skill when routing real specialist work.
 2. Check Nextcloud `/Projects/<slug>/` for existing artifacts when a project is involved.
 3. Include those findings in the handoff.
 
+## Archivist Escalation
+
+Route to archivist when:
+- Qdrant results are sparse, conflicting, or inconclusive on a topic that should be documented
+- the task needs a structural picture of entities and relationships rather than a single fact
+- a decision touches many durable entities and confidence about their relationships matters
+- memory likely exists but semantic search is not surfacing it
+
+Do not escalate to archivist when a focused Qdrant search already returns a clear result.
+
 ## Handoff Format
 
 ```markdown

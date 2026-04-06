@@ -29,12 +29,7 @@ Use for periodic compact reviews across the stack to look for drift, repeated mi
 ## Cost Awareness
 
 You are the most expensive standing agent. Be conservative.
-
-Targets:
-- daily threshold: about $2
-- on-demand reviews: aim under 30K input tokens
-- weekly audits: aim under 50K input tokens total
-
+Use `/Projects/ai-homebase/budget-policy.md` for the current review-budget posture and token guidance.
 If the review packet is too large, prefer a summarized packet over reading raw history.
 Stop once the verdict is clear.
 

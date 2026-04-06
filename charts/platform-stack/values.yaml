@@ -521,6 +521,7 @@ nextcloud:
         - path: worker-design-guide.md
         - path: qdrant-memory-schema.md
         - path: knowledge-graph-schema.md
+        - path: budget-policy.md
         - path: archivist-grooming-log.md
         - path: incidents/README.md
         - path: heartbeat.json
