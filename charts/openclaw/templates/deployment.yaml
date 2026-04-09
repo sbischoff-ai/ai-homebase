@@ -101,6 +101,23 @@ spec:
             - -c
             - |
               set -eu
+              normalize_seeded_skill() {
+                target_path="$1"
+                if [ "$(basename "${target_path}")" != "SKILL.md" ]; then
+                  return 0
+                fi
+                tmp_path="$(mktemp)"
+                sed '1{/^$/d;}' "${target_path}" >"${tmp_path}" || {
+                  rm -f "${tmp_path}"
+                  echo >&2 "Failed to normalize leading blank lines in ${target_path}."
+                  exit 1
+                }
+                mv "${tmp_path}" "${target_path}" || {
+                  rm -f "${tmp_path}"
+                  echo >&2 "Failed to replace ${target_path} after normalizing skill frontmatter."
+                  exit 1
+                }
+              }
               target_dir={{ ternary "/config-target-root" "/config-target" $persistentConfigEnabled | quote }}
               target_file="${target_dir}/openclaw.json"
               mkdir -p "${target_dir}"
@@ -141,6 +158,7 @@ spec:
                   echo >&2 "Failed to seed {{ $filePath }} into ${workspace_dir} for agent {{ $agentId }}."
                   exit 1
                 }
+                normalize_seeded_skill "${target_path}"
               fi
               {{- end }}
               {{- else }}
@@ -158,6 +176,7 @@ spec:
                   echo >&2 "Failed to seed {{ $filePath }} into ${workspace_dir} for agent {{ $agentId }}."
                   exit 1
                 }
+                normalize_seeded_skill "${target_path}"
               fi
               {{- end }}
               {{- end }}

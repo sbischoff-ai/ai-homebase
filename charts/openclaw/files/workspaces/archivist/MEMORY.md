@@ -8,7 +8,7 @@ Use this file only for local retrieval hints, curation notes about how to find t
 
 - traverse Memgraph first
 - use `qdrant-find` for entry points, prior decisions, and candidate memories
-- for periodic grooming, use `recent_memory_grooming` and scope Qdrant search to memories newer than `state/grooming-cursor.json`
+- for periodic grooming, use `groom-recent-memories` and scope Qdrant search to memories newer than `state/grooming-cursor.json`
 
 ## Store
 

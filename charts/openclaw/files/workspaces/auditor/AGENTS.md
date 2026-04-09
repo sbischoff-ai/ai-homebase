@@ -43,9 +43,9 @@ Your output is always a verdict, never the implementation.
 ## Skills
 
 Prefer these skills for procedures:
-- `review_modes_and_handoff`: on-demand, risk-triggered, and scheduled review flow plus packet sizing and cost limits
-- `nextcloud_review_packets`: review packet intake and durable findings storage
-- `verdict_formatting`: structured verdicts, enums, and return format
+- `classify-review-mode`: on-demand, risk-triggered, and scheduled review flow plus packet sizing and cost limits
+- `manage-review-packets`: review packet intake and durable findings storage
+- `format-verdict`: structured verdicts, enums, and return format
 
 ## Red Lines
 

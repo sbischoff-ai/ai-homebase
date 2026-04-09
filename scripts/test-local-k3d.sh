@@ -708,28 +708,34 @@ verify_openclaw_workspace_bootstrap() {
   CURRENT_COMMAND="kubectl exec deployment/${deployment_name} -- sh -ceu 'test workspace bootstrap files'"
   run_checked kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" exec "deployment/${deployment_name}" -- sh -ceu '
     test -f /home/node/.openclaw/workspace/BOOTSTRAP.md
-    grep -F "auditor" /home/node/.openclaw/workspace/BOOTSTRAP.md >/dev/null
+    grep -F "agent:auditor:main" /home/node/.openclaw/workspace/BOOTSTRAP.md >/dev/null
 
     test -f /home/node/.openclaw/workspace/AGENTS.md
-    grep -F "quality review" /home/node/.openclaw/workspace/AGENTS.md >/dev/null
+    grep -F "systemic quality judgment -> auditor" /home/node/.openclaw/workspace/AGENTS.md >/dev/null
 
     test -f /home/node/.openclaw/workspace-coder/TOOLS.md
-    grep -F "Codex invocation patterns" /home/node/.openclaw/workspace-coder/TOOLS.md >/dev/null
-    grep -F "gpt-5.4-mini" /home/node/.openclaw/workspace-coder/TOOLS.md >/dev/null
+    grep -F "codex_execution_and_logging" /home/node/.openclaw/workspace-coder/TOOLS.md >/dev/null
+    test -f /home/node/.openclaw/workspace-coder/skills/codex_execution_and_logging/SKILL.md
+    grep -F "default \`gpt-5.4-mini\` for routine work" /home/node/.openclaw/workspace-coder/skills/codex_execution_and_logging/SKILL.md >/dev/null
 
     test -f /home/node/.openclaw/workspace-archivist/TOOLS.md
-    grep -F "Use \`mgconsole\` as the canonical Memgraph client" /home/node/.openclaw/workspace-archivist/TOOLS.md >/dev/null
-    grep -F "MemoryEntry" /home/node/.openclaw/workspace-archivist/TOOLS.md >/dev/null
+    grep -F "for \`mgconsole\` and graph-side utilities" /home/node/.openclaw/workspace-archivist/TOOLS.md >/dev/null
+    test -f /home/node/.openclaw/workspace-archivist/queries/README.md
+    grep -F "Use \`MEMGRAPH_HOST\` and \`MEMGRAPH_PORT\` with \`mgconsole\` for execution." /home/node/.openclaw/workspace-archivist/queries/README.md >/dev/null
+    test -f /home/node/.openclaw/workspace-archivist/skills/memgraph_curation/SKILL.md
+    grep -F "create or update a \`MemoryEntry\` node" /home/node/.openclaw/workspace-archivist/skills/memgraph_curation/SKILL.md >/dev/null
     test -f /home/node/.openclaw/workspace-archivist/queries/entity-by-slug.cypher
 
     test -f /home/node/.openclaw/workspace-architect/AGENTS.md
-    grep -F "Quality review and systemic audit -> auditor" /home/node/.openclaw/workspace-architect/AGENTS.md >/dev/null
+    grep -F "verdicts -> auditor" /home/node/.openclaw/workspace-architect/AGENTS.md >/dev/null
 
     test -f /home/node/.openclaw/workspace-watchdog/AGENTS.md
-    grep -F "Budget sentinel" /home/node/.openclaw/workspace-watchdog/AGENTS.md >/dev/null
+    grep -F "systemic review -> auditor" /home/node/.openclaw/workspace-watchdog/AGENTS.md >/dev/null
+    test -f /home/node/.openclaw/workspace-watchdog/skills/heartbeat_and_budget_sentinel/SKILL.md
+    grep -F "Heartbeat And Budget Sentinel" /home/node/.openclaw/workspace-watchdog/skills/heartbeat_and_budget_sentinel/SKILL.md >/dev/null
 
     test -f /home/node/.openclaw/workspace-auditor/MEMORY.md
-    grep -F "\"agent\": \"auditor\"" /home/node/.openclaw/workspace-auditor/MEMORY.md >/dev/null
+    grep -F "\"agent\":\"auditor\"" /home/node/.openclaw/workspace-auditor/MEMORY.md >/dev/null
   '
 }
 
@@ -819,9 +825,8 @@ verify_coder_sandbox_runtime() {
       -e CODEX_DEFAULT_MODEL=gpt-5.4-mini \
       -e OPENAI_API_KEY=test-openai-key \
       openclaw-sandbox-coder:trixie-slim -ceu '
-        passwd_home="$(getent passwd sandbox | cut -d: -f6)"
-        [ "$passwd_home" = "/workspace/.home" ]
-        test -w "$passwd_home"
+        getent passwd sandbox | cut -d: -f6 | grep -Fx /workspace/.home >/dev/null
+        test -w /workspace/.home
         command -v codex >/dev/null
         codex --version | grep -F codex-cli >/dev/null
         command -v tea >/dev/null

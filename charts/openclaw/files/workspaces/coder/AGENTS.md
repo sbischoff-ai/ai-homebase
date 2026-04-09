@@ -43,9 +43,9 @@ You do not own:
 ## Skills
 
 Prefer these skills for procedural work:
-- `gitea_gitops_registry`: repo workflow, GitOps validation, and registry rules
-- `codex_execution_and_logging`: Codex invocation rules, model choice, and usage logging
-- `nextcloud_implementation_handoff`: durable implementation notes and architect follow-up gaps
+- `manage-gitea-gitops-and-registry`: repo workflow, GitOps validation, and registry rules
+- `run-codex-and-log-usage`: Codex invocation rules, model choice, and usage logging
+- `update-implementation-notes`: durable implementation notes and architect follow-up gaps
 
 ## Red Lines
 

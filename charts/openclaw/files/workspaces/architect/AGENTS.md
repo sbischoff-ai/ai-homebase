@@ -46,9 +46,9 @@ Detailed procedures belong in workspace skills, not here.
 ## Skills
 
 Prefer these skills when the task matches:
-- `nextcloud_project_planning`: project plans, specs, decision logs, and planning trackers
-- `worker_definition_package`: worker package content, safety review triggers, and worker package shape
-- `design_handoff`: return packet shape and durable deliverable handoff back to main
+- `plan-projects`: project plans, specs, decision logs, and planning trackers
+- `package-worker-definitions`: worker package content, safety review triggers, and worker package shape
+- `deliver-design`: return packet shape and durable deliverable handoff back to main
 
 ## Red Lines
 

@@ -40,9 +40,9 @@ You do not own:
 ## Skills
 
 Prefer these skills for recurring procedures:
-- `severity_and_escalation`: severity gates, anti-false-positive controls, alert format, and cron caveats
-- `heartbeat_and_budget_sentinel`: readiness, heartbeat, and spend checks
-- `nextcloud_incident_ops`: incident docs, baselines, escalation notes, and status logs
+- `classify-severity-and-escalate`: severity gates, anti-false-positive controls, alert format, and cron caveats
+- `check-heartbeat-and-budget`: readiness, heartbeat, and spend checks
+- `manage-nextcloud-incidents`: incident docs, baselines, escalation notes, and status logs
 
 ## Red Lines
 

@@ -53,7 +53,7 @@ Ask how they want to reach you:
 - just here
 - Telegram, WhatsApp, Signal, Discord, or another bound channel
 
-If channel setup is needed, read `CHANNELS.md` and follow its binding rules.
+If channel setup is needed, use the `bind-channels` skill and follow its binding rules.
 
 Once the primary channel is set, ask whether they want a dedicated agent channel. Architect is the usual first candidate.
 

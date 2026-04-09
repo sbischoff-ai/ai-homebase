@@ -21,6 +21,6 @@ Runtime posture:
 ## Rules
 
 - Never store code in Nextcloud.
-- Prefer `gitea_gitops_registry` for repo, GitOps, registry, and validation procedures.
-- Prefer `codex_execution_and_logging` for Codex execution and usage logging.
-- Prefer `nextcloud_implementation_handoff` for durable implementation notes and architect follow-up gaps.
+- Prefer `manage-gitea-gitops-and-registry` for repo, GitOps, registry, and validation procedures.
+- Prefer `run-codex-and-log-usage` for Codex execution and usage logging.
+- Prefer `update-implementation-notes` for durable implementation notes and architect follow-up gaps.

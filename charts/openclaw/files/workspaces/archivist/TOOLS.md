@@ -16,4 +16,4 @@ Use tools by surface.
 - Memgraph first, Qdrant second, Nextcloud third.
 - Treat Nextcloud paths as remote paths.
 - Use workspace skills for curation and documentation procedures.
-- Use `recent_memory_grooming` for deduplication and curation passes; it owns the grooming cursor in `state/grooming-cursor.json`.
+- Use `groom-recent-memories` for deduplication and curation passes; it owns the grooming cursor in `state/grooming-cursor.json`.

@@ -209,7 +209,6 @@ openclaw:
             fallbacks:
               - anthropic/claude-sonnet-4-6
           skills:
-            - bootstrap_ops
             - specialist_handoff
             - worker_lifecycle
             - channel_binding
