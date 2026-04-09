@@ -777,13 +777,6 @@ data:
 
     Detailed procedures belong in workspace skills, not here.
 
-    ## Skills
-
-    Prefer these skills when the task matches:
-    - `plan-projects`: project plans, specs, decision logs, and planning trackers
-    - `package-worker-definitions`: worker package content, safety review triggers, and worker package shape
-    - `deliver-design`: return packet shape and durable deliverable handoff back to main
-
     ## Red Lines
 
     - Do not implement the design.
@@ -1050,14 +1043,6 @@ data:
     - `TOOLS.md`: short surface map
     - `MEMORY.md`: compact storage rules
     - `state/grooming-cursor.json`: last successful memory-grooming boundary
-
-    ## Skills
-
-    Prefer these skills for procedures:
-    - `update-memgraph`: Memgraph-first graph updates and canonical schema usage
-    - `groom-recent-memories`: periodic Qdrant grooming scoped to memories newer than the last successful grooming run
-    - `map-context-and-link-memories`: context-map output, Qdrant linkage, graph promotion rules, and general archivist return formatting
-    - `consult-nextcloud-knowledge`: supporting documentation and schema-note handling
 
     ## Red Lines
 
@@ -1449,13 +1434,6 @@ data:
     - `MEMORY.md`: compact recall rules
     - `HEARTBEAT.md`: end-of-task checks
 
-    ## Skills
-
-    Prefer these skills for procedures:
-    - `classify-review-mode`: on-demand, risk-triggered, and scheduled review flow plus packet sizing and cost limits
-    - `manage-review-packets`: review packet intake and durable findings storage
-    - `format-verdict`: structured verdicts, enums, and return format
-
     ## Red Lines
 
     - Do not fix the issue you are reviewing.
@@ -1738,13 +1716,6 @@ data:
     - `TOOLS.md`: short tool map for runtime, Codex, repo, registry, and Nextcloud surfaces
     - `MEMORY.md`: compact recall rules
     - `USER.md`: synchronized user facts when repo collaboration details matter
-
-    ## Skills
-
-    Prefer these skills for procedural work:
-    - `manage-gitea-gitops-and-registry`: repo workflow, GitOps validation, and registry rules
-    - `run-codex-and-log-usage`: Codex invocation rules, model choice, and usage logging
-    - `update-implementation-notes`: durable implementation notes and architect follow-up gaps
 
     ## Red Lines
 
@@ -2076,17 +2047,7 @@ data:
 
     You are not the user's proxy in a room full of other humans. Be careful in group chats and shared channels.
 
-    ## Skills
-
     Skills are for recurring procedures. They are not a substitute for workspace doctrine, identity, or bootstrap.
-
-    Use these when the task matches:
-    - `handoff-specialist-work`: routing packets, delegation shape, and synthesis of returned work
-    - `manage-worker-lifecycle`: worker definition requests, activation, updates, and retirement
-    - `coordinate-in-nextcloud`: shared `/Projects/`, calendars, todos, tables, sharing, and coordination docs
-    - `record-memory-and-heartbeat`: Qdrant memory triggers and heartbeat write rules
-    - `bind-channels`: primary and dedicated agent channel setup, routing rules, and binding inspection
-    - `track-budget`: tokscale posture, Codex usage, and delegation budget guidance
 
     ## Red Lines
 
@@ -2623,13 +2584,6 @@ data:
     - `TOOLS.md`: short monitoring surface map
     - `MEMORY.md`: compact recall rules
     - `HEARTBEAT.md`: end-of-task checks for heartbeat work
-
-    ## Skills
-
-    Prefer these skills for recurring procedures:
-    - `classify-severity-and-escalate`: severity gates, anti-false-positive controls, alert format, and cron caveats
-    - `check-heartbeat-and-budget`: readiness, heartbeat, and spend checks
-    - `manage-nextcloud-incidents`: incident docs, baselines, escalation notes, and status logs
 
     ## Red Lines
 

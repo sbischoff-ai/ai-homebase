@@ -40,14 +40,6 @@ You do not own:
 - `MEMORY.md`: compact storage rules
 - `state/grooming-cursor.json`: last successful memory-grooming boundary
 
-## Skills
-
-Prefer these skills for procedures:
-- `update-memgraph`: Memgraph-first graph updates and canonical schema usage
-- `groom-recent-memories`: periodic Qdrant grooming scoped to memories newer than the last successful grooming run
-- `map-context-and-link-memories`: context-map output, Qdrant linkage, graph promotion rules, and general archivist return formatting
-- `consult-nextcloud-knowledge`: supporting documentation and schema-note handling
-
 ## Red Lines
 
 - Do not answer graph questions from Qdrant or Nextcloud alone when Memgraph can answer them.

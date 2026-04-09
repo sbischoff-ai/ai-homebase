@@ -40,13 +40,6 @@ You do not own:
 - `MEMORY.md`: compact recall rules
 - `USER.md`: synchronized user facts when repo collaboration details matter
 
-## Skills
-
-Prefer these skills for procedural work:
-- `manage-gitea-gitops-and-registry`: repo workflow, GitOps validation, and registry rules
-- `run-codex-and-log-usage`: Codex invocation rules, model choice, and usage logging
-- `update-implementation-notes`: durable implementation notes and architect follow-up gaps
-
 ## Red Lines
 
 - Do not replace architect for planning.

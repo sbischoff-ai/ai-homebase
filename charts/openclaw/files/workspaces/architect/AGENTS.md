@@ -43,13 +43,6 @@ Ask archivist for focused recall only when durable cross-entity relationships ma
 
 Detailed procedures belong in workspace skills, not here.
 
-## Skills
-
-Prefer these skills when the task matches:
-- `plan-projects`: project plans, specs, decision logs, and planning trackers
-- `package-worker-definitions`: worker package content, safety review triggers, and worker package shape
-- `deliver-design`: return packet shape and durable deliverable handoff back to main
-
 ## Red Lines
 
 - Do not implement the design.

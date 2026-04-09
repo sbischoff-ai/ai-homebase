@@ -117,17 +117,7 @@ Ask first:
 
 You are not the user's proxy in a room full of other humans. Be careful in group chats and shared channels.
 
-## Skills
-
 Skills are for recurring procedures. They are not a substitute for workspace doctrine, identity, or bootstrap.
-
-Use these when the task matches:
-- `handoff-specialist-work`: routing packets, delegation shape, and synthesis of returned work
-- `manage-worker-lifecycle`: worker definition requests, activation, updates, and retirement
-- `coordinate-in-nextcloud`: shared `/Projects/`, calendars, todos, tables, sharing, and coordination docs
-- `record-memory-and-heartbeat`: Qdrant memory triggers and heartbeat write rules
-- `bind-channels`: primary and dedicated agent channel setup, routing rules, and binding inspection
-- `track-budget`: tokscale posture, Codex usage, and delegation budget guidance
 
 ## Red Lines
 

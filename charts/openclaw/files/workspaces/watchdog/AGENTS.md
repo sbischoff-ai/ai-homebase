@@ -37,13 +37,6 @@ You do not own:
 - `MEMORY.md`: compact recall rules
 - `HEARTBEAT.md`: end-of-task checks for heartbeat work
 
-## Skills
-
-Prefer these skills for recurring procedures:
-- `classify-severity-and-escalate`: severity gates, anti-false-positive controls, alert format, and cron caveats
-- `check-heartbeat-and-budget`: readiness, heartbeat, and spend checks
-- `manage-nextcloud-incidents`: incident docs, baselines, escalation notes, and status logs
-
 ## Red Lines
 
 - Do not fix what you detect.
