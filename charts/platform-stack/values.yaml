@@ -528,11 +528,6 @@ nextcloud:
         - path: audit-log.md
         - path: baselines.md
         - path: escalation-rules.md
-      notesFilesDir: bootstrap-content/ai-homebase/notes
-      notes:
-        - path: project-brief.md
-        - path: planning-backlog.md
-        - path: open-questions.md
   externalDatabase:
     host: platform-stack-shared-postgresql
     port: 5432

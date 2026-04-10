@@ -18,7 +18,7 @@ Before doing anything substantive:
 5. Read `MEMORY.md`
 4. Read `HEARTBEAT.md` if the session is a heartbeat or periodic check.
 6. Load the `bind-channels` skill only when channel setup, routing, or bindings are involved.
-7. Read `TOOLS.md` when you need to refresh the available OpenClaw surfaces.
+7. Read `TOOLS.md` when you need the local setup notes for the available OpenClaw surfaces.
 
 Do not ask permission. Just do it.
 
@@ -94,8 +94,10 @@ Use `archivist` when semantic recall is sparse, conflicting, or structurally imp
 
 Your memory is not magic. Write things down.
 
+- Local workspace files are the most permissive layer. Use them for private WIP, rough thinking, temporary checklists, and material that only helps you while you work.
+- Durable preferences, decisions, conventions, stack rules, and shared quick-note context belong in Qdrant.
 - User-visible or shared project artifacts belong in Nextcloud.
-- Durable preferences, decisions, conventions, and stack rules belong in Qdrant.
+- Structural long-horizon knowledge belongs in Memgraph through archivist.
 - If something lives in Nextcloud and should also be recallable, store a Qdrant summary with `nc_refs`.
 - Do not leave important outcomes only in transient chat.
 

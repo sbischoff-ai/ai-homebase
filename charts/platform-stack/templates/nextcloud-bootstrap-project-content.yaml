@@ -1,7 +1,7 @@
 {{- $projects := .Values.nextcloud.bootstrapProjectContent | default (list) -}}
 {{- $hasFileBackedBootstrapProjectContent := false -}}
 {{- range $project := $projects }}
-  {{- if or ($project.projectsFilesDir | default "") ($project.notesFilesDir | default "") }}
+  {{- if ($project.projectsFilesDir | default "") }}
     {{- $hasFileBackedBootstrapProjectContent = true -}}
   {{- end }}
 {{- end }}
@@ -38,26 +38,6 @@ data:
   {{- range $fileIndex, $file := ($project.projectsFiles | default (list)) }}
   project-{{ $projectIndex }}-file-{{ $fileIndex }}: |
 {{ $file.content | trimSuffix "\n" | nindent 4 }}
-  {{- end }}
-  {{- end }}
-  {{- $notesFilesDir := $project.notesFilesDir | default "" }}
-  {{- if $notesFilesDir }}
-  {{- if $project.notes }}
-  {{- range $noteIndex, $note := $project.notes }}
-  project-{{ $projectIndex }}-note-{{ $noteIndex }}: |
-{{ $.Files.Get (printf "files/%s/%s" $notesFilesDir $note.path) | trimSuffix "\n" | nindent 4 }}
-  {{- end }}
-  {{- else }}
-    {{- range $path, $_ := $.Files.Glob (printf "files/%s/**" $notesFilesDir) }}
-    {{- $relativePath := trimPrefix (printf "files/%s/" $notesFilesDir) $path }}
-  project-{{ $projectIndex }}-note-{{ $relativePath | replace "/" "-" | replace "." "-" | replace "_" "-" }}: |
-{{ $.Files.Get $path | trimSuffix "\n" | nindent 4 }}
-    {{- end }}
-  {{- end }}
-  {{- else }}
-  {{- range $noteIndex, $note := ($project.notes | default (list)) }}
-  project-{{ $projectIndex }}-note-{{ $noteIndex }}: |
-{{ $note.content | trimSuffix "\n" | nindent 4 }}
   {{- end }}
   {{- end }}
   {{- end }}

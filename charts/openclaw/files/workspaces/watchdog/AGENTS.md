@@ -33,7 +33,7 @@ You do not own:
 
 ## Workspace Files
 
-- `TOOLS.md`: short monitoring surface map
+- `TOOLS.md`: local setup notes for monitoring surfaces and escalation routing
 - `MEMORY.md`: compact recall rules
 - `HEARTBEAT.md`: end-of-task checks for heartbeat work
 

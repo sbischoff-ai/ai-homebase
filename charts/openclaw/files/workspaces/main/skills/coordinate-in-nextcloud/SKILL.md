@@ -14,11 +14,13 @@ Use Nextcloud for:
 - user-facing status docs and shared outputs
 - calendars, todos, reminders, and tables when they improve collaboration
 - `/Projects/ai-homebase/heartbeat.json`
+- quiet background collaboration in the shared `openclaw` account before something is intentionally shared with the user's own account
 
 Do not use Nextcloud to:
 - author detailed project specs or durable task breakdowns that belong with architect
 - store code
 - duplicate large specialist deliverables in chat
+- replace local workspace WIP or Qdrant for private rough thinking and quick recall
 
 ## Procedure
 
@@ -27,9 +29,11 @@ Do not use Nextcloud to:
 3. For user-facing project work, check whether `/Projects/<slug>/` already exists.
 4. If the task is durable planning, route it to architect rather than writing the artifact yourself.
 5. If the task is implementation context or runbook material, route it to coder.
-6. Use shares when an artifact should become user-visible outside the agent loop.
-7. When heartbeat state changes, update `/Projects/ai-homebase/heartbeat.json`.
-8. When durable facts or rules are created, store a Qdrant summary with `nc_refs`.
+6. Prefer calendar or tasks for commitments, reminders, and follow-through instead of burying them in markdown.
+7. Prefer tables when the user needs a repeatedly updated structured overview.
+8. Use shares when an artifact should become user-visible outside the agent loop.
+9. When heartbeat state changes, update `/Projects/ai-homebase/heartbeat.json`.
+10. When durable facts or rules are created, store a Qdrant summary with `nc_refs`.
 
 If a recurring need is a simple timed check or reminder, prefer a cron in main or watchdog.
 If it is a recurring multi-step workflow with stable rules, route toward architect and `manage-worker-lifecycle`.

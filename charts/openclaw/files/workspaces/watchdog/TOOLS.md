@@ -1,18 +1,29 @@
-Use tools by surface.
+# Tools
 
-## Local
+Local notes for this setup.
 
-- `exec`, `process` for readiness checks, diagnostics, concise log inspection, and budget checks
-- `read`, `edit`, `write`, `apply_patch` only for local notes or rules when needed
+## Monitoring
 
-## Shared
+- Gateway readiness endpoint: `http://127.0.0.1:18789/readyz`
+- The shared heartbeat file is `/Projects/ai-homebase/heartbeat.json`.
 
-- Nextcloud tools for incidents, baselines, status logs, and heartbeat files
-- `qdrant-find`, `qdrant-store` for recurring signatures and monitoring rules
-- `sessions_send` for escalations to main
+## Files
 
-## Rules
+- Files in this workspace are local workspace files.
+- `/Projects/...` are Nextcloud remote paths for compact durable monitoring state.
+- Keep transient check-by-check scratch work local; promote only durable baselines, incidents, summaries, and rules.
+- Seeded ai-homebase monitoring files you will commonly check or update:
+  - `/Projects/ai-homebase/watchdog-status-log.md`
+  - `/Projects/ai-homebase/baselines.md`
+  - `/Projects/ai-homebase/escalation-rules.md`
+  - `/Projects/ai-homebase/incidents/`
+  - `/Projects/ai-homebase/heartbeat.json`
 
-- Treat Nextcloud paths as remote paths.
-- Prefer short factual summaries over analysis theater.
-- Use workspace skills for incident, heartbeat, and budget procedures.
+## Sessions
+
+- Return escalations and triage summaries to `agent:main:main`.
+
+## Notes
+
+- Cron prompts in this setup may rely on the same Nextcloud monitoring files even when session visibility is limited.
+- Keep this file current when shared monitoring paths or readiness endpoints change.

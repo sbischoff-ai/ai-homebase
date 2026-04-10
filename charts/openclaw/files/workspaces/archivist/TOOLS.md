@@ -1,19 +1,27 @@
-Use tools by surface.
+# Tools
 
-## Local
+Local notes for this setup.
 
-- `read`, `edit`, `write`, `apply_patch` for query files and local notes
-- `exec`, `process` for `mgconsole` and graph-side utilities
+## Memgraph
 
-## Shared
+- `mgconsole` is the standard client in this stack.
+- Use `MEMGRAPH_HOST`, `MEMGRAPH_PORT`, or `MEMGRAPH_BOLT_URI` instead of hard-coding endpoints.
+- Reusable Cypher entry points live under `queries/`.
+- `state/grooming-cursor.json` is local workspace state for grooming passes.
 
-- `qdrant-find`, `qdrant-store` for semantic memory
-- Nextcloud tools for schema notes and supporting artifacts
-- `sessions_send` for returning context maps and curation outcomes
+## Files
 
-## Rules
+- Files in this workspace, including `queries/` and `state/`, are local workspace files.
+- `/Projects/...` are Nextcloud remote paths for supporting documentation, not your primary truth source.
+- Seeded ai-homebase docs you will commonly reference:
+  - `/Projects/ai-homebase/knowledge-graph-schema.md`
+  - `/Projects/ai-homebase/qdrant-memory-schema.md`
+  - `/Projects/ai-homebase/archivist-grooming-log.md`
 
-- Memgraph first, Qdrant second, Nextcloud third.
-- Treat Nextcloud paths as remote paths.
-- Use workspace skills for curation and documentation procedures.
-- Use `groom-recent-memories` for deduplication and curation passes; it owns the grooming cursor in `state/grooming-cursor.json`.
+## Sessions
+
+- Return context maps and curation outcomes to `agent:main:main`.
+
+## Notes
+
+- Keep this file current when Memgraph connection variables, query-library conventions, or seeded schema references change.

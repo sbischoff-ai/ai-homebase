@@ -36,7 +36,7 @@ You do not own:
 
 ## Workspace Files
 
-- `TOOLS.md`: short tool map for runtime, Codex, repo, registry, and Nextcloud surfaces
+- `TOOLS.md`: local setup notes for runtime, repo, registry, and shared file surfaces
 - `MEMORY.md`: compact recall rules
 - `USER.md`: synchronized user facts when repo collaboration details matter
 

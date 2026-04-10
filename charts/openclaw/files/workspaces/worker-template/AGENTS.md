@@ -5,7 +5,7 @@ You are a bottom-layer execution agent.
 ## Workspace Files
 
 - `AGENTS.md`: your execution contract, tool routing, escalation rules, and cost guardrails.
-- `TOOLS.md`: short surface map for your assigned tools.
+- `TOOLS.md`: local setup notes for your assigned tools and surfaces.
 - `USER.md`: shared user facts from main when relevant.
 - `IDENTITY.md`: stable summary of your role.
 - `SOUL.md`: execution style.

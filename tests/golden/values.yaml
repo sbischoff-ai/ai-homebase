@@ -11,6 +11,7 @@ data:
     - describe how the agents should work inside it;
     - capture the mutation path from requirement to running software;
     - preserve the durable documentation, decisions, and operating rules that keep self-improvement safe and coherent.
+    - give the agents one shared project home in Nextcloud without depending on a separate shared scratchpad folder.
 
     Core loop:
     - the user states a requirement;
@@ -22,6 +23,9 @@ data:
 
     Working rule:
     - keep long-lived project documentation in `/Projects/ai-homebase/`;
+    - keep private rough work in local workspace files, not in shared Nextcloud scratchpads;
+    - store shared quick recall, decisions, and note-like context in Qdrant, with graph promotion through `archivist` when structure matters;
+    - use Nextcloud for curated shared artifacts, user collaboration, calendars, tasks, tables, and outputs that should stay visible over time;
     - create additional Nextcloud folders only when the work benefits from them, and do not assume they exist by default.
     - review `/Projects/ai-homebase/budget-policy.md` for the user-managed LLM budget posture.
 
@@ -242,10 +246,17 @@ data:
 
     # Project Documentation Model
 
-    Every project should use the same default documentation model:
+    Every project should use the same default storage model:
 
     - `/Projects/<project-slug>/` is the default durable project home
     - additional Nextcloud folders may be created later when a project truly benefits from them
+
+    Storage hierarchy from most permissive to most curated:
+
+    - local workspace files: private WIP, rough drafts, self-notes, temporary working state
+    - Qdrant: shared quick recall, decisions, conventions, handoff context, and other note-like memories worth finding later
+    - Memgraph through `archivist`: structural entities, relationships, and promoted graph-linked memory
+    - Nextcloud: curated shared artifacts, user collaboration surfaces, and durable project records
 
     Durable artifacts belong in `/Projects/`, for example:
     - `spec.md`
@@ -253,7 +264,11 @@ data:
     - `plan.md`
     - `decisions.md`
 
-    Drafts may also live in `/Projects/` when they are part of the project's shared working record. If agents create additional Nextcloud folders later, they should do so intentionally and document their purpose.
+    Use local workspace files instead of a shared Nextcloud scratchpad when the material is still private, provisional, or only useful to one agent while thinking.
+    Store shared quick notes in Qdrant when they should shape later work but do not need a user-facing document yet.
+    Drafts may also live in `/Projects/` when they are part of the project's shared working record or the user should be able to collaborate on them there.
+
+    If agents create additional Nextcloud folders later, they should do so intentionally, document the purpose, and avoid recreating a generic catch-all notes bucket.
   project-0-file-5: "\n# Worker Agent Design Guide\n\n## What Is a Worker Agent\n\nA worker agent is a bottom-layer execution unit in the layered agent architecture. Workers run cheap models (GPT-5.4 Nano or Mini), follow strict predefined workflows, and escalate when they encounter ambiguity. They are designed to amortize the intelligence of top-layer agents across many cheap, repeated executions.\n\n## Who Designs Workers\n\nThe architect is the sole author of worker agent definitions. Main requests a worker design when the user identifies a recurring need. The auditor reviews worker definitions before instantiation when the worker handles sensitive data, financial operations, or external communications.\n\n## Promotion Principle\n\nRepeated LLM work should move down the cost and determinism ladder over time:\n\n- first, a high-judgment agent does the work manually;\n- then, if the pattern repeats, architect defines a worker agent;\n- later, if the workflow is stable and highly structured, it should be promoted again into deterministic software such as a Kubernetes `CronJob`, service, or controller implemented by `coder`.\n\nWorkers are therefore not the end state for mature repetitive workflows. They are often the transition stage between frontier-agent reasoning and ordinary software.\n\n## Worker Definition Package\n\nEvery worker must be fully specified before instantiation. The architect produces a definition package containing:\n\n### 1. Execution Plan\n- Step-by-step workflow with explicit inputs, outputs, and tool calls\n- Decision rules with no ambiguous branches\n- Error conditions and escalation triggers\n- What to do when input is missing or malformed\n\n### 2. Reference Documentation\n- Templates, schemas, formatting rules\n- Domain-specific constraints and examples\n- Validation criteria\n\n### 3. Schedule\n- Cron expression for recurring tasks, or heartbeat interval\n- Whether the worker responds to user triggers or runs autonomously\n\n### 4. Model Selection\n- Nano: purely procedural tasks with no variance\n- Mini: light conditional logic or tool chaining\n\n### 5. Escalation Rules\n- Workers always escalate to main\n- Standard triggers: rule gaps, unexpected input, tool failures\n- Domain-specific triggers defined per worker\n\n## How Workers Are Instantiated\n\n1. Architect produces the definition package and writes it to `/Projects/<project-slug>/workers/<worker-id>/` in Nextcloud.\n2. If risk-triggered review is warranted, main routes the definition to auditor.\n3. Main instantiates the worker at runtime:\n   a. Create the workspace directory (e.g., `~/.openclaw/workspace-<worker-id>`).\n   b. Write the workspace files (AGENTS.md, SOUL.md, IDENTITY.md, MEMORY.md, TOOLS.md, HEARTBEAT.md, USER.md) by filling in the worker template placeholders with values from the architect's definition package.\n   c. Run `openclaw agents add <worker-id> --workspace ~/.openclaw/workspace-<worker-id> --model <model-id>` to register the agent.\n   d. Update `/Projects/ai-homebase/budget-policy.md` if the new worker changes the expected ongoing LLM spend posture.\n   e. If the worker needs a cron schedule, configure it with `openclaw cron add`.\n4. Main confirms to the user that the worker is active.\n\nTo decommission a worker:\n1. Remove its cron schedule with `openclaw cron remove` (if any).\n2. Run `openclaw agents delete <worker-id>`.\n3. Update `/Projects/ai-homebase/budget-policy.md` if the removal changes expected ongoing spend.\n4. Announce to the user.\n\n## Worker Behavior Invariants\n\nWorkers must:\n- Follow instructions deterministically\n- Avoid interpretation or creativity\n- Request missing inputs via escalation to main\n- Escalate to main for complex decisions, design changes, and ambiguity\n\nWorkers must NOT:\n- Redesign their own workflows\n- Generate strategy or make creative decisions\n- Improvise structure or output formats\n- Store memories unless their execution plan explicitly requires it\n- Contact agents other than main\n\n## Template Location\n\nThe worker workspace template is at `charts/openclaw/files/workspaces/worker-template/` in the ai-homebase repo. Main uses this as a reference when creating workspace files for new workers \u2014 it is not deployed as a live agent workspace.\n"
   project-0-file-6: |2
 
@@ -403,31 +418,6 @@ data:
 
     | Date | Memories Processed | Graph Changes | Issues |
     | --- | --- | --- | --- |
-  project-0-note-0: |2
-
-    # ai-homebase project brief
-
-    This is the standing project for documenting and improving the cluster itself.
-
-    Architect should keep this project current as the system evolves.
-  project-0-note-1: |2
-
-    # planning backlog
-
-    Keep short-lived planning items here before they become durable project artifacts or routed tasks.
-
-    Candidates:
-    - architecture refinements
-    - documentation gaps
-    - workflow improvements
-    - future service additions
-  project-0-note-2: |2
-
-    # open questions
-
-    Use this note to capture unresolved design and operating questions about the cluster.
-
-    Move resolved answers into durable project docs in `/Projects/ai-homebase/`.
 kind: ConfigMap
 metadata:
   labels:
@@ -768,7 +758,7 @@ data:
 
     ## Workspace Files
 
-    - `TOOLS.md`: short surface map
+    - `TOOLS.md`: local setup notes for planning surfaces and return routing
     - `MEMORY.md`: compact Qdrant rules
     - `USER.md`: synchronized user facts from main
 
@@ -798,7 +788,7 @@ data:
   workspace-architect-MEMORY.md: |
     # Memory - Architect
 
-    Qdrant is the durable shared semantic memory layer. Use this file only for local retrieval hints.
+    Qdrant is the durable shared semantic memory layer. Use this file only for local retrieval hints and private planning scaffolds that are not ready to become shared artifacts.
 
     ## Search
 
@@ -815,6 +805,7 @@ data:
     - conventions
     - reusable design patterns
     - summaries of major specs or plans
+    - shared open questions or planning context that later sessions should be able to find quickly
 
     Every stored memory must use this text format:
     `[domain] [kind] Complete statement here.`
@@ -828,25 +819,30 @@ data:
 
     Prefer precise scope, tradeoff clarity, and executable plans over expansive theory.
   workspace-architect-TOOLS.md: |
-    Use tools by surface.
+    # Tools
 
-    ## Local
+    Local notes for this setup.
 
-    - `read`, `edit`, `write`, `apply_patch` for local notes and templates
-    - `exec`, `process` for lightweight analysis
-    - `browser`, `web_search`, `web_fetch` for current external context
+    ## Files
 
-    ## Shared
+    - Files in this workspace are local workspace files.
+    - Keep private brainstorming, rough decompositions, and speculative planning in local workspace files until they are ready to become shared artifacts.
+    - `/Projects/<slug>/...` are Nextcloud remote paths for curated shared planning artifacts.
+    - Use Qdrant for distilled planning context that should be recallable across sessions but does not need a standalone shared document yet.
+    - Seeded ai-homebase docs you will commonly reference:
+      - `/Projects/ai-homebase/project-documentation-model.md`
+      - `/Projects/ai-homebase/worker-design-guide.md`
+      - `/Projects/ai-homebase/decisions.md`
+      - `/Projects/ai-homebase/overview.md`
 
-    - Nextcloud tools for durable planning artifacts
-    - `qdrant-find`, `qdrant-store` for reusable decisions and patterns
-    - `sessions_send` for returning deliverables to main
+    ## Sessions
 
-    ## Rules
+    - Return completed planning work to `agent:main:main`.
 
-    - Treat Nextcloud paths as remote paths.
-    - Keep plans durable and shareable.
-    - Use workspace skills for recurring planning procedures.
+    ## Notes
+
+    - Prefer markdown for narrative plans, specs, and decisions; prefer tables only when the state is repeatedly updated and strongly structured.
+    - Keep this file current when the standard planning surfaces or seeded ai-homebase docs change.
   workspace-architect-USER.md: |
     # User
 
@@ -979,6 +975,7 @@ data:
     - `/Projects/<slug>/plan.md`
     - `/Projects/<slug>/spec.md`
     - `/Projects/<slug>/decisions.md`
+    - `/Projects/<slug>/status.md` when the user or other agents need a compact current-state artifact
 
     Use a table only when the state is truly structured and repeatedly updated, such as:
     - work-item trackers
@@ -990,14 +987,16 @@ data:
     1. Treat Nextcloud paths as remote paths.
     2. Check whether `/Projects/<slug>/` already exists before creating new planning artifacts.
     3. Reuse and update existing project docs instead of scattering multiple overlapping files.
-    4. Write one decision-complete artifact per planning pass.
-    5. Promote stable planning outputs into shareable locations.
-    6. Store distilled decisions in Qdrant with `nc_refs`.
+    4. Keep private rough decomposition in workspace files until it becomes shared planning material.
+    5. Write one decision-complete artifact per planning pass.
+    6. Promote stable planning outputs into shareable locations.
+    7. Store distilled decisions in Qdrant with `nc_refs`.
 
     ## Boundaries
 
     - Main coordinates the user; architect authors the durable planning artifact.
     - Do not turn lightweight coordination into an overbuilt project tree.
+    - Do not recreate a generic shared scratchpad folder when workspace files or Qdrant already fit the job better.
   workspace-archivist-AGENTS.md: |
     # Archivist
 
@@ -1037,7 +1036,7 @@ data:
     ## Workspace Files
 
     - `queries/`: canonical starting points for common Cypher tasks
-    - `TOOLS.md`: short surface map
+    - `TOOLS.md`: local setup notes for Memgraph, shared docs, and return routing
     - `MEMORY.md`: compact storage rules
     - `state/grooming-cursor.json`: last successful memory-grooming boundary
 
@@ -1093,25 +1092,33 @@ data:
 
     Prefer stable structure, careful linking, and conservative schema change over speculative expansion.
   workspace-archivist-TOOLS.md: |
-    Use tools by surface.
+    # Tools
 
-    ## Local
+    Local notes for this setup.
 
-    - `read`, `edit`, `write`, `apply_patch` for query files and local notes
-    - `exec`, `process` for `mgconsole` and graph-side utilities
+    ## Memgraph
 
-    ## Shared
+    - `mgconsole` is the standard client in this stack.
+    - Use `MEMGRAPH_HOST`, `MEMGRAPH_PORT`, or `MEMGRAPH_BOLT_URI` instead of hard-coding endpoints.
+    - Reusable Cypher entry points live under `queries/`.
+    - `state/grooming-cursor.json` is local workspace state for grooming passes.
 
-    - `qdrant-find`, `qdrant-store` for semantic memory
-    - Nextcloud tools for schema notes and supporting artifacts
-    - `sessions_send` for returning context maps and curation outcomes
+    ## Files
 
-    ## Rules
+    - Files in this workspace, including `queries/` and `state/`, are local workspace files.
+    - `/Projects/...` are Nextcloud remote paths for supporting documentation, not your primary truth source.
+    - Seeded ai-homebase docs you will commonly reference:
+      - `/Projects/ai-homebase/knowledge-graph-schema.md`
+      - `/Projects/ai-homebase/qdrant-memory-schema.md`
+      - `/Projects/ai-homebase/archivist-grooming-log.md`
 
-    - Memgraph first, Qdrant second, Nextcloud third.
-    - Treat Nextcloud paths as remote paths.
-    - Use workspace skills for curation and documentation procedures.
-    - Use `groom-recent-memories` for deduplication and curation passes; it owns the grooming cursor in `state/grooming-cursor.json`.
+    ## Sessions
+
+    - Return context maps and curation outcomes to `agent:main:main`.
+
+    ## Notes
+
+    - Keep this file current when Memgraph connection variables, query-library conventions, or seeded schema references change.
   workspace-archivist-USER.md: |
     # User
 
@@ -1427,7 +1434,7 @@ data:
 
     ## Workspace Files
 
-    - `TOOLS.md`: short review surface map
+    - `TOOLS.md`: local setup notes for review artifacts and return routing
     - `MEMORY.md`: compact recall rules
     - `HEARTBEAT.md`: end-of-task checks
 
@@ -1481,24 +1488,29 @@ data:
 
     Prefer compact evidence-backed findings over performance of thoroughness.
   workspace-auditor-TOOLS.md: |
-    Use tools by surface.
+    # Tools
 
-    ## Local
+    Local notes for this setup.
 
-    - `read`, `edit`, `write`, `apply_patch` for local review notes only when needed
-    - `exec`, `process` for lightweight local inspection
+    ## Files
 
-    ## Shared
+    - Files in this workspace are local workspace files.
+    - `/Projects/...` are Nextcloud remote paths for review packets, verdicts, and compact evidence summaries.
+    - Use Qdrant for recurring patterns and durable findings that should influence future reviews without turning into large standing documents.
+    - Seeded ai-homebase review surfaces you will commonly read or update:
+      - `/Projects/ai-homebase/audit-log.md`
+      - `/Projects/ai-homebase/budget-policy.md`
+      - `/Projects/ai-homebase/watchdog-status-log.md`
+      - `/Projects/ai-homebase/archivist-grooming-log.md`
+      - `/Projects/ai-homebase/codex-usage/`
 
-    - Nextcloud tools for review packets, findings, verdicts, and evidence summaries
-    - `qdrant-find`, `qdrant-store` for recurring patterns and durable findings
-    - `sessions_send` for verdict delivery to main
+    ## Sessions
 
-    ## Rules
+    - Return verdicts to `agent:main:main`.
 
-    - Treat Nextcloud paths as remote paths.
-    - Keep review evidence compact and explicit.
-    - Use workspace skills for packet handling and verdict formatting.
+    ## Notes
+
+    - Keep this file current when the standard review-packet or audit-report locations change.
   workspace-auditor-USER.md: |
     # User
 
@@ -1710,7 +1722,7 @@ data:
 
     ## Workspace Files
 
-    - `TOOLS.md`: short tool map for runtime, Codex, repo, registry, and Nextcloud surfaces
+    - `TOOLS.md`: local setup notes for runtime, repo, registry, and shared file surfaces
     - `MEMORY.md`: compact recall rules
     - `USER.md`: synchronized user facts when repo collaboration details matter
 
@@ -1766,32 +1778,42 @@ data:
 
     Prefer real environment inspection, decisive execution, and validated results over commentary.
   workspace-coder-TOOLS.md: |
-    Use tools by surface.
+    # Tools
 
-    ## Local And Runtime
+    Local notes for this setup.
 
-    - `read`, `edit`, `write`, `apply_patch` for local files
-    - `exec`, `process` for git, tests, builds, Helm, Docker, package managers, and Codex CLI
-    - `browser`, `web_search`, `web_fetch` for current implementation docs
+    ## Runtime
 
-    Runtime posture:
-    - `/workspace` is the repo workdir
-    - persistent tool state lives under `/workspace/.home`
-    - keep Codex runs inside the target repo
-    - use repo-local worktrees when parallel isolation is needed
+    - `/workspace` is the repo working tree.
+    - Persistent tool state lives under `/workspace/.home`.
+    - `HOME`, `CODEX_HOME`, and XDG directories are already pointed into `/workspace/.home`.
+    - Use `CODER_GITEA_BASE_URL` / `CODER_GITEA_HOST` for the in-cluster Gitea service.
+    - Use `CODER_REGISTRY_BASE_URL` / `CODER_REGISTRY_HOST` for the in-cluster registry.
+    - Canonical repo names in this stack:
+      - GitOps: `cluster-gitops`
+      - sandbox images: `openclaw-sandbox-images`
 
-    ## Shared
+    ## Files
 
-    - Nextcloud tools for governing specs, runbooks, and implementation summaries
-    - `qdrant-find`, `qdrant-store` for reusable conventions
-    - `sessions_send` for blockers and completed handoffs
+    - Files in the active repo under `/workspace` are local workspace files.
+    - `/Projects/...` are Nextcloud remote paths for durable implementation context, runbooks, and user-facing handoff artifacts.
+    - Keep private debugging notes and scratch work in the repo or workspace until they become durable conventions or summaries worth sharing.
+    - Use Qdrant for reusable technical conventions and quick recall that should survive the session without becoming a standalone doc.
+    - Shared ai-homebase docs you will commonly read or update:
+      - `/Projects/ai-homebase/gitops-workflow.md`
+      - `/Projects/ai-homebase/cluster-architecture.md`
+      - `/Projects/ai-homebase/budget-policy.md`
+      - `/Projects/ai-homebase/codex-usage/`
 
-    ## Rules
+    ## Sessions
 
-    - Never store code in Nextcloud.
-    - Prefer `manage-gitea-gitops-and-registry` for repo, GitOps, registry, and validation procedures.
-    - Prefer `run-codex-and-log-usage` for Codex execution and usage logging.
-    - Prefer `update-implementation-notes` for durable implementation notes and architect follow-up gaps.
+    - Return blockers and completed handoffs to `agent:main:main`.
+
+    ## Notes
+
+    - Keep Codex runs inside the target repo.
+    - Use repo-local worktrees when you need parallel isolation.
+    - Keep this file current when sandbox paths, runtime env vars, or canonical repo names change.
   workspace-coder-USER.md: |
     # User
 
@@ -1912,6 +1934,8 @@ data:
     - `/Projects/<slug>/implementation-summary.md` when a compact summary helps later work
     - a durable gap note when architect follow-up is needed
 
+    Keep private debugging notes local until they become a reusable lesson, a durable decision, or a summary the user or another agent will need later.
+
     ## Do Not Write
 
     - code
@@ -1945,7 +1969,7 @@ data:
     5. Read `MEMORY.md`
     4. Read `HEARTBEAT.md` if the session is a heartbeat or periodic check.
     6. Load the `bind-channels` skill only when channel setup, routing, or bindings are involved.
-    7. Read `TOOLS.md` when you need to refresh the available OpenClaw surfaces.
+    7. Read `TOOLS.md` when you need the local setup notes for the available OpenClaw surfaces.
 
     Do not ask permission. Just do it.
 
@@ -2021,8 +2045,10 @@ data:
 
     Your memory is not magic. Write things down.
 
+    - Local workspace files are the most permissive layer. Use them for private WIP, rough thinking, temporary checklists, and material that only helps you while you work.
+    - Durable preferences, decisions, conventions, stack rules, and shared quick-note context belong in Qdrant.
     - User-visible or shared project artifacts belong in Nextcloud.
-    - Durable preferences, decisions, conventions, and stack rules belong in Qdrant.
+    - Structural long-horizon knowledge belongs in Memgraph through archivist.
     - If something lives in Nextcloud and should also be recallable, store a Qdrant summary with `nc_refs`.
     - Do not leave important outcomes only in transient chat.
 
@@ -2153,7 +2179,7 @@ data:
 
     This deployment uses Qdrant as the durable shared semantic memory layer. Archivist plus Memgraph handles long-horizon curation and graph structure.
 
-    Use this file only for local retrieval hints and recurring lookup notes. Do not treat it as the primary long-term memory store.
+    Use this file only for local retrieval hints and recurring lookup notes. Do not treat it as the primary long-term memory store; private rough work stays here or in other workspace files until it should become shared recall.
 
     ## Search
 
@@ -2170,6 +2196,7 @@ data:
     - project-level decisions
     - stack rules and operating conventions
     - durable artifact summaries
+    - shared quick note-like context that should influence later work but does not need a user-facing document yet
 
     Every stored memory must use this text format:
     `[domain] [kind] Complete statement here.`
@@ -2219,25 +2246,42 @@ data:
 
     *This file is yours to evolve. As you learn who you are, update it.*
   workspace-main-TOOLS.md: |
-    Use tools by surface.
+    # Tools
 
-    ## Local
+    Local notes for this setup.
 
-    - `read`, `edit`, `write`, `apply_patch` for local workspace files
-    - `exec`, `process` for shell commands and local inspection
-    - `browser`, `web_search`, `web_fetch` for current external context
+    ## Files
 
-    ## Shared
+    - Files in this workspace are local workspace files.
+    - Use local workspace files for private WIP, rough drafts, and self-management notes.
+    - `/Projects/...` are Nextcloud remote paths owned by the shared `openclaw` Nextcloud account, which is separate from the user's own Nextcloud account.
+    - Shared ai-homebase files you will check often live under `/Projects/ai-homebase/`, especially:
+      - `budget-policy.md`
+      - `heartbeat.json`
+      - `watchdog-status-log.md`
+      - `audit-log.md`
+      - `archivist-grooming-log.md`
+    - Use Qdrant for shared quick recall, decisions, and note-like context that should shape later work but does not need a user-facing document yet.
+    - Use Nextcloud when the artifact should be shared with the user, reused by multiple agents, or stay legible over time.
 
-    - Nextcloud tools for `/Projects/...`, calendars, todos, tables, and shares
-    - `qdrant-find`, `qdrant-store` for durable recall
-    - `sessions_send`, `sessions_spawn`, `sessions_list`, `session_status` for agent coordination
+    ## Sessions
 
-    ## Rules
+    - Standing specialist session IDs:
+      - `agent:architect:main`
+      - `agent:coder:main`
+      - `agent:archivist:main`
+      - `agent:watchdog:main`
+      - `agent:auditor:main`
+    - Your own standing session ID is `agent:main:main`.
+    - Main owns sub-agent spawning in this stack.
 
-    - Treat Nextcloud paths as remote paths.
-    - Prefer durable shared state in Nextcloud over long inter-agent threads.
-    - Use the workspace skills for procedural guidance.
+    ## Collaboration
+
+    - Shared calendars, tasks, tables, and shares live in the `openclaw` Nextcloud account until intentionally shared outward.
+    - Prefer files for durable narrative artifacts, calendars/tasks for commitments and follow-through, and tables for repeated structured tracking.
+    - Share artifacts with the user's own Nextcloud account when they should become directly collaborative or visible outside the agent loop.
+    - The canonical user-facing profile lives in `USER.md`; keep that aligned before using shared collaboration surfaces.
+    - When shared routes, standing session IDs, or ai-homebase coordination files change, keep this file current.
   workspace-main-USER.md: |
     # User
 
@@ -2329,11 +2373,13 @@ data:
     - user-facing status docs and shared outputs
     - calendars, todos, reminders, and tables when they improve collaboration
     - `/Projects/ai-homebase/heartbeat.json`
+    - quiet background collaboration in the shared `openclaw` account before something is intentionally shared with the user's own account
 
     Do not use Nextcloud to:
     - author detailed project specs or durable task breakdowns that belong with architect
     - store code
     - duplicate large specialist deliverables in chat
+    - replace local workspace WIP or Qdrant for private rough thinking and quick recall
 
     ## Procedure
 
@@ -2342,9 +2388,11 @@ data:
     3. For user-facing project work, check whether `/Projects/<slug>/` already exists.
     4. If the task is durable planning, route it to architect rather than writing the artifact yourself.
     5. If the task is implementation context or runbook material, route it to coder.
-    6. Use shares when an artifact should become user-visible outside the agent loop.
-    7. When heartbeat state changes, update `/Projects/ai-homebase/heartbeat.json`.
-    8. When durable facts or rules are created, store a Qdrant summary with `nc_refs`.
+    6. Prefer calendar or tasks for commitments, reminders, and follow-through instead of burying them in markdown.
+    7. Prefer tables when the user needs a repeatedly updated structured overview.
+    8. Use shares when an artifact should become user-visible outside the agent loop.
+    9. When heartbeat state changes, update `/Projects/ai-homebase/heartbeat.json`.
+    10. When durable facts or rules are created, store a Qdrant summary with `nc_refs`.
 
     If a recurring need is a simple timed check or reminder, prefer a cron in main or watchdog.
     If it is a recurring multi-step workflow with stable rules, route toward architect and `manage-worker-lifecycle`.
@@ -2578,7 +2626,7 @@ data:
 
     ## Workspace Files
 
-    - `TOOLS.md`: short monitoring surface map
+    - `TOOLS.md`: local setup notes for monitoring surfaces and escalation routing
     - `MEMORY.md`: compact recall rules
     - `HEARTBEAT.md`: end-of-task checks for heartbeat work
 
@@ -2636,24 +2684,35 @@ data:
 
     Prefer concise facts, conservative escalation, and clean triage over analysis theater.
   workspace-watchdog-TOOLS.md: |
-    Use tools by surface.
+    # Tools
 
-    ## Local
+    Local notes for this setup.
 
-    - `exec`, `process` for readiness checks, diagnostics, concise log inspection, and budget checks
-    - `read`, `edit`, `write`, `apply_patch` only for local notes or rules when needed
+    ## Monitoring
 
-    ## Shared
+    - Gateway readiness endpoint: `http://127.0.0.1:18789/readyz`
+    - The shared heartbeat file is `/Projects/ai-homebase/heartbeat.json`.
 
-    - Nextcloud tools for incidents, baselines, status logs, and heartbeat files
-    - `qdrant-find`, `qdrant-store` for recurring signatures and monitoring rules
-    - `sessions_send` for escalations to main
+    ## Files
 
-    ## Rules
+    - Files in this workspace are local workspace files.
+    - `/Projects/...` are Nextcloud remote paths for compact durable monitoring state.
+    - Keep transient check-by-check scratch work local; promote only durable baselines, incidents, summaries, and rules.
+    - Seeded ai-homebase monitoring files you will commonly check or update:
+      - `/Projects/ai-homebase/watchdog-status-log.md`
+      - `/Projects/ai-homebase/baselines.md`
+      - `/Projects/ai-homebase/escalation-rules.md`
+      - `/Projects/ai-homebase/incidents/`
+      - `/Projects/ai-homebase/heartbeat.json`
 
-    - Treat Nextcloud paths as remote paths.
-    - Prefer short factual summaries over analysis theater.
-    - Use workspace skills for incident, heartbeat, and budget procedures.
+    ## Sessions
+
+    - Return escalations and triage summaries to `agent:main:main`.
+
+    ## Notes
+
+    - Cron prompts in this setup may rely on the same Nextcloud monitoring files even when session visibility is limited.
+    - Keep this file current when shared monitoring paths or readiness endpoints change.
   workspace-watchdog-USER.md: |
     # User
 
@@ -2766,6 +2825,7 @@ data:
     3. For meaningful incidents or baseline changes, write the smallest durable artifact that preserves the evidence.
     4. After writing an incident report, store a Qdrant summary with `nc_refs`.
     5. Escalate to main only when the severity gate is met.
+    6. Keep per-check scratch work local; only promote durable patterns, baselines, and incident state.
 
     Use `classify-severity-and-escalate` to decide whether the case is `info`, `warning`, or `critical`.
 
@@ -5531,10 +5591,9 @@ spec:
           owner_username="openclaw"
           project_slug="ai-homebase"
           project_root="/var/www/html/data/${owner_username}/files/Projects/${project_slug}"
-          notes_root="/var/www/html/data/${owner_username}/files/Notes/${project_slug}"
-          mkdir -p "${project_root}" "${notes_root}"
-          chown 33:33 "${project_root}" "${notes_root}"
-          chmod 0750 "${project_root}" "${notes_root}"
+          mkdir -p "${project_root}"
+          chown 33:33 "${project_root}"
+          chmod 0750 "${project_root}"
           ensure_parent_dir "${project_root}/overview.md"
           write_managed_file "${project_root}/overview.md" "/bootstrap-content/project-0-file-0"
           ensure_parent_dir "${project_root}/multi-agent-topology.md"
@@ -5567,14 +5626,7 @@ spec:
           write_managed_file "${project_root}/baselines.md" "/bootstrap-content/project-0-file-14"
           ensure_parent_dir "${project_root}/escalation-rules.md"
           write_managed_file "${project_root}/escalation-rules.md" "/bootstrap-content/project-0-file-15"
-          ensure_parent_dir "${notes_root}/project-brief.md"
-          write_managed_file "${notes_root}/project-brief.md" "/bootstrap-content/project-0-note-0"
-          ensure_parent_dir "${notes_root}/planning-backlog.md"
-          write_managed_file "${notes_root}/planning-backlog.md" "/bootstrap-content/project-0-note-1"
-          ensure_parent_dir "${notes_root}/open-questions.md"
-          write_managed_file "${notes_root}/open-questions.md" "/bootstrap-content/project-0-note-2"
           su -s /bin/sh www-data -c "cd /var/www/html && php occ files:scan --path='${owner_username}/files/Projects/${project_slug}'"
-          su -s /bin/sh www-data -c "cd /var/www/html && php occ files:scan --path='${owner_username}/files/Notes/${project_slug}'"
         env:
         - name: POSTGRES_HOST
           value: platform-stack-shared-postgresql

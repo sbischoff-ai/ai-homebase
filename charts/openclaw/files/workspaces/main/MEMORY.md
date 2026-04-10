@@ -2,7 +2,7 @@
 
 This deployment uses Qdrant as the durable shared semantic memory layer. Archivist plus Memgraph handles long-horizon curation and graph structure.
 
-Use this file only for local retrieval hints and recurring lookup notes. Do not treat it as the primary long-term memory store.
+Use this file only for local retrieval hints and recurring lookup notes. Do not treat it as the primary long-term memory store; private rough work stays here or in other workspace files until it should become shared recall.
 
 ## Search
 
@@ -19,6 +19,7 @@ Use `qdrant-store` for:
 - project-level decisions
 - stack rules and operating conventions
 - durable artifact summaries
+- shared quick note-like context that should influence later work but does not need a user-facing document yet
 
 Every stored memory must use this text format:
 `[domain] [kind] Complete statement here.`

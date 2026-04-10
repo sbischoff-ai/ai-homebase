@@ -714,16 +714,18 @@ verify_openclaw_workspace_bootstrap() {
     grep -F "systemic quality judgment -> auditor" /home/node/.openclaw/workspace/AGENTS.md >/dev/null
 
     test -f /home/node/.openclaw/workspace-coder/TOOLS.md
-    grep -F "codex_execution_and_logging" /home/node/.openclaw/workspace-coder/TOOLS.md >/dev/null
-    test -f /home/node/.openclaw/workspace-coder/skills/codex_execution_and_logging/SKILL.md
-    grep -F "default \`gpt-5.4-mini\` for routine work" /home/node/.openclaw/workspace-coder/skills/codex_execution_and_logging/SKILL.md >/dev/null
+    grep -F "CODER_GITEA_BASE_URL" /home/node/.openclaw/workspace-coder/TOOLS.md >/dev/null
+    grep -F "/Projects/ai-homebase/codex-usage/" /home/node/.openclaw/workspace-coder/TOOLS.md >/dev/null
+    test -f /home/node/.openclaw/workspace-coder/skills/run-codex-and-log-usage/SKILL.md
+    grep -F "default \`gpt-5.4-mini\` for routine work" /home/node/.openclaw/workspace-coder/skills/run-codex-and-log-usage/SKILL.md >/dev/null
 
     test -f /home/node/.openclaw/workspace-archivist/TOOLS.md
-    grep -F "for \`mgconsole\` and graph-side utilities" /home/node/.openclaw/workspace-archivist/TOOLS.md >/dev/null
+    grep -F "MEMGRAPH_BOLT_URI" /home/node/.openclaw/workspace-archivist/TOOLS.md >/dev/null
+    grep -F "state/grooming-cursor.json" /home/node/.openclaw/workspace-archivist/TOOLS.md >/dev/null
     test -f /home/node/.openclaw/workspace-archivist/queries/README.md
     grep -F "Use \`MEMGRAPH_HOST\` and \`MEMGRAPH_PORT\` with \`mgconsole\` for execution." /home/node/.openclaw/workspace-archivist/queries/README.md >/dev/null
-    test -f /home/node/.openclaw/workspace-archivist/skills/memgraph_curation/SKILL.md
-    grep -F "create or update a \`MemoryEntry\` node" /home/node/.openclaw/workspace-archivist/skills/memgraph_curation/SKILL.md >/dev/null
+    test -f /home/node/.openclaw/workspace-archivist/skills/update-memgraph/SKILL.md
+    grep -F "create or update a \`MemoryEntry\` node" /home/node/.openclaw/workspace-archivist/skills/update-memgraph/SKILL.md >/dev/null
     test -f /home/node/.openclaw/workspace-archivist/queries/entity-by-slug.cypher
 
     test -f /home/node/.openclaw/workspace-architect/AGENTS.md
@@ -731,8 +733,10 @@ verify_openclaw_workspace_bootstrap() {
 
     test -f /home/node/.openclaw/workspace-watchdog/AGENTS.md
     grep -F "systemic review -> auditor" /home/node/.openclaw/workspace-watchdog/AGENTS.md >/dev/null
-    test -f /home/node/.openclaw/workspace-watchdog/skills/heartbeat_and_budget_sentinel/SKILL.md
-    grep -F "Heartbeat And Budget Sentinel" /home/node/.openclaw/workspace-watchdog/skills/heartbeat_and_budget_sentinel/SKILL.md >/dev/null
+    test -f /home/node/.openclaw/workspace-watchdog/TOOLS.md
+    grep -F "http://127.0.0.1:18789/readyz" /home/node/.openclaw/workspace-watchdog/TOOLS.md >/dev/null
+    test -f /home/node/.openclaw/workspace-watchdog/skills/check-heartbeat-and-budget/SKILL.md
+    grep -F "Heartbeat And Budget Sentinel" /home/node/.openclaw/workspace-watchdog/skills/check-heartbeat-and-budget/SKILL.md >/dev/null
 
     test -f /home/node/.openclaw/workspace-auditor/MEMORY.md
     grep -F "\"agent\":\"auditor\"" /home/node/.openclaw/workspace-auditor/MEMORY.md >/dev/null
@@ -746,7 +750,6 @@ verify_nextcloud_bootstrap_content() {
   CURRENT_COMMAND="kubectl exec statefulset/${statefulset_name} -- sh -ceu 'test Nextcloud bootstrap content'"
   run_checked kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" exec "statefulset/${statefulset_name}" -- sh -ceu '
     project_root=/var/www/html/data/openclaw/files/Projects/ai-homebase
-    notes_root=/var/www/html/data/openclaw/files/Notes/ai-homebase
 
     test -f "${project_root}/heartbeat.json"
     grep -F "\"agent\": \"bootstrap\"" "${project_root}/heartbeat.json" >/dev/null

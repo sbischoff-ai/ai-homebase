@@ -177,10 +177,13 @@ def seeded_nextcloud_project_content() -> list[dict[str, object]]:
                         - explain what this cluster is for;
                         - describe how the agents should work within it;
                         - capture the durable operating model for evolving the stack over time.
+                        - give the agents one shared Nextcloud project home without depending on a separate shared scratchpad folder.
 
                         Working rule:
                         - keep long-lived project documentation in `/Projects/ai-homebase/`;
-                        - keep temporary planning and scratchpad material in `/Notes/ai-homebase/`.
+                        - keep private rough work in local workspace files;
+                        - store shared quick recall, decisions, and note-like context in Qdrant;
+                        - use Nextcloud for curated shared artifacts, user collaboration, calendars, tasks, tables, and outputs that should remain visible over time.
                         """
                     ),
                 },
@@ -266,10 +269,17 @@ def seeded_nextcloud_project_content() -> list[dict[str, object]]:
                         """
                         # Project Documentation Model
 
-                        Every project should use the same separation of concerns:
+                        Every project should use the same default storage model:
 
-                        - `/Projects/<project-slug>/` is durable, curated, and long-term
-                        - `/Notes/<project-slug>/` is temporary, iterative, and short-term
+                        - `/Projects/<project-slug>/` is the default durable project home
+                        - additional Nextcloud folders may be created later when a project truly benefits from them
+
+                        Storage hierarchy from most permissive to most curated:
+
+                        - local workspace files: private WIP, rough drafts, self-notes, temporary working state
+                        - Qdrant: shared quick recall, decisions, conventions, handoff context, and other note-like memories worth finding later
+                        - Memgraph through `archivist`: structural entities, relationships, and promoted graph-linked memory
+                        - Nextcloud: curated shared artifacts, user collaboration surfaces, and durable project records
 
                         Durable artifacts belong in `/Projects/`, for example:
                         - `spec.md`
@@ -277,14 +287,11 @@ def seeded_nextcloud_project_content() -> list[dict[str, object]]:
                         - `plan.md`
                         - `decisions.md`
 
-                        Working notes belong in `/Notes/`, for example:
-                        - brainstorming
-                        - planning scratchpads
-                        - meeting notes
-                        - task breakdown drafts
+                        Use local workspace files instead of a shared Nextcloud scratchpad when the material is still private, provisional, or only useful to one agent while thinking.
+                        Store shared quick notes in Qdrant when they should shape later work but do not need a user-facing document yet.
+                        Drafts may also live in `/Projects/` when they are part of the project's shared working record or the user should be able to collaborate on them there.
 
-                        Promotion rule:
-                        - if something becomes important or stable, move it from `/Notes/` into `/Projects/`.
+                        If agents create additional Nextcloud folders later, they should do so intentionally, document the purpose, and avoid recreating a generic catch-all notes bucket.
                         """
                     ),
                 },
@@ -509,53 +516,11 @@ def seeded_nextcloud_project_content() -> list[dict[str, object]]:
                     ),
                 },
             ],
-            "notes": [
-                {
-                    "path": "project-brief.md",
-                    "content": normalize_markdown(
-                        """
-                        # ai-homebase project brief
-
-                        This is the standing project for documenting and improving the cluster itself.
-
-                        Architect should keep this project current as the system evolves.
-                        """
-                    ),
-                },
-                {
-                    "path": "planning-backlog.md",
-                    "content": normalize_markdown(
-                        """
-                        # planning backlog
-
-                        Keep short-lived planning items here before they become durable project artifacts or routed tasks.
-
-                        Candidates:
-                        - architecture refinements
-                        - documentation gaps
-                        - workflow improvements
-                        - future service additions
-                        """
-                    ),
-                },
-                {
-                    "path": "open-questions.md",
-                    "content": normalize_markdown(
-                        """
-                        # open questions
-
-                        Use this note to capture unresolved design and operating questions about the cluster.
-
-                        Move resolved answers into durable project docs in `/Projects/ai-homebase/`.
-                        """
-                    ),
-                },
-            ],
         }
     ]
 
 
-def workspace_bootstrap_values(
+def _legacy_workspace_bootstrap_values(
     user_nextcloud_username: str,
     user_gitea_username: str,
     coder_gitea_username: str,
@@ -639,9 +604,9 @@ def workspace_bootstrap_values(
 
                         ## Tool Routing
 
-                        - Treat any path under `/Projects/` or `/Notes/` as a Nextcloud remote path, not a local filesystem path.
-                        - For any read, create, append, move, overwrite, or share action on `/Projects/...` or `/Notes/...`, use only Nextcloud tools whose names start with `nc_webdav_`.
-                        - Never use shell commands, local file APIs, workspace file tools, or local path assumptions on `/Projects/...` or `/Notes/...`.
+                        - Treat any path under `/Projects/` as a Nextcloud remote path, not a local filesystem path.
+                        - For any read, create, append, move, overwrite, or share action on `/Projects/...`, use only Nextcloud tools whose names start with `nc_webdav_`.
+                        - Never use shell commands, local file APIs, workspace file tools, or local path assumptions on `/Projects/...`.
                         - Never create a local directory or local file that mirrors a Nextcloud path.
                         - If a parent directory is missing in Nextcloud, create it with an `nc_webdav_*` tool, then read or write the file with an `nc_webdav_*` tool.
                         - When coordinating with another agent, use `sessions_send` to that agent's exact session ID. Do not describe a routing decision without actually sending the handoff when routing is required.
@@ -767,16 +732,16 @@ def workspace_bootstrap_values(
                         ### Nextcloud Usage - Main
 
                         Nextcloud path rules:
-                        - Any path under `/Projects/` or `/Notes/` is a Nextcloud remote path, not a local filesystem path.
+                        - Any path under `/Projects/` is a Nextcloud remote path, not a local filesystem path.
                         - For those paths, use only Nextcloud tools whose names start with `nc_webdav_`.
-                        - Never use shell commands, local file APIs, workspace file tools, or local path assumptions on `/Projects/...` or `/Notes/...`.
+                        - Never use shell commands, local file APIs, workspace file tools, or local path assumptions on `/Projects/...`.
                         - Never create a local directory or local file that mirrors a Nextcloud path.
                         - If a parent directory is missing, create it in Nextcloud with an `nc_webdav_*` tool, then read or write the file in Nextcloud with an `nc_webdav_*` tool.
 
                         **When to write:**
                         - After making a coordination decision that affects a project, store or update it in `/Projects/<slug>/`, typically `decisions.md` or a status summary, with an `nc_webdav_*` tool.
                         - When the user provides information that should remain durably accessible, write it to the appropriate Nextcloud artifact with an `nc_webdav_*` tool.
-                        - When synthesizing specialist outputs into a user-facing summary, store stable versions in `/Projects/<slug>/` and drafts in `/Notes/<slug>/` with `nc_webdav_*` tools.
+                        - When synthesizing specialist outputs into a user-facing summary, store the shared durable version in `/Projects/<slug>/` and keep any private drafting in workspace files until it is ready to publish.
                         - When creating or updating calendar events, todos, or tasks that track work.
 
                         **When to read:**
@@ -786,7 +751,7 @@ def workspace_bootstrap_values(
                         **What goes where:**
                         - Calendar events and todos: scheduling, deadlines, recurring tasks
                         - `/Projects/<slug>/`: stable coordination artifacts, decision logs, status summaries
-                        - `/Notes/<slug>/`: draft coordination notes and meeting summaries
+                        - local workspace files: private coordination drafts, rough summaries, and unresolved thinking
                         - `/Projects/ai-homebase/codex-usage/`: daily Codex usage logs from coder
                         - `/Projects/ai-homebase/heartbeat.json`: latest coordination heartbeat
                         - Root files: user-facing reference material that does not belong to a project
@@ -901,7 +866,7 @@ def workspace_bootstrap_values(
                         3. Ask for their preferred conversation style or personality.
                         4. Ask what they want to do with this setup.
                         5. Confirm their Nextcloud username for sharing.
-                        6. Share the existing `/Projects/` and `/Notes/` folders with that username in Nextcloud.
+                        6. Share the existing `/Projects/` folder with that username in Nextcloud.
                         7. Start and verify the standing specialist sessions.
 
                         ## Identity and Preferences
@@ -920,9 +885,8 @@ def workspace_bootstrap_values(
 
                         Ask the user to confirm that this is their actual Nextcloud username for sharing. Do not guess or substitute another username without confirmation.
 
-                        After they confirm it, share these existing top-level folders with that username:
+                        After they confirm it, share this existing top-level folder with that username:
                         - `/Projects/`
-                        - `/Notes/`
 
                         ## Specialist Session Bring-Up
 
@@ -964,7 +928,7 @@ def workspace_bootstrap_values(
 
                         ## Nextcloud Shares (optional)
 
-                        The project files at `/Projects/ai-homebase/` contain system documentation, budget ledgers, status logs, and audit reports. The working notes at `/Notes/ai-homebase/` contain drafts and short-lived planning material. After you confirm that `{user_nextcloud_username}` is your Nextcloud username, I should share both `/Projects/` and `/Notes/` with your user.
+                        The project files at `/Projects/ai-homebase/` contain system documentation, budget ledgers, status logs, and audit reports. Private rough planning work now stays in agent workspaces or Qdrant instead of a shared scratchpad folder. After you confirm that `{user_nextcloud_username}` is your Nextcloud username, I should share `/Projects/` with your user.
                         """
                     ),
                 },
@@ -1036,9 +1000,9 @@ def workspace_bootstrap_values(
 
                         - You are not chatting with the user. Main is the user-facing agent.
                         - Do not ask your own session whether you should escalate, route, or continue. If routing is needed and no other target is explicitly named, send the message to `agent:main:main`.
-                        - Treat any path under `/Projects/` or `/Notes/` as a Nextcloud remote path, not a local filesystem path.
-                        - For any read, create, append, move, overwrite, or archive action on `/Projects/...` or `/Notes/...`, use only Nextcloud tools whose names start with `nc_webdav_`.
-                        - Never use shell commands, local file APIs, workspace file tools, or local path assumptions on `/Projects/...` or `/Notes/...`.
+                        - Treat any path under `/Projects/` as a Nextcloud remote path, not a local filesystem path.
+                        - For any read, create, append, move, overwrite, or archive action on `/Projects/...`, use only Nextcloud tools whose names start with `nc_webdav_`.
+                        - Never use shell commands, local file APIs, workspace file tools, or local path assumptions on `/Projects/...`.
                         - Never create a local directory or local file that mirrors a Nextcloud path.
 
                         ## Cost Awareness
@@ -1298,16 +1262,16 @@ def workspace_bootstrap_values(
                         - If registry login, push, or pull fails because of TLS trust, tell main that the operator needs the platform internal CA installed for the sandbox Docker runtime and the cluster node container runtime.
 
                         Nextcloud guidance:
-                        - Treat any path under `/Projects/` or `/Notes/` as a Nextcloud remote path, not a local filesystem path.
+                        - Treat any path under `/Projects/` as a Nextcloud remote path, not a local filesystem path.
                         - For those paths, use only Nextcloud tools whose names start with `nc_webdav_`.
-                        - Never use shell commands, local file APIs, workspace file tools, or local path assumptions on `/Projects/...` or `/Notes/...`.
+                        - Never use shell commands, local file APIs, workspace file tools, or local path assumptions on `/Projects/...`.
                         - Never create a local directory or local file that mirrors a Nextcloud path.
                         - If a parent directory is missing, create it in Nextcloud with an `nc_webdav_*` tool, then read or write the file in Nextcloud with an `nc_webdav_*` tool.
                         - Before starting implementation, read the relevant spec and plan from `/Projects/<slug>/` with `nc_webdav_*` tools.
                         - Before making an implementation decision that is not covered by the spec, check `/Projects/<slug>/decisions.md` for prior decisions with an `nc_webdav_*` tool.
                         - After completing implementation work that involved non-obvious decisions, append the decision and rationale to `/Projects/<slug>/decisions.md` with an `nc_webdav_*` tool.
                         - When producing deployment runbooks, setup guides, or operational docs needed by the user or other agents, store them in `/Projects/<slug>/` with `nc_webdav_*` tools.
-                        - When implementation reveals a spec or plan gap, write a note to `/Notes/<slug>/` with an `nc_webdav_*` tool flagging the gap and notify main via `sessions_send` to `agent:main:main`.
+                        - When implementation reveals a spec or plan gap, append a concise durable gap note to `/Projects/<slug>/implementation-summary.md` or the relevant project artifact and notify main via `sessions_send` to `agent:main:main`.
                         - Code, configs, and scripts stay in repositories, never in Nextcloud.
                         - Do not store transient debugging notes in Nextcloud unless they become durable patterns worth recording.
                         - Store implementation conventions and patterns in Qdrant with `nc_refs` to relevant Nextcloud docs.
@@ -1455,9 +1419,9 @@ def workspace_bootstrap_values(
 
                         - You are not chatting with the user. Main is the user-facing agent.
                         - Do not ask your own session whether you should escalate, route, or continue. If routing is needed, send the message to `agent:main:main`.
-                        - Treat any path under `/Projects/` or `/Notes/` as a Nextcloud remote path, not a local filesystem path.
-                        - For any read, create, append, move, overwrite, or archive action on `/Projects/...` or `/Notes/...`, use only Nextcloud tools whose names start with `nc_webdav_`.
-                        - Never use shell commands, local file APIs, workspace file tools, or local path assumptions on `/Projects/...` or `/Notes/...`.
+                        - Treat any path under `/Projects/` as a Nextcloud remote path, not a local filesystem path.
+                        - For any read, create, append, move, overwrite, or archive action on `/Projects/...`, use only Nextcloud tools whose names start with `nc_webdav_`.
+                        - Never use shell commands, local file APIs, workspace file tools, or local path assumptions on `/Projects/...`.
                         - Never create a local directory or local file that mirrors a Nextcloud path.
 
                         ## Cost Awareness
@@ -1527,15 +1491,15 @@ def workspace_bootstrap_values(
                         Use your visible Nextcloud tools to keep durable planning output when that helps the user.
 
                         Nextcloud path rules:
-                        - Any path under `/Projects/` or `/Notes/` is a Nextcloud remote path, not a local filesystem path.
+                        - Any path under `/Projects/` is a Nextcloud remote path, not a local filesystem path.
                         - For those paths, use only Nextcloud tools whose names start with `nc_webdav_`.
-                        - Never use shell commands, local file APIs, workspace file tools, or local path assumptions on `/Projects/...` or `/Notes/...`.
+                        - Never use shell commands, local file APIs, workspace file tools, or local path assumptions on `/Projects/...`.
                         - Never create a local directory or local file that mirrors a Nextcloud path.
                         - If a parent directory is missing, create it in Nextcloud with an `nc_webdav_*` tool, then read or write the file in Nextcloud with an `nc_webdav_*` tool.
 
                         **When to write:**
                         - Concept documents, specs, architecture docs, and plans go in `/Projects/<slug>/` with `nc_webdav_*` tools.
-                        - Brainstorming, draft task breakdowns, and working notes go in `/Notes/<slug>/` with `nc_webdav_*` tools.
+                        - Private brainstorming and draft task breakdowns stay in local workspace files until they become shared project artifacts.
                         - Decision records should be appended to `/Projects/<slug>/decisions.md` with an `nc_webdav_*` tool.
                         - Task breakdowns that main and coder will track may become calendar todos, with main aware of them.
 
@@ -1544,7 +1508,7 @@ def workspace_bootstrap_values(
                         - Before producing a spec, check whether a prior spec should be revised instead of replaced with an `nc_webdav_*` tool.
 
                         **Promotion rule:**
-                        - When a `/Notes/` artifact stabilizes, move it to `/Projects/`.
+                        - When private workspace material becomes collaborative or user-visible, promote it into `/Projects/`.
                         - When a `/Projects/` artifact is superseded, archive it with an `-archived-YYYY-MM-DD` suffix instead of deleting it.
 
                         **Shared-account guidance:**
@@ -1552,7 +1516,7 @@ def workspace_bootstrap_values(
                         - Keep project material in predictable documentation folders per project and remember the exact locations.
                         - Main owns the shared calendar and broader coordination state.
                         - When material matters to the user, store it in a user-shareable place and make sure main knows what was produced and where it lives.
-                        - When the user should have access to project material, make sure `/Projects/` and `/Notes/` are shared with them as whole top-level folders.
+                        - When the user should have access to project material, make sure `/Projects/` is shared with them as the durable top-level project folder.
                         - After writing a major design document, store a Qdrant memory summarizing the key decisions with `nc_refs` to the document.
                         """
                     ),
@@ -1586,7 +1550,7 @@ def workspace_bootstrap_values(
 
                         Store durable design knowledge such as architecture decisions, rationale, planning patterns, conventions, constraints, and cross-project dependencies.
 
-                        Do not store full design documents, scratch notes, or task trackers in Qdrant. Keep durable documents in `/Projects/<slug>/` and working notes in `/Notes/<slug>/`.
+                        Do not store full design documents, scratch notes, or task trackers in Qdrant. Keep durable documents in `/Projects/<slug>/`, private rough work in workspace files, and shared quick note-like context in Qdrant.
 
                         Every stored memory must use this text format:
                         `[domain] [kind] Complete statement here.`
@@ -1599,7 +1563,7 @@ def workspace_bootstrap_values(
                         Existing seeded project:
                         - `ai-homebase` already exists in Nextcloud.
                         - Durable project docs live in `/Projects/ai-homebase/`.
-                        - Working notes live in `/Notes/ai-homebase/`.
+                        - Private rough work belongs in the local workspace, while shared quick planning context belongs in Qdrant.
                         - Treat that project as the standing documentation and planning home for the cluster itself.
 
                         ## When to search
@@ -1693,9 +1657,9 @@ def workspace_bootstrap_values(
 
                         - You are not chatting with the user. Main is the user-facing agent.
                         - Do not ask your own session whether you should escalate, route, or continue. If routing is needed, send the message to `agent:main:main`.
-                        - Treat any path under `/Projects/` or `/Notes/` as a Nextcloud remote path, not a local filesystem path.
-                        - For any read, create, append, move, overwrite, or archive action on `/Projects/...` or `/Notes/...`, use only Nextcloud tools whose names start with `nc_webdav_`.
-                        - Never use shell commands, local file APIs, workspace file tools, or local path assumptions on `/Projects/...` or `/Notes/...`.
+                        - Treat any path under `/Projects/` as a Nextcloud remote path, not a local filesystem path.
+                        - For any read, create, append, move, overwrite, or archive action on `/Projects/...`, use only Nextcloud tools whose names start with `nc_webdav_`.
+                        - Never use shell commands, local file APIs, workspace file tools, or local path assumptions on `/Projects/...`.
                         - Never create a local directory or local file that mirrors a Nextcloud path.
 
                         ## Cost Awareness
@@ -1790,9 +1754,9 @@ def workspace_bootstrap_values(
                         - Combine filters with semantic queries for targeted grooming (e.g., find recent decisions about a specific project).
 
                         Nextcloud coordination:
-                        - Treat any path under `/Projects/` or `/Notes/` as a Nextcloud remote path, not a local filesystem path.
+                        - Treat any path under `/Projects/` as a Nextcloud remote path, not a local filesystem path.
                         - For those paths, use only Nextcloud tools whose names start with `nc_webdav_`.
-                        - Never use shell commands, local file APIs, workspace file tools, or local path assumptions on `/Projects/...` or `/Notes/...`.
+                        - Never use shell commands, local file APIs, workspace file tools, or local path assumptions on `/Projects/...`.
                         - Never create a local directory or local file that mirrors a Nextcloud path.
                         - If a parent directory is missing, create it in Nextcloud with an `nc_webdav_*` tool, then read or write the file in Nextcloud with an `nc_webdav_*` tool.
                         - Read `/Projects/ai-homebase/knowledge-graph-schema.md` and related project docs before changing the canonical schema with `nc_webdav_*` tools.
@@ -2018,9 +1982,9 @@ def workspace_bootstrap_values(
 
                         - You are not chatting with the user. Main is the user-facing agent.
                         - Do not ask your own session whether you should escalate, route, or continue. If routing is needed and no other target is explicitly named, send the message to `agent:main:main`.
-                        - Treat any path under `/Projects/` or `/Notes/` as a Nextcloud remote path, not a local filesystem path.
-                        - For any read, create, append, move, or overwrite action on `/Projects/...` or `/Notes/...`, use only Nextcloud tools whose names start with `nc_webdav_`.
-                        - Never use shell commands, local file APIs, workspace file tools, or local path assumptions on `/Projects/...` or `/Notes/...`.
+                        - Treat any path under `/Projects/` as a Nextcloud remote path, not a local filesystem path.
+                        - For any read, create, append, move, or overwrite action on `/Projects/...`, use only Nextcloud tools whose names start with `nc_webdav_`.
+                        - Never use shell commands, local file APIs, workspace file tools, or local path assumptions on `/Projects/...`.
                         - Never create a local directory or local file that mirrors a Nextcloud path.
                         - If a parent directory is missing in Nextcloud, create it with an `nc_webdav_*` tool, then read or write the file with an `nc_webdav_*` tool.
                         - Use shell and local tools only for local resources such as `http://127.0.0.1:18789/readyz`, `tokscale`, `openclaw status`, `openssl`, and lightweight `session-logs` inspection.
@@ -2089,7 +2053,7 @@ def workspace_bootstrap_values(
 
                         ## Cron Behavior
 
-                        Do not use `sessions_send` or `sessions_list` from cron context unless the cron prompt explicitly instructs you to do so. Those calls are unreliable there because cron jobs run in isolated sandbox sessions. From cron, treat `/Projects/...` and `/Notes/...` as Nextcloud remote paths and use `nc_webdav_*` tools for them. Use the gateway `http://127.0.0.1:18789/readyz` endpoint only as a local HTTP check.
+                        Do not use `sessions_send` or `sessions_list` from cron context unless the cron prompt explicitly instructs you to do so. Those calls are unreliable there because cron jobs run in isolated sandbox sessions. From cron, treat `/Projects/...` as a Nextcloud remote path and use `nc_webdav_*` tools for it. Use the gateway `http://127.0.0.1:18789/readyz` endpoint only as a local HTTP check.
 
                         ## Tool Scope
 
@@ -2120,9 +2084,9 @@ def workspace_bootstrap_values(
                         - Do not rely on inter-session messaging from cron jobs.
 
                         Nextcloud path rules:
-                        - Any path under `/Projects/` or `/Notes/` is a Nextcloud remote path, not a local filesystem path.
+                        - Any path under `/Projects/` is a Nextcloud remote path, not a local filesystem path.
                         - For those paths, use only Nextcloud tools whose names start with `nc_webdav_`.
-                        - Never use shell commands, local file APIs, workspace file tools, or local path assumptions on `/Projects/...` or `/Notes/...`.
+                        - Never use shell commands, local file APIs, workspace file tools, or local path assumptions on `/Projects/...`.
                         - Never create a local directory or local file that mirrors a Nextcloud path.
                         - If a parent directory is missing, create it in Nextcloud with an `nc_webdav_*` tool, then read or write the file in Nextcloud with an `nc_webdav_*` tool.
 
@@ -2305,9 +2269,9 @@ def workspace_bootstrap_values(
 
                         - You are not chatting with the user. Main is the user-facing agent.
                         - Do not ask your own session whether you should escalate, route, or continue. If routing is needed, send the message to `agent:main:main`.
-                        - Treat any path under `/Projects/` or `/Notes/` as a Nextcloud remote path, not a local filesystem path.
-                        - For any read, create, append, move, overwrite, or archive action on `/Projects/...` or `/Notes/...`, use only Nextcloud tools whose names start with `nc_webdav_`.
-                        - Never use shell commands, local file APIs, workspace file tools, or local path assumptions on `/Projects/...` or `/Notes/...`.
+                        - Treat any path under `/Projects/` as a Nextcloud remote path, not a local filesystem path.
+                        - For any read, create, append, move, overwrite, or archive action on `/Projects/...`, use only Nextcloud tools whose names start with `nc_webdav_`.
+                        - Never use shell commands, local file APIs, workspace file tools, or local path assumptions on `/Projects/...`.
                         - Never create a local directory or local file that mirrors a Nextcloud path.
 
                         ## Cost Awareness
@@ -2366,9 +2330,9 @@ def workspace_bootstrap_values(
                         You have access to Nextcloud and Qdrant MCP tools for reading context and storing findings. You do not have sandbox access.
 
                         Use Nextcloud to:
-                        - Treat any path under `/Projects/` or `/Notes/` as a Nextcloud remote path, not a local filesystem path.
+                        - Treat any path under `/Projects/` as a Nextcloud remote path, not a local filesystem path.
                         - For those paths, use only Nextcloud tools whose names start with `nc_webdav_`.
-                        - Never use shell commands, local file APIs, workspace file tools, or local path assumptions on `/Projects/...` or `/Notes/...`.
+                        - Never use shell commands, local file APIs, workspace file tools, or local path assumptions on `/Projects/...`.
                         - Never create a local directory or local file that mirrors a Nextcloud path.
                         - If a parent directory is missing, create it in Nextcloud with an `nc_webdav_*` tool, then read or write the file in Nextcloud with an `nc_webdav_*` tool.
                         - Read specs, plans, implementation docs, and prior audit reports from `/Projects/<slug>/` with `nc_webdav_*` tools.
@@ -2453,6 +2417,48 @@ def workspace_bootstrap_values(
                         """
                     ),
                 },
+            },
+        },
+    }
+
+
+def workspace_bootstrap_values(
+    user_nextcloud_username: str,
+    user_gitea_username: str,
+    coder_gitea_username: str,
+    gitea_host: str,
+    memgraph_host: str,
+    registry_host: str,
+    registry_namespace: str,
+    gitops_repo_name: str,
+    sandbox_images_repo_name: str,
+) -> dict[str, object]:
+    return {
+        "enabled": True,
+        "agents": {
+            "main": {
+                "workspace": "/home/node/.openclaw/workspace",
+                "filesDir": "workspaces/main",
+            },
+            "coder": {
+                "workspace": "/home/node/.openclaw/workspace-coder",
+                "filesDir": "workspaces/coder",
+            },
+            "architect": {
+                "workspace": "/home/node/.openclaw/workspace-architect",
+                "filesDir": "workspaces/architect",
+            },
+            "archivist": {
+                "workspace": "/home/node/.openclaw/workspace-archivist",
+                "filesDir": "workspaces/archivist",
+            },
+            "watchdog": {
+                "workspace": "/home/node/.openclaw/workspace-watchdog",
+                "filesDir": "workspaces/watchdog",
+            },
+            "auditor": {
+                "workspace": "/home/node/.openclaw/workspace-auditor",
+                "filesDir": "workspaces/auditor",
             },
         },
     }

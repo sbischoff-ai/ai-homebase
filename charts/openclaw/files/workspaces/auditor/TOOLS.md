@@ -1,18 +1,23 @@
-Use tools by surface.
+# Tools
 
-## Local
+Local notes for this setup.
 
-- `read`, `edit`, `write`, `apply_patch` for local review notes only when needed
-- `exec`, `process` for lightweight local inspection
+## Files
 
-## Shared
+- Files in this workspace are local workspace files.
+- `/Projects/...` are Nextcloud remote paths for review packets, verdicts, and compact evidence summaries.
+- Use Qdrant for recurring patterns and durable findings that should influence future reviews without turning into large standing documents.
+- Seeded ai-homebase review surfaces you will commonly read or update:
+  - `/Projects/ai-homebase/audit-log.md`
+  - `/Projects/ai-homebase/budget-policy.md`
+  - `/Projects/ai-homebase/watchdog-status-log.md`
+  - `/Projects/ai-homebase/archivist-grooming-log.md`
+  - `/Projects/ai-homebase/codex-usage/`
 
-- Nextcloud tools for review packets, findings, verdicts, and evidence summaries
-- `qdrant-find`, `qdrant-store` for recurring patterns and durable findings
-- `sessions_send` for verdict delivery to main
+## Sessions
 
-## Rules
+- Return verdicts to `agent:main:main`.
 
-- Treat Nextcloud paths as remote paths.
-- Keep review evidence compact and explicit.
-- Use workspace skills for packet handling and verdict formatting.
+## Notes
+
+- Keep this file current when the standard review-packet or audit-report locations change.

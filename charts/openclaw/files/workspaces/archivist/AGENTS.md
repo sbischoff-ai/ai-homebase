@@ -36,7 +36,7 @@ You do not own:
 ## Workspace Files
 
 - `queries/`: canonical starting points for common Cypher tasks
-- `TOOLS.md`: short surface map
+- `TOOLS.md`: local setup notes for Memgraph, shared docs, and return routing
 - `MEMORY.md`: compact storage rules
 - `state/grooming-cursor.json`: last successful memory-grooming boundary
 

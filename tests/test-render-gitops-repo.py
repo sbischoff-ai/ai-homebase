@@ -130,12 +130,12 @@ project = "platform-stack"
         assert 'baselines.md' in bootstrap_values
         assert 'escalation-rules.md' in bootstrap_values
         assert '"workspaceBootstrap"' in bootstrap_values
-        assert '"BOOTSTRAP.md"' in bootstrap_values
-        assert '# Memory - Main Agent' in bootstrap_values
-        assert '[domain] [kind] Complete statement here.' in bootstrap_values
-        assert '## Task Classification Gate (mandatory)' in bootstrap_values
-        assert '## Task Handoff' in bootstrap_values
-        assert '## Watchdog Alert' in bootstrap_values
+        assert '"filesDir": "workspaces/main"' in bootstrap_values
+        assert '"filesDir": "workspaces/coder"' in bootstrap_values
+        assert '"filesDir": "workspaces/architect"' in bootstrap_values
+        assert '"filesDir": "workspaces/archivist"' in bootstrap_values
+        assert '"filesDir": "workspaces/watchdog"' in bootstrap_values
+        assert '"filesDir": "workspaces/auditor"' in bootstrap_values
         assert '"allowBundled"' in bootstrap_values
         assert "Authorization=${OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER}" in bootstrap_values
         assert "${OPENCLAW_NEXTCLOUD_MCP_INTERNAL_URL}" in bootstrap_values
@@ -146,11 +146,6 @@ project = "platform-stack"
         assert '/usr/local/bin/coder-init.sh' in bootstrap_values
         assert 'CODEX_HOME' in bootstrap_values
         assert '/.codex' in bootstrap_values
-        assert '/workspace` is your repo working tree; persistent tool state lives under `/workspace/.home`' in bootstrap_values
-        assert '"skills/gitea-tea/SKILL.md"' not in bootstrap_values
-        assert '"skills/gitops-homebase/SKILL.md"' not in bootstrap_values
-        assert 'Use `tea` for repository creation' in bootstrap_values
-        assert 'Treat the GitOps repository as a deployment-definition repo' in bootstrap_values
         assert "toolDescriptions:" in (REPO_ROOT / "charts" / "platform-stack" / "values.yaml").read_text()
         assert "Store a memory for cross-agent recall." in (REPO_ROOT / "charts" / "platform-stack" / "values.yaml").read_text()
         assert "argoCd:" in gitops_values

@@ -1,9 +1,21 @@
+# Tools
+
+Local notes for this worker setup.
+
 {{WORKER_TOOLS_INSTRUCTIONS}}
 
-Default surface rules:
-- local workspace files use `read`, `edit`, `write`, `apply_patch`
-- local commands use `exec`, `process`
-- Nextcloud paths are remote paths and use only Nextcloud tools
-- Qdrant tools are used only if the worker definition explicitly says so
+## Files
 
-Put detailed workflow procedures in `skills/` instead of expanding this file.
+- Local workspace files live in this worker workspace.
+- Use local workspace files for private execution state and temporary scratch work.
+- `/Projects/...` are Nextcloud remote paths when this worker is allowed to use them.
+- Use Qdrant only when the worker definition explicitly grants that memory surface.
+
+## Sessions
+
+- Standard return target: `agent:main:main`
+
+## Notes
+
+- Record concrete setup facts here: paths, IDs, hosts, schedules, and other worker-specific tool notes.
+- Keep this file current when those local notes change.

@@ -1,26 +1,36 @@
-Use tools by surface.
+# Tools
 
-## Local And Runtime
+Local notes for this setup.
 
-- `read`, `edit`, `write`, `apply_patch` for local files
-- `exec`, `process` for git, tests, builds, Helm, Docker, package managers, and Codex CLI
-- `browser`, `web_search`, `web_fetch` for current implementation docs
+## Runtime
 
-Runtime posture:
-- `/workspace` is the repo workdir
-- persistent tool state lives under `/workspace/.home`
-- keep Codex runs inside the target repo
-- use repo-local worktrees when parallel isolation is needed
+- `/workspace` is the repo working tree.
+- Persistent tool state lives under `/workspace/.home`.
+- `HOME`, `CODEX_HOME`, and XDG directories are already pointed into `/workspace/.home`.
+- Use `CODER_GITEA_BASE_URL` / `CODER_GITEA_HOST` for the in-cluster Gitea service.
+- Use `CODER_REGISTRY_BASE_URL` / `CODER_REGISTRY_HOST` for the in-cluster registry.
+- Canonical repo names in this stack:
+  - GitOps: `cluster-gitops`
+  - sandbox images: `openclaw-sandbox-images`
 
-## Shared
+## Files
 
-- Nextcloud tools for governing specs, runbooks, and implementation summaries
-- `qdrant-find`, `qdrant-store` for reusable conventions
-- `sessions_send` for blockers and completed handoffs
+- Files in the active repo under `/workspace` are local workspace files.
+- `/Projects/...` are Nextcloud remote paths for durable implementation context, runbooks, and user-facing handoff artifacts.
+- Keep private debugging notes and scratch work in the repo or workspace until they become durable conventions or summaries worth sharing.
+- Use Qdrant for reusable technical conventions and quick recall that should survive the session without becoming a standalone doc.
+- Shared ai-homebase docs you will commonly read or update:
+  - `/Projects/ai-homebase/gitops-workflow.md`
+  - `/Projects/ai-homebase/cluster-architecture.md`
+  - `/Projects/ai-homebase/budget-policy.md`
+  - `/Projects/ai-homebase/codex-usage/`
 
-## Rules
+## Sessions
 
-- Never store code in Nextcloud.
-- Prefer `manage-gitea-gitops-and-registry` for repo, GitOps, registry, and validation procedures.
-- Prefer `run-codex-and-log-usage` for Codex execution and usage logging.
-- Prefer `update-implementation-notes` for durable implementation notes and architect follow-up gaps.
+- Return blockers and completed handoffs to `agent:main:main`.
+
+## Notes
+
+- Keep Codex runs inside the target repo.
+- Use repo-local worktrees when you need parallel isolation.
+- Keep this file current when sandbox paths, runtime env vars, or canonical repo names change.

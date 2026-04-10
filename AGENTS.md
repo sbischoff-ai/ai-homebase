@@ -36,6 +36,12 @@
 - Change docs in `docs/` and command references in `README.md` whenever operators must do something new, a default/toggle meaning changes, or validation steps change.
 - Do not encode persistent environment decisions only as CLI `--set`; store them in overlay values files.
 
+## OpenClaw Workspace Files
+- When editing `charts/openclaw/files/workspaces/**`, distinguish between repo-maintainer context and the bootstrapped OpenClaw agent's in-cluster perspective.
+- Only keep information in seeded workspace files that is useful to the OpenClaw agent at runtime after bootstrap.
+- Do not leak editor-facing rationale into those files just because it was useful while making the edit.
+- When the official OpenClaw template already establishes the general purpose or wording for a workspace file, adapt that template to this setup instead of inventing repo-local framing.
+
 
 ### Required updates for any render-impacting default changes
 When a change affects rendered manifests (especially values that exist in both base service charts and umbrella overrides), update all active layers in one commit to avoid Helm merge drift and repeated golden failures:

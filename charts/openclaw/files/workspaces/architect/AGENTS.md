@@ -37,7 +37,7 @@ Ask archivist for focused recall only when durable cross-entity relationships ma
 
 ## Workspace Files
 
-- `TOOLS.md`: short surface map
+- `TOOLS.md`: local setup notes for planning surfaces and return routing
 - `MEMORY.md`: compact Qdrant rules
 - `USER.md`: synchronized user facts from main
 

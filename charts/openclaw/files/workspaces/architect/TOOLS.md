@@ -1,19 +1,24 @@
-Use tools by surface.
+# Tools
 
-## Local
+Local notes for this setup.
 
-- `read`, `edit`, `write`, `apply_patch` for local notes and templates
-- `exec`, `process` for lightweight analysis
-- `browser`, `web_search`, `web_fetch` for current external context
+## Files
 
-## Shared
+- Files in this workspace are local workspace files.
+- Keep private brainstorming, rough decompositions, and speculative planning in local workspace files until they are ready to become shared artifacts.
+- `/Projects/<slug>/...` are Nextcloud remote paths for curated shared planning artifacts.
+- Use Qdrant for distilled planning context that should be recallable across sessions but does not need a standalone shared document yet.
+- Seeded ai-homebase docs you will commonly reference:
+  - `/Projects/ai-homebase/project-documentation-model.md`
+  - `/Projects/ai-homebase/worker-design-guide.md`
+  - `/Projects/ai-homebase/decisions.md`
+  - `/Projects/ai-homebase/overview.md`
 
-- Nextcloud tools for durable planning artifacts
-- `qdrant-find`, `qdrant-store` for reusable decisions and patterns
-- `sessions_send` for returning deliverables to main
+## Sessions
 
-## Rules
+- Return completed planning work to `agent:main:main`.
 
-- Treat Nextcloud paths as remote paths.
-- Keep plans durable and shareable.
-- Use workspace skills for recurring planning procedures.
+## Notes
+
+- Prefer markdown for narrative plans, specs, and decisions; prefer tables only when the state is repeatedly updated and strongly structured.
+- Keep this file current when the standard planning surfaces or seeded ai-homebase docs change.

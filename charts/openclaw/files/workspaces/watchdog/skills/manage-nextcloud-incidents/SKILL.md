@@ -22,6 +22,7 @@ Watchdog uses Nextcloud for durable monitoring state.
 3. For meaningful incidents or baseline changes, write the smallest durable artifact that preserves the evidence.
 4. After writing an incident report, store a Qdrant summary with `nc_refs`.
 5. Escalate to main only when the severity gate is met.
+6. Keep per-check scratch work local; only promote durable patterns, baselines, and incident state.
 
 Use `classify-severity-and-escalate` to decide whether the case is `info`, `warning`, or `critical`.
 

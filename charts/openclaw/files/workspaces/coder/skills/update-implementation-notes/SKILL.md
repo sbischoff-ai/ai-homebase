@@ -22,6 +22,8 @@ After non-obvious implementation work, prefer:
 - `/Projects/<slug>/implementation-summary.md` when a compact summary helps later work
 - a durable gap note when architect follow-up is needed
 
+Keep private debugging notes local until they become a reusable lesson, a durable decision, or a summary the user or another agent will need later.
+
 ## Do Not Write
 
 - code

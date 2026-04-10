@@ -1,6 +1,6 @@
 {{- $hasFileBackedBootstrapProjectContent := false -}}
 {{- range $project := (.Values.bootstrapProjectContent | default (list)) }}
-  {{- if or ($project.projectsFilesDir | default "") ($project.notesFilesDir | default "") }}
+  {{- if ($project.projectsFilesDir | default "") }}
     {{- $hasFileBackedBootstrapProjectContent = true -}}
   {{- end }}
 {{- end }}
@@ -17,10 +17,6 @@ data:
   {{- range $fileIndex, $file := ($project.projectsFiles | default (list)) }}
   project-{{ $projectIndex }}-file-{{ $fileIndex }}: |
 {{ $file.content | trimSuffix "\n" | nindent 4 }}
-  {{- end }}
-  {{- range $noteIndex, $note := ($project.notes | default (list)) }}
-  project-{{ $projectIndex }}-note-{{ $noteIndex }}: |
-{{ $note.content | trimSuffix "\n" | nindent 4 }}
   {{- end }}
   {{- end }}
 ---
@@ -82,20 +78,14 @@ spec:
               owner_username={{ $project.ownerUsername | quote }}
               project_slug={{ $project.slug | quote }}
               project_root="/var/www/html/data/${owner_username}/files/Projects/${project_slug}"
-              notes_root="/var/www/html/data/${owner_username}/files/Notes/${project_slug}"
-              mkdir -p "${project_root}" "${notes_root}"
-              chown 33:33 "${project_root}" "${notes_root}"
-              chmod 0750 "${project_root}" "${notes_root}"
+              mkdir -p "${project_root}"
+              chown 33:33 "${project_root}"
+              chmod 0750 "${project_root}"
               {{- range $fileIndex, $file := ($project.projectsFiles | default (list)) }}
               ensure_parent_dir "${project_root}/{{ $file.path }}"
               write_managed_file "${project_root}/{{ $file.path }}" "/bootstrap-content/project-{{ $projectIndex }}-file-{{ $fileIndex }}"
               {{- end }}
-              {{- range $noteIndex, $note := ($project.notes | default (list)) }}
-              ensure_parent_dir "${notes_root}/{{ $note.path }}"
-              write_managed_file "${notes_root}/{{ $note.path }}" "/bootstrap-content/project-{{ $projectIndex }}-note-{{ $noteIndex }}"
-              {{- end }}
               su -s /bin/sh www-data -c "cd /var/www/html && php occ files:scan --path='${owner_username}/files/Projects/${project_slug}'"
-              su -s /bin/sh www-data -c "cd /var/www/html && php occ files:scan --path='${owner_username}/files/Notes/${project_slug}'"
               {{- end }}
           env:
             - name: POSTGRES_HOST

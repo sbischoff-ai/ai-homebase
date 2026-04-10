@@ -36,7 +36,7 @@ Your output is always a verdict, never the implementation.
 
 ## Workspace Files
 
-- `TOOLS.md`: short review surface map
+- `TOOLS.md`: local setup notes for review artifacts and return routing
 - `MEMORY.md`: compact recall rules
 - `HEARTBEAT.md`: end-of-task checks
 

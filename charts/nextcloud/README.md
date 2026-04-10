@@ -10,7 +10,7 @@ This chart deploys Nextcloud as a single primary web workload plus a dedicated c
 - **System settings convergence:** `skeletonDirectory` is reconciled through both a first-install entrypoint hook and later `occ` reconciliation so new users can start without the default example-file skeleton.
 - **Bootstrap apps:** optional `bootstrapApps[]` renders a post-install/post-upgrade Job that waits for Nextcloud readiness, then converges the requested app set through `occ app:install` and `occ app:enable`.
 - **Bootstrap users:** optional `bootstrapUsers[]` renders a post-install/post-upgrade Job that waits for Nextcloud readiness, then creates listed local users if missing, reconciles their display names, and resets their passwords through `occ`.
-- **Bootstrap project content:** optional `bootstrapProjectContent[]` renders a post-install/post-upgrade Job that creates managed project content under `/Projects/<slug>/` and `/Notes/<slug>/` for a target user, then rescans those paths into Nextcloud.
+- **Bootstrap project content:** optional `bootstrapProjectContent[]` renders a post-install/post-upgrade Job that creates managed project content under `/Projects/<slug>/` for a target user, then rescans that path into Nextcloud.
 - **Restart safety:** startup checks never delete persisted Nextcloud state based on `occ status`; restart failures remain inspectable instead of mutating the PVC-backed runtime.
 
 ## Required secrets
@@ -101,16 +101,16 @@ Use `bootstrapProjectContent[]` when you want Helm bootstrap and later reruns to
 
 Each entry defines:
 
-- `slug`: project identifier, used under both `/Projects/<slug>/` and `/Notes/<slug>/`
+- `slug`: project identifier, used under `/Projects/<slug>/`
 - `ownerUsername`: Nextcloud user that owns the seeded content
 - `projectsFiles[]`: durable curated files written into `/Projects/<slug>/`
-- `notes[]`: temporary working notes written into `/Notes/<slug>/`
 
-The chart still supports that inline form directly. The umbrella `platform-stack` chart also supports file-backed project content by selecting `projectsFilesDir` and `notesFilesDir`, then rendering the bootstrap ConfigMap/Job from chart-owned files in `charts/platform-stack/files/`.
+The chart still supports that inline form directly. The umbrella `platform-stack` chart also supports file-backed project content by selecting `projectsFilesDir`, then rendering the bootstrap ConfigMap/Job from chart-owned files in `charts/platform-stack/files/`.
 
 This repo treats those locations differently:
 
 - `/Projects/` is durable structured storage for long-lived docs and outputs
-- `/Notes/` is working memory and planning scratch space
+- agent-private rough work belongs in local workspace files
+- shared quick note-like recall belongs in Qdrant, with structural promotion handled through `archivist`
 
-The bootstrap job writes managed markdown files into the user's Nextcloud storage and rescans the affected paths with `occ files:scan` so the content appears in Nextcloud without requiring external WebDAV or Notes API calls during chart bootstrap.
+The bootstrap job writes managed markdown files into the user's Nextcloud storage and rescans the affected path with `occ files:scan` so the content appears in Nextcloud without requiring external WebDAV or Notes API calls during chart bootstrap.

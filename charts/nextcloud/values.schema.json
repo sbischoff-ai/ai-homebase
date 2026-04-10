@@ -173,27 +173,6 @@
           "projectsFilesDir": {
             "type": "string",
             "minLength": 1
-          },
-          "notes": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "required": ["path"],
-              "additionalProperties": true,
-              "properties": {
-                "path": {
-                  "type": "string",
-                  "minLength": 1
-                },
-                "content": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "notesFilesDir": {
-            "type": "string",
-            "minLength": 1
           }
         }
       }

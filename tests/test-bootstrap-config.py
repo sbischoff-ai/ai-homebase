@@ -232,90 +232,64 @@ assert rendered_values["openclaw"]["openclaw"]["tools"]["agentToAgent"]["allow"]
 assert rendered_values["openclaw"]["openclaw"]["tools"]["sessions"]["visibility"] == "all"
 assert rendered_values["openclaw"]["openclaw"]["plugins"]["slots"]["memory"] == "none"
 assert rendered_values["openclaw"]["workspaceBootstrap"]["enabled"] is True
-assert rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["workspace"] == "/home/node/.openclaw/workspace"
-assert "openclaw" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["TOOLS.md"]
-assert "test-admin" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["USER.md"]
-assert "### Nextcloud Usage - Main" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["TOOLS.md"]
-assert "Before routing work to a specialist" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["TOOLS.md"]
-assert "store a Qdrant memory summarizing it" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["TOOLS.md"]
-assert "## Task Classification Gate (mandatory)" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["AGENTS.md"]
-assert "## Handoff Protocol" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["AGENTS.md"]
-assert "## Task Handoff" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["AGENTS.md"]
-assert "Main is the only agent that spawns sub-agents." in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["AGENTS.md"]
-assert "Would you like a morning brief and evening digest?" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
-assert "Ask the user how they want to be addressed." in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
-assert "Ask how they want to address you." in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
-assert "Ask for their preferred conversation style or personality." in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
-assert "Ask what they want to do with this setup." in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
-assert "The bootstrapped Nextcloud username for the user is currently `test-admin`." in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
-assert "share these existing top-level folders with that username" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
-assert "- `/Projects/`" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
-assert "- `/Notes/`" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
-assert "Use `sessions_send` to target these literal session keys" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
-assert "`agent:coder:main`" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
-assert "`agent:architect:main`" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
-assert "`agent:archivist:main`" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
-assert "`agent:watchdog:main`" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
-assert "`agent:auditor:main`" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
-assert "Ask each agent for a short readiness confirmation and verify they respond." in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
-assert "Morning brief" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
-assert "Evening digest" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
-assert "I'll create the cron jobs using `openclaw cron add`." in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
-assert "share it with the `openclaw` user" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
-assert "/Projects/ai-homebase/" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
-assert "/Notes/ai-homebase/" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
-assert "I should share both `/Projects/` and `/Notes/` with your user." in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["BOOTSTRAP.md"]
-assert "# Memory - Main Agent" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["MEMORY.md"]
-assert '[domain] [kind] Complete statement here.' in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["MEMORY.md"]
-assert '"agent": "main"' in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"]["files"]["MEMORY.md"]
-assert "planning and design specialist" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["AGENTS.md"]
-assert "## Task Classification Gate (mandatory)" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["AGENTS.md"]
-assert "## Handoff Complete" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["AGENTS.md"]
-assert "implementation and execution specialist" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["AGENTS.md"]
-assert "If the spec or plan has gaps that require design decisions, stop" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["AGENTS.md"]
-assert "monitoring and triage specialist" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["watchdog"]["files"]["AGENTS.md"]
-assert "knowledge graph curator" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["archivist"]["files"]["AGENTS.md"]
-assert "mgconsole" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["archivist"]["files"]["TOOLS.md"]
-assert "/Projects/ai-homebase/knowledge-graph-schema.md" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["archivist"]["files"]["TOOLS.md"]
-assert "## Watchdog Alert" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["watchdog"]["files"]["AGENTS.md"]
-assert "/Projects/ai-homebase/incidents/" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["watchdog"]["files"]["TOOLS.md"]
-assert "/Projects/ai-homebase/baselines.md" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["watchdog"]["files"]["TOOLS.md"]
-assert "coder-bot" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
-assert "test-admin" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["USER.md"]
-assert "append the decision and rationale to `/Projects/<slug>/decisions.md`" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
-assert "Code, configs, and scripts stay in repositories" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
-assert "agent:main:main" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
-assert "Use `tea` for repository creation" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
-assert "If `GITHUB_TOKEN` is present" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
-assert "Your primary coding execution path is the `coding-agent` flow backed by Codex CLI." in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
-assert "Treat the GitOps repository as a deployment-definition repo" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
-assert "Default new cluster-bound images to the in-cluster registry" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
-assert "Common tools available include `bash`" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
-assert "/workspace` is your repo working tree; persistent tool state lives under `/workspace/.home`" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
-assert "`HOME`, `CODEX_HOME`, and XDG directories are preconfigured inside `/workspace/.home`" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
-assert "The Gitea ingress hostname `gitea.test.internal` should resolve from your sandbox runtime." in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
-assert "The registry hostname `registry.test.internal` should resolve from your sandbox runtime" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["TOOLS.md"]
-assert "skills/gitea-tea/SKILL.md" not in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]
-assert "skills/gitops-homebase/SKILL.md" not in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]
-assert "/Projects/<slug>/decisions.md" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["TOOLS.md"]
-assert "-archived-YYYY-MM-DD" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["TOOLS.md"]
-assert "Qdrant memory summarizing the key decisions" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["TOOLS.md"]
-assert "Existing seeded project:" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["MEMORY.md"]
-assert "/Projects/ai-homebase/" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["MEMORY.md"]
-assert "/Notes/ai-homebase/" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["MEMORY.md"]
-assert '[domain] [kind] Complete statement here.' in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["MEMORY.md"]
-assert '"agent": "architect"' in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"]["files"]["MEMORY.md"]
-assert '# Memory - Coder Agent' in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["MEMORY.md"]
-assert "Traverse Memgraph first" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["archivist"]["files"]["AGENTS.md"]
-assert "Use `mgconsole` as the canonical Memgraph client" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["archivist"]["files"]["TOOLS.md"]
-assert "queries/entity-by-slug.cypher" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["archivist"]["files"]
-assert "MEMGRAPH_HOST" in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["archivist"]["files"]["queries/README.md"]
+assert rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"] == {
+    "workspace": "/home/node/.openclaw/workspace",
+    "filesDir": "workspaces/main",
+}
+assert rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"] == {
+    "workspace": "/home/node/.openclaw/workspace-coder",
+    "filesDir": "workspaces/coder",
+}
+assert rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["architect"] == {
+    "workspace": "/home/node/.openclaw/workspace-architect",
+    "filesDir": "workspaces/architect",
+}
+assert rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["archivist"] == {
+    "workspace": "/home/node/.openclaw/workspace-archivist",
+    "filesDir": "workspaces/archivist",
+}
+assert rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["watchdog"] == {
+    "workspace": "/home/node/.openclaw/workspace-watchdog",
+    "filesDir": "workspaces/watchdog",
+}
+assert rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["auditor"] == {
+    "workspace": "/home/node/.openclaw/workspace-auditor",
+    "filesDir": "workspaces/auditor",
+}
+
+main_tools = (REPO_ROOT / "charts" / "openclaw" / "files" / "workspaces" / "main" / "TOOLS.md").read_text()
+assert "Local notes for this setup." in main_tools
+assert "`agent:architect:main`" in main_tools
+assert "shared `openclaw` Nextcloud account" in main_tools
+assert "Prefer files for durable narrative artifacts" in main_tools
+
+coder_tools = (REPO_ROOT / "charts" / "openclaw" / "files" / "workspaces" / "coder" / "TOOLS.md").read_text()
+assert "CODER_GITEA_BASE_URL" in coder_tools
+assert "/Projects/ai-homebase/codex-usage/" in coder_tools
+assert "`agent:main:main`" in coder_tools
+
+architect_tools = (REPO_ROOT / "charts" / "openclaw" / "files" / "workspaces" / "architect" / "TOOLS.md").read_text()
+assert "/Projects/<slug>/..." in architect_tools
+assert "/Projects/ai-homebase/project-documentation-model.md" in architect_tools
+
+archivist_tools = (REPO_ROOT / "charts" / "openclaw" / "files" / "workspaces" / "archivist" / "TOOLS.md").read_text()
+assert "MEMGRAPH_BOLT_URI" in archivist_tools
+assert "state/grooming-cursor.json" in archivist_tools
+
+watchdog_tools = (REPO_ROOT / "charts" / "openclaw" / "files" / "workspaces" / "watchdog" / "TOOLS.md").read_text()
+assert "http://127.0.0.1:18789/readyz" in watchdog_tools
+assert "/Projects/ai-homebase/incidents/" in watchdog_tools
+
+auditor_tools = (REPO_ROOT / "charts" / "openclaw" / "files" / "workspaces" / "auditor" / "TOOLS.md").read_text()
+assert "/Projects/ai-homebase/audit-log.md" in auditor_tools
+assert "Local notes for this setup." in auditor_tools
+
+worker_tools = (REPO_ROOT / "charts" / "openclaw" / "files" / "workspaces" / "worker-template" / "TOOLS.md").read_text()
+assert "Record concrete setup facts here" in worker_tools
+assert "Standard return target: `agent:main:main`" in worker_tools
 assert "knowledge-graph-schema.md" in json.dumps(rendered_values["nextcloud"]["bootstrapProjectContent"])
 assert rendered_values["memgraph"]["ingress"]["hosts"][0]["host"] == "memgraph.test.internal"
 assert rendered_values["memgraphLab"]["ingress"]["hosts"][0]["host"] == "memgraph-lab.test.internal"
-assert '"agent": "coder"' in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["coder"]["files"]["MEMORY.md"]
-assert '# Memory - Watchdog Agent' in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["watchdog"]["files"]["MEMORY.md"]
-assert '"agent": "watchdog"' in rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["watchdog"]["files"]["MEMORY.md"]
 assert rendered_values["openclaw"]["ingress"]["hosts"][0]["host"] == "openclaw.test.internal"
 assert rendered_values["gitea"]["gitea"]["gitea"]["admin"]["existingSecret"] == "gitea-admin-secret"
 assert rendered_values["gitea"]["gitea"]["ingress"]["hosts"][0]["host"] == "gitea.test.internal"
@@ -336,8 +310,7 @@ assert any(item["path"] == "knowledge-graph-schema.md" and "Knowledge Graph Sche
 assert any(item["path"] == "incidents/README.md" for item in project_files)
 assert any(item["path"] == "baselines.md" for item in project_files)
 assert any(item["path"] == "escalation-rules.md" for item in project_files)
-assert rendered_values["nextcloud"]["bootstrapProjectContent"][0]["notes"][0]["path"] == "project-brief.md"
-assert "standing project for documenting and improving the cluster itself" in rendered_values["nextcloud"]["bootstrapProjectContent"][0]["notes"][0]["content"]
+assert "notes" not in rendered_values["nextcloud"]["bootstrapProjectContent"][0]
 assert rendered_values["nextcloud"]["ingress"]["private"]["host"] == "nextcloud.test.internal"
 assert rendered_values["nextcloud"]["ingress"]["public"]["host"] == "nextcloud.example.com"
 assert rendered_values["nextcloud"]["smtp"]["host"] == "platform-stack-postfix-relay"
@@ -363,9 +336,12 @@ assert rendered_values["paperlessNgx"]["ingress"]["hosts"][0]["host"] == "paperl
 assert rendered_values["global"]["mail"]["smtpHost"] == "smtp.example.com"
 assert rendered_values["global"]["hosts"]["registry"] == "registry.test.internal"
 assert rendered_values["openclaw"]["env"] == [
-    {"name": "MEMGRAPH_HOST", "value": "memgraph.test.internal"},
+    {"name": "MEMGRAPH_HOST", "value": '{{ printf "%s-memgraph" .Release.Name | trunc 63 | trimSuffix "-" }}'},
     {"name": "MEMGRAPH_PORT", "value": "7687"},
-    {"name": "MEMGRAPH_BOLT_URI", "value": "bolt://memgraph.test.internal:7687"},
+    {
+        "name": "MEMGRAPH_BOLT_URI",
+        "value": 'bolt://{{ printf "%s-memgraph" .Release.Name | trunc 63 | trimSuffix "-" }}:7687',
+    },
 ]
 assert rendered_values["openclaw"]["openclaw"]["agents"]["defaults"]["sandbox"]["docker"]["env"] == {
     "MEMGRAPH_HOST": "memgraph.test.internal",
