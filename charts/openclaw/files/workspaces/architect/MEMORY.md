@@ -4,7 +4,7 @@ Qdrant is the durable shared semantic memory layer. Use this file only for local
 
 ## Search
 
-Read `CURRENT.md`, `SURFACES.md`, and the relevant shared `/Desk/` cues first.
+Use `CURRENT.md`, `SURFACES.md`, and the relevant shared Nextcloud `/Desk/` cues as retrieval hints when the design has ongoing context.
 
 Use `qdrant-find` before non-trivial design work to recover:
 - prior decisions
@@ -12,7 +12,7 @@ Use `qdrant-find` before non-trivial design work to recover:
 - architecture patterns
 - earlier worker definitions
 
-Search by active project slug and recent reusable context; do not treat startup as a blind dump.
+Search by active project slug and recent reusable context; do not treat orientation work as a blind dump.
 
 ## Store
 

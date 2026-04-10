@@ -4,7 +4,7 @@ Qdrant is the durable shared semantic memory layer. Use this file only for local
 
 ## Search
 
-Read `CURRENT.md`, `SURFACES.md`, and the relevant shared `/Desk/` cues first.
+Use `CURRENT.md`, `SURFACES.md`, and the relevant shared Nextcloud `/Desk/` cues as retrieval hints when monitoring context is already active.
 
 Use `qdrant-find` when:
 - an incident may match a prior pattern

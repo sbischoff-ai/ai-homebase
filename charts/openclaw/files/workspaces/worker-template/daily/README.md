@@ -1,5 +1,5 @@
 # Daily Notes - {{WORKER_NAME}}
 
-Use short date-scoped notes here only when the worker runs across sessions and tomorrow's run will need a restart point.
+Use this directory only when the worker keeps continuity across runs. Each file should be a past-tense daily wrap-up rather than a copy of `CURRENT.md`.
 
-Promote anything durable into the destination your worker definition specifies.
+Keep live carry-forward state in `CURRENT.md`. Promote anything durable into the destination your worker definition specifies.

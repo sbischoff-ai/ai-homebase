@@ -17,10 +17,10 @@ Nextcloud is supporting documentation for archivist, not the primary truth sourc
 
 1. Answer structural questions from Memgraph first.
 2. Use Qdrant to locate candidate memories or related decisions.
-3. Use `/Desk/index.md` only when you need help locating a supporting file, calendar, task list, or table that another agent registered.
+3. Use Nextcloud `/Desk/index.md` only when you need help locating a supporting file, calendar, task list, or table that another agent registered.
 4. Read Nextcloud only when the graph points to it, the shared index points to it, or it is the authoritative schema note.
 5. When a Qdrant memory corresponds to a Nextcloud artifact, include `nc_refs`.
-6. Update `/Projects/ai-homebase/knowledge-graph-schema.md` when the canonical model changes.
+6. Update Nextcloud `/Projects/ai-homebase/knowledge-graph-schema.md` when the canonical model changes.
 
 ## Boundaries
 

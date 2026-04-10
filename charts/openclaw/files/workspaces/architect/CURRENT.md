@@ -1,8 +1,6 @@
 # Current - Architect
 
-Read this before substantial design work.
-
-This is your local desk for short-term planning continuity. Keep it small and prune anything that no longer affects the next design pass.
+This is your local desk for live planning continuity. Keep it small and prune anything that no longer affects the next design pass.
 
 ## Active Projects
 

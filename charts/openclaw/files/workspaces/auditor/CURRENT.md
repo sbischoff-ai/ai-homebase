@@ -1,8 +1,6 @@
 # Current - Auditor
 
-Read this before non-trivial review work.
-
-This is your local desk for short-term review continuity. Keep it focused on what the next review session must remember quickly.
+This is your local desk for live review continuity. Keep it focused on what the next review pass must remember quickly.
 
 ## Active Review Threads
 

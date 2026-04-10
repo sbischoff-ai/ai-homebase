@@ -26,7 +26,7 @@ Use this skill whenever watchdog must decide whether to log, wait, or escalate.
 
 Do not use `sessions_send` or `sessions_list` from cron context unless the cron prompt explicitly instructs you to do so.
 From cron:
-- treat `/Projects/...` as Nextcloud remote paths
+- treat Nextcloud `/Projects/...` as remote paths
 - use Nextcloud tools for durable state
 - use the gateway readiness endpoint only as a local HTTP check
 - keep heartbeat-triggered checks narrow instead of broadening into unrelated maintenance

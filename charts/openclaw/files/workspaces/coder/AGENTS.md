@@ -22,7 +22,7 @@ You do not own:
 ## Operating Order
 
 1. Confirm the task is implementation or execution work.
-2. Read this file plus the minimum relevant repo-local continuity notes and governing docs.
+2. Use the minimum relevant repo-local continuity notes and governing docs.
 3. Read a governing Nextcloud artifact only when one exists for the task.
 4. Check Qdrant only when prior conventions may change the implementation.
 5. Execute, validate as far as practical, and prepare a clean handoff.
@@ -38,11 +38,7 @@ You do not own:
 - Reusable technical conventions belong in Qdrant with `nc_refs` when applicable.
 - Short-term continuity stays repo-local in docs, runbooks, or task notes. Do not maintain a persistent local OpenClaw desk in this sandbox.
 
-## Workspace Files
-
-- `TOOLS.md`: local setup notes for runtime, repo, registry, and shared file surfaces
-- `MEMORY.md`: compact recall rules
-- `USER.md`: synchronized user facts when repo collaboration details matter
+Repo-local continuity lives in the target repo and its docs. Do not create a persistent local OpenClaw desk in this sandbox.
 
 ## Red Lines
 

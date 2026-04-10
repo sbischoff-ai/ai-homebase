@@ -8,9 +8,15 @@ Local notes for this worker setup.
 
 - Local workspace files live in this worker workspace.
 - Use local workspace files for private execution state and temporary scratch work.
-- `CURRENT.md`, `SURFACES.md`, and `daily/` are optional local continuity surfaces when this worker runs across sessions.
-- `/Projects/...` are Nextcloud remote paths when this worker is allowed to use them.
-- `/Desk/...` are shared Nextcloud continuity and index paths only when this worker is explicitly allowed to use them.
+- `CURRENT.md`, `SURFACES.md`, and `daily/` are optional custom continuity surfaces when this worker keeps state across runs.
+- Nextcloud `/Projects/...` are remote paths when this worker is allowed to use them.
+- Nextcloud `/Desk/...` are shared continuity and index paths only when this worker is explicitly allowed to use them.
+- Use local workspace file tools only for local workspace files such as `CURRENT.md`, `SURFACES.md`, `daily/`, and other files in this worker workspace.
+- Use Nextcloud tools only for Nextcloud `/Projects/...` and Nextcloud `/Desk/...` paths.
+- Creating or editing a local workspace file does not create or update a Nextcloud file.
+- Creating or editing a Nextcloud file does not create or update a local workspace file.
+- Local workspace directories and Nextcloud directories are separate storage systems, not mirrored views of the same path.
+- Do not use local filesystem tools on Nextcloud paths, and do not use Nextcloud tools on local workspace files.
 - Use Qdrant only when the worker definition explicitly grants that memory surface.
 
 ## Sessions

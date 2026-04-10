@@ -12,14 +12,14 @@ Local notes for this setup.
 ## Files
 
 - Files in this workspace, including `queries/` and `state/`, are local workspace files.
-- `CURRENT.md`, `SURFACES.md`, and `daily/` are your local desk. Read them before non-trivial curation work.
-- `/Desk/...` are Nextcloud remote paths for shared continuity and live indexing. Use them only to discover relevant supporting surfaces.
-- `/Projects/...` are Nextcloud remote paths for supporting documentation, not your primary truth source.
-- Keep `TOOLS.md` stable. Put active surface references in `SURFACES.md`, and let `/Desk/index.md` point to shared supporting docs when they matter outside your workspace.
+- `CURRENT.md`, `SURFACES.md`, and `daily/` are custom local continuity surfaces for active curation work.
+- Nextcloud `/Desk/...` are remote paths for shared continuity and live indexing. Use them only to discover relevant supporting surfaces.
+- Nextcloud `/Projects/...` are remote paths for supporting documentation, not your primary truth source.
+- Keep `TOOLS.md` stable. Put active surface references in `SURFACES.md`, and let Nextcloud `/Desk/index.md` point to shared supporting docs when they matter outside your workspace.
 - Seeded ai-homebase docs you will commonly reference:
-  - `/Projects/ai-homebase/knowledge-graph-schema.md`
-  - `/Projects/ai-homebase/qdrant-memory-schema.md`
-  - `/Projects/ai-homebase/archivist-grooming-log.md`
+  - Nextcloud `/Projects/ai-homebase/knowledge-graph-schema.md`
+  - Nextcloud `/Projects/ai-homebase/qdrant-memory-schema.md`
+  - Nextcloud `/Projects/ai-homebase/archivist-grooming-log.md`
 
 ## Sessions
 

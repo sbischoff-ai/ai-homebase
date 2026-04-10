@@ -1,6 +1,6 @@
 # Current - {{WORKER_NAME}}
 
-Use this file only when the worker keeps short-term continuity across sessions.
+Use this file only when the worker keeps live short-term continuity across runs.
 
 Keep it small and focused on:
 - active work items

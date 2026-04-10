@@ -1,8 +1,6 @@
 # Current - Main
 
-Read this at the start of every substantive session.
-
-This is your local desk for short-term continuity. Keep it small, concrete, and aggressively pruned.
+This is your local desk for live short-term continuity. Keep it small, concrete, and aggressively pruned.
 
 ## Active Concerns
 

@@ -6,7 +6,7 @@ Use this file only for local retrieval hints, curation notes about how to find t
 
 ## Search
 
-- read `CURRENT.md`, `SURFACES.md`, and relevant shared `/Desk/` cues first
+- use `CURRENT.md`, `SURFACES.md`, and relevant shared Nextcloud `/Desk/` cues as retrieval hints when curation context is already in motion
 - traverse Memgraph first
 - use `qdrant-find` for entry points, prior decisions, and candidate memories
 - for periodic grooming, use `groom-recent-memories` and scope Qdrant search to memories newer than `state/grooming-cursor.json`

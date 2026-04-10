@@ -24,18 +24,18 @@ When asking architect for a worker, include:
 
 ## Activating An Approved Worker
 
-1. Read the package from Nextcloud.
+1. Read the approved package from a Nextcloud remote path.
 2. Create the workspace directory.
 3. Fill the worker-template files, including `CURRENT.md`, `SURFACES.md`, and `daily/` when the worker should keep continuity across sessions.
 4. Register the agent with `openclaw agents add`.
-5. Update `/Projects/ai-homebase/budget-policy.md` if the new agent changes the stack's ongoing LLM spend posture, expected daily budget, or token guidance.
-6. Register any shared worker surfaces in `/Desk/index.md` when they will matter outside the worker's private workspace.
+5. Update Nextcloud `/Projects/ai-homebase/budget-policy.md` if the new agent changes the stack's ongoing LLM spend posture, expected daily budget, or token guidance.
+6. Register any shared worker surfaces in Nextcloud `/Desk/index.md` when they will matter outside the worker's private workspace.
 7. Add cron if needed.
 8. Confirm activation to the user.
 
 ## Worker Lifecycle Rules
 
-- when agents are added, retired, or materially re-scoped, keep `/Projects/ai-homebase/budget-policy.md` current if budget posture changes
+- when agents are added, retired, or materially re-scoped, keep Nextcloud `/Projects/ai-homebase/budget-policy.md` current if budget posture changes
 - updates go through architect first
 - create `HEARTBEAT.md` only when the approved worker definition explicitly uses heartbeat; otherwise use cron or on-demand triggers only
 - decommission by removing cron, deleting the agent, and informing the user

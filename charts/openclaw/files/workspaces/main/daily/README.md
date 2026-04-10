@@ -1,13 +1,13 @@
 # Daily Notes - Main
 
-Keep one short file per day only when something may matter to a future session.
+Each file here is a historical wrap-up for one day, written in past tense so it cannot be confused with `CURRENT.md`.
 
 Include:
-- what changed that still matters tomorrow
-- open loops worth resuming
-- upcoming commitments or deadlines
+- what happened that day and still mattered afterward
+- which open loops were carried forward
+- which commitments or deadlines remained relevant
 - brief references to new surfaces or artifacts worth revisiting
 
 Do not copy transcripts or large outputs here.
 
-Promote anything durable to Qdrant, Memgraph through archivist, `/Projects/`, or shared `/Desk/` as appropriate.
+Keep live current state in `CURRENT.md`. Promote anything durable to Qdrant, Memgraph through archivist, Nextcloud `/Projects/`, or shared Nextcloud `/Desk/` as appropriate.

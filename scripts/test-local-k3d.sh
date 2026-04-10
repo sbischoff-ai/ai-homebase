@@ -685,6 +685,11 @@ expected = {
     "Watchdog nightly activity check",
     "Watchdog daily digest",
     "Auditor weekly review",
+    "Watchdog daily wrap-up",
+    "Architect daily wrap-up",
+    "Archivist daily wrap-up",
+    "Auditor daily wrap-up",
+    "Main daily wrap-up",
 }
 forbidden = {"Archivist nightly grooming"}
 if not expected.issubset(names):

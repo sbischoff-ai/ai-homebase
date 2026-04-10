@@ -24,7 +24,7 @@ Write durable review artifacts such as:
 
 ## Procedure
 
-1. Read the relevant local desk notes and shared `/Desk/` entries before opening more packet material.
+1. Read the relevant local desk notes and shared Nextcloud `/Desk/` entries before opening more packet material.
 2. Read the minimum packet required for a verdict.
 3. Prefer compact evidence summaries over raw long histories.
 4. Store the durable review artifact in Nextcloud.

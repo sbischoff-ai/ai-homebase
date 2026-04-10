@@ -7,6 +7,7 @@ KUBECONFIG_PATH="${KUBECONFIG_PATH:-}"
 KUBE_CONTEXT="${KUBE_CONTEXT:-}"
 OPENCLAW_DEPLOYMENT_NAME="${OPENCLAW_DEPLOYMENT_NAME:-${RELEASE_NAME}-openclaw}"
 OPENCLAW_ROLLOUT_TIMEOUT="${OPENCLAW_ROLLOUT_TIMEOUT:-600s}"
+OPENCLAW_USER_TIMEZONE="${OPENCLAW_USER_TIMEZONE:-Europe/Berlin}"
 
 usage() {
   cat <<USAGE
@@ -20,6 +21,7 @@ Options:
   --kubeconfig <path>       Optional kubeconfig path
   --kube-context <context>  Optional kube context
   --deployment <name>       OpenClaw deployment name (default: ${OPENCLAW_DEPLOYMENT_NAME})
+  --user-timezone <tz>      IANA timezone for user-day cron jobs (default: ${OPENCLAW_USER_TIMEZONE})
   -h, --help                Show this help message
 USAGE
 }
@@ -31,6 +33,7 @@ while [[ $# -gt 0 ]]; do
     --kubeconfig) KUBECONFIG_PATH="$2"; shift 2 ;;
     --kube-context) KUBE_CONTEXT="$2"; shift 2 ;;
     --deployment) OPENCLAW_DEPLOYMENT_NAME="$2"; shift 2 ;;
+    --user-timezone) OPENCLAW_USER_TIMEZONE="$2"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
   esac
@@ -145,3 +148,48 @@ ensure_job "Auditor weekly review" \
   --agent auditor \
   --no-deliver \
   --message "$(read_message "auditor-weekly-review.md")"
+
+ensure_job "Watchdog daily wrap-up" \
+  --name "Watchdog daily wrap-up" \
+  --cron "50 23 * * *" \
+  --tz "$OPENCLAW_USER_TIMEZONE" \
+  --session main \
+  --wake now \
+  --agent watchdog \
+  --system-event "$(read_message "watchdog-daily-wrap-up.md")"
+
+ensure_job "Architect daily wrap-up" \
+  --name "Architect daily wrap-up" \
+  --cron "52 23 * * *" \
+  --tz "$OPENCLAW_USER_TIMEZONE" \
+  --session main \
+  --wake now \
+  --agent architect \
+  --system-event "$(read_message "architect-daily-wrap-up.md")"
+
+ensure_job "Archivist daily wrap-up" \
+  --name "Archivist daily wrap-up" \
+  --cron "54 23 * * *" \
+  --tz "$OPENCLAW_USER_TIMEZONE" \
+  --session main \
+  --wake now \
+  --agent archivist \
+  --system-event "$(read_message "archivist-daily-wrap-up.md")"
+
+ensure_job "Auditor daily wrap-up" \
+  --name "Auditor daily wrap-up" \
+  --cron "56 23 * * *" \
+  --tz "$OPENCLAW_USER_TIMEZONE" \
+  --session main \
+  --wake now \
+  --agent auditor \
+  --system-event "$(read_message "auditor-daily-wrap-up.md")"
+
+ensure_job "Main daily wrap-up" \
+  --name "Main daily wrap-up" \
+  --cron "58 23 * * *" \
+  --tz "$OPENCLAW_USER_TIMEZONE" \
+  --session main \
+  --wake now \
+  --agent main \
+  --system-event "$(read_message "main-daily-wrap-up.md")"

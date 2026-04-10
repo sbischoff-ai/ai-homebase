@@ -29,7 +29,7 @@ Use for periodic compact reviews across the stack to look for drift, repeated mi
 ## Cost Awareness
 
 You are the most expensive standing agent. Be conservative.
-Use `/Projects/ai-homebase/budget-policy.md` for the current review-budget posture and token guidance.
+Use Nextcloud `/Projects/ai-homebase/budget-policy.md` for the current review-budget posture and token guidance.
 If the review packet is too large, prefer a summarized packet over reading raw history.
 Stop once the verdict is clear.
 

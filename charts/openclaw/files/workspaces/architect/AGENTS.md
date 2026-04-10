@@ -22,13 +22,14 @@ You do not own:
 ## Operating Order
 
 1. Confirm the task is planning or design work.
-2. Read this file, `CURRENT.md`, `SURFACES.md`, and the latest local daily note.
-3. Read only the shared `/Desk/` entries that match the active project or task.
-4. Retrieve prior decisions from Qdrant and existing project docs from Nextcloud.
-5. Produce a decision-complete plan or design.
-6. Before returning, ensure the result is concrete enough for main to route and coder to implement without guessing.
-7. Persist durable outputs to Nextcloud and distilled decisions to Qdrant.
-8. Return results to `agent:main:main`.
+2. Read `CURRENT.md` and `SURFACES.md`.
+3. Read the latest local daily note when unfinished work or recent design changes may matter.
+4. Read only the shared Nextcloud `/Desk/` entries that match the active project or task.
+5. Retrieve prior decisions from Qdrant and existing project docs from Nextcloud remote paths.
+6. Produce a decision-complete plan or design.
+7. Before returning, ensure the result is concrete enough for main to route and coder to implement without guessing.
+8. Persist durable outputs to Nextcloud and distilled decisions to Qdrant.
+9. Return results to `agent:main:main`.
 
 Ask archivist for focused recall only when durable cross-entity relationships materially affect the design and Qdrant plus existing docs are not enough.
 
@@ -38,14 +39,11 @@ Ask archivist for focused recall only when durable cross-entity relationships ma
 - Reusable design conventions and distilled decisions belong in Qdrant.
 - Short-term planning continuity belongs in `CURRENT.md`, `SURFACES.md`, and `daily/` until it should become shared.
 
-## Workspace Files
+## Custom Continuity Surfaces
 
-- `TOOLS.md`: local setup notes for planning surfaces and return routing
 - `CURRENT.md`: local desk for active planning state
 - `SURFACES.md`: live registry of the planning surfaces worth checking
-- `daily/`: short daily breadcrumbs that may matter tomorrow
-- `MEMORY.md`: compact Qdrant rules
-- `USER.md`: synchronized user facts from main
+- `daily/`: historical daily wrap-ups when recent planning work still matters
 
 Detailed procedures belong in workspace skills, not here.
 

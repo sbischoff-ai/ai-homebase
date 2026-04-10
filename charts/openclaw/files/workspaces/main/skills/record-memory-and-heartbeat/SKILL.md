@@ -9,7 +9,7 @@ Use this skill after meaningful coordination work.
 
 ## Search Trigger
 
-Read the local desk and the relevant shared `/Desk/` cues first.
+Read the local desk and the relevant shared Nextcloud `/Desk/` cues first.
 Search Qdrant before non-trivial coordination, especially when prior context, preferences, or project history may matter.
 Prefer small recency-scoped searches guided by active project slugs, people, services, and open loops.
 
@@ -28,7 +28,7 @@ Use `expiry` for short-lived current-context memories that should stop shaping r
 
 Use desk promotion first when the information is only short-term continuity:
 - local-only current state -> `CURRENT.md` or `daily/`
-- cross-agent or user-relevant current state -> `/Desk/current.md` or `/Desk/daily/`
+- cross-agent or user-relevant current state -> Nextcloud `/Desk/current.md` or Nextcloud `/Desk/daily/`
 - durable recall -> Qdrant
 - structural world-model changes -> archivist plus Memgraph
 
@@ -36,11 +36,11 @@ Use desk promotion first when the information is only short-term continuity:
 
 After meaningful coordination work:
 - refresh `CURRENT.md` and the latest local note when short-term continuity changed
-- promote cross-agent or user-relevant current state into `/Desk/current.md` or `/Desk/daily/` when it should survive a restart
-- register newly important shared surfaces in `/Desk/index.md`
+- promote cross-agent or user-relevant current state into Nextcloud `/Desk/current.md` or Nextcloud `/Desk/daily/` when it should survive a restart
+- register newly important shared surfaces in Nextcloud `/Desk/index.md`
 - capture user-relevant decisions in Nextcloud when they belong in a durable artifact
 - store durable new preferences or rules in Qdrant when recall should survive the current work
-- refresh `/Projects/ai-homebase/heartbeat.json` when shared coordination state changed in a way watchdog should notice
+- refresh Nextcloud `/Projects/ai-homebase/heartbeat.json` when shared coordination state changed in a way watchdog should notice
 - do nothing extra when nothing durable changed
 
 When you refresh the shared heartbeat file, write:
@@ -49,5 +49,5 @@ When you refresh the shared heartbeat file, write:
 ## Boundaries
 
 - Do not treat local retrieval hints as the primary long-term memory system.
-- Do not treat `/Desk/` as a general archive.
+- Do not treat Nextcloud `/Desk/` as a general archive.
 - Do not leave user-relevant durable state only in chat.

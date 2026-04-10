@@ -99,10 +99,10 @@ Guidance:
 
 - prefer recency-scoped searches guided by active project slugs, people, services, and open loops
 - use `project` whenever the memory belongs to a project slug
-- use `tags` for discoverability across sessions
+- use `tags` for discoverability across future work
 - use `expiry` for short-lived current-context memories that should stop shaping recall after the near term
 - use `nc_refs` whenever a memory points to a Nextcloud artifact or shared surface
-- do not treat startup as a blind memory dump
+- do not treat orientation work as a blind memory dump
 
 ## Storage guidance
 
@@ -124,7 +124,7 @@ Do not store:
 - live metrics snapshots
 - information easily re-derived from the repo or current system state
 
-Short-term continuity that only needs to survive the next session belongs in local desk notes or shared `/Desk/` surfaces instead of Qdrant.
+Short-term continuity that only needs to survive the next run belongs in local desk notes or shared `/Desk/` surfaces instead of Qdrant.
 
 ## Future filtering
 

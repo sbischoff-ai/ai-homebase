@@ -6,7 +6,7 @@ description: Use when main needs to set up, inspect, or change messaging channel
 # Channel Binding
 
 Use this skill when channel setup, routing, or binding inspection is part of the task.
-Do not load it proactively in every session.
+Load it only when channel setup, routing, or binding inspection is actually involved.
 
 ## Concepts
 

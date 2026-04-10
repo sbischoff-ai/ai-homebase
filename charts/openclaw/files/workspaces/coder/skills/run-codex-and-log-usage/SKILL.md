@@ -24,7 +24,7 @@ Use this skill for Codex-backed implementation work.
 
 - if Codex was used and the session is not explicitly off-budget, log usage before returning to main
 - prefer `tokscale headless codex exec ...` when available
-- append a JSON entry to `/Projects/ai-homebase/codex-usage/YYYY-MM-DD.json`
+- append a JSON entry to Nextcloud `/Projects/ai-homebase/codex-usage/YYYY-MM-DD.json`
 - create the file as a JSON array if it does not exist
 - each entry should include `timestamp`, `model`, `input_tokens`, `output_tokens`, `cache_read_tokens` when available, `estimated_cost_usd`, `task_summary`, and `codex_flags`
 

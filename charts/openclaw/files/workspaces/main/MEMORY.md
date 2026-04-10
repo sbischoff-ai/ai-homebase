@@ -6,7 +6,7 @@ Use this file only for local retrieval hints and recurring lookup notes. Do not 
 
 ## Search
 
-Before a non-trivial search, read `CURRENT.md`, `SURFACES.md`, and the shared `/Desk/` cues that apply to the task.
+Use `CURRENT.md`, `SURFACES.md`, and the shared Nextcloud `/Desk/` cues as retrieval hints when the task has ongoing context.
 
 Use `qdrant-find` before non-trivial coordination when:
 - the user has ongoing project history
@@ -38,9 +38,9 @@ Every stored memory must include metadata with at least:
 
 When a memory corresponds to Nextcloud content, include `nc_refs`.
 
-## End-Of-Session Review
+## Carry-Forward Review
 
-Before finishing a non-trivial session:
-- update the local desk if a future `main` session will need a quick briefing
-- update shared `/Desk/` continuity when another agent or the user will need the current state
+Before returning a non-trivial result or deferring unfinished work:
+- update the local desk if a future run will need a quick briefing
+- update shared Nextcloud `/Desk/` continuity when another agent or the user will need the current state
 - verify you stored memories for durable artifacts, decisions, and reusable coordination context

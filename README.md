@@ -64,6 +64,7 @@ That is the current safety model: bold automation inside the loop, explicit oper
 - repo-managed specialist workspaces and seeded cluster-self-documentation in Nextcloud
 - a coder flow that goes from specification to code to Gitea to GitOps to cluster
 - an in-cluster sandbox-images repo and registry for evolving the agent runtime itself
+- repo-managed per-agent continuity files plus seeded daily wrap-up cron jobs for the standing desk agents
 - a weekly auditor loop that can identify quality issues, cost leaks, workflow bottlenecks, and candidates to replace repeated LLM work with deterministic Kubernetes services or CronJobs
 - one bootstrap input model for both fast local iteration in `k3d` and long-running deployment in `k3s`
 

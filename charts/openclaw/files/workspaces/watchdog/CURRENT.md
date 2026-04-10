@@ -1,8 +1,6 @@
 # Current - Watchdog
 
-Read this before non-trivial monitoring work.
-
-This is your local desk for short-term monitoring continuity. Keep it small and focused on what the next watchdog session must notice quickly.
+This is your local desk for live monitoring continuity. Keep it small and focused on what the next watchdog run must notice quickly.
 
 ## Active Monitoring Concerns
 

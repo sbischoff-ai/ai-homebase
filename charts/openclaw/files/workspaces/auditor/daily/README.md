@@ -1,10 +1,10 @@
 # Daily Notes - Auditor
 
-Keep short date-scoped review breadcrumbs here when they may matter to the next session.
+Each file here is a historical review wrap-up for one day. Write it in past tense so it cannot be mistaken for `CURRENT.md`.
 
 Capture:
 - which subject was under review
-- what evidence still needs follow-through
+- what evidence still needed follow-through
 - compact reminders about why a verdict was deferred or narrowed
 
-Promote durable verdicts and recurring findings into Nextcloud or Qdrant instead of leaving them here.
+Keep live review state in `CURRENT.md`. Promote durable verdicts and recurring findings into Nextcloud or Qdrant instead of leaving them here.
