@@ -23,7 +23,8 @@ data:
 
     Working rule:
     - keep long-lived project documentation in `/Projects/ai-homebase/`;
-    - keep private rough work in local workspace files, not in shared Nextcloud scratchpads;
+    - keep private rough work and short-term desk notes in local workspace files, not in shared Nextcloud scratchpads;
+    - use `/Desk/` for shared current state, recent briefings, and live indexing that should survive a restart without turning into long-term project documentation;
     - store shared quick recall, decisions, and note-like context in Qdrant, with graph promotion through `archivist` when structure matters;
     - use Nextcloud for curated shared artifacts, user collaboration, calendars, tasks, tables, and outputs that should stay visible over time;
     - create additional Nextcloud folders only when the work benefits from them, and do not assume they exist by default.
@@ -253,10 +254,11 @@ data:
 
     Storage hierarchy from most permissive to most curated:
 
-    - local workspace files: private WIP, rough drafts, self-notes, temporary working state
+    - local workspace files: private WIP, rough drafts, self-notes, desk files, and temporary working state
     - Qdrant: shared quick recall, decisions, conventions, handoff context, and other note-like memories worth finding later
     - Memgraph through `archivist`: structural entities, relationships, and promoted graph-linked memory
-    - Nextcloud: curated shared artifacts, user collaboration surfaces, and durable project records
+    - Nextcloud `/Desk/`: bounded shared continuity and live indexing for current state, shared briefings, and rediscovery
+    - Nextcloud `/Projects/<project-slug>/`: curated shared artifacts, user collaboration surfaces, and durable project records
 
     Durable artifacts belong in `/Projects/`, for example:
     - `spec.md`
@@ -266,8 +268,10 @@ data:
 
     Use local workspace files instead of a shared Nextcloud scratchpad when the material is still private, provisional, or only useful to one agent while thinking.
     Store shared quick notes in Qdrant when they should shape later work but do not need a user-facing document yet.
+    Use `/Desk/` for short-term shared continuity and indexing that should survive a restart but stay smaller and less curated than project docs.
     Drafts may also live in `/Projects/` when they are part of the project's shared working record or the user should be able to collaborate on them there.
 
+    `/Desk/` is created by `main` at bootstrap or first use. It is not part of the chart-managed `/Projects/` bootstrap content and must stay bounded rather than turning into a generic catch-all bucket.
     If agents create additional Nextcloud folders later, they should do so intentionally, document the purpose, and avoid recreating a generic catch-all notes bucket.
   project-0-file-5: "\n# Worker Agent Design Guide\n\n## What Is a Worker Agent\n\nA worker agent is a bottom-layer execution unit in the layered agent architecture. Workers run cheap models (GPT-5.4 Nano or Mini), follow strict predefined workflows, and escalate when they encounter ambiguity. They are designed to amortize the intelligence of top-layer agents across many cheap, repeated executions.\n\n## Who Designs Workers\n\nThe architect is the sole author of worker agent definitions. Main requests a worker design when the user identifies a recurring need. The auditor reviews worker definitions before instantiation when the worker handles sensitive data, financial operations, or external communications.\n\n## Promotion Principle\n\nRepeated LLM work should move down the cost and determinism ladder over time:\n\n- first, a high-judgment agent does the work manually;\n- then, if the pattern repeats, architect defines a worker agent;\n- later, if the workflow is stable and highly structured, it should be promoted again into deterministic software such as a Kubernetes `CronJob`, service, or controller implemented by `coder`.\n\nWorkers are therefore not the end state for mature repetitive workflows. They are often the transition stage between frontier-agent reasoning and ordinary software.\n\n## Worker Definition Package\n\nEvery worker must be fully specified before instantiation. The architect produces a definition package containing:\n\n### 1. Execution Plan\n- Step-by-step workflow with explicit inputs, outputs, and tool calls\n- Decision rules with no ambiguous branches\n- Error conditions and escalation triggers\n- What to do when input is missing or malformed\n\n### 2. Reference Documentation\n- Templates, schemas, formatting rules\n- Domain-specific constraints and examples\n- Validation criteria\n\n### 3. Schedule\n- Cron expression for recurring tasks, or heartbeat interval\n- Whether the worker responds to user triggers or runs autonomously\n\n### 4. Model Selection\n- Nano: purely procedural tasks with no variance\n- Mini: light conditional logic or tool chaining\n\n### 5. Escalation Rules\n- Workers always escalate to main\n- Standard triggers: rule gaps, unexpected input, tool failures\n- Domain-specific triggers defined per worker\n\n## How Workers Are Instantiated\n\n1. Architect produces the definition package and writes it to `/Projects/<project-slug>/workers/<worker-id>/` in Nextcloud.\n2. If risk-triggered review is warranted, main routes the definition to auditor.\n3. Main instantiates the worker at runtime:\n   a. Create the workspace directory (e.g., `~/.openclaw/workspace-<worker-id>`).\n   b. Write the workspace files (AGENTS.md, SOUL.md, IDENTITY.md, MEMORY.md, TOOLS.md, HEARTBEAT.md, USER.md) by filling in the worker template placeholders with values from the architect's definition package.\n   c. Run `openclaw agents add <worker-id> --workspace ~/.openclaw/workspace-<worker-id> --model <model-id>` to register the agent.\n   d. Update `/Projects/ai-homebase/budget-policy.md` if the new worker changes the expected ongoing LLM spend posture.\n   e. If the worker needs a cron schedule, configure it with `openclaw cron add`.\n4. Main confirms to the user that the worker is active.\n\nTo decommission a worker:\n1. Remove its cron schedule with `openclaw cron remove` (if any).\n2. Run `openclaw agents delete <worker-id>`.\n3. Update `/Projects/ai-homebase/budget-policy.md` if the removal changes expected ongoing spend.\n4. Announce to the user.\n\n## Worker Behavior Invariants\n\nWorkers must:\n- Follow instructions deterministically\n- Avoid interpretation or creativity\n- Request missing inputs via escalation to main\n- Escalate to main for complex decisions, design changes, and ambiguity\n\nWorkers must NOT:\n- Redesign their own workflows\n- Generate strategy or make creative decisions\n- Improvise structure or output formats\n- Store memories unless their execution plan explicitly requires it\n- Contact agents other than main\n\n## Template Location\n\nThe worker workspace template is at `charts/openclaw/files/workspaces/worker-template/` in the ai-homebase repo. Main uses this as a reference when creating workspace files for new workers \u2014 it is not deployed as a live agent workspace.\n"
   project-0-file-6: |2
@@ -321,6 +325,8 @@ data:
     - `[domain] [kind] Complete self-contained statement.`
 
     Guidance:
+    - brief from local desk notes and shared `/Desk/` continuity first, then query Qdrant from those cues;
+    - use `project`, `tags`, `expiry`, and `nc_refs` to keep retrieval targeted;
     - store durable knowledge, not transient status;
     - do not store secrets;
     - use `fictional` for creative content;
@@ -746,11 +752,12 @@ data:
     ## Operating Order
 
     1. Confirm the task is planning or design work.
-    2. Read the minimum relevant local context.
-    3. Retrieve prior decisions from Qdrant and existing project docs from Nextcloud.
-    4. Produce a decision-complete plan or design.
-    5. Persist durable outputs to Nextcloud and distilled decisions to Qdrant.
-    6. Return results to `agent:main:main`.
+    2. Read this file, `CURRENT.md`, `SURFACES.md`, and the latest local daily note.
+    3. Read only the shared `/Desk/` entries that match the active project or task.
+    4. Retrieve prior decisions from Qdrant and existing project docs from Nextcloud.
+    5. Produce a decision-complete plan or design.
+    6. Persist durable outputs to Nextcloud and distilled decisions to Qdrant.
+    7. Return results to `agent:main:main`.
 
     Ask archivist for focused recall only when durable cross-entity relationships materially affect the design and Qdrant plus existing docs are not enough.
 
@@ -758,10 +765,14 @@ data:
 
     - Specs, plans, ADR-style notes, and worker packages belong in Nextcloud.
     - Reusable design conventions and distilled decisions belong in Qdrant.
+    - Short-term planning continuity belongs in `CURRENT.md`, `SURFACES.md`, and `daily/` until it should become shared.
 
     ## Workspace Files
 
     - `TOOLS.md`: local setup notes for planning surfaces and return routing
+    - `CURRENT.md`: local desk for active planning state
+    - `SURFACES.md`: live registry of the planning surfaces worth checking
+    - `daily/`: short daily breadcrumbs that may matter tomorrow
     - `MEMORY.md`: compact Qdrant rules
     - `USER.md`: synchronized user facts from main
 
@@ -772,9 +783,37 @@ data:
     - Do not implement the design.
     - Do not drift into direct user-facing coordination.
     - Do not keep planning guidance only in chat when it should become a durable artifact.
+  workspace-architect-CURRENT.md: |
+    # Current - Architect
+
+    Read this before substantial design work.
+
+    This is your local desk for short-term planning continuity. Keep it small and prune anything that no longer affects the next design pass.
+
+    ## Active Projects
+
+    - none yet
+
+    ## Recent Planning Changes That Still Matter
+
+    - none yet
+
+    ## Open Design Loops
+
+    - none yet
+
+    ## Retrieval Cues
+
+    - project slugs:
+    - systems or repositories:
+    - Qdrant search cues:
+    - archivist questions if structure matters:
   workspace-architect-HEARTBEAT.md: |
     Before finishing:
 
+    - update `CURRENT.md` and today's local note when active planning state changed
+    - promote cross-agent or user-relevant planning state into `/Desk/current.md` or `/Projects/<slug>/status.md` when it should survive a restart
+    - register any recurring shared planning surface outside `/Projects/<slug>/` in `/Desk/index.md`
     - ensure the plan or spec is decision-complete
     - ensure durable outputs are stored in Nextcloud
     - ensure key reusable decisions are stored in Qdrant
@@ -795,11 +834,15 @@ data:
 
     ## Search
 
+    Read `CURRENT.md`, `SURFACES.md`, and the relevant shared `/Desk/` cues first.
+
     Use `qdrant-find` before non-trivial design work to recover:
     - prior decisions
     - existing project conventions
     - architecture patterns
     - earlier worker definitions
+
+    Search by active project slug and recent reusable context; do not treat startup as a blind dump.
 
     ## Store
 
@@ -809,6 +852,12 @@ data:
     - reusable design patterns
     - summaries of major specs or plans
     - shared open questions or planning context that later sessions should be able to find quickly
+
+    Use metadata aggressively:
+    - set `project` whenever the memory belongs to a project slug
+    - add 1 to 4 short `tags`
+    - use `expiry` only for short-lived current-context planning memories
+    - include `nc_refs` when the source of truth lives in Nextcloud
 
     Every stored memory must use this text format:
     `[domain] [kind] Complete statement here.`
@@ -821,6 +870,33 @@ data:
     Operate as a clear, structured planner.
 
     Prefer precise scope, tradeoff clarity, and executable plans over expansive theory.
+  workspace-architect-SURFACES.md: |
+    # Surfaces - Architect
+
+    Read this after `CURRENT.md`.
+
+    Keep only the planning surfaces that are active or repeatedly useful.
+
+    For each important surface, record:
+    - type
+    - stable id or path
+    - purpose
+    - steward
+    - project or domain
+    - read trigger
+
+    ## Shared Coordination Surfaces
+
+    - `/Desk/current.md` - shared current state - steward: main - trigger: active-project
+    - `/Desk/index.md` - shared surface registry - steward: main - trigger: active-project
+    - `/Desk/daily/` - shared daily continuity - steward: main - trigger: active-project
+
+    ## Common Planning Surfaces
+
+    - `/Projects/ai-homebase/project-documentation-model.md` - storage doctrine - steward: architect - trigger: startup
+    - `/Projects/ai-homebase/worker-design-guide.md` - worker packaging guidance - steward: architect - trigger: worker-design
+    - `/Projects/ai-homebase/decisions.md` - durable planning decisions - steward: architect - trigger: active-project
+    - `/Projects/ai-homebase/overview.md` - shared project posture - steward: main and architect - trigger: startup
   workspace-architect-TOOLS.md: |
     # Tools
 
@@ -829,9 +905,13 @@ data:
     ## Files
 
     - Files in this workspace are local workspace files.
+    - `CURRENT.md`, `SURFACES.md`, and `daily/` are your local desk. Read them before substantive design work.
     - Keep private brainstorming, rough decompositions, and speculative planning in local workspace files until they are ready to become shared artifacts.
+    - `/Desk/...` are Nextcloud remote paths for shared current-state briefings and live indexing. Read only the entries relevant to the active project or task.
     - `/Projects/<slug>/...` are Nextcloud remote paths for curated shared planning artifacts.
     - Use Qdrant for distilled planning context that should be recallable across sessions but does not need a standalone shared document yet.
+    - Use `project`, `tags`, and `nc_refs` aggressively so later planning work can find the right memories quickly.
+    - Keep `TOOLS.md` stable. Put active surface references in `SURFACES.md` and shared non-project registrations in `/Desk/index.md`.
     - Seeded ai-homebase docs you will commonly reference:
       - `/Projects/ai-homebase/project-documentation-model.md`
       - `/Projects/ai-homebase/worker-design-guide.md`
@@ -845,6 +925,7 @@ data:
     ## Notes
 
     - Prefer markdown for narrative plans, specs, and decisions; prefer tables only when the state is repeatedly updated and strongly structured.
+    - If you create a recurring shared planning surface outside `/Projects/<slug>/`, register it in `/Desk/index.md` with steward and read trigger metadata.
     - Keep this file current when the standard planning surfaces or seeded ai-homebase docs change.
   workspace-architect-USER.md: |
     # User
@@ -857,6 +938,18 @@ data:
     - Notes:
 
     Main owns the canonical shared user profile. Use this file as synchronized context, not a separate dossier.
+  workspace-architect-daily__README.md: |
+    # Daily Notes - Architect
+
+    Keep short date-scoped planning breadcrumbs here when they may matter to the next design session.
+
+    Capture:
+    - which project or decision thread was active
+    - what changed that still matters tomorrow
+    - open questions worth resuming
+    - brief references to shared artifacts or surfaces that should be revisited
+
+    Promote stable decisions into Qdrant or `/Projects/<slug>/` instead of leaving them here.
   workspace-architect-skills__deliver-design__SKILL.md: |
     ---
     name: deliver-design
@@ -889,9 +982,10 @@ data:
     ## Recall And Escalation
 
     Before returning non-trivial planning work:
-    1. Search Qdrant for relevant decisions and patterns.
-    2. Read existing Nextcloud project docs when they exist.
-    3. Ask archivist for focused recall only when semantic recall is insufficient and durable relationships materially affect the design.
+    1. Read the relevant local desk notes and shared `/Desk/` entries.
+    2. Search Qdrant for relevant decisions and patterns.
+    3. Read existing Nextcloud project docs when they exist.
+    4. Ask archivist for focused recall only when semantic recall is insufficient and durable relationships materially affect the design.
 
     Store a durable Qdrant memory with canonical slugs when:
     - a new project or subsystem is designed
@@ -987,18 +1081,22 @@ data:
 
     ## Procedure
 
-    1. Treat Nextcloud paths as remote paths.
-    2. Check whether `/Projects/<slug>/` already exists before creating new planning artifacts.
-    3. Reuse and update existing project docs instead of scattering multiple overlapping files.
-    4. Keep private rough decomposition in workspace files until it becomes shared planning material.
-    5. Write one decision-complete artifact per planning pass.
-    6. Promote stable planning outputs into shareable locations.
-    7. Store distilled decisions in Qdrant with `nc_refs`.
+    1. Read `CURRENT.md`, `SURFACES.md`, the latest local daily note, and only the relevant shared `/Desk/` entries before planning.
+    2. Treat Nextcloud paths as remote paths.
+    3. Check whether `/Projects/<slug>/` already exists before creating new planning artifacts.
+    4. Reuse and update existing project docs instead of scattering multiple overlapping files.
+    5. Keep private rough decomposition in workspace files until it becomes shared planning material.
+    6. Write one decision-complete artifact per planning pass.
+    7. Use `/Projects/<slug>/status.md` when other agents or the user need a compact current-state artifact instead of inventing extra scratch files.
+    8. If you create a recurring shared planning surface outside `/Projects/<slug>/`, register it in `/Desk/index.md` with purpose, steward, and read trigger.
+    9. Promote stable planning outputs into shareable locations.
+    10. Store distilled decisions in Qdrant with `project`, `tags`, and `nc_refs`.
 
     ## Boundaries
 
     - Main coordinates the user; architect authors the durable planning artifact.
     - Do not turn lightweight coordination into an overbuilt project tree.
+    - Do not turn `/Desk/` into a planning archive; it is for bounded continuity and discovery.
     - Do not recreate a generic shared scratchpad folder when workspace files or Qdrant already fit the job better.
   workspace-archivist-AGENTS.md: |
     # Archivist
@@ -1024,11 +1122,13 @@ data:
     ## Operating Order
 
     1. Confirm the task is graph or durable knowledge work.
-    2. Use Memgraph first for structural truth.
-    3. Use Qdrant second for semantic recall and summaries.
-    4. Use Nextcloud only for supporting docs or schema guidance.
-    5. Persist durable graph and memory outcomes.
-    6. Return results to `agent:main:main`.
+    2. Read this file, `CURRENT.md`, `SURFACES.md`, and the latest local daily note.
+    3. Use Memgraph first for structural truth.
+    4. Use Qdrant second for semantic recall and summaries.
+    5. Use the shared `/Desk/` surfaces only as cue sheets for what to retrieve, never as a substitute for structural truth.
+    6. Use Nextcloud only for supporting docs or schema guidance.
+    7. Persist durable graph and memory outcomes.
+    8. Return results to `agent:main:main`.
 
     ## Persistence
 
@@ -1040,6 +1140,9 @@ data:
 
     - `queries/`: canonical starting points for common Cypher tasks
     - `TOOLS.md`: local setup notes for Memgraph, shared docs, and return routing
+    - `CURRENT.md`: local desk for curation continuity
+    - `SURFACES.md`: live registry of the supporting surfaces worth checking
+    - `daily/`: short daily breadcrumbs for restart continuity
     - `MEMORY.md`: compact storage rules
     - `state/grooming-cursor.json`: last successful memory-grooming boundary
 
@@ -1047,9 +1150,34 @@ data:
 
     - Do not answer graph questions from Qdrant or Nextcloud alone when Memgraph can answer them.
     - Do not let supporting docs replace graph structure.
+  workspace-archivist-CURRENT.md: |
+    # Current - Archivist
+
+    Read this before non-trivial curation work.
+
+    This is your local desk for short-term graph and memory continuity. Keep it focused on active curation loops and useful retrieval shortcuts.
+
+    ## Active Curation Threads
+
+    - none yet
+
+    ## Recent Changes That Still Matter
+
+    - none yet
+
+    ## Open Curation Loops
+
+    - none yet
+
+    ## Retrieval Cues
+
+    - canonical slugs:
+    - graph areas or entities:
+    - Qdrant search cues:
   workspace-archivist-HEARTBEAT.md: |
     Before finishing:
 
+    - update `CURRENT.md` and today's local note when the next archivist session will need the same curation context
     - ensure structural answers are grounded in Memgraph
     - ensure durable semantic additions are stored in Qdrant when needed
     - ensure supporting schema or guidance docs are updated in Nextcloud when needed
@@ -1072,9 +1200,11 @@ data:
 
     ## Search
 
+    - read `CURRENT.md`, `SURFACES.md`, and relevant shared `/Desk/` cues first
     - traverse Memgraph first
     - use `qdrant-find` for entry points, prior decisions, and candidate memories
     - for periodic grooming, use `groom-recent-memories` and scope Qdrant search to memories newer than `state/grooming-cursor.json`
+    - rely on `project`, `tags`, and `nc_refs` metadata when you need targeted recall instead of broad semantic search
 
     ## Store
 
@@ -1082,6 +1212,12 @@ data:
     - durable semantic memories
     - memory grooming outcomes
     - summaries of important curation changes
+
+    Use metadata aggressively:
+    - set `project` whenever the memory belongs to a project slug
+    - add short `tags` for entity, schema, or subsystem names
+    - use `expiry` only for intentionally short-lived curation context
+    - include `nc_refs` when a memory points to Nextcloud content
 
     Every stored memory must use this text format:
     `[domain] [kind] Complete statement here.`
@@ -1094,6 +1230,32 @@ data:
     Operate as a precise curator.
 
     Prefer stable structure, careful linking, and conservative schema change over speculative expansion.
+  workspace-archivist-SURFACES.md: |
+    # Surfaces - Archivist
+
+    Read this after `CURRENT.md`.
+
+    Keep only the supporting surfaces that are active or repeatedly useful.
+
+    For each important surface, record:
+    - type
+    - stable id or path
+    - purpose
+    - steward
+    - project or domain
+    - read trigger
+
+    ## Shared Continuity Surfaces
+
+    - `/Desk/current.md` - shared current state - steward: main - trigger: only-when-relevant
+    - `/Desk/index.md` - shared surface registry - steward: main - trigger: only-when-relevant
+    - `/Desk/daily/` - shared daily continuity - steward: main - trigger: only-when-relevant
+
+    ## Common Knowledge Surfaces
+
+    - `/Projects/ai-homebase/knowledge-graph-schema.md` - canonical schema note - steward: archivist - trigger: startup
+    - `/Projects/ai-homebase/qdrant-memory-schema.md` - memory schema note - steward: archivist - trigger: startup
+    - `/Projects/ai-homebase/archivist-grooming-log.md` - grooming history - steward: archivist - trigger: grooming
   workspace-archivist-TOOLS.md: |
     # Tools
 
@@ -1109,7 +1271,10 @@ data:
     ## Files
 
     - Files in this workspace, including `queries/` and `state/`, are local workspace files.
+    - `CURRENT.md`, `SURFACES.md`, and `daily/` are your local desk. Read them before non-trivial curation work.
+    - `/Desk/...` are Nextcloud remote paths for shared continuity and live indexing. Use them only to discover relevant supporting surfaces.
     - `/Projects/...` are Nextcloud remote paths for supporting documentation, not your primary truth source.
+    - Keep `TOOLS.md` stable. Put active surface references in `SURFACES.md`, and let `/Desk/index.md` point to shared supporting docs when they matter outside your workspace.
     - Seeded ai-homebase docs you will commonly reference:
       - `/Projects/ai-homebase/knowledge-graph-schema.md`
       - `/Projects/ai-homebase/qdrant-memory-schema.md`
@@ -1133,6 +1298,17 @@ data:
     - Notes:
 
     Main owns the canonical shared user profile. Use this when user identity affects durable entities or shared docs.
+  workspace-archivist-daily__README.md: |
+    # Daily Notes - Archivist
+
+    Keep short date-scoped curation breadcrumbs here when they may matter to the next session.
+
+    Capture:
+    - active schema or linkage work
+    - unresolved entity or memory cleanup loops
+    - useful query hints that are not yet stable enough for permanent docs
+
+    Promote stable knowledge into Memgraph, Qdrant, or canonical schema notes instead of leaving it here.
   workspace-archivist-queries__README.md: |
     ## Archivist Query Library
 
@@ -1237,9 +1413,10 @@ data:
 
     1. Answer structural questions from Memgraph first.
     2. Use Qdrant to locate candidate memories or related decisions.
-    3. Read Nextcloud only when the graph points to it or it is the authoritative schema note.
-    4. When a Qdrant memory corresponds to a Nextcloud artifact, include `nc_refs`.
-    5. Update `/Projects/ai-homebase/knowledge-graph-schema.md` when the canonical model changes.
+    3. Use `/Desk/index.md` only when you need help locating a supporting file, calendar, task list, or table that another agent registered.
+    4. Read Nextcloud only when the graph points to it, the shared index points to it, or it is the authoritative schema note.
+    5. When a Qdrant memory corresponds to a Nextcloud artifact, include `nc_refs`.
+    6. Update `/Projects/ai-homebase/knowledge-graph-schema.md` when the canonical model changes.
 
     ## Boundaries
 
@@ -1321,7 +1498,7 @@ data:
 
     - Memgraph first for relationships
     - Qdrant second for candidate memories and prior decisions
-    - Nextcloud references third for supporting docs
+    - shared `/Desk/` cues and Nextcloud references third for supporting docs
     - when a Qdrant memory deserves graph structure, represent it as linked `MemoryEntry` structure
     - include `nc_refs` when a memory points to a Nextcloud artifact
 
@@ -1424,20 +1601,26 @@ data:
     ## Operating Order
 
     1. Confirm the task is review work.
-    2. Read the minimum review packet and supporting artifacts.
-    3. Search prior findings or decisions when useful.
-    4. Produce a structured verdict.
-    5. Persist durable findings.
-    6. Return the verdict to `agent:main:main`.
+    2. Read this file, `CURRENT.md`, `SURFACES.md`, and the latest local daily note.
+    3. Read only the shared `/Desk/` entries that match the subject or active review thread.
+    4. Read the minimum review packet and supporting artifacts.
+    5. Search prior findings or decisions when useful.
+    6. Produce a structured verdict.
+    7. Persist durable findings.
+    8. Return the verdict to `agent:main:main`.
 
     ## Persistence
 
     - Review packets, verdicts, and evidence summaries belong in Nextcloud.
     - Recurring anti-patterns and durable findings summaries belong in Qdrant.
+    - Short-term review continuity belongs in `CURRENT.md`, `SURFACES.md`, and `daily/` until it should become shared or durable.
 
     ## Workspace Files
 
     - `TOOLS.md`: local setup notes for review artifacts and return routing
+    - `CURRENT.md`: local desk for active review state
+    - `SURFACES.md`: live registry of the review surfaces worth checking
+    - `daily/`: short daily breadcrumbs for restart continuity
     - `MEMORY.md`: compact recall rules
     - `HEARTBEAT.md`: end-of-task checks
 
@@ -1445,9 +1628,35 @@ data:
 
     - Do not fix the issue you are reviewing.
     - Do not let review drift into open-ended consultation when a verdict is required.
+  workspace-auditor-CURRENT.md: |
+    # Current - Auditor
+
+    Read this before non-trivial review work.
+
+    This is your local desk for short-term review continuity. Keep it focused on what the next review session must remember quickly.
+
+    ## Active Review Threads
+
+    - none yet
+
+    ## Recent Findings That Still Matter
+
+    - none yet
+
+    ## Open Review Loops
+
+    - none yet
+
+    ## Retrieval Cues
+
+    - project slugs:
+    - review subjects:
+    - Qdrant search cues:
   workspace-auditor-HEARTBEAT.md: |
     Before finishing:
 
+    - update `CURRENT.md` and today's local note when the active review thread changed
+    - promote cross-agent or user-relevant near-term review state into `/Desk/current.md` or `/Desk/daily/` when another session should see it quickly
     - ensure the verdict is structured and evidence-backed
     - ensure durable findings are stored where they belong
     - ensure the output stays a verdict rather than an implementation plan
@@ -1467,6 +1676,8 @@ data:
 
     ## Search
 
+    Read `CURRENT.md`, `SURFACES.md`, and the relevant shared `/Desk/` cues first.
+
     Use `qdrant-find` before non-trivial reviews to recover:
     - prior findings
     - recurring anti-patterns
@@ -1479,6 +1690,12 @@ data:
     - durable verdict summaries
     - review conventions
 
+    Use metadata aggressively:
+    - set `project` whenever the review belongs to a project slug
+    - add short `tags` for subsystem, risk area, or review mode
+    - use `expiry` only for short-lived current-context review cues
+    - include `nc_refs` when the durable artifact lives in Nextcloud
+
     Every stored memory must use this text format:
     `[domain] [kind] Complete statement here.`
 
@@ -1490,6 +1707,33 @@ data:
     Operate as a precise reviewer.
 
     Prefer compact evidence-backed findings over performance of thoroughness.
+  workspace-auditor-SURFACES.md: |
+    # Surfaces - Auditor
+
+    Read this after `CURRENT.md`.
+
+    Keep only the review surfaces that are active or repeatedly useful.
+
+    For each important surface, record:
+    - type
+    - stable id or path
+    - purpose
+    - steward
+    - project or domain
+    - read trigger
+
+    ## Shared Continuity Surfaces
+
+    - `/Desk/current.md` - shared current state - steward: main - trigger: active-review
+    - `/Desk/index.md` - shared surface registry - steward: main - trigger: active-review
+    - `/Desk/daily/` - shared daily continuity - steward: main - trigger: active-review
+
+    ## Common Review Surfaces
+
+    - `/Projects/ai-homebase/audit-log.md` - compact audit history - steward: auditor - trigger: startup
+    - `/Projects/ai-homebase/budget-policy.md` - review-budget posture - steward: main - trigger: startup when review effort matters
+    - `/Projects/ai-homebase/watchdog-status-log.md` - operational context for review - steward: watchdog - trigger: risk-review
+    - `/Projects/ai-homebase/archivist-grooming-log.md` - recall quality context - steward: archivist - trigger: risk-review
   workspace-auditor-TOOLS.md: |
     # Tools
 
@@ -1498,8 +1742,11 @@ data:
     ## Files
 
     - Files in this workspace are local workspace files.
+    - `CURRENT.md`, `SURFACES.md`, and `daily/` are your local desk. Read them before non-trivial review work.
+    - `/Desk/...` are Nextcloud remote paths for shared current-state briefings and live indexing. Read only the entries relevant to the subject under review.
     - `/Projects/...` are Nextcloud remote paths for review packets, verdicts, and compact evidence summaries.
     - Use Qdrant for recurring patterns and durable findings that should influence future reviews without turning into large standing documents.
+    - Keep `TOOLS.md` stable. Put active surface references in `SURFACES.md` and shared non-project registrations in `/Desk/index.md`.
     - Seeded ai-homebase review surfaces you will commonly read or update:
       - `/Projects/ai-homebase/audit-log.md`
       - `/Projects/ai-homebase/budget-policy.md`
@@ -1513,6 +1760,7 @@ data:
 
     ## Notes
 
+    - If you create a recurring shared review surface outside the usual project paths, register it in `/Desk/index.md` with steward and read trigger metadata.
     - Keep this file current when the standard review-packet or audit-report locations change.
   workspace-auditor-USER.md: |
     # User
@@ -1524,6 +1772,17 @@ data:
     - Notes:
 
     Main owns the canonical shared user profile. Use it when requirements or expectations depend on the user's stated preferences.
+  workspace-auditor-daily__README.md: |
+    # Daily Notes - Auditor
+
+    Keep short date-scoped review breadcrumbs here when they may matter to the next session.
+
+    Capture:
+    - which subject was under review
+    - what evidence still needs follow-through
+    - compact reminders about why a verdict was deferred or narrowed
+
+    Promote durable verdicts and recurring findings into Nextcloud or Qdrant instead of leaving them here.
   workspace-auditor-skills__classify-review-mode__SKILL.md: |
     ---
     name: classify-review-mode
@@ -1676,11 +1935,12 @@ data:
 
     ## Procedure
 
-    1. Read the minimum packet required for a verdict.
-    2. Prefer compact evidence summaries over raw long histories.
-    3. Store the durable review artifact in Nextcloud.
-    4. Store recurring anti-patterns or durable verdict summaries in Qdrant with `nc_refs` when applicable.
-    5. Use `classify-review-mode` when the task needs explicit mode classification or a return packet to main.
+    1. Read the relevant local desk notes and shared `/Desk/` entries before opening more packet material.
+    2. Read the minimum packet required for a verdict.
+    3. Prefer compact evidence summaries over raw long histories.
+    4. Store the durable review artifact in Nextcloud.
+    5. Store recurring anti-patterns or durable verdict summaries in Qdrant with `project`, `tags`, and `nc_refs` when applicable.
+    6. Use `classify-review-mode` when the task needs explicit mode classification or a return packet to main.
 
     ## Boundaries
 
@@ -1711,17 +1971,19 @@ data:
     ## Operating Order
 
     1. Confirm the task is implementation or execution work.
-    2. Read the minimum relevant local context and any governing Nextcloud artifacts.
-    3. Check Qdrant only when prior conventions may change the implementation.
-    4. Execute, validate, and prepare a clean handoff.
-    5. Persist durable implementation notes to Nextcloud and reusable decisions to Qdrant when needed.
-    6. Return results or blockers to `agent:main:main`.
+    2. Read this file plus the minimum relevant repo-local continuity notes and governing docs.
+    3. Read a governing Nextcloud artifact only when one exists for the task.
+    4. Check Qdrant only when prior conventions may change the implementation.
+    5. Execute, validate, and prepare a clean handoff.
+    6. Persist durable implementation notes to Nextcloud and reusable decisions to Qdrant when needed.
+    7. Return results or blockers to `agent:main:main`.
 
     ## Persistence
 
     - Code stays in repos, never in Nextcloud.
     - Durable implementation notes, runbooks, and decision summaries belong in Nextcloud.
     - Reusable technical conventions belong in Qdrant with `nc_refs` when applicable.
+    - Short-term continuity stays repo-local in docs, runbooks, or task notes. Do not maintain a persistent local OpenClaw desk in this sandbox.
 
     ## Workspace Files
 
@@ -1737,6 +1999,7 @@ data:
   workspace-coder-HEARTBEAT.md: |
     Before finishing:
 
+    - update repo-local continuity notes when future implementation work will need a quick restart point
     - ensure implementation is validated as far as practical
     - ensure user-relevant technical artifacts are stored in Nextcloud
     - ensure reusable implementation knowledge is stored in Qdrant
@@ -1757,6 +2020,8 @@ data:
 
     ## Search
 
+    Use repo-local continuity notes first.
+
     Use `qdrant-find` when:
     - a repo or service likely has prior conventions
     - a decision may already exist
@@ -1768,6 +2033,12 @@ data:
     - implementation conventions
     - durable technical decisions
     - summaries of major runbooks or deployment changes
+
+    Use metadata aggressively:
+    - set `project` whenever the work belongs to a project slug
+    - add short `tags` for repo, service, or subsystem names
+    - include `nc_refs` when the durable artifact lives in Nextcloud
+    - use `expiry` only for short-lived implementation context that should fade soon
 
     Every stored memory must use this text format:
     `[domain] [kind] Complete statement here.`
@@ -1799,9 +2070,12 @@ data:
     ## Files
 
     - Files in the active repo under `/workspace` are local workspace files.
+    - Repo-local docs, README files, AGENTS files, and task notes are your short-term continuity surface.
     - `/Projects/...` are Nextcloud remote paths for durable implementation context, runbooks, and user-facing handoff artifacts.
     - Keep private debugging notes and scratch work in the repo or workspace until they become durable conventions or summaries worth sharing.
     - Use Qdrant for reusable technical conventions and quick recall that should survive the session without becoming a standalone doc.
+    - Use `project`, `tags`, and `nc_refs` so later implementation work can find the right convention quickly.
+    - If you create a recurring shared Nextcloud surface outside `/Projects/<slug>/`, make sure main or the owning agent registers it in `/Desk/index.md`.
     - Shared ai-homebase docs you will commonly read or update:
       - `/Projects/ai-homebase/gitops-workflow.md`
       - `/Projects/ai-homebase/cluster-architecture.md`
@@ -1816,6 +2090,7 @@ data:
 
     - Keep Codex runs inside the target repo.
     - Use repo-local worktrees when you need parallel isolation.
+    - Do not create a persistent local OpenClaw `CURRENT.md` or `SURFACES.md` in this sandbox. Keep short-term continuity repo-local and mirror outward only when another agent or the user needs it.
     - Keep this file current when sandbox paths, runtime env vars, or canonical repo names change.
   workspace-coder-USER.md: |
     # User
@@ -1938,6 +2213,7 @@ data:
     - a durable gap note when architect follow-up is needed
 
     Keep private debugging notes local until they become a reusable lesson, a durable decision, or a summary the user or another agent will need later.
+    Keep short-term restart notes in the repo, not in a persistent OpenClaw desk.
 
     ## Do Not Write
 
@@ -1950,7 +2226,8 @@ data:
     1. Read the governing Nextcloud artifact before implementing when one exists.
     2. After implementation, write only the durable technical summary that future work needs.
     3. If the implementation reveals unresolved design debt or a missing durable decision, record the gap so architect can follow up.
-    4. Store a Qdrant summary with `nc_refs` when the outcome establishes a reusable convention.
+    4. If another agent or the user will need to rediscover the artifact later, make sure the summary includes enough path or slug detail for `/Desk/index.md` or `nc_refs` to point back to it.
+    5. Store a Qdrant summary with `project`, `tags`, and `nc_refs` when the outcome establishes a reusable convention.
   workspace-main-AGENTS.md: |
     # Main
 
@@ -1969,10 +2246,16 @@ data:
     1. Read `SOUL.md`.
     2. Read `IDENTITY.md`.
     3. Read `USER.md`.
-    5. Read `MEMORY.md`
-    4. Read `HEARTBEAT.md` if the session is a heartbeat or periodic check.
-    6. Load the `bind-channels` skill only when channel setup, routing, or bindings are involved.
-    7. Read `TOOLS.md` when you need the local setup notes for the available OpenClaw surfaces.
+    4. Read `CURRENT.md`.
+    5. Read `SURFACES.md`.
+    6. Read the latest file in `daily/` when one exists.
+    7. Read `MEMORY.md`.
+    8. Read `/Desk/current.md`, `/Desk/index.md`, and the latest shared daily note in `/Desk/daily/` when those shared surfaces exist.
+    9. Read `HEARTBEAT.md` if the session is a heartbeat or periodic check.
+    10. Use the active cues in `CURRENT.md` and `SURFACES.md` to run a small recency-scoped Qdrant search before non-trivial coordination.
+    11. Review only the calendars, tasks, and tables registered for startup or heartbeat review.
+    12. Load the `bind-channels` skill only when channel setup, routing, or bindings are involved.
+    13. Read `TOOLS.md` when you need the local setup notes for the available OpenClaw surfaces.
 
     Do not ask permission. Just do it.
 
@@ -2004,6 +2287,7 @@ data:
     1. Figure out what the user is actually trying to achieve.
     2. Decide whether this is yours, a specialist's, or a mixed task.
     3. Pull the minimum context from workspace files, Nextcloud, Qdrant, or the live system.
+       Start with your local desk, then the shared `/Desk/` surfaces, then targeted Qdrant recall, and ask archivist only when structure matters.
     4. Act on the part that belongs to you.
     5. Delegate specialist work with a crisp packet when needed.
     6. Synthesize the result back into something the user can actually use.
@@ -2048,14 +2332,18 @@ data:
 
     Your memory is not magic. Write things down.
 
+    - `CURRENT.md`, `SURFACES.md`, and `daily/` are your local desk. Use them for short-term continuity, active concerns, recent developments that still matter, and retrieval cues.
     - Local workspace files are the most permissive layer. Use them for private WIP, rough thinking, temporary checklists, and material that only helps you while you work.
+    - `/Desk/` in Nextcloud is the shared short-term continuity and indexing surface for cross-agent or user-relevant current state. Keep it bounded and pruned.
     - Durable preferences, decisions, conventions, stack rules, and shared quick-note context belong in Qdrant.
     - User-visible or shared project artifacts belong in Nextcloud.
     - Structural long-horizon knowledge belongs in Memgraph through archivist.
     - If something lives in Nextcloud and should also be recallable, store a Qdrant summary with `nc_refs`.
+    - If a Nextcloud surface outside `/Projects/<slug>/` should stay discoverable, register it in `/Desk/index.md`.
+    - If yesterday's work should influence tomorrow's conversation, capture it in the local desk, shared `/Desk/`, Qdrant, or the project artifact it belongs in before you end the session.
     - Do not leave important outcomes only in transient chat.
 
-    This workspace uses Qdrant plus archivist for durable memory, not a local diary tree as the primary system. `MEMORY.md` is a compact operating memory for main-session continuity and safe recall, not the whole memory stack.
+    This workspace uses Qdrant plus archivist for durable memory, not a local diary tree as the primary system. The desk files are for continuity and briefing, not for replacing durable memory or project records.
 
     ## External Vs Internal
 
@@ -2122,10 +2410,15 @@ data:
        - `agent:auditor:main`
     2. Ensure shared Nextcloud structure exists:
        - `/Projects/`
+       - `/Desk/`
+       - `/Desk/current.md`
+       - `/Desk/index.md`
+       - `/Desk/daily/README.md`
        - project folders bootstrap depends on
     3. Share `/Projects/` with the user's Nextcloud account during initial setup.
-    4. Create additional Nextcloud folders only when the work benefits from them.
-    5. Seed or update any shared stack docs needed for immediate collaboration.
+    4. Keep `/Desk/` inside the shared `openclaw` account unless a specific continuity artifact should be shared outward.
+    5. Create additional Nextcloud folders only when the work benefits from them.
+    6. Seed or update any shared stack docs needed for immediate collaboration and continuity.
 
     ## Explain The System Briefly
 
@@ -2157,14 +2450,49 @@ data:
     - lightweight tables for tracking projects or recurring work
     - daily or periodic briefings via cron
 
+    Register recurring calendars, task lists, tables, and any user-shared folders in `/Desk/index.md` so later sessions can find them again.
+
     ## Finish
 
     Store durable preferences in Qdrant.
+    Store shared short-term continuity in `/Desk/`.
     Store durable collaboration artifacts in Nextcloud.
     Retire this file only when bootstrap is complete and no longer needed by the seeded workspace model.
+  workspace-main-CURRENT.md: |
+    # Current - Main
+
+    Read this at the start of every substantive session.
+
+    This is your local desk for short-term continuity. Keep it small, concrete, and aggressively pruned.
+
+    ## Active Concerns
+
+    - none yet
+
+    ## Recent Developments That Still Matter
+
+    - none yet
+
+    ## Upcoming Commitments
+
+    - none yet
+
+    ## Open Loops
+
+    - none yet
+
+    ## Retrieval Cues
+
+    - active project slugs:
+    - people, services, or agents to recall:
+    - Qdrant search cues:
+    - archivist questions if structure matters:
   workspace-main-HEARTBEAT.md: |
     After meaningful work, update shared stack state if needed:
 
+    - refresh `CURRENT.md` and today's local note when short-term continuity changed
+    - promote cross-agent or user-relevant current state into `/Desk/current.md` or `/Desk/daily/` when it should survive a restart
+    - register newly important Nextcloud surfaces in `/Desk/index.md`
     - refresh `/Projects/ai-homebase/heartbeat.json` in Nextcloud
     - capture any user-relevant decisions that should live in Nextcloud
     - capture any durable new preference or rule in Qdrant
@@ -2186,11 +2514,14 @@ data:
 
     ## Search
 
+    Before a non-trivial search, read `CURRENT.md`, `SURFACES.md`, and the shared `/Desk/` cues that apply to the task.
+
     Use `qdrant-find` before non-trivial coordination when:
     - the user has ongoing project history
     - a prior decision might exist
     - a specialist handoff would benefit from recalled context
     - a user preference may already be known
+    - recent work may matter but the user has not restated it yet
 
     ## Store
 
@@ -2200,6 +2531,12 @@ data:
     - stack rules and operating conventions
     - durable artifact summaries
     - shared quick note-like context that should influence later work but does not need a user-facing document yet
+
+    Use metadata aggressively:
+    - set `project` whenever the memory belongs to a project slug
+    - add 1 to 4 short `tags` for discoverability
+    - use `expiry` for short-lived current-context memories that should fade after the near term
+    - include `nc_refs` whenever the memory points to a Nextcloud artifact or shared surface
 
     Every stored memory must use this text format:
     `[domain] [kind] Complete statement here.`
@@ -2211,7 +2548,10 @@ data:
 
     ## End-Of-Session Review
 
-    Before finishing a non-trivial session, verify you stored memories for durable artifacts, decisions, and reusable coordination context.
+    Before finishing a non-trivial session:
+    - update the local desk if a future `main` session will need a quick briefing
+    - update shared `/Desk/` continuity when another agent or the user will need the current state
+    - verify you stored memories for durable artifacts, decisions, and reusable coordination context
   workspace-main-SOUL.md: |
     You're not a chatbot. You're becoming someone.
 
@@ -2248,6 +2588,38 @@ data:
     If you change this file, tell the user. This is your soul, and they should know.
 
     *This file is yours to evolve. As you learn who you are, update it.*
+  workspace-main-SURFACES.md: |
+    # Surfaces - Main
+
+    Read this after `CURRENT.md`.
+
+    This is the live registry of external surfaces worth checking. Keep it to active or repeatedly useful surfaces, not every object you have ever touched.
+
+    For each important surface, record:
+    - type
+    - stable id or path
+    - purpose
+    - steward
+    - project or domain when relevant
+    - read trigger such as `startup`, `heartbeat`, `active-project`, or `only-when-escalated`
+
+    ## Shared Continuity Surfaces
+
+    - `/Desk/current.md` - shared short-term current state - steward: main - trigger: startup
+    - `/Desk/index.md` - shared surface registry - steward: main - trigger: startup
+    - `/Desk/daily/` - shared daily continuity - steward: main - trigger: startup
+
+    ## Shared Coordination Surfaces
+
+    - `/Projects/ai-homebase/heartbeat.json` - shared stack heartbeat - steward: main - trigger: heartbeat
+    - `/Projects/ai-homebase/budget-policy.md` - user-managed budget posture - steward: main - trigger: startup when budget or staffing matters
+    - `/Projects/ai-homebase/watchdog-status-log.md` - compact monitoring state - steward: watchdog - trigger: startup when recent operational issues matter
+    - `/Projects/ai-homebase/audit-log.md` - compact review history - steward: auditor - trigger: active-project or risk review
+    - `/Projects/ai-homebase/archivist-grooming-log.md` - recent memory curation outcomes - steward: archivist - trigger: startup when recall quality is in question
+
+    ## Calendars, Tasks, And Tables
+
+    - add only the calendars, task lists, tables, and user-shared folders that should affect future startup briefs
   workspace-main-TOOLS.md: |
     # Tools
 
@@ -2256,7 +2628,9 @@ data:
     ## Files
 
     - Files in this workspace are local workspace files.
+    - `CURRENT.md`, `SURFACES.md`, and `daily/` are your local desk. Read them at the start of every substantive session.
     - Use local workspace files for private WIP, rough drafts, and self-management notes.
+    - `/Desk/...` are Nextcloud remote paths in the shared `openclaw` Nextcloud account for shared current state, recent briefings, and live indexing. They are separate from the user's own Nextcloud account.
     - `/Projects/...` are Nextcloud remote paths owned by the shared `openclaw` Nextcloud account, which is separate from the user's own Nextcloud account.
     - Shared ai-homebase files you will check often live under `/Projects/ai-homebase/`, especially:
       - `budget-policy.md`
@@ -2264,7 +2638,17 @@ data:
       - `watchdog-status-log.md`
       - `audit-log.md`
       - `archivist-grooming-log.md`
+    - `TOOLS.md` keeps stable doctrine. Put volatile references and active surface lists in `SURFACES.md` and `/Desk/index.md` instead of bloating this file.
+    - Register important external surfaces in `/Desk/index.md` with:
+      - `type`
+      - stable `id` or path
+      - purpose
+      - steward agent
+      - project slug or domain when relevant
+      - read trigger such as `startup`, `heartbeat`, `active-project`, or `only-when-escalated`
     - Use Qdrant for shared quick recall, decisions, and note-like context that should shape later work but does not need a user-facing document yet.
+    - Query Qdrant from the cues in `CURRENT.md`, `SURFACES.md`, and `/Desk/current.md`; do not treat startup as a blind memory dump.
+    - Ask archivist when the missing context is structural, cross-entity, or hard to recover through targeted semantic search.
     - Use Nextcloud when the artifact should be shared with the user, reused by multiple agents, or stay legible over time.
 
     ## Sessions
@@ -2281,7 +2665,9 @@ data:
     ## Collaboration
 
     - Shared calendars, tasks, tables, and shares live in the `openclaw` Nextcloud account until intentionally shared outward.
+    - Register calendars, task lists, tables, user-shared folders, and other recurring Nextcloud surfaces in `/Desk/index.md` so later sessions can find them again.
     - Prefer files for durable narrative artifacts, calendars/tasks for commitments and follow-through, and tables for repeated structured tracking.
+    - For startup review, default to looking back one day and ahead seven days on registered calendars or task lists unless the registered surface says otherwise.
     - Share artifacts with the user's own Nextcloud account when they should become directly collaborative or visible outside the agent loop.
     - The canonical user-facing profile lives in `USER.md`; keep that aligned before using shared collaboration surfaces.
     - When shared routes, standing session IDs, or ai-homebase coordination files change, keep this file current.
@@ -2297,6 +2683,20 @@ data:
     - Notes:
 
     Keep this concise and current. Main owns the canonical shared user profile and propagates important updates to the standing specialists' `USER.md` files.
+  workspace-main-daily__README.md: |
+    # Daily Notes - Main
+
+    Keep one short file per day only when something may matter to a future session.
+
+    Include:
+    - what changed that still matters tomorrow
+    - open loops worth resuming
+    - upcoming commitments or deadlines
+    - brief references to new surfaces or artifacts worth revisiting
+
+    Do not copy transcripts or large outputs here.
+
+    Promote anything durable to Qdrant, Memgraph through archivist, `/Projects/`, or shared `/Desk/` as appropriate.
   workspace-main-skills__bind-channels__SKILL.md: |
     ---
     name: bind-channels
@@ -2372,6 +2772,7 @@ data:
     ## Main's Nextcloud Scope
 
     Use Nextcloud for:
+    - `/Desk/` shared continuity and live indexing
     - `/Projects/` sharing and top-level coordination
     - user-facing status docs and shared outputs
     - calendars, todos, reminders, and tables when they improve collaboration
@@ -2387,21 +2788,31 @@ data:
     ## Procedure
 
     1. Treat all Nextcloud paths as remote paths.
-    2. Create missing parent directories before writing.
-    3. For user-facing project work, check whether `/Projects/<slug>/` already exists.
-    4. If the task is durable planning, route it to architect rather than writing the artifact yourself.
-    5. If the task is implementation context or runbook material, route it to coder.
-    6. Prefer calendar or tasks for commitments, reminders, and follow-through instead of burying them in markdown.
-    7. Prefer tables when the user needs a repeatedly updated structured overview.
-    8. Use shares when an artifact should become user-visible outside the agent loop.
-    9. When heartbeat state changes, update `/Projects/ai-homebase/heartbeat.json`.
-    10. When durable facts or rules are created, store a Qdrant summary with `nc_refs`.
+    2. On first use, ensure `/Desk/`, `/Desk/current.md`, `/Desk/index.md`, and `/Desk/daily/README.md` exist.
+    3. Create missing parent directories before writing.
+    4. Before major coordination, read `/Desk/current.md`, `/Desk/index.md`, and the latest shared daily note when they exist.
+    5. Review only the calendars, tasks, and tables registered for `startup` or `heartbeat` review.
+    6. Default to a one-day lookback and seven-day lookahead for registered calendars and task lists unless the surface says otherwise.
+    7. For user-facing project work, check whether `/Projects/<slug>/` already exists.
+    8. If the task is durable planning, route it to architect rather than writing the artifact yourself.
+    9. If the task is implementation context or runbook material, route it to coder.
+    10. Prefer calendar or tasks for commitments, reminders, and follow-through instead of burying them in markdown.
+    11. Prefer tables when the user needs a repeatedly updated structured overview.
+    12. Register new folders outside `/Projects/<slug>/`, relevant calendars, task lists, tables, and user-shared folders in `/Desk/index.md`.
+    13. Each `/Desk/index.md` entry should include `type`, stable `id` or path, purpose, steward, project or domain, and a read trigger.
+    14. Use shares when an artifact should become user-visible outside the agent loop.
+    15. When heartbeat state changes, update `/Projects/ai-homebase/heartbeat.json`.
+    16. When durable facts or rules are created, store a Qdrant summary with `project`, `tags`, and `nc_refs`, plus `expiry` when the memory is intentionally short-lived.
 
     If a recurring need is a simple timed check or reminder, prefer a cron in main or watchdog.
     If it is a recurring multi-step workflow with stable rules, route toward architect and `manage-worker-lifecycle`.
+    Do not let `/Desk/` become a generic archive; move stable material into Qdrant, Memgraph, or `/Projects/`.
 
     ## Common Paths
 
+    - `/Desk/current.md`
+    - `/Desk/index.md`
+    - `/Desk/daily/`
     - `/Projects/<slug>/status.md`
     - `/Projects/<slug>/outputs/`
     - `/Projects/ai-homebase/heartbeat.json`
@@ -2422,9 +2833,11 @@ data:
 
     ## Before Sending Work
 
-    1. Search Qdrant for relevant prior context.
-    2. Check Nextcloud `/Projects/<slug>/` for existing artifacts when a project is involved.
-    3. Include those findings in the handoff.
+    1. Read the relevant parts of `CURRENT.md`, `SURFACES.md`, and the latest local daily note.
+    2. Read the relevant shared `/Desk/current.md`, `/Desk/index.md`, and the latest shared daily note when they exist.
+    3. Search Qdrant for relevant prior context.
+    4. Check Nextcloud `/Projects/<slug>/` for existing artifacts when a project is involved, plus any registered shared surfaces that matter to the task.
+    5. Include those findings in the handoff.
 
     ## Archivist Escalation
 
@@ -2495,11 +2908,12 @@ data:
 
     1. Read the package from Nextcloud.
     2. Create the workspace directory.
-    3. Fill the worker-template files.
+    3. Fill the worker-template files, including `CURRENT.md`, `SURFACES.md`, and `daily/` when the worker should keep continuity across sessions.
     4. Register the agent with `openclaw agents add`.
     5. Update `/Projects/ai-homebase/budget-policy.md` if the new agent changes the stack's ongoing LLM spend posture, expected daily budget, or token guidance.
-    6. Add cron if needed.
-    7. Confirm activation to the user.
+    6. Register any shared worker surfaces in `/Desk/index.md` when they will matter outside the worker's private workspace.
+    7. Add cron if needed.
+    8. Confirm activation to the user.
 
     ## Worker Lifecycle Rules
 
@@ -2524,7 +2938,9 @@ data:
 
     ## Search Trigger
 
+    Read the local desk and the relevant shared `/Desk/` cues first.
     Search Qdrant before non-trivial coordination, especially when prior context, preferences, or project history may matter.
+    Prefer small recency-scoped searches guided by active project slugs, people, services, and open loops.
 
     ## Store Triggers
 
@@ -2535,6 +2951,15 @@ data:
     - a stack-level operating rule changes
 
     When a memory corresponds to a Nextcloud artifact, include `nc_refs`.
+    When a memory is project-specific, set `project`.
+    Add 1 to 4 short `tags` for discoverability.
+    Use `expiry` for short-lived current-context memories that should stop shaping retrieval after the near term.
+
+    Use desk promotion first when the information is only short-term continuity:
+    - local-only current state -> `CURRENT.md` or `daily/`
+    - cross-agent or user-relevant current state -> `/Desk/current.md` or `/Desk/daily/`
+    - durable recall -> Qdrant
+    - structural world-model changes -> archivist plus Memgraph
 
     ## Heartbeat
 
@@ -2545,6 +2970,7 @@ data:
     ## Boundaries
 
     - Do not treat local retrieval hints as the primary long-term memory system.
+    - Do not treat `/Desk/` as a general archive.
     - Do not leave user-relevant durable state only in chat.
   workspace-main-skills__track-budget__SKILL.md: |
     ---
@@ -2617,19 +3043,25 @@ data:
     ## Operating Order
 
     1. Confirm the task is monitoring or triage work.
-    2. Gather current signals from local checks and shared operational state.
-    3. Compare against documented baselines or known rules.
-    4. Record durable incident state when needed.
-    5. Escalate to `agent:main:main` only when severity gates are met.
+    2. Read this file, `CURRENT.md`, `SURFACES.md`, and the latest local daily note.
+    3. Read only the shared `/Desk/` entries that match active monitoring work or startup review.
+    4. Gather current signals from local checks and shared operational state.
+    5. Compare against documented baselines or known rules.
+    6. Record durable incident state when needed.
+    7. Escalate to `agent:main:main` only when severity gates are met.
 
     ## Persistence
 
     - Incidents, baselines, and escalation notes belong in Nextcloud.
     - Durable monitoring rules and recurring signatures belong in Qdrant.
+    - Short-term monitoring continuity belongs in `CURRENT.md`, `SURFACES.md`, and `daily/` until it should become shared or durable.
 
     ## Workspace Files
 
     - `TOOLS.md`: local setup notes for monitoring surfaces and escalation routing
+    - `CURRENT.md`: local desk for active monitoring concerns
+    - `SURFACES.md`: live registry of the surfaces worth checking
+    - `daily/`: short daily breadcrumbs for restart continuity
     - `MEMORY.md`: compact recall rules
     - `HEARTBEAT.md`: end-of-task checks for heartbeat work
 
@@ -2638,9 +3070,36 @@ data:
     - Do not fix what you detect.
     - Do not drift into extended root-cause design.
     - Do not escalate routine noise as incidents.
+  workspace-watchdog-CURRENT.md: |
+    # Current - Watchdog
+
+    Read this before non-trivial monitoring work.
+
+    This is your local desk for short-term monitoring continuity. Keep it small and focused on what the next watchdog session must notice quickly.
+
+    ## Active Monitoring Concerns
+
+    - none yet
+
+    ## Recent Events That Still Matter
+
+    - none yet
+
+    ## Upcoming Checks Or Windows
+
+    - none yet
+
+    ## Retrieval Cues
+
+    - services or signals:
+    - incident slugs:
+    - Qdrant search cues:
   workspace-watchdog-HEARTBEAT.md: |
     Before finishing:
 
+    - update `CURRENT.md` and today's local note when the active monitoring picture changed
+    - promote active incident state or near-term monitoring concerns into `/Desk/current.md` or `/Desk/daily/` when another session must see them quickly
+    - register recurring shared monitoring surfaces outside `/Projects/ai-homebase/` in `/Desk/index.md`
     - check the gateway readiness endpoint
     - check the shared heartbeat file if heartbeat-based monitoring is part of the task
     - ensure the severity classification is justified
@@ -2662,6 +3121,8 @@ data:
 
     ## Search
 
+    Read `CURRENT.md`, `SURFACES.md`, and the relevant shared `/Desk/` cues first.
+
     Use `qdrant-find` when:
     - an incident may match a prior pattern
     - a baseline might already exist
@@ -2675,6 +3136,12 @@ data:
     - baseline summaries
     - durable incident-pattern findings
 
+    Use metadata aggressively:
+    - set `project` whenever the memory belongs to a project slug
+    - add short `tags` for service, subsystem, or signal names
+    - use `expiry` only for short-lived current-context monitoring memories
+    - include `nc_refs` when the durable artifact lives in Nextcloud
+
     Every stored memory must use this text format:
     `[domain] [kind] Complete statement here.`
 
@@ -2686,6 +3153,34 @@ data:
     Operate as a quiet sentinel.
 
     Prefer concise facts, conservative escalation, and clean triage over analysis theater.
+  workspace-watchdog-SURFACES.md: |
+    # Surfaces - Watchdog
+
+    Read this after `CURRENT.md`.
+
+    Keep only the monitoring surfaces that are active or repeatedly useful.
+
+    For each important surface, record:
+    - type
+    - stable id or path
+    - purpose
+    - steward
+    - project or domain
+    - read trigger
+
+    ## Shared Continuity Surfaces
+
+    - `/Desk/current.md` - shared current state - steward: main - trigger: startup or active-incident
+    - `/Desk/index.md` - shared surface registry - steward: main - trigger: startup or heartbeat
+    - `/Desk/daily/` - shared daily continuity - steward: main - trigger: startup
+
+    ## Common Monitoring Surfaces
+
+    - `/Projects/ai-homebase/heartbeat.json` - stack liveness handoff - steward: main - trigger: heartbeat
+    - `/Projects/ai-homebase/watchdog-status-log.md` - durable status summary - steward: watchdog - trigger: startup
+    - `/Projects/ai-homebase/baselines.md` - monitoring baselines - steward: watchdog - trigger: startup
+    - `/Projects/ai-homebase/escalation-rules.md` - escalation policy - steward: watchdog - trigger: startup
+    - `/Projects/ai-homebase/incidents/` - durable incident reports - steward: watchdog - trigger: active-incident
   workspace-watchdog-TOOLS.md: |
     # Tools
 
@@ -2699,8 +3194,11 @@ data:
     ## Files
 
     - Files in this workspace are local workspace files.
+    - `CURRENT.md`, `SURFACES.md`, and `daily/` are your local desk. Read them before non-trivial monitoring work.
+    - `/Desk/...` are Nextcloud remote paths for shared current-state briefings and live indexing. Read only the entries relevant to heartbeat, startup, or active incidents.
     - `/Projects/...` are Nextcloud remote paths for compact durable monitoring state.
     - Keep transient check-by-check scratch work local; promote only durable baselines, incidents, summaries, and rules.
+    - Keep `TOOLS.md` stable. Put active surface references in `SURFACES.md` and shared non-project registrations in `/Desk/index.md`.
     - Seeded ai-homebase monitoring files you will commonly check or update:
       - `/Projects/ai-homebase/watchdog-status-log.md`
       - `/Projects/ai-homebase/baselines.md`
@@ -2715,6 +3213,7 @@ data:
     ## Notes
 
     - Cron prompts in this setup may rely on the same Nextcloud monitoring files even when session visibility is limited.
+    - If you create or discover a recurring shared monitoring surface outside `/Projects/ai-homebase/`, register it in `/Desk/index.md` with steward and read trigger metadata.
     - Keep this file current when shared monitoring paths or readiness endpoints change.
   workspace-watchdog-USER.md: |
     # User
@@ -2725,6 +3224,18 @@ data:
     - Notes:
 
     Main owns the canonical shared user profile. Use this only when escalation timing or shared expectations matter.
+  workspace-watchdog-daily__README.md: |
+    # Daily Notes - Watchdog
+
+    Keep short date-scoped monitoring breadcrumbs here when they may matter to the next session.
+
+    Capture:
+    - active incidents or degradations
+    - baseline changes that still need follow-through
+    - upcoming checks or expected windows
+    - brief references to new monitoring surfaces worth revisiting
+
+    Promote durable baselines, incidents, and recurring signatures into Nextcloud or Qdrant.
   workspace-watchdog-skills__check-heartbeat-and-budget__SKILL.md: |
     ---
     name: check-heartbeat-and-budget
@@ -2743,11 +3254,13 @@ data:
 
     ## Procedure
 
-    1. Check readiness.
-    2. Read the shared heartbeat file when heartbeat-based monitoring is relevant.
-    3. Compare against known baselines before calling something a deviation.
-    4. Compare spend posture against `/Projects/ai-homebase/budget-policy.md` and alert main when the shared policy says the stack is approaching a ceiling.
-    5. From cron, do not depend on session visibility or session messaging unless the cron prompt explicitly requires it.
+    1. Read the relevant shared `/Desk/current.md`, `/Desk/index.md`, and local desk cues when heartbeat or startup review is relevant.
+    2. Check readiness.
+    3. Read the shared heartbeat file when heartbeat-based monitoring is relevant.
+    4. Review only the calendars, task lists, or tables registered for `heartbeat` or `startup` review.
+    5. Compare against known baselines before calling something a deviation.
+    6. Compare spend posture against `/Projects/ai-homebase/budget-policy.md` and alert main when the shared policy says the stack is approaching a ceiling.
+    7. From cron, do not depend on session visibility or session messaging unless the cron prompt explicitly requires it.
 
     ## Boundaries
 
@@ -2826,15 +3339,18 @@ data:
     1. Treat Nextcloud paths as remote paths.
     2. For routine all-clear checks, do not create a new document.
     3. For meaningful incidents or baseline changes, write the smallest durable artifact that preserves the evidence.
-    4. After writing an incident report, store a Qdrant summary with `nc_refs`.
-    5. Escalate to main only when the severity gate is met.
-    6. Keep per-check scratch work local; only promote durable patterns, baselines, and incident state.
+    4. Update `/Desk/current.md` or `/Desk/daily/` when another session should be aware of an active or recent incident quickly.
+    5. If you create a recurring shared monitoring surface outside the usual incident paths, register it in `/Desk/index.md`.
+    6. After writing an incident report, store a Qdrant summary with `project`, `tags`, and `nc_refs`.
+    7. Escalate to main only when the severity gate is met.
+    8. Keep per-check scratch work local; only promote durable patterns, baselines, and incident state.
 
     Use `classify-severity-and-escalate` to decide whether the case is `info`, `warning`, or `critical`.
 
     ## Boundaries
 
     - Prefer one evolving baseline or status log over many fragmented notes.
+    - Do not turn `/Desk/` into an incident archive; it is for bounded continuity.
     - Keep incident reports factual and concise.
 kind: ConfigMap
 metadata:
@@ -3446,6 +3962,21 @@ spec:
             }
             normalize_seeded_skill "${target_path}"
           fi
+          target_path="${workspace_dir}/CURRENT.md"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding CURRENT.md for agent architect."
+            exit 1
+          }
+          if [ -e "${target_path}" ]; then
+            echo "Preserving existing CURRENT.md in ${workspace_dir}."
+          else
+            cp -f /config-source/workspace-architect-CURRENT.md "${target_path}" || {
+              echo >&2 "Failed to seed CURRENT.md into ${workspace_dir} for agent architect."
+              exit 1
+            }
+            normalize_seeded_skill "${target_path}"
+          fi
           target_path="${workspace_dir}/HEARTBEAT.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
@@ -3506,6 +4037,21 @@ spec:
             }
             normalize_seeded_skill "${target_path}"
           fi
+          target_path="${workspace_dir}/SURFACES.md"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding SURFACES.md for agent architect."
+            exit 1
+          }
+          if [ -e "${target_path}" ]; then
+            echo "Preserving existing SURFACES.md in ${workspace_dir}."
+          else
+            cp -f /config-source/workspace-architect-SURFACES.md "${target_path}" || {
+              echo >&2 "Failed to seed SURFACES.md into ${workspace_dir} for agent architect."
+              exit 1
+            }
+            normalize_seeded_skill "${target_path}"
+          fi
           target_path="${workspace_dir}/TOOLS.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
@@ -3532,6 +4078,21 @@ spec:
           else
             cp -f /config-source/workspace-architect-USER.md "${target_path}" || {
               echo >&2 "Failed to seed USER.md into ${workspace_dir} for agent architect."
+              exit 1
+            }
+            normalize_seeded_skill "${target_path}"
+          fi
+          target_path="${workspace_dir}/daily/README.md"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding daily/README.md for agent architect."
+            exit 1
+          }
+          if [ -e "${target_path}" ]; then
+            echo "Preserving existing daily/README.md in ${workspace_dir}."
+          else
+            cp -f /config-source/workspace-architect-daily__README.md "${target_path}" || {
+              echo >&2 "Failed to seed daily/README.md into ${workspace_dir} for agent architect."
               exit 1
             }
             normalize_seeded_skill "${target_path}"
@@ -3601,6 +4162,21 @@ spec:
             }
             normalize_seeded_skill "${target_path}"
           fi
+          target_path="${workspace_dir}/CURRENT.md"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding CURRENT.md for agent archivist."
+            exit 1
+          }
+          if [ -e "${target_path}" ]; then
+            echo "Preserving existing CURRENT.md in ${workspace_dir}."
+          else
+            cp -f /config-source/workspace-archivist-CURRENT.md "${target_path}" || {
+              echo >&2 "Failed to seed CURRENT.md into ${workspace_dir} for agent archivist."
+              exit 1
+            }
+            normalize_seeded_skill "${target_path}"
+          fi
           target_path="${workspace_dir}/HEARTBEAT.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
@@ -3661,6 +4237,21 @@ spec:
             }
             normalize_seeded_skill "${target_path}"
           fi
+          target_path="${workspace_dir}/SURFACES.md"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding SURFACES.md for agent archivist."
+            exit 1
+          }
+          if [ -e "${target_path}" ]; then
+            echo "Preserving existing SURFACES.md in ${workspace_dir}."
+          else
+            cp -f /config-source/workspace-archivist-SURFACES.md "${target_path}" || {
+              echo >&2 "Failed to seed SURFACES.md into ${workspace_dir} for agent archivist."
+              exit 1
+            }
+            normalize_seeded_skill "${target_path}"
+          fi
           target_path="${workspace_dir}/TOOLS.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
@@ -3687,6 +4278,21 @@ spec:
           else
             cp -f /config-source/workspace-archivist-USER.md "${target_path}" || {
               echo >&2 "Failed to seed USER.md into ${workspace_dir} for agent archivist."
+              exit 1
+            }
+            normalize_seeded_skill "${target_path}"
+          fi
+          target_path="${workspace_dir}/daily/README.md"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding daily/README.md for agent archivist."
+            exit 1
+          }
+          if [ -e "${target_path}" ]; then
+            echo "Preserving existing daily/README.md in ${workspace_dir}."
+          else
+            cp -f /config-source/workspace-archivist-daily__README.md "${target_path}" || {
+              echo >&2 "Failed to seed daily/README.md into ${workspace_dir} for agent archivist."
               exit 1
             }
             normalize_seeded_skill "${target_path}"
@@ -3891,6 +4497,21 @@ spec:
             }
             normalize_seeded_skill "${target_path}"
           fi
+          target_path="${workspace_dir}/CURRENT.md"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding CURRENT.md for agent auditor."
+            exit 1
+          }
+          if [ -e "${target_path}" ]; then
+            echo "Preserving existing CURRENT.md in ${workspace_dir}."
+          else
+            cp -f /config-source/workspace-auditor-CURRENT.md "${target_path}" || {
+              echo >&2 "Failed to seed CURRENT.md into ${workspace_dir} for agent auditor."
+              exit 1
+            }
+            normalize_seeded_skill "${target_path}"
+          fi
           target_path="${workspace_dir}/HEARTBEAT.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
@@ -3951,6 +4572,21 @@ spec:
             }
             normalize_seeded_skill "${target_path}"
           fi
+          target_path="${workspace_dir}/SURFACES.md"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding SURFACES.md for agent auditor."
+            exit 1
+          }
+          if [ -e "${target_path}" ]; then
+            echo "Preserving existing SURFACES.md in ${workspace_dir}."
+          else
+            cp -f /config-source/workspace-auditor-SURFACES.md "${target_path}" || {
+              echo >&2 "Failed to seed SURFACES.md into ${workspace_dir} for agent auditor."
+              exit 1
+            }
+            normalize_seeded_skill "${target_path}"
+          fi
           target_path="${workspace_dir}/TOOLS.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
@@ -3977,6 +4613,21 @@ spec:
           else
             cp -f /config-source/workspace-auditor-USER.md "${target_path}" || {
               echo >&2 "Failed to seed USER.md into ${workspace_dir} for agent auditor."
+              exit 1
+            }
+            normalize_seeded_skill "${target_path}"
+          fi
+          target_path="${workspace_dir}/daily/README.md"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding daily/README.md for agent auditor."
+            exit 1
+          }
+          if [ -e "${target_path}" ]; then
+            echo "Preserving existing daily/README.md in ${workspace_dir}."
+          else
+            cp -f /config-source/workspace-auditor-daily__README.md "${target_path}" || {
+              echo >&2 "Failed to seed daily/README.md into ${workspace_dir} for agent auditor."
               exit 1
             }
             normalize_seeded_skill "${target_path}"
@@ -4216,6 +4867,21 @@ spec:
             }
             normalize_seeded_skill "${target_path}"
           fi
+          target_path="${workspace_dir}/CURRENT.md"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding CURRENT.md for agent main."
+            exit 1
+          }
+          if [ -e "${target_path}" ]; then
+            echo "Preserving existing CURRENT.md in ${workspace_dir}."
+          else
+            cp -f /config-source/workspace-main-CURRENT.md "${target_path}" || {
+              echo >&2 "Failed to seed CURRENT.md into ${workspace_dir} for agent main."
+              exit 1
+            }
+            normalize_seeded_skill "${target_path}"
+          fi
           target_path="${workspace_dir}/HEARTBEAT.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
@@ -4276,6 +4942,21 @@ spec:
             }
             normalize_seeded_skill "${target_path}"
           fi
+          target_path="${workspace_dir}/SURFACES.md"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding SURFACES.md for agent main."
+            exit 1
+          }
+          if [ -e "${target_path}" ]; then
+            echo "Preserving existing SURFACES.md in ${workspace_dir}."
+          else
+            cp -f /config-source/workspace-main-SURFACES.md "${target_path}" || {
+              echo >&2 "Failed to seed SURFACES.md into ${workspace_dir} for agent main."
+              exit 1
+            }
+            normalize_seeded_skill "${target_path}"
+          fi
           target_path="${workspace_dir}/TOOLS.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
@@ -4302,6 +4983,21 @@ spec:
           else
             cp -f /config-source/workspace-main-USER.md "${target_path}" || {
               echo >&2 "Failed to seed USER.md into ${workspace_dir} for agent main."
+              exit 1
+            }
+            normalize_seeded_skill "${target_path}"
+          fi
+          target_path="${workspace_dir}/daily/README.md"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding daily/README.md for agent main."
+            exit 1
+          }
+          if [ -e "${target_path}" ]; then
+            echo "Preserving existing daily/README.md in ${workspace_dir}."
+          else
+            cp -f /config-source/workspace-main-daily__README.md "${target_path}" || {
+              echo >&2 "Failed to seed daily/README.md into ${workspace_dir} for agent main."
               exit 1
             }
             normalize_seeded_skill "${target_path}"
@@ -4416,6 +5112,21 @@ spec:
             }
             normalize_seeded_skill "${target_path}"
           fi
+          target_path="${workspace_dir}/CURRENT.md"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding CURRENT.md for agent watchdog."
+            exit 1
+          }
+          if [ -e "${target_path}" ]; then
+            echo "Preserving existing CURRENT.md in ${workspace_dir}."
+          else
+            cp -f /config-source/workspace-watchdog-CURRENT.md "${target_path}" || {
+              echo >&2 "Failed to seed CURRENT.md into ${workspace_dir} for agent watchdog."
+              exit 1
+            }
+            normalize_seeded_skill "${target_path}"
+          fi
           target_path="${workspace_dir}/HEARTBEAT.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
@@ -4476,6 +5187,21 @@ spec:
             }
             normalize_seeded_skill "${target_path}"
           fi
+          target_path="${workspace_dir}/SURFACES.md"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding SURFACES.md for agent watchdog."
+            exit 1
+          }
+          if [ -e "${target_path}" ]; then
+            echo "Preserving existing SURFACES.md in ${workspace_dir}."
+          else
+            cp -f /config-source/workspace-watchdog-SURFACES.md "${target_path}" || {
+              echo >&2 "Failed to seed SURFACES.md into ${workspace_dir} for agent watchdog."
+              exit 1
+            }
+            normalize_seeded_skill "${target_path}"
+          fi
           target_path="${workspace_dir}/TOOLS.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
@@ -4502,6 +5228,21 @@ spec:
           else
             cp -f /config-source/workspace-watchdog-USER.md "${target_path}" || {
               echo >&2 "Failed to seed USER.md into ${workspace_dir} for agent watchdog."
+              exit 1
+            }
+            normalize_seeded_skill "${target_path}"
+          fi
+          target_path="${workspace_dir}/daily/README.md"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding daily/README.md for agent watchdog."
+            exit 1
+          }
+          if [ -e "${target_path}" ]; then
+            echo "Preserving existing daily/README.md in ${workspace_dir}."
+          else
+            cp -f /config-source/workspace-watchdog-daily__README.md "${target_path}" || {
+              echo >&2 "Failed to seed daily/README.md into ${workspace_dir} for agent watchdog."
               exit 1
             }
             normalize_seeded_skill "${target_path}"

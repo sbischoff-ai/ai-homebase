@@ -7,10 +7,11 @@ Every project should use the same default storage model:
 
 Storage hierarchy from most permissive to most curated:
 
-- local workspace files: private WIP, rough drafts, self-notes, temporary working state
+- local workspace files: private WIP, rough drafts, self-notes, desk files, and temporary working state
 - Qdrant: shared quick recall, decisions, conventions, handoff context, and other note-like memories worth finding later
 - Memgraph through `archivist`: structural entities, relationships, and promoted graph-linked memory
-- Nextcloud: curated shared artifacts, user collaboration surfaces, and durable project records
+- Nextcloud `/Desk/`: bounded shared continuity and live indexing for current state, shared briefings, and rediscovery
+- Nextcloud `/Projects/<project-slug>/`: curated shared artifacts, user collaboration surfaces, and durable project records
 
 Durable artifacts belong in `/Projects/`, for example:
 - `spec.md`
@@ -20,6 +21,8 @@ Durable artifacts belong in `/Projects/`, for example:
 
 Use local workspace files instead of a shared Nextcloud scratchpad when the material is still private, provisional, or only useful to one agent while thinking.
 Store shared quick notes in Qdrant when they should shape later work but do not need a user-facing document yet.
+Use `/Desk/` for short-term shared continuity and indexing that should survive a restart but stay smaller and less curated than project docs.
 Drafts may also live in `/Projects/` when they are part of the project's shared working record or the user should be able to collaborate on them there.
 
+`/Desk/` is created by `main` at bootstrap or first use. It is not part of the chart-managed `/Projects/` bootstrap content and must stay bounded rather than turning into a generic catch-all bucket.
 If agents create additional Nextcloud folders later, they should do so intentionally, document the purpose, and avoid recreating a generic catch-all notes bucket.

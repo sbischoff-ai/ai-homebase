@@ -262,31 +262,46 @@ assert "Local notes for this setup." in main_tools
 assert "`agent:architect:main`" in main_tools
 assert "shared `openclaw` Nextcloud account" in main_tools
 assert "Prefer files for durable narrative artifacts" in main_tools
+assert "/Desk/index.md" in main_tools
+
+main_current = (REPO_ROOT / "charts" / "openclaw" / "files" / "workspaces" / "main" / "CURRENT.md").read_text()
+assert "local desk" in main_current
+assert "Retrieval Cues" in main_current
+
+main_surfaces = (REPO_ROOT / "charts" / "openclaw" / "files" / "workspaces" / "main" / "SURFACES.md").read_text()
+assert "/Desk/current.md" in main_surfaces
+assert "/Projects/ai-homebase/heartbeat.json" in main_surfaces
 
 coder_tools = (REPO_ROOT / "charts" / "openclaw" / "files" / "workspaces" / "coder" / "TOOLS.md").read_text()
 assert "CODER_GITEA_BASE_URL" in coder_tools
 assert "/Projects/ai-homebase/codex-usage/" in coder_tools
 assert "`agent:main:main`" in coder_tools
+assert "Do not create a persistent local OpenClaw `CURRENT.md`" in coder_tools
 
 architect_tools = (REPO_ROOT / "charts" / "openclaw" / "files" / "workspaces" / "architect" / "TOOLS.md").read_text()
 assert "/Projects/<slug>/..." in architect_tools
 assert "/Projects/ai-homebase/project-documentation-model.md" in architect_tools
+assert "/Desk/index.md" in architect_tools
 
 archivist_tools = (REPO_ROOT / "charts" / "openclaw" / "files" / "workspaces" / "archivist" / "TOOLS.md").read_text()
 assert "MEMGRAPH_BOLT_URI" in archivist_tools
 assert "state/grooming-cursor.json" in archivist_tools
+assert "/Desk/index.md" in archivist_tools
 
 watchdog_tools = (REPO_ROOT / "charts" / "openclaw" / "files" / "workspaces" / "watchdog" / "TOOLS.md").read_text()
 assert "http://127.0.0.1:18789/readyz" in watchdog_tools
 assert "/Projects/ai-homebase/incidents/" in watchdog_tools
+assert "/Desk/index.md" in watchdog_tools
 
 auditor_tools = (REPO_ROOT / "charts" / "openclaw" / "files" / "workspaces" / "auditor" / "TOOLS.md").read_text()
 assert "/Projects/ai-homebase/audit-log.md" in auditor_tools
 assert "Local notes for this setup." in auditor_tools
+assert "/Desk/index.md" in auditor_tools
 
 worker_tools = (REPO_ROOT / "charts" / "openclaw" / "files" / "workspaces" / "worker-template" / "TOOLS.md").read_text()
 assert "Record concrete setup facts here" in worker_tools
 assert "Standard return target: `agent:main:main`" in worker_tools
+assert "/Desk/..." in worker_tools
 assert "knowledge-graph-schema.md" in json.dumps(rendered_values["nextcloud"]["bootstrapProjectContent"])
 assert rendered_values["memgraph"]["ingress"]["hosts"][0]["host"] == "memgraph.test.internal"
 assert rendered_values["memgraphLab"]["ingress"]["hosts"][0]["host"] == "memgraph-lab.test.internal"
@@ -307,10 +322,13 @@ assert "running AI homebase cluster" in rendered_values["nextcloud"]["bootstrapP
 project_files = rendered_values["nextcloud"]["bootstrapProjectContent"][0]["projectsFiles"]
 assert any(item["path"] == "qdrant-memory-schema.md" and "Qdrant Semantic Memory Schema" in item["content"] for item in project_files)
 assert any(item["path"] == "knowledge-graph-schema.md" and "Knowledge Graph Schema" in item["content"] for item in project_files)
+assert any(item["path"] == "project-documentation-model.md" and "/Desk/" in item["content"] for item in project_files)
+assert any(item["path"] == "project-documentation-model.md" and "created by `main` at bootstrap or first use" in item["content"] for item in project_files)
 assert any(item["path"] == "incidents/README.md" for item in project_files)
 assert any(item["path"] == "baselines.md" for item in project_files)
 assert any(item["path"] == "escalation-rules.md" for item in project_files)
 assert "notes" not in rendered_values["nextcloud"]["bootstrapProjectContent"][0]
+assert not any(item["path"].startswith("Desk/") for item in project_files)
 assert rendered_values["nextcloud"]["ingress"]["private"]["host"] == "nextcloud.test.internal"
 assert rendered_values["nextcloud"]["ingress"]["public"]["host"] == "nextcloud.example.com"
 assert rendered_values["nextcloud"]["smtp"]["host"] == "platform-stack-postfix-relay"

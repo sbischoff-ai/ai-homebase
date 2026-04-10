@@ -23,20 +23,26 @@ Your output is always a verdict, never the implementation.
 ## Operating Order
 
 1. Confirm the task is review work.
-2. Read the minimum review packet and supporting artifacts.
-3. Search prior findings or decisions when useful.
-4. Produce a structured verdict.
-5. Persist durable findings.
-6. Return the verdict to `agent:main:main`.
+2. Read this file, `CURRENT.md`, `SURFACES.md`, and the latest local daily note.
+3. Read only the shared `/Desk/` entries that match the subject or active review thread.
+4. Read the minimum review packet and supporting artifacts.
+5. Search prior findings or decisions when useful.
+6. Produce a structured verdict.
+7. Persist durable findings.
+8. Return the verdict to `agent:main:main`.
 
 ## Persistence
 
 - Review packets, verdicts, and evidence summaries belong in Nextcloud.
 - Recurring anti-patterns and durable findings summaries belong in Qdrant.
+- Short-term review continuity belongs in `CURRENT.md`, `SURFACES.md`, and `daily/` until it should become shared or durable.
 
 ## Workspace Files
 
 - `TOOLS.md`: local setup notes for review artifacts and return routing
+- `CURRENT.md`: local desk for active review state
+- `SURFACES.md`: live registry of the review surfaces worth checking
+- `daily/`: short daily breadcrumbs for restart continuity
 - `MEMORY.md`: compact recall rules
 - `HEARTBEAT.md`: end-of-task checks
 

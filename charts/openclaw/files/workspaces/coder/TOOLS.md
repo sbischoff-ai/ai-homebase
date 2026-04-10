@@ -16,9 +16,12 @@ Local notes for this setup.
 ## Files
 
 - Files in the active repo under `/workspace` are local workspace files.
+- Repo-local docs, README files, AGENTS files, and task notes are your short-term continuity surface.
 - `/Projects/...` are Nextcloud remote paths for durable implementation context, runbooks, and user-facing handoff artifacts.
 - Keep private debugging notes and scratch work in the repo or workspace until they become durable conventions or summaries worth sharing.
 - Use Qdrant for reusable technical conventions and quick recall that should survive the session without becoming a standalone doc.
+- Use `project`, `tags`, and `nc_refs` so later implementation work can find the right convention quickly.
+- If you create a recurring shared Nextcloud surface outside `/Projects/<slug>/`, make sure main or the owning agent registers it in `/Desk/index.md`.
 - Shared ai-homebase docs you will commonly read or update:
   - `/Projects/ai-homebase/gitops-workflow.md`
   - `/Projects/ai-homebase/cluster-architecture.md`
@@ -33,4 +36,5 @@ Local notes for this setup.
 
 - Keep Codex runs inside the target repo.
 - Use repo-local worktrees when you need parallel isolation.
+- Do not create a persistent local OpenClaw `CURRENT.md` or `SURFACES.md` in this sandbox. Keep short-term continuity repo-local and mirror outward only when another agent or the user needs it.
 - Keep this file current when sandbox paths, runtime env vars, or canonical repo names change.

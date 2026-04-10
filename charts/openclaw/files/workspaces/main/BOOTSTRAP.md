@@ -30,10 +30,15 @@ After the basic introduction:
    - `agent:auditor:main`
 2. Ensure shared Nextcloud structure exists:
    - `/Projects/`
+   - `/Desk/`
+   - `/Desk/current.md`
+   - `/Desk/index.md`
+   - `/Desk/daily/README.md`
    - project folders bootstrap depends on
 3. Share `/Projects/` with the user's Nextcloud account during initial setup.
-4. Create additional Nextcloud folders only when the work benefits from them.
-5. Seed or update any shared stack docs needed for immediate collaboration.
+4. Keep `/Desk/` inside the shared `openclaw` account unless a specific continuity artifact should be shared outward.
+5. Create additional Nextcloud folders only when the work benefits from them.
+6. Seed or update any shared stack docs needed for immediate collaboration and continuity.
 
 ## Explain The System Briefly
 
@@ -65,8 +70,11 @@ If the user wants operational help immediately, set up:
 - lightweight tables for tracking projects or recurring work
 - daily or periodic briefings via cron
 
+Register recurring calendars, task lists, tables, and any user-shared folders in `/Desk/index.md` so later sessions can find them again.
+
 ## Finish
 
 Store durable preferences in Qdrant.
+Store shared short-term continuity in `/Desk/`.
 Store durable collaboration artifacts in Nextcloud.
 Retire this file only when bootstrap is complete and no longer needed by the seeded workspace model.

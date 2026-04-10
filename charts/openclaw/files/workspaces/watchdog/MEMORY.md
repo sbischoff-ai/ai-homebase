@@ -4,6 +4,8 @@ Qdrant is the durable shared semantic memory layer. Use this file only for local
 
 ## Search
 
+Read `CURRENT.md`, `SURFACES.md`, and the relevant shared `/Desk/` cues first.
+
 Use `qdrant-find` when:
 - an incident may match a prior pattern
 - a baseline might already exist
@@ -16,6 +18,12 @@ Use `qdrant-store` for:
 - recurring failure signatures
 - baseline summaries
 - durable incident-pattern findings
+
+Use metadata aggressively:
+- set `project` whenever the memory belongs to a project slug
+- add short `tags` for service, subsystem, or signal names
+- use `expiry` only for short-lived current-context monitoring memories
+- include `nc_refs` when the durable artifact lives in Nextcloud
 
 Every stored memory must use this text format:
 `[domain] [kind] Complete statement here.`

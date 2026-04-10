@@ -91,6 +91,19 @@ Guidance:
 - File and directory paths are acceptable when no stable ID exists.
 - Include the same reference in both `information` text and `nc_refs` metadata when practical.
 
+## Retrieval guidance
+
+Agents should brief themselves from their local desk and the shared `/Desk/` continuity surfaces first, then query Qdrant from those cues.
+
+Guidance:
+
+- prefer recency-scoped searches guided by active project slugs, people, services, and open loops
+- use `project` whenever the memory belongs to a project slug
+- use `tags` for discoverability across sessions
+- use `expiry` for short-lived current-context memories that should stop shaping recall after the near term
+- use `nc_refs` whenever a memory points to a Nextcloud artifact or shared surface
+- do not treat startup as a blind memory dump
+
 ## Storage guidance
 
 Store durable knowledge that should influence future agent behavior:
@@ -110,6 +123,8 @@ Do not store:
 - transient command output
 - live metrics snapshots
 - information easily re-derived from the repo or current system state
+
+Short-term continuity that only needs to survive the next session belongs in local desk notes or shared `/Desk/` surfaces instead of Qdrant.
 
 ## Future filtering
 

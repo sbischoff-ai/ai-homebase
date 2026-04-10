@@ -24,11 +24,12 @@ When asking architect for a worker, include:
 
 1. Read the package from Nextcloud.
 2. Create the workspace directory.
-3. Fill the worker-template files.
+3. Fill the worker-template files, including `CURRENT.md`, `SURFACES.md`, and `daily/` when the worker should keep continuity across sessions.
 4. Register the agent with `openclaw agents add`.
 5. Update `/Projects/ai-homebase/budget-policy.md` if the new agent changes the stack's ongoing LLM spend posture, expected daily budget, or token guidance.
-6. Add cron if needed.
-7. Confirm activation to the user.
+6. Register any shared worker surfaces in `/Desk/index.md` when they will matter outside the worker's private workspace.
+7. Add cron if needed.
+8. Confirm activation to the user.
 
 ## Worker Lifecycle Rules
 

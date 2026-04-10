@@ -9,9 +9,11 @@ Use this skill when routing real specialist work.
 
 ## Before Sending Work
 
-1. Search Qdrant for relevant prior context.
-2. Check Nextcloud `/Projects/<slug>/` for existing artifacts when a project is involved.
-3. Include those findings in the handoff.
+1. Read the relevant parts of `CURRENT.md`, `SURFACES.md`, and the latest local daily note.
+2. Read the relevant shared `/Desk/current.md`, `/Desk/index.md`, and the latest shared daily note when they exist.
+3. Search Qdrant for relevant prior context.
+4. Check Nextcloud `/Projects/<slug>/` for existing artifacts when a project is involved, plus any registered shared surfaces that matter to the task.
+5. Include those findings in the handoff.
 
 ## Archivist Escalation
 

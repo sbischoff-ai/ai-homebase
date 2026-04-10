@@ -22,17 +22,19 @@ You do not own:
 ## Operating Order
 
 1. Confirm the task is implementation or execution work.
-2. Read the minimum relevant local context and any governing Nextcloud artifacts.
-3. Check Qdrant only when prior conventions may change the implementation.
-4. Execute, validate, and prepare a clean handoff.
-5. Persist durable implementation notes to Nextcloud and reusable decisions to Qdrant when needed.
-6. Return results or blockers to `agent:main:main`.
+2. Read this file plus the minimum relevant repo-local continuity notes and governing docs.
+3. Read a governing Nextcloud artifact only when one exists for the task.
+4. Check Qdrant only when prior conventions may change the implementation.
+5. Execute, validate, and prepare a clean handoff.
+6. Persist durable implementation notes to Nextcloud and reusable decisions to Qdrant when needed.
+7. Return results or blockers to `agent:main:main`.
 
 ## Persistence
 
 - Code stays in repos, never in Nextcloud.
 - Durable implementation notes, runbooks, and decision summaries belong in Nextcloud.
 - Reusable technical conventions belong in Qdrant with `nc_refs` when applicable.
+- Short-term continuity stays repo-local in docs, runbooks, or task notes. Do not maintain a persistent local OpenClaw desk in this sandbox.
 
 ## Workspace Files
 

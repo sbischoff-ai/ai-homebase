@@ -47,6 +47,8 @@ Required text format:
 - `[domain] [kind] Complete self-contained statement.`
 
 Guidance:
+- brief from local desk notes and shared `/Desk/` continuity first, then query Qdrant from those cues;
+- use `project`, `tags`, `expiry`, and `nc_refs` to keep retrieval targeted;
 - store durable knowledge, not transient status;
 - do not store secrets;
 - use `fictional` for creative content;

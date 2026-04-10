@@ -15,11 +15,13 @@ Use this skill for lightweight recurring checks.
 
 ## Procedure
 
-1. Check readiness.
-2. Read the shared heartbeat file when heartbeat-based monitoring is relevant.
-3. Compare against known baselines before calling something a deviation.
-4. Compare spend posture against `/Projects/ai-homebase/budget-policy.md` and alert main when the shared policy says the stack is approaching a ceiling.
-5. From cron, do not depend on session visibility or session messaging unless the cron prompt explicitly requires it.
+1. Read the relevant shared `/Desk/current.md`, `/Desk/index.md`, and local desk cues when heartbeat or startup review is relevant.
+2. Check readiness.
+3. Read the shared heartbeat file when heartbeat-based monitoring is relevant.
+4. Review only the calendars, task lists, or tables registered for `heartbeat` or `startup` review.
+5. Compare against known baselines before calling something a deviation.
+6. Compare spend posture against `/Projects/ai-homebase/budget-policy.md` and alert main when the shared policy says the stack is approaching a ceiling.
+7. From cron, do not depend on session visibility or session messaging unless the cron prompt explicitly requires it.
 
 ## Boundaries
 

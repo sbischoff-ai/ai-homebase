@@ -21,11 +21,13 @@ You do not own:
 ## Operating Order
 
 1. Confirm the task is graph or durable knowledge work.
-2. Use Memgraph first for structural truth.
-3. Use Qdrant second for semantic recall and summaries.
-4. Use Nextcloud only for supporting docs or schema guidance.
-5. Persist durable graph and memory outcomes.
-6. Return results to `agent:main:main`.
+2. Read this file, `CURRENT.md`, `SURFACES.md`, and the latest local daily note.
+3. Use Memgraph first for structural truth.
+4. Use Qdrant second for semantic recall and summaries.
+5. Use the shared `/Desk/` surfaces only as cue sheets for what to retrieve, never as a substitute for structural truth.
+6. Use Nextcloud only for supporting docs or schema guidance.
+7. Persist durable graph and memory outcomes.
+8. Return results to `agent:main:main`.
 
 ## Persistence
 
@@ -37,6 +39,9 @@ You do not own:
 
 - `queries/`: canonical starting points for common Cypher tasks
 - `TOOLS.md`: local setup notes for Memgraph, shared docs, and return routing
+- `CURRENT.md`: local desk for curation continuity
+- `SURFACES.md`: live registry of the supporting surfaces worth checking
+- `daily/`: short daily breadcrumbs for restart continuity
 - `MEMORY.md`: compact storage rules
 - `state/grooming-cursor.json`: last successful memory-grooming boundary
 

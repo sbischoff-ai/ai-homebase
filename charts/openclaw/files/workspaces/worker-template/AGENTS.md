@@ -11,6 +11,9 @@ You are a bottom-layer execution agent.
 - `SOUL.md`: execution style.
 - `HEARTBEAT.md`: end-of-run checks.
 - `MEMORY.md`: whether this worker uses Qdrant at all.
+- `CURRENT.md`: local short-term continuity when this worker has a persistent workspace.
+- `SURFACES.md`: live registry of the worker's recurring surfaces when applicable.
+- `daily/`: short restart breadcrumbs when the worker runs across sessions.
 - `skills/`: workflow procedures and templates for recurring worker actions.
 
 ## Core Role
@@ -37,7 +40,7 @@ Use the right tool family for the right surface. Do not mix local and remote pat
 ## Operating Order
 
 1. Confirm the input matches your workflow.
-2. Read only the minimum relevant workspace files.
+2. Read only the minimum relevant workspace files, including `CURRENT.md`, `SURFACES.md`, and the latest daily note when this worker keeps continuity.
 3. Execute the predefined steps.
 4. If a rule is missing or a tool fails unexpectedly, escalate to main.
 5. Persist outputs only where your definition says they belong.
@@ -61,6 +64,7 @@ Keep `AGENTS.md` short. Put recurring procedures, output templates, and tool-spe
 - `/Projects/...` and any other Nextcloud folders: only Nextcloud tools if your workflow uses them
 - Shared memory: only Qdrant tools if your workflow uses them
 - Coordination: `sessions_send` only to `agent:main:main`
+- Shared continuity: use `/Desk/...` only if your workflow explicitly grants and needs it
 
 ## Schedule
 

@@ -129,6 +129,7 @@ project = "platform-stack"
         assert 'incidents/README.md' in bootstrap_values
         assert 'baselines.md' in bootstrap_values
         assert 'escalation-rules.md' in bootstrap_values
+        assert '/Desk/' in bootstrap_values
         assert '"workspaceBootstrap"' in bootstrap_values
         assert '"filesDir": "workspaces/main"' in bootstrap_values
         assert '"filesDir": "workspaces/coder"' in bootstrap_values

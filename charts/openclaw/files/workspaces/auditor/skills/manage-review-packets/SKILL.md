@@ -24,11 +24,12 @@ Write durable review artifacts such as:
 
 ## Procedure
 
-1. Read the minimum packet required for a verdict.
-2. Prefer compact evidence summaries over raw long histories.
-3. Store the durable review artifact in Nextcloud.
-4. Store recurring anti-patterns or durable verdict summaries in Qdrant with `nc_refs` when applicable.
-5. Use `classify-review-mode` when the task needs explicit mode classification or a return packet to main.
+1. Read the relevant local desk notes and shared `/Desk/` entries before opening more packet material.
+2. Read the minimum packet required for a verdict.
+3. Prefer compact evidence summaries over raw long histories.
+4. Store the durable review artifact in Nextcloud.
+5. Store recurring anti-patterns or durable verdict summaries in Qdrant with `project`, `tags`, and `nc_refs` when applicable.
+6. Use `classify-review-mode` when the task needs explicit mode classification or a return packet to main.
 
 ## Boundaries
 

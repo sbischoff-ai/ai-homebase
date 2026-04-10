@@ -35,7 +35,7 @@ Use this skill when another agent needs durable cross-entity context.
 
 - Memgraph first for relationships
 - Qdrant second for candidate memories and prior decisions
-- Nextcloud references third for supporting docs
+- shared `/Desk/` cues and Nextcloud references third for supporting docs
 - when a Qdrant memory deserves graph structure, represent it as linked `MemoryEntry` structure
 - include `nc_refs` when a memory points to a Nextcloud artifact
 

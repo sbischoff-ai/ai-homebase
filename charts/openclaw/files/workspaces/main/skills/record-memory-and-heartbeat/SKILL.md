@@ -9,7 +9,9 @@ Use this skill after meaningful coordination work.
 
 ## Search Trigger
 
+Read the local desk and the relevant shared `/Desk/` cues first.
 Search Qdrant before non-trivial coordination, especially when prior context, preferences, or project history may matter.
+Prefer small recency-scoped searches guided by active project slugs, people, services, and open loops.
 
 ## Store Triggers
 
@@ -20,6 +22,15 @@ Store a Qdrant memory when:
 - a stack-level operating rule changes
 
 When a memory corresponds to a Nextcloud artifact, include `nc_refs`.
+When a memory is project-specific, set `project`.
+Add 1 to 4 short `tags` for discoverability.
+Use `expiry` for short-lived current-context memories that should stop shaping retrieval after the near term.
+
+Use desk promotion first when the information is only short-term continuity:
+- local-only current state -> `CURRENT.md` or `daily/`
+- cross-agent or user-relevant current state -> `/Desk/current.md` or `/Desk/daily/`
+- durable recall -> Qdrant
+- structural world-model changes -> archivist plus Memgraph
 
 ## Heartbeat
 
@@ -30,4 +41,5 @@ Write `/Projects/ai-homebase/heartbeat.json` with:
 ## Boundaries
 
 - Do not treat local retrieval hints as the primary long-term memory system.
+- Do not treat `/Desk/` as a general archive.
 - Do not leave user-relevant durable state only in chat.
