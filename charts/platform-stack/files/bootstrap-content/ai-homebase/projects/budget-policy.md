@@ -50,6 +50,8 @@ These are planning references, not hard stops:
 ## Monitoring And Review Posture
 
 - `watchdog` should alert `main` when total daily spend exceeds `$12`, because the stack is approaching the daily hard ceiling
+- heartbeat-driven polling should default to `watchdog` or a Nano worker; adding heartbeat to a higher-cost agent is an explicit exception that should be user-aware
+- recurring non-reactive work for higher-cost agents should prefer sparse cron such as nightly or weekly instead of a 30-minute loop
 - `auditor` should stay conservative and prefer compact review packets
 - reference review posture:
   - on-demand reviews should usually stay under `30K` input tokens

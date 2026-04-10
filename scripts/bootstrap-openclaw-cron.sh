@@ -114,14 +114,6 @@ read_message() {
   cat "$msg_file"
 }
 
-ensure_job "Watchdog heartbeat" \
-  --name "Watchdog heartbeat" \
-  --every "30m" \
-  --session isolated \
-  --agent watchdog \
-  --no-deliver \
-  --message "$(read_message "watchdog-heartbeat.md")"
-
 ensure_job "Watchdog platform sweep" \
   --name "Watchdog platform sweep" \
   --cron "15 */12 * * *" \

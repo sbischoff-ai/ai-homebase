@@ -12,7 +12,7 @@ Use this skill whenever watchdog must decide whether to log, wait, or escalate.
 | Level | Criteria | Action |
 | --- | --- | --- |
 | info | Observation only; no user impact, no baseline deviation | Log only. Do not message main. |
-| warning | Deviation from baseline or partial degradation; service still functional | Log. Escalate to main only if it persists for 2 consecutive checks at least 10 minutes apart. |
+| warning | Deviation from baseline, partial degradation, or budget posture approaching a configured ceiling while the system is still functional | Log. Escalate to main only if it persists for 2 consecutive checks at least 10 minutes apart. |
 | critical | Service unreachable, data-loss risk, or security concern | Escalate immediately after confirmation from at least one independent signal. |
 
 ## Anti-False-Positive Rules
@@ -29,6 +29,7 @@ From cron:
 - treat `/Projects/...` as Nextcloud remote paths
 - use Nextcloud tools for durable state
 - use the gateway readiness endpoint only as a local HTTP check
+- keep heartbeat-triggered checks narrow instead of broadening into unrelated maintenance
 
 ## Alert Format
 

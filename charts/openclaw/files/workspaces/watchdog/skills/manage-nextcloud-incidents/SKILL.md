@@ -18,7 +18,7 @@ Watchdog uses Nextcloud for durable monitoring state.
 ## Procedure
 
 1. Treat Nextcloud paths as remote paths.
-2. For routine all-clear checks, do not create a new document.
+2. For routine all-clear checks, update only `/Projects/ai-homebase/watchdog-status-log.md` when anything needs to be preserved. Do not create a new document.
 3. For meaningful incidents or baseline changes, write the smallest durable artifact that preserves the evidence.
 4. Update `/Desk/current.md` or `/Desk/daily/` when another session should be aware of an active or recent incident quickly.
 5. If you create a recurring shared monitoring surface outside the usual incident paths, register it in `/Desk/index.md`.

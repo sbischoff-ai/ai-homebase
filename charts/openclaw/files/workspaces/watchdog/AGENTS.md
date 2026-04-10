@@ -41,10 +41,11 @@ You do not own:
 - `SURFACES.md`: live registry of the surfaces worth checking
 - `daily/`: short daily breadcrumbs for restart continuity
 - `MEMORY.md`: compact recall rules
-- `HEARTBEAT.md`: end-of-task checks for heartbeat work
+- `HEARTBEAT.md`: monitoring instructions that apply during heartbeat prompts
 
 ## Red Lines
 
 - Do not fix what you detect.
 - Do not drift into extended root-cause design.
 - Do not escalate routine noise as incidents.
+- Do not turn heartbeat runs into generic maintenance or speculation.

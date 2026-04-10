@@ -681,7 +681,6 @@ payload = json.loads(raw[start:])
 jobs = payload if isinstance(payload, list) else payload.get("jobs", [])
 names = {job.get("name") for job in jobs}
 expected = {
-    "Watchdog heartbeat",
     "Watchdog platform sweep",
     "Watchdog nightly activity check",
     "Watchdog daily digest",
@@ -712,12 +711,14 @@ verify_openclaw_workspace_bootstrap() {
 
     test -f /home/node/.openclaw/workspace/AGENTS.md
     grep -F "systemic quality judgment -> auditor" /home/node/.openclaw/workspace/AGENTS.md >/dev/null
+    test ! -e /home/node/.openclaw/workspace/HEARTBEAT.md
 
     test -f /home/node/.openclaw/workspace-coder/TOOLS.md
     grep -F "CODER_GITEA_BASE_URL" /home/node/.openclaw/workspace-coder/TOOLS.md >/dev/null
     grep -F "/Projects/ai-homebase/codex-usage/" /home/node/.openclaw/workspace-coder/TOOLS.md >/dev/null
     test -f /home/node/.openclaw/workspace-coder/skills/run-codex-and-log-usage/SKILL.md
     grep -F "default \`gpt-5.4-mini\` for routine work" /home/node/.openclaw/workspace-coder/skills/run-codex-and-log-usage/SKILL.md >/dev/null
+    test ! -e /home/node/.openclaw/workspace-coder/HEARTBEAT.md
 
     test -f /home/node/.openclaw/workspace-archivist/TOOLS.md
     grep -F "MEMGRAPH_BOLT_URI" /home/node/.openclaw/workspace-archivist/TOOLS.md >/dev/null
@@ -727,12 +728,16 @@ verify_openclaw_workspace_bootstrap() {
     test -f /home/node/.openclaw/workspace-archivist/skills/update-memgraph/SKILL.md
     grep -F "create or update a \`MemoryEntry\` node" /home/node/.openclaw/workspace-archivist/skills/update-memgraph/SKILL.md >/dev/null
     test -f /home/node/.openclaw/workspace-archivist/queries/entity-by-slug.cypher
+    test ! -e /home/node/.openclaw/workspace-archivist/HEARTBEAT.md
 
     test -f /home/node/.openclaw/workspace-architect/AGENTS.md
     grep -F "verdicts -> auditor" /home/node/.openclaw/workspace-architect/AGENTS.md >/dev/null
+    test ! -e /home/node/.openclaw/workspace-architect/HEARTBEAT.md
 
     test -f /home/node/.openclaw/workspace-watchdog/AGENTS.md
     grep -F "systemic review -> auditor" /home/node/.openclaw/workspace-watchdog/AGENTS.md >/dev/null
+    test -f /home/node/.openclaw/workspace-watchdog/HEARTBEAT.md
+    grep -F "## Heartbeat Procedure" /home/node/.openclaw/workspace-watchdog/HEARTBEAT.md >/dev/null
     test -f /home/node/.openclaw/workspace-watchdog/TOOLS.md
     grep -F "http://127.0.0.1:18789/readyz" /home/node/.openclaw/workspace-watchdog/TOOLS.md >/dev/null
     test -f /home/node/.openclaw/workspace-watchdog/skills/check-heartbeat-and-budget/SKILL.md
@@ -740,6 +745,7 @@ verify_openclaw_workspace_bootstrap() {
 
     test -f /home/node/.openclaw/workspace-auditor/MEMORY.md
     grep -F "\"agent\":\"auditor\"" /home/node/.openclaw/workspace-auditor/MEMORY.md >/dev/null
+    test ! -e /home/node/.openclaw/workspace-auditor/HEARTBEAT.md
   '
 }
 

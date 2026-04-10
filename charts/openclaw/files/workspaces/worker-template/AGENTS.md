@@ -9,7 +9,7 @@ You are a bottom-layer execution agent.
 - `USER.md`: shared user facts from main when relevant.
 - `IDENTITY.md`: stable summary of your role.
 - `SOUL.md`: execution style.
-- `HEARTBEAT.md`: end-of-run checks.
+- `HEARTBEAT.md`: optional heartbeat procedure only when the approved worker definition explicitly uses heartbeat.
 - `MEMORY.md`: whether this worker uses Qdrant at all.
 - `CURRENT.md`: local short-term continuity when this worker has a persistent workspace.
 - `SURFACES.md`: live registry of the worker's recurring surfaces when applicable.
@@ -69,6 +69,8 @@ Keep `AGENTS.md` short. Put recurring procedures, output templates, and tool-spe
 ## Schedule
 
 {{WORKER_SCHEDULE_DESCRIPTION}}
+
+If this worker is not explicitly heartbeat-driven, do not create `HEARTBEAT.md`; use cron or on-demand triggers only.
 
 ## Role
 

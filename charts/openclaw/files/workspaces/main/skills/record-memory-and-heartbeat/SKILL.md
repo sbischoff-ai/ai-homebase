@@ -34,8 +34,16 @@ Use desk promotion first when the information is only short-term continuity:
 
 ## Heartbeat
 
-After meaningful coordination work, follow `HEARTBEAT.md`.
-Write `/Projects/ai-homebase/heartbeat.json` with:
+After meaningful coordination work:
+- refresh `CURRENT.md` and the latest local note when short-term continuity changed
+- promote cross-agent or user-relevant current state into `/Desk/current.md` or `/Desk/daily/` when it should survive a restart
+- register newly important shared surfaces in `/Desk/index.md`
+- capture user-relevant decisions in Nextcloud when they belong in a durable artifact
+- store durable new preferences or rules in Qdrant when recall should survive the current work
+- refresh `/Projects/ai-homebase/heartbeat.json` when shared coordination state changed in a way watchdog should notice
+- do nothing extra when nothing durable changed
+
+When you refresh the shared heartbeat file, write:
 `{"lastActivity":"ISO-8601","agent":"main","status":"ok"}`
 
 ## Boundaries

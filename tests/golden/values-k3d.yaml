@@ -57,6 +57,7 @@ data:
     - `watchdog` (GPT-5.4 Nano) and worker agents (GPT-5.4 Mini or Nano) execute predefined workflows repeatedly and cheaply.
     - They do not make independent creative or strategic decisions.
     - They escalate when ambiguity appears.
+    - Heartbeat-driven polling and other frequent reactive checks belong here, not on frontier standing agents.
 
     Design principle:
     - intelligence is concentrated at the top and amortized through cheap execution at the bottom.
@@ -103,6 +104,7 @@ data:
     - Worker agents are domain-specific execution units designed by `architect`.
     - Each worker has an execution plan, reference documentation, a scheduling model, and escalation rules defined before instantiation.
     - Workers use GPT-5.4 Nano or GPT-5.4 Mini depending on task complexity.
+    - Heartbeat-enabled workers are the exception case for workflows that truly need frequent reactive checks; otherwise prefer cron or on-demand triggers.
     - Workers must not redesign workflows, make strategic decisions, or interpret ambiguous instructions.
     - Workers escalate exclusively to `main`.
     - Example worker types: `accountant`, `mail_clerk`, `reporter`, `market_tracker`, `habit_helper`
@@ -273,7 +275,7 @@ data:
 
     `/Desk/` is created by `main` at bootstrap or first use. It is not part of the chart-managed `/Projects/` bootstrap content and must stay bounded rather than turning into a generic catch-all bucket.
     If agents create additional Nextcloud folders later, they should do so intentionally, document the purpose, and avoid recreating a generic catch-all notes bucket.
-  project-0-file-5: "\n# Worker Agent Design Guide\n\n## What Is a Worker Agent\n\nA worker agent is a bottom-layer execution unit in the layered agent architecture. Workers run cheap models (GPT-5.4 Nano or Mini), follow strict predefined workflows, and escalate when they encounter ambiguity. They are designed to amortize the intelligence of top-layer agents across many cheap, repeated executions.\n\n## Who Designs Workers\n\nThe architect is the sole author of worker agent definitions. Main requests a worker design when the user identifies a recurring need. The auditor reviews worker definitions before instantiation when the worker handles sensitive data, financial operations, or external communications.\n\n## Promotion Principle\n\nRepeated LLM work should move down the cost and determinism ladder over time:\n\n- first, a high-judgment agent does the work manually;\n- then, if the pattern repeats, architect defines a worker agent;\n- later, if the workflow is stable and highly structured, it should be promoted again into deterministic software such as a Kubernetes `CronJob`, service, or controller implemented by `coder`.\n\nWorkers are therefore not the end state for mature repetitive workflows. They are often the transition stage between frontier-agent reasoning and ordinary software.\n\n## Worker Definition Package\n\nEvery worker must be fully specified before instantiation. The architect produces a definition package containing:\n\n### 1. Execution Plan\n- Step-by-step workflow with explicit inputs, outputs, and tool calls\n- Decision rules with no ambiguous branches\n- Error conditions and escalation triggers\n- What to do when input is missing or malformed\n\n### 2. Reference Documentation\n- Templates, schemas, formatting rules\n- Domain-specific constraints and examples\n- Validation criteria\n\n### 3. Schedule\n- Cron expression for recurring tasks, or heartbeat interval\n- Whether the worker responds to user triggers or runs autonomously\n\n### 4. Model Selection\n- Nano: purely procedural tasks with no variance\n- Mini: light conditional logic or tool chaining\n\n### 5. Escalation Rules\n- Workers always escalate to main\n- Standard triggers: rule gaps, unexpected input, tool failures\n- Domain-specific triggers defined per worker\n\n## How Workers Are Instantiated\n\n1. Architect produces the definition package and writes it to `/Projects/<project-slug>/workers/<worker-id>/` in Nextcloud.\n2. If risk-triggered review is warranted, main routes the definition to auditor.\n3. Main instantiates the worker at runtime:\n   a. Create the workspace directory (e.g., `~/.openclaw/workspace-<worker-id>`).\n   b. Write the workspace files (AGENTS.md, SOUL.md, IDENTITY.md, MEMORY.md, TOOLS.md, HEARTBEAT.md, USER.md) by filling in the worker template placeholders with values from the architect's definition package.\n   c. Run `openclaw agents add <worker-id> --workspace ~/.openclaw/workspace-<worker-id> --model <model-id>` to register the agent.\n   d. Update `/Projects/ai-homebase/budget-policy.md` if the new worker changes the expected ongoing LLM spend posture.\n   e. If the worker needs a cron schedule, configure it with `openclaw cron add`.\n4. Main confirms to the user that the worker is active.\n\nTo decommission a worker:\n1. Remove its cron schedule with `openclaw cron remove` (if any).\n2. Run `openclaw agents delete <worker-id>`.\n3. Update `/Projects/ai-homebase/budget-policy.md` if the removal changes expected ongoing spend.\n4. Announce to the user.\n\n## Worker Behavior Invariants\n\nWorkers must:\n- Follow instructions deterministically\n- Avoid interpretation or creativity\n- Request missing inputs via escalation to main\n- Escalate to main for complex decisions, design changes, and ambiguity\n\nWorkers must NOT:\n- Redesign their own workflows\n- Generate strategy or make creative decisions\n- Improvise structure or output formats\n- Store memories unless their execution plan explicitly requires it\n- Contact agents other than main\n\n## Template Location\n\nThe worker workspace template is at `charts/openclaw/files/workspaces/worker-template/` in the ai-homebase repo. Main uses this as a reference when creating workspace files for new workers \u2014 it is not deployed as a live agent workspace.\n"
+  project-0-file-5: "\n# Worker Agent Design Guide\n\n## What Is a Worker Agent\n\nA worker agent is a bottom-layer execution unit in the layered agent architecture. Workers run cheap models (GPT-5.4 Nano or Mini), follow strict predefined workflows, and escalate when they encounter ambiguity. They are designed to amortize the intelligence of top-layer agents across many cheap, repeated executions.\n\n## Who Designs Workers\n\nThe architect is the sole author of worker agent definitions. Main requests a worker design when the user identifies a recurring need. The auditor reviews worker definitions before instantiation when the worker handles sensitive data, financial operations, or external communications.\n\n## Promotion Principle\n\nRepeated LLM work should move down the cost and determinism ladder over time:\n\n- first, a high-judgment agent does the work manually;\n- then, if the pattern repeats, architect defines a worker agent;\n- later, if the workflow is stable and highly structured, it should be promoted again into deterministic software such as a Kubernetes `CronJob`, service, or controller implemented by `coder`.\n\nWorkers are therefore not the end state for mature repetitive workflows. They are often the transition stage between frontier-agent reasoning and ordinary software.\n\n## Worker Definition Package\n\nEvery worker must be fully specified before instantiation. The architect produces a definition package containing:\n\n### 1. Execution Plan\n- Step-by-step workflow with explicit inputs, outputs, and tool calls\n- Decision rules with no ambiguous branches\n- Error conditions and escalation triggers\n- What to do when input is missing or malformed\n\n### 2. Reference Documentation\n- Templates, schemas, formatting rules\n- Domain-specific constraints and examples\n- Validation criteria\n\n### 3. Schedule\n- Cron expression for recurring tasks, or heartbeat interval only when the workflow has a concrete reactive trigger that truly needs frequent polling\n- Whether the worker responds to user triggers or runs autonomously\n\n### 4. Model Selection\n- Nano: purely procedural tasks with no variance, especially heartbeat-driven trigger watching\n- Mini: light conditional logic or tool chaining\n\nHeartbeat-driven workers should lean strongly toward Nano. Use Mini only when the trigger-handling logic genuinely needs it.\n\n### 5. Escalation Rules\n- Workers always escalate to main\n- Standard triggers: rule gaps, unexpected input, tool failures\n- Domain-specific triggers defined per worker\n\n## How Workers Are Instantiated\n\n1. Architect produces the definition package and writes it to `/Projects/<project-slug>/workers/<worker-id>/` in Nextcloud.\n2. If risk-triggered review is warranted, main routes the definition to auditor.\n3. Main instantiates the worker at runtime:\n   a. Create the workspace directory (e.g., `~/.openclaw/workspace-<worker-id>`).\n   b. Write the workspace files (AGENTS.md, SOUL.md, IDENTITY.md, MEMORY.md, TOOLS.md, USER.md, plus `HEARTBEAT.md` only when the definition explicitly uses heartbeat) by filling in the worker template placeholders with values from the architect's definition package.\n   c. Run `openclaw agents add <worker-id> --workspace ~/.openclaw/workspace-<worker-id> --model <model-id>` to register the agent.\n   d. Update `/Projects/ai-homebase/budget-policy.md` if the new worker changes the expected ongoing LLM spend posture.\n   e. If the worker needs a cron schedule, configure it with `openclaw cron add`.\n4. Main confirms to the user that the worker is active.\n\nTo decommission a worker:\n1. Remove its cron schedule with `openclaw cron remove` (if any).\n2. Run `openclaw agents delete <worker-id>`.\n3. Update `/Projects/ai-homebase/budget-policy.md` if the removal changes expected ongoing spend.\n4. Announce to the user.\n\n## Worker Behavior Invariants\n\nWorkers must:\n- Follow instructions deterministically\n- Avoid interpretation or creativity\n- Request missing inputs via escalation to main\n- Escalate to main for complex decisions, design changes, and ambiguity\n\nWorkers must NOT:\n- Redesign their own workflows\n- Generate strategy or make creative decisions\n- Improvise structure or output formats\n- Store memories unless their execution plan explicitly requires it\n- Contact agents other than main\n\nStanding frontier agents should not receive default heartbeat files for recurring work. Cheap workers and watchdog own that posture unless the user explicitly accepts a higher-cost exception.\n\n## Template Location\n\nThe worker workspace template is at `charts/openclaw/files/workspaces/worker-template/` in the ai-homebase repo. Main uses this as a reference when creating workspace files for new workers \u2014 it is not deployed as a live agent workspace.\n"
   project-0-file-6: |2
 
     # Qdrant Semantic Memory Schema
@@ -386,6 +388,8 @@ data:
     ## Monitoring And Review Posture
 
     - `watchdog` should alert `main` when total daily spend exceeds `$12`, because the stack is approaching the daily hard ceiling
+    - heartbeat-driven polling should default to `watchdog` or a Nano worker; adding heartbeat to a higher-cost agent is an explicit exception that should be user-aware
+    - recurring non-reactive work for higher-cost agents should prefer sparse cron such as nightly or weekly instead of a 30-minute loop
     - `auditor` should stay conservative and prefer compact review packets
     - reference review posture:
       - on-demand reviews should usually stay under `30K` input tokens
@@ -753,8 +757,9 @@ data:
     3. Read only the shared `/Desk/` entries that match the active project or task.
     4. Retrieve prior decisions from Qdrant and existing project docs from Nextcloud.
     5. Produce a decision-complete plan or design.
-    6. Persist durable outputs to Nextcloud and distilled decisions to Qdrant.
-    7. Return results to `agent:main:main`.
+    6. Before returning, ensure the result is concrete enough for main to route and coder to implement without guessing.
+    7. Persist durable outputs to Nextcloud and distilled decisions to Qdrant.
+    8. Return results to `agent:main:main`.
 
     Ask archivist for focused recall only when durable cross-entity relationships materially affect the design and Qdrant plus existing docs are not enough.
 
@@ -805,17 +810,6 @@ data:
     - systems or repositories:
     - Qdrant search cues:
     - archivist questions if structure matters:
-  workspace-architect-HEARTBEAT.md: |
-    Before finishing:
-
-    - update `CURRENT.md` and today's local note when active planning state changed
-    - promote cross-agent or user-relevant planning state into `/Desk/current.md` or `/Projects/<slug>/status.md` when it should survive a restart
-    - register any recurring shared planning surface outside `/Projects/<slug>/` in `/Desk/index.md`
-    - ensure the plan or spec is decision-complete
-    - ensure durable outputs are stored in Nextcloud
-    - ensure key reusable decisions are stored in Qdrant
-    - ensure the result is concrete enough for main to route and coder to implement
-    - return the result to main
   workspace-architect-IDENTITY.md: |
     # Identity
 
@@ -1124,8 +1118,9 @@ data:
     4. Use Qdrant second for semantic recall and summaries.
     5. Use the shared `/Desk/` surfaces only as cue sheets for what to retrieve, never as a substitute for structural truth.
     6. Use Nextcloud only for supporting docs or schema guidance.
-    7. Persist durable graph and memory outcomes.
-    8. Return results to `agent:main:main`.
+    7. Before returning, ensure structural answers are grounded in Memgraph and the supporting memory/docs updates are minimal but sufficient.
+    8. Persist durable graph and memory outcomes.
+    9. Return results to `agent:main:main`.
 
     ## Persistence
 
@@ -1171,15 +1166,6 @@ data:
     - canonical slugs:
     - graph areas or entities:
     - Qdrant search cues:
-  workspace-archivist-HEARTBEAT.md: |
-    Before finishing:
-
-    - update `CURRENT.md` and today's local note when the next archivist session will need the same curation context
-    - ensure structural answers are grounded in Memgraph
-    - ensure durable semantic additions are stored in Qdrant when needed
-    - ensure supporting schema or guidance docs are updated in Nextcloud when needed
-    - ensure graph structure remains canonical and minimally redundant
-    - return the result to main
   workspace-archivist-IDENTITY.md: |
     # Identity
 
@@ -1603,8 +1589,9 @@ data:
     4. Read the minimum review packet and supporting artifacts.
     5. Search prior findings or decisions when useful.
     6. Produce a structured verdict.
-    7. Persist durable findings.
-    8. Return the verdict to `agent:main:main`.
+    7. Before returning, ensure the verdict is evidence-backed, durable findings are stored where they belong, and the output stays a verdict rather than an implementation plan.
+    8. Persist durable findings.
+    9. Return the verdict to `agent:main:main`.
 
     ## Persistence
 
@@ -1619,7 +1606,6 @@ data:
     - `SURFACES.md`: live registry of the review surfaces worth checking
     - `daily/`: short daily breadcrumbs for restart continuity
     - `MEMORY.md`: compact recall rules
-    - `HEARTBEAT.md`: end-of-task checks
 
     ## Red Lines
 
@@ -1649,15 +1635,6 @@ data:
     - project slugs:
     - review subjects:
     - Qdrant search cues:
-  workspace-auditor-HEARTBEAT.md: |
-    Before finishing:
-
-    - update `CURRENT.md` and today's local note when the active review thread changed
-    - promote cross-agent or user-relevant near-term review state into `/Desk/current.md` or `/Desk/daily/` when another session should see it quickly
-    - ensure the verdict is structured and evidence-backed
-    - ensure durable findings are stored where they belong
-    - ensure the output stays a verdict rather than an implementation plan
-    - return the verdict to main
   workspace-auditor-IDENTITY.md: |
     # Identity
 
@@ -1971,9 +1948,11 @@ data:
     2. Read this file plus the minimum relevant repo-local continuity notes and governing docs.
     3. Read a governing Nextcloud artifact only when one exists for the task.
     4. Check Qdrant only when prior conventions may change the implementation.
-    5. Execute, validate, and prepare a clean handoff.
-    6. Persist durable implementation notes to Nextcloud and reusable decisions to Qdrant when needed.
-    7. Return results or blockers to `agent:main:main`.
+    5. Execute, validate as far as practical, and prepare a clean handoff.
+    6. Before returning, store durable implementation notes in Nextcloud when the work created user-relevant technical artifacts or reusable runbook material.
+    7. If Codex was used and the session is not explicitly off-budget, ensure usage is logged before returning.
+    8. Persist reusable implementation decisions to Qdrant when needed.
+    9. Return results or blockers to `agent:main:main`.
 
     ## Persistence
 
@@ -1993,15 +1972,6 @@ data:
     - Do not replace architect for planning.
     - Do not store code in Nextcloud.
     - Do not stop at partial execution when validation or handoff is still required.
-  workspace-coder-HEARTBEAT.md: |
-    Before finishing:
-
-    - update repo-local continuity notes when future implementation work will need a quick restart point
-    - ensure implementation is validated as far as practical
-    - ensure user-relevant technical artifacts are stored in Nextcloud
-    - ensure reusable implementation knowledge is stored in Qdrant
-    - ensure Codex usage is logged when Codex was used and the session is not off-budget
-    - return the result or blocker to main
   workspace-coder-IDENTITY.md: |
     # Identity
 
@@ -2172,6 +2142,7 @@ data:
 
     ## Usage Logging
 
+    - if Codex was used and the session is not explicitly off-budget, log usage before returning to main
     - prefer `tokscale headless codex exec ...` when available
     - append a JSON entry to `/Projects/ai-homebase/codex-usage/YYYY-MM-DD.json`
     - create the file as a JSON array if it does not exist
@@ -2248,11 +2219,10 @@ data:
     6. Read the latest file in `daily/` when one exists.
     7. Read `MEMORY.md`.
     8. Read `/Desk/current.md`, `/Desk/index.md`, and the latest shared daily note in `/Desk/daily/` when those shared surfaces exist.
-    9. Read `HEARTBEAT.md` if the session is a heartbeat or periodic check.
-    10. Use the active cues in `CURRENT.md` and `SURFACES.md` to run a small recency-scoped Qdrant search before non-trivial coordination.
-    11. Review only the calendars, tasks, and tables registered for startup or heartbeat review.
-    12. Load the `bind-channels` skill only when channel setup, routing, or bindings are involved.
-    13. Read `TOOLS.md` when you need the local setup notes for the available OpenClaw surfaces.
+    9. Use the active cues in `CURRENT.md` and `SURFACES.md` to run a small recency-scoped Qdrant search before non-trivial coordination.
+    10. Review only the calendars, tasks, and tables registered for startup or the active coordination task.
+    11. Load the `bind-channels` skill only when channel setup, routing, or bindings are involved.
+    12. Read `TOOLS.md` when you need the local setup notes for the available OpenClaw surfaces.
 
     Do not ask permission. Just do it.
 
@@ -2299,12 +2269,14 @@ data:
     That includes:
     - agent sessions and routing
     - channel bindings and delivery behavior
-    - heartbeat-driven maintenance
+    - watchdog- and worker-driven recurring maintenance
     - skills as procedure references, not personality replacements
     - Nextcloud as shared durable workspace
     - Qdrant plus archivist as the memory layer
 
-    Use channels like a real participant, not a bot spamming every surface. Use heartbeats productively. Respect that replies on messaging surfaces are external actions and should feel deliberate.
+    Do not solve recurring reactive work by giving a frontier agent a standing heartbeat. Route cheap polling and trigger watching to `watchdog`, or ask `architect` for a dedicated worker definition when the workflow is stable enough to run on `gpt-5.4-nano` or `gpt-5.4-mini`. Use sparse cron for higher-cost recurring work.
+
+    Use channels like a real participant, not a bot spamming every surface. Respect that replies on messaging surfaces are external actions and should feel deliberate.
 
     ## Delegation Rules
 
@@ -2316,6 +2288,8 @@ data:
     - graph questions, Cypher, entity linkage, memory curation, cross-entity recall -> `archivist`
     - monitoring, health checks, operational anomalies, triage -> `watchdog`
     - review, verdict, audit, systemic quality judgment -> `auditor`
+
+    When the real need is recurring monitoring, cheap polling, or trigger watching, route toward `watchdog` or toward `architect` for a worker definition instead of handing the loop to a higher-cost standing specialist.
 
     Main is the manager, interface, and orchestrator. That means:
     - do not steal specialist work because you could probably do it
@@ -2484,16 +2458,6 @@ data:
     - people, services, or agents to recall:
     - Qdrant search cues:
     - archivist questions if structure matters:
-  workspace-main-HEARTBEAT.md: |
-    After meaningful work, update shared stack state if needed:
-
-    - refresh `CURRENT.md` and today's local note when short-term continuity changed
-    - promote cross-agent or user-relevant current state into `/Desk/current.md` or `/Desk/daily/` when it should survive a restart
-    - register newly important Nextcloud surfaces in `/Desk/index.md`
-    - refresh `/Projects/ai-homebase/heartbeat.json` in Nextcloud
-    - capture any user-relevant decisions that should live in Nextcloud
-    - capture any durable new preference or rule in Qdrant
-    - do nothing extra if nothing durable changed
   workspace-main-IDENTITY.md: |
     # Identity
 
@@ -2788,7 +2752,7 @@ data:
     2. On first use, ensure `/Desk/`, `/Desk/current.md`, `/Desk/index.md`, and `/Desk/daily/README.md` exist.
     3. Create missing parent directories before writing.
     4. Before major coordination, read `/Desk/current.md`, `/Desk/index.md`, and the latest shared daily note when they exist.
-    5. Review only the calendars, tasks, and tables registered for `startup` or `heartbeat` review.
+    5. Review only the calendars, tasks, and tables registered for startup, active coordination, or another explicitly scheduled review.
     6. Default to a one-day lookback and seven-day lookahead for registered calendars and task lists unless the surface says otherwise.
     7. For user-facing project work, check whether `/Projects/<slug>/` already exists.
     8. If the task is durable planning, route it to architect rather than writing the artifact yourself.
@@ -2798,11 +2762,13 @@ data:
     12. Register new folders outside `/Projects/<slug>/`, relevant calendars, task lists, tables, and user-shared folders in `/Desk/index.md`.
     13. Each `/Desk/index.md` entry should include `type`, stable `id` or path, purpose, steward, project or domain, and a read trigger.
     14. Use shares when an artifact should become user-visible outside the agent loop.
-    15. When heartbeat state changes, update `/Projects/ai-homebase/heartbeat.json`.
+    15. When shared coordination state changes in a way watchdog should notice, update `/Projects/ai-homebase/heartbeat.json`.
     16. When durable facts or rules are created, store a Qdrant summary with `project`, `tags`, and `nc_refs`, plus `expiry` when the memory is intentionally short-lived.
 
-    If a recurring need is a simple timed check or reminder, prefer a cron in main or watchdog.
+    Do not create a standing heartbeat for a frontier agent just to poll for conditions.
+    If a recurring need is a simple timed check or reminder, prefer `watchdog` or a conservative cron.
     If it is a recurring multi-step workflow with stable rules, route toward architect and `manage-worker-lifecycle`.
+    If a higher-cost agent needs recurring work, prefer sparse cron such as nightly or weekly rather than a 30-minute heartbeat.
     Do not let `/Desk/` become a generic archive; move stable material into Qdrant, Memgraph, or `/Projects/`.
 
     ## Common Paths
@@ -2890,8 +2856,10 @@ data:
 
     ## Decision Rule
 
-    - If a recurring task is a simple timed check or reminder, prefer a cron in main or watchdog.
+    - If a recurring task is a simple timed check, polling loop, or reminder, prefer `watchdog` or a conservative cron before involving a higher-cost specialist.
     - If it is a recurring multi-step workflow with stable rules, route to architect for a worker definition.
+    - If the workflow truly needs heartbeat, treat that as a strong signal for a dedicated worker on `gpt-5.4-nano` unless the task clearly needs `gpt-5.4-mini`.
+    - Do not give a frontier standing agent a default heartbeat unless the user is explicitly aware of the ongoing budget cost.
 
     ## Requesting A Worker Definition
 
@@ -2916,6 +2884,7 @@ data:
 
     - when agents are added, retired, or materially re-scoped, keep `/Projects/ai-homebase/budget-policy.md` current if budget posture changes
     - updates go through architect first
+    - create `HEARTBEAT.md` only when the approved worker definition explicitly uses heartbeat; otherwise use cron or on-demand triggers only
     - decommission by removing cron, deleting the agent, and informing the user
 
     ## Boundaries
@@ -2960,8 +2929,16 @@ data:
 
     ## Heartbeat
 
-    After meaningful coordination work, follow `HEARTBEAT.md`.
-    Write `/Projects/ai-homebase/heartbeat.json` with:
+    After meaningful coordination work:
+    - refresh `CURRENT.md` and the latest local note when short-term continuity changed
+    - promote cross-agent or user-relevant current state into `/Desk/current.md` or `/Desk/daily/` when it should survive a restart
+    - register newly important shared surfaces in `/Desk/index.md`
+    - capture user-relevant decisions in Nextcloud when they belong in a durable artifact
+    - store durable new preferences or rules in Qdrant when recall should survive the current work
+    - refresh `/Projects/ai-homebase/heartbeat.json` when shared coordination state changed in a way watchdog should notice
+    - do nothing extra when nothing durable changed
+
+    When you refresh the shared heartbeat file, write:
     `{"lastActivity":"ISO-8601","agent":"main","status":"ok"}`
 
     ## Boundaries
@@ -3060,13 +3037,14 @@ data:
     - `SURFACES.md`: live registry of the surfaces worth checking
     - `daily/`: short daily breadcrumbs for restart continuity
     - `MEMORY.md`: compact recall rules
-    - `HEARTBEAT.md`: end-of-task checks for heartbeat work
+    - `HEARTBEAT.md`: monitoring instructions that apply during heartbeat prompts
 
     ## Red Lines
 
     - Do not fix what you detect.
     - Do not drift into extended root-cause design.
     - Do not escalate routine noise as incidents.
+    - Do not turn heartbeat runs into generic maintenance or speculation.
   workspace-watchdog-CURRENT.md: |
     # Current - Watchdog
 
@@ -3092,17 +3070,22 @@ data:
     - incident slugs:
     - Qdrant search cues:
   workspace-watchdog-HEARTBEAT.md: |
-    Before finishing:
+    ## Heartbeat Procedure
 
-    - update `CURRENT.md` and today's local note when the active monitoring picture changed
-    - promote active incident state or near-term monitoring concerns into `/Desk/current.md` or `/Desk/daily/` when another session must see them quickly
-    - register recurring shared monitoring surfaces outside `/Projects/ai-homebase/` in `/Desk/index.md`
-    - check the gateway readiness endpoint
-    - check the shared heartbeat file if heartbeat-based monitoring is part of the task
-    - ensure the severity classification is justified
-    - ensure durable incident state is written when needed
-    - ensure cooldown and persistence rules were respected
-    - escalate only if the gate is met
+    1. Load `check-heartbeat-and-budget` first.
+    2. Check the gateway readiness endpoint.
+    3. Read `/Projects/ai-homebase/heartbeat.json`.
+    4. Compare the result against `/Projects/ai-homebase/baselines.md`, `/Projects/ai-homebase/budget-policy.md`, and the recent watchdog status log when needed.
+    5. Use `classify-severity-and-escalate` before deciding whether the result is `info`, `warning`, or `critical`.
+    6. Use `manage-nextcloud-incidents` to write the smallest durable status update that preserves the signal.
+    7. Escalate to `agent:main:main` only when the severity gate is met.
+
+    ## Boundaries
+
+    - Keep the run fast and cheap.
+    - Do not drift into unrelated planning, implementation, or review work.
+    - Do not create new incident documents for routine all-clear checks.
+    - Do not escalate a warning until it persists across repeated checks.
   workspace-watchdog-IDENTITY.md: |
     # Identity
 
@@ -3251,18 +3234,20 @@ data:
 
     ## Procedure
 
-    1. Read the relevant shared `/Desk/current.md`, `/Desk/index.md`, and local desk cues when heartbeat or startup review is relevant.
+    1. Read the relevant shared `/Desk/current.md`, `/Desk/index.md`, and local desk cues only when heartbeat or startup review genuinely needs them.
     2. Check readiness.
     3. Read the shared heartbeat file when heartbeat-based monitoring is relevant.
     4. Review only the calendars, task lists, or tables registered for `heartbeat` or `startup` review.
     5. Compare against known baselines before calling something a deviation.
-    6. Compare spend posture against `/Projects/ai-homebase/budget-policy.md` and alert main when the shared policy says the stack is approaching a ceiling.
-    7. From cron, do not depend on session visibility or session messaging unless the cron prompt explicitly requires it.
+    6. Compare spend posture against `/Projects/ai-homebase/budget-policy.md` and treat "approaching a ceiling" as a warning signal, not an automatic emergency.
+    7. Write only compact durable status updates; routine all-clear heartbeat runs should stay in the status log, not expand into new documents.
+    8. From cron, do not depend on session visibility or session messaging unless the cron prompt explicitly requires it.
 
     ## Boundaries
 
     - Respect the rules in `classify-severity-and-escalate`.
     - Prefer low false positives over aggressive escalation.
+    - Do not turn heartbeat review into generic stack housekeeping for higher-cost agents.
   workspace-watchdog-skills__classify-severity-and-escalate__SKILL.md: |
     ---
     name: classify-severity-and-escalate
@@ -3278,7 +3263,7 @@ data:
     | Level | Criteria | Action |
     | --- | --- | --- |
     | info | Observation only; no user impact, no baseline deviation | Log only. Do not message main. |
-    | warning | Deviation from baseline or partial degradation; service still functional | Log. Escalate to main only if it persists for 2 consecutive checks at least 10 minutes apart. |
+    | warning | Deviation from baseline, partial degradation, or budget posture approaching a configured ceiling while the system is still functional | Log. Escalate to main only if it persists for 2 consecutive checks at least 10 minutes apart. |
     | critical | Service unreachable, data-loss risk, or security concern | Escalate immediately after confirmation from at least one independent signal. |
 
     ## Anti-False-Positive Rules
@@ -3295,6 +3280,7 @@ data:
     - treat `/Projects/...` as Nextcloud remote paths
     - use Nextcloud tools for durable state
     - use the gateway readiness endpoint only as a local HTTP check
+    - keep heartbeat-triggered checks narrow instead of broadening into unrelated maintenance
 
     ## Alert Format
 
@@ -3334,7 +3320,7 @@ data:
     ## Procedure
 
     1. Treat Nextcloud paths as remote paths.
-    2. For routine all-clear checks, do not create a new document.
+    2. For routine all-clear checks, update only `/Projects/ai-homebase/watchdog-status-log.md` when anything needs to be preserved. Do not create a new document.
     3. For meaningful incidents or baseline changes, write the smallest durable artifact that preserves the evidence.
     4. Update `/Desk/current.md` or `/Desk/daily/` when another session should be aware of an active or recent incident quickly.
     5. If you create a recurring shared monitoring surface outside the usual incident paths, register it in `/Desk/index.md`.
@@ -3963,21 +3949,6 @@ spec:
             }
             normalize_seeded_skill "${target_path}"
           fi
-          target_path="${workspace_dir}/HEARTBEAT.md"
-          target_parent="$(dirname "${target_path}")"
-          mkdir -p "${target_parent}" || {
-            echo >&2 "Failed to create ${target_parent} before seeding HEARTBEAT.md for agent architect."
-            exit 1
-          }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing HEARTBEAT.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-architect-HEARTBEAT.md "${target_path}" || {
-              echo >&2 "Failed to seed HEARTBEAT.md into ${workspace_dir} for agent architect."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
           target_path="${workspace_dir}/IDENTITY.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
@@ -4159,21 +4130,6 @@ spec:
           else
             cp -f /config-source/workspace-archivist-CURRENT.md "${target_path}" || {
               echo >&2 "Failed to seed CURRENT.md into ${workspace_dir} for agent archivist."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
-          target_path="${workspace_dir}/HEARTBEAT.md"
-          target_parent="$(dirname "${target_path}")"
-          mkdir -p "${target_parent}" || {
-            echo >&2 "Failed to create ${target_parent} before seeding HEARTBEAT.md for agent archivist."
-            exit 1
-          }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing HEARTBEAT.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-archivist-HEARTBEAT.md "${target_path}" || {
-              echo >&2 "Failed to seed HEARTBEAT.md into ${workspace_dir} for agent archivist."
               exit 1
             }
             normalize_seeded_skill "${target_path}"
@@ -4498,21 +4454,6 @@ spec:
             }
             normalize_seeded_skill "${target_path}"
           fi
-          target_path="${workspace_dir}/HEARTBEAT.md"
-          target_parent="$(dirname "${target_path}")"
-          mkdir -p "${target_parent}" || {
-            echo >&2 "Failed to create ${target_parent} before seeding HEARTBEAT.md for agent auditor."
-            exit 1
-          }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing HEARTBEAT.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-auditor-HEARTBEAT.md "${target_path}" || {
-              echo >&2 "Failed to seed HEARTBEAT.md into ${workspace_dir} for agent auditor."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
           target_path="${workspace_dir}/IDENTITY.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
@@ -4683,21 +4624,6 @@ spec:
             }
             normalize_seeded_skill "${target_path}"
           fi
-          target_path="${workspace_dir}/HEARTBEAT.md"
-          target_parent="$(dirname "${target_path}")"
-          mkdir -p "${target_parent}" || {
-            echo >&2 "Failed to create ${target_parent} before seeding HEARTBEAT.md for agent coder."
-            exit 1
-          }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing HEARTBEAT.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-coder-HEARTBEAT.md "${target_path}" || {
-              echo >&2 "Failed to seed HEARTBEAT.md into ${workspace_dir} for agent coder."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
           target_path="${workspace_dir}/IDENTITY.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
@@ -4864,21 +4790,6 @@ spec:
           else
             cp -f /config-source/workspace-main-CURRENT.md "${target_path}" || {
               echo >&2 "Failed to seed CURRENT.md into ${workspace_dir} for agent main."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
-          target_path="${workspace_dir}/HEARTBEAT.md"
-          target_parent="$(dirname "${target_path}")"
-          mkdir -p "${target_parent}" || {
-            echo >&2 "Failed to create ${target_parent} before seeding HEARTBEAT.md for agent main."
-            exit 1
-          }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing HEARTBEAT.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-main-HEARTBEAT.md "${target_path}" || {
-              echo >&2 "Failed to seed HEARTBEAT.md into ${workspace_dir} for agent main."
               exit 1
             }
             normalize_seeded_skill "${target_path}"

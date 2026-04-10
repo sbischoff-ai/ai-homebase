@@ -9,8 +9,10 @@ Use this skill when recurring work might become a worker.
 
 ## Decision Rule
 
-- If a recurring task is a simple timed check or reminder, prefer a cron in main or watchdog.
+- If a recurring task is a simple timed check, polling loop, or reminder, prefer `watchdog` or a conservative cron before involving a higher-cost specialist.
 - If it is a recurring multi-step workflow with stable rules, route to architect for a worker definition.
+- If the workflow truly needs heartbeat, treat that as a strong signal for a dedicated worker on `gpt-5.4-nano` unless the task clearly needs `gpt-5.4-mini`.
+- Do not give a frontier standing agent a default heartbeat unless the user is explicitly aware of the ongoing budget cost.
 
 ## Requesting A Worker Definition
 
@@ -35,6 +37,7 @@ When asking architect for a worker, include:
 
 - when agents are added, retired, or materially re-scoped, keep `/Projects/ai-homebase/budget-policy.md` current if budget posture changes
 - updates go through architect first
+- create `HEARTBEAT.md` only when the approved worker definition explicitly uses heartbeat; otherwise use cron or on-demand triggers only
 - decommission by removing cron, deleting the agent, and informing the user
 
 ## Boundaries

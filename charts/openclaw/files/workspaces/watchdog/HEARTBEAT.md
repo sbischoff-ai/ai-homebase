@@ -1,11 +1,16 @@
-Before finishing:
+## Heartbeat Procedure
 
-- update `CURRENT.md` and today's local note when the active monitoring picture changed
-- promote active incident state or near-term monitoring concerns into `/Desk/current.md` or `/Desk/daily/` when another session must see them quickly
-- register recurring shared monitoring surfaces outside `/Projects/ai-homebase/` in `/Desk/index.md`
-- check the gateway readiness endpoint
-- check the shared heartbeat file if heartbeat-based monitoring is part of the task
-- ensure the severity classification is justified
-- ensure durable incident state is written when needed
-- ensure cooldown and persistence rules were respected
-- escalate only if the gate is met
+1. Load `check-heartbeat-and-budget` first.
+2. Check the gateway readiness endpoint.
+3. Read `/Projects/ai-homebase/heartbeat.json`.
+4. Compare the result against `/Projects/ai-homebase/baselines.md`, `/Projects/ai-homebase/budget-policy.md`, and the recent watchdog status log when needed.
+5. Use `classify-severity-and-escalate` before deciding whether the result is `info`, `warning`, or `critical`.
+6. Use `manage-nextcloud-incidents` to write the smallest durable status update that preserves the signal.
+7. Escalate to `agent:main:main` only when the severity gate is met.
+
+## Boundaries
+
+- Keep the run fast and cheap.
+- Do not drift into unrelated planning, implementation, or review work.
+- Do not create new incident documents for routine all-clear checks.
+- Do not escalate a warning until it persists across repeated checks.

@@ -20,6 +20,7 @@ Bottom layer: execution.
 - `watchdog` (GPT-5.4 Nano) and worker agents (GPT-5.4 Mini or Nano) execute predefined workflows repeatedly and cheaply.
 - They do not make independent creative or strategic decisions.
 - They escalate when ambiguity appears.
+- Heartbeat-driven polling and other frequent reactive checks belong here, not on frontier standing agents.
 
 Design principle:
 - intelligence is concentrated at the top and amortized through cheap execution at the bottom.
@@ -66,6 +67,7 @@ Worker agents are not standing agents. They are instantiated on demand from arch
 - Worker agents are domain-specific execution units designed by `architect`.
 - Each worker has an execution plan, reference documentation, a scheduling model, and escalation rules defined before instantiation.
 - Workers use GPT-5.4 Nano or GPT-5.4 Mini depending on task complexity.
+- Heartbeat-enabled workers are the exception case for workflows that truly need frequent reactive checks; otherwise prefer cron or on-demand triggers.
 - Workers must not redesign workflows, make strategic decisions, or interpret ambiguous instructions.
 - Workers escalate exclusively to `main`.
 - Example worker types: `accountant`, `mail_clerk`, `reporter`, `market_tracker`, `habit_helper`

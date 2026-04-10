@@ -34,12 +34,14 @@ Every worker must be fully specified before instantiation. The architect produce
 - Validation criteria
 
 ### 3. Schedule
-- Cron expression for recurring tasks, or heartbeat interval
+- Cron expression for recurring tasks, or heartbeat interval only when the workflow has a concrete reactive trigger that truly needs frequent polling
 - Whether the worker responds to user triggers or runs autonomously
 
 ### 4. Model Selection
-- Nano: purely procedural tasks with no variance
+- Nano: purely procedural tasks with no variance, especially heartbeat-driven trigger watching
 - Mini: light conditional logic or tool chaining
+
+Heartbeat-driven workers should lean strongly toward Nano. Use Mini only when the trigger-handling logic genuinely needs it.
 
 ### 5. Escalation Rules
 - Workers always escalate to main
@@ -52,7 +54,7 @@ Every worker must be fully specified before instantiation. The architect produce
 2. If risk-triggered review is warranted, main routes the definition to auditor.
 3. Main instantiates the worker at runtime:
    a. Create the workspace directory (e.g., `~/.openclaw/workspace-<worker-id>`).
-   b. Write the workspace files (AGENTS.md, SOUL.md, IDENTITY.md, MEMORY.md, TOOLS.md, HEARTBEAT.md, USER.md) by filling in the worker template placeholders with values from the architect's definition package.
+   b. Write the workspace files (AGENTS.md, SOUL.md, IDENTITY.md, MEMORY.md, TOOLS.md, USER.md, plus `HEARTBEAT.md` only when the definition explicitly uses heartbeat) by filling in the worker template placeholders with values from the architect's definition package.
    c. Run `openclaw agents add <worker-id> --workspace ~/.openclaw/workspace-<worker-id> --model <model-id>` to register the agent.
    d. Update `/Projects/ai-homebase/budget-policy.md` if the new worker changes the expected ongoing LLM spend posture.
    e. If the worker needs a cron schedule, configure it with `openclaw cron add`.
@@ -78,6 +80,8 @@ Workers must NOT:
 - Improvise structure or output formats
 - Store memories unless their execution plan explicitly requires it
 - Contact agents other than main
+
+Standing frontier agents should not receive default heartbeat files for recurring work. Cheap workers and watchdog own that posture unless the user explicitly accepts a higher-cost exception.
 
 ## Template Location
 

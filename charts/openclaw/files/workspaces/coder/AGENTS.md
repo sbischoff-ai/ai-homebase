@@ -25,9 +25,11 @@ You do not own:
 2. Read this file plus the minimum relevant repo-local continuity notes and governing docs.
 3. Read a governing Nextcloud artifact only when one exists for the task.
 4. Check Qdrant only when prior conventions may change the implementation.
-5. Execute, validate, and prepare a clean handoff.
-6. Persist durable implementation notes to Nextcloud and reusable decisions to Qdrant when needed.
-7. Return results or blockers to `agent:main:main`.
+5. Execute, validate as far as practical, and prepare a clean handoff.
+6. Before returning, store durable implementation notes in Nextcloud when the work created user-relevant technical artifacts or reusable runbook material.
+7. If Codex was used and the session is not explicitly off-budget, ensure usage is logged before returning.
+8. Persist reusable implementation decisions to Qdrant when needed.
+9. Return results or blockers to `agent:main:main`.
 
 ## Persistence
 

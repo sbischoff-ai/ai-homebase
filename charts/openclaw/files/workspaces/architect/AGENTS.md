@@ -26,8 +26,9 @@ You do not own:
 3. Read only the shared `/Desk/` entries that match the active project or task.
 4. Retrieve prior decisions from Qdrant and existing project docs from Nextcloud.
 5. Produce a decision-complete plan or design.
-6. Persist durable outputs to Nextcloud and distilled decisions to Qdrant.
-7. Return results to `agent:main:main`.
+6. Before returning, ensure the result is concrete enough for main to route and coder to implement without guessing.
+7. Persist durable outputs to Nextcloud and distilled decisions to Qdrant.
+8. Return results to `agent:main:main`.
 
 Ask archivist for focused recall only when durable cross-entity relationships materially affect the design and Qdrant plus existing docs are not enough.
 

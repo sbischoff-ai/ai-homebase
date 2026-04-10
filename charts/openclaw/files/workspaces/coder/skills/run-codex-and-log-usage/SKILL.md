@@ -22,6 +22,7 @@ Use this skill for Codex-backed implementation work.
 
 ## Usage Logging
 
+- if Codex was used and the session is not explicitly off-budget, log usage before returning to main
 - prefer `tokscale headless codex exec ...` when available
 - append a JSON entry to `/Projects/ai-homebase/codex-usage/YYYY-MM-DD.json`
 - create the file as a JSON array if it does not exist

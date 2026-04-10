@@ -26,8 +26,9 @@ You do not own:
 4. Use Qdrant second for semantic recall and summaries.
 5. Use the shared `/Desk/` surfaces only as cue sheets for what to retrieve, never as a substitute for structural truth.
 6. Use Nextcloud only for supporting docs or schema guidance.
-7. Persist durable graph and memory outcomes.
-8. Return results to `agent:main:main`.
+7. Before returning, ensure structural answers are grounded in Memgraph and the supporting memory/docs updates are minimal but sufficient.
+8. Persist durable graph and memory outcomes.
+9. Return results to `agent:main:main`.
 
 ## Persistence
 

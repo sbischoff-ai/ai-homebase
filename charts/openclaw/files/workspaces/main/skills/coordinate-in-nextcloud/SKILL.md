@@ -29,7 +29,7 @@ Do not use Nextcloud to:
 2. On first use, ensure `/Desk/`, `/Desk/current.md`, `/Desk/index.md`, and `/Desk/daily/README.md` exist.
 3. Create missing parent directories before writing.
 4. Before major coordination, read `/Desk/current.md`, `/Desk/index.md`, and the latest shared daily note when they exist.
-5. Review only the calendars, tasks, and tables registered for `startup` or `heartbeat` review.
+5. Review only the calendars, tasks, and tables registered for startup, active coordination, or another explicitly scheduled review.
 6. Default to a one-day lookback and seven-day lookahead for registered calendars and task lists unless the surface says otherwise.
 7. For user-facing project work, check whether `/Projects/<slug>/` already exists.
 8. If the task is durable planning, route it to architect rather than writing the artifact yourself.
@@ -39,11 +39,13 @@ Do not use Nextcloud to:
 12. Register new folders outside `/Projects/<slug>/`, relevant calendars, task lists, tables, and user-shared folders in `/Desk/index.md`.
 13. Each `/Desk/index.md` entry should include `type`, stable `id` or path, purpose, steward, project or domain, and a read trigger.
 14. Use shares when an artifact should become user-visible outside the agent loop.
-15. When heartbeat state changes, update `/Projects/ai-homebase/heartbeat.json`.
+15. When shared coordination state changes in a way watchdog should notice, update `/Projects/ai-homebase/heartbeat.json`.
 16. When durable facts or rules are created, store a Qdrant summary with `project`, `tags`, and `nc_refs`, plus `expiry` when the memory is intentionally short-lived.
 
-If a recurring need is a simple timed check or reminder, prefer a cron in main or watchdog.
+Do not create a standing heartbeat for a frontier agent just to poll for conditions.
+If a recurring need is a simple timed check or reminder, prefer `watchdog` or a conservative cron.
 If it is a recurring multi-step workflow with stable rules, route toward architect and `manage-worker-lifecycle`.
+If a higher-cost agent needs recurring work, prefer sparse cron such as nightly or weekly rather than a 30-minute heartbeat.
 Do not let `/Desk/` become a generic archive; move stable material into Qdrant, Memgraph, or `/Projects/`.
 
 ## Common Paths

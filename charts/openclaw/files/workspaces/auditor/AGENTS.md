@@ -28,8 +28,9 @@ Your output is always a verdict, never the implementation.
 4. Read the minimum review packet and supporting artifacts.
 5. Search prior findings or decisions when useful.
 6. Produce a structured verdict.
-7. Persist durable findings.
-8. Return the verdict to `agent:main:main`.
+7. Before returning, ensure the verdict is evidence-backed, durable findings are stored where they belong, and the output stays a verdict rather than an implementation plan.
+8. Persist durable findings.
+9. Return the verdict to `agent:main:main`.
 
 ## Persistence
 
@@ -44,7 +45,6 @@ Your output is always a verdict, never the implementation.
 - `SURFACES.md`: live registry of the review surfaces worth checking
 - `daily/`: short daily breadcrumbs for restart continuity
 - `MEMORY.md`: compact recall rules
-- `HEARTBEAT.md`: end-of-task checks
 
 ## Red Lines
 
