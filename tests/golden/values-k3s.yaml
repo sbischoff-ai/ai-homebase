@@ -3839,7 +3839,7 @@ spec:
             secretKeyRef:
               key: CODER_REGISTRY_PASSWORD
               name: coder-credentials
-        image: ghcr.io/openclaw/openclaw:2026.4.5
+        image: ghcr.io/openclaw/openclaw:2026.4.9
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 3
@@ -5292,7 +5292,7 @@ spec:
             }
             normalize_seeded_skill "${target_path}"
           fi
-        image: ghcr.io/openclaw/openclaw:2026.4.5
+        image: ghcr.io/openclaw/openclaw:2026.4.9
         imagePullPolicy: IfNotPresent
         name: config-permissions
         securityContext:
@@ -5329,7 +5329,7 @@ spec:
             echo >&2 "Failed to bootstrap shared MCP bridge into /runtime-target/mcp-http-bridge.mjs."
             exit 1
           }
-        image: ghcr.io/openclaw/openclaw:2026.4.5
+        image: ghcr.io/openclaw/openclaw:2026.4.9
         imagePullPolicy: IfNotPresent
         name: mcp-runtime
         securityContext:
@@ -5445,7 +5445,7 @@ spec:
           fi
           echo "docker CLI available at ${docker_path}"
           echo "ssh client available at ${ssh_path}"
-        image: ghcr.io/openclaw/openclaw:2026.4.5
+        image: ghcr.io/openclaw/openclaw:2026.4.9
         imagePullPolicy: IfNotPresent
         name: remote-docker-runtime-check
         securityContext:
@@ -5501,7 +5501,7 @@ spec:
             echo >&2 "Failed to hand /ssh-target to UID/GID 1000 after permissions were locked down; verify the init container still runs as UID/GID 0 with the CHOWN capability required by the security context."
             exit 1
           }
-        image: ghcr.io/openclaw/openclaw:2026.4.5
+        image: ghcr.io/openclaw/openclaw:2026.4.9
         imagePullPolicy: IfNotPresent
         name: remote-docker-ssh-permissions
         securityContext:
