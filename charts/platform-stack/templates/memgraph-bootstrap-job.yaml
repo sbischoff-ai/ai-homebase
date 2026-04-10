@@ -1,9 +1,6 @@
 {{- if and (.Values.memgraph.enabled | default false) (.Values.memgraphBootstrap.enabled | default false) }}
 {{- $seedCypherFile := .Values.memgraphBootstrap.seedCypherFile | default "" -}}
-{{- $seedCypherPath := "" -}}
-{{- if $seedCypherFile -}}
-  {{- $seedCypherPath = printf "files/%s" $seedCypherFile -}}
-{{- end -}}
+{{- $seedCypherPath := printf "files/%s" $seedCypherFile -}}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -45,11 +42,7 @@ spec:
                 sleep 2
               done
               cat <<'CYPHER' >/tmp/memgraph-seed.cypher
-{{- if and $seedCypherPath (.Files.Get $seedCypherPath) }}
 {{ .Files.Get $seedCypherPath | indent 16 }}
-{{- else }}
-{{ .Values.memgraphBootstrap.seedCypher | indent 16 }}
-{{- end }}
               CYPHER
               mgconsole --host {{ include "platform-stack.memgraphServiceHost" . | quote }} --port {{ .Values.memgraph.service.boltPort }} --output-format csv < /tmp/memgraph-seed.cypher
 {{- end }}

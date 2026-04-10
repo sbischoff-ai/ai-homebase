@@ -1,26 +1,4 @@
-{{- $hasFileBackedBootstrapProjectContent := false -}}
-{{- range $project := (.Values.bootstrapProjectContent | default (list)) }}
-  {{- if ($project.projectsFilesDir | default "") }}
-    {{- $hasFileBackedBootstrapProjectContent = true -}}
-  {{- end }}
-{{- end }}
 {{- if .Values.bootstrapProjectContent }}
-{{- if not $hasFileBackedBootstrapProjectContent }}
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: {{ include "nextcloud.fullname" . }}-bootstrap-project-content
-  labels:
-    {{- include "nextcloud.labels" . | nindent 4 }}
-data:
-  {{- range $projectIndex, $project := .Values.bootstrapProjectContent }}
-  {{- range $fileIndex, $file := ($project.projectsFiles | default (list)) }}
-  project-{{ $projectIndex }}-file-{{ $fileIndex }}: |
-{{ $file.content | trimSuffix "\n" | nindent 4 }}
-  {{- end }}
-  {{- end }}
----
-{{- end }}
 apiVersion: batch/v1
 kind: Job
 metadata:

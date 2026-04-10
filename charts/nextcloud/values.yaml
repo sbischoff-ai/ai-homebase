@@ -130,7 +130,7 @@ probes:
 # Canonical external service wiring:
 # - externalDatabase.* maps to POSTGRES_* env vars.
 # - externalRedis.* maps to REDIS_* env vars.
-# Keep existingSecret/secretRefs for compatibility and additional app secrets.
+# Use existingSecret/secretRefs for additional app secrets.
 existingSecret: "" # Optional envFrom source for app credentials/secrets.
 secretRefs: [] # [{name: nextcloud-app-secrets, key: NEXTCLOUD_ADMIN_PASSWORD, envVar: NEXTCLOUD_ADMIN_PASSWORD}]
 

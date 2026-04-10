@@ -10,13 +10,13 @@ The normal `bootstrap-stack.sh` and `k3d-local-bootstrap.sh` workflows now run t
 ./scripts/bootstrap-gitops.sh --profile <k3d|k3s> --bootstrap-config bootstrap.local.toml
 ```
 
-Use the standalone command when you intentionally want to refresh the in-cluster GitOps and sandbox-images repo snapshots from the current working tree without re-running the full stack bootstrap.
+Use the standalone command when you intentionally want to run just the GitOps handoff against a freshly bootstrapped cluster state.
 
 ## What It Does
 
 The script performs eight steps:
 
-1. reapplies the existing `platform-stack` Helm path through `bootstrap-stack.sh --skip-secrets --enable-service argo-cd`
+1. reapplies the existing `platform-stack` Helm path through `bootstrap-stack.sh --enable-service argo-cd`
 2. reads the bootstrap-managed Gitea admin credentials from Kubernetes
 3. creates or updates the dedicated coder-owned GitOps user and private repos in Gitea
 4. pushes a self-contained snapshot of the local charts and cluster values to that repo
@@ -44,7 +44,7 @@ The GitOps handoff reads these values from `bootstrap.local.toml`:
 - `openclaw.agents.coder.gitea.email`
 - `openclaw.agents.coder.gitea.password`
 
-If `openclaw.agents.coder.gitea.password` is empty, the bootstrap script preserves the existing in-cluster coder GitOps password when present or generates a new one. After the first GitOps bootstrap, the in-cluster GitOps Secret becomes the password source of truth for reruns.
+If `openclaw.agents.coder.gitea.password` is empty, the bootstrap flow generates a fresh first-run coder GitOps password and stores it in the bootstrap-managed Secrets created during install.
 
 ## Operating Model
 

@@ -356,9 +356,6 @@
           "type": "boolean",
           "default": true
         },
-        "seedCypher": {
-          "type": "string"
-        },
         "seedCypherFile": {
           "type": "string",
           "minLength": 1
@@ -598,14 +595,6 @@
           "default": ""
         },
         "githubToken": {
-          "type": "string",
-          "default": ""
-        },
-        "googleApiKey": {
-          "type": "string",
-          "default": ""
-        },
-        "braveSearchApiKey": {
           "type": "string",
           "default": ""
         }

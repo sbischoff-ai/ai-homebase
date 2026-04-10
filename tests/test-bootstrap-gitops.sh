@@ -89,6 +89,13 @@ printf 'bootstrap-stack.sh %s\n' "$*" >>"${FAKE_COMMAND_LOG:?}"
 SH
 chmod +x "${repo_dir}/scripts/bootstrap-stack.sh"
 
+cat >"${repo_dir}/scripts/bootstrap-memgraph.sh" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'bootstrap-memgraph.sh %s\n' "$*" >>"${FAKE_COMMAND_LOG:?}"
+SH
+chmod +x "${repo_dir}/scripts/bootstrap-memgraph.sh"
+
 cat >"${repo_dir}/scripts/render-gitops-repo.py" <<'PY'
 #!/usr/bin/env python3
 from pathlib import Path
@@ -104,6 +111,18 @@ cluster_name = args[args.index("--cluster-name") + 1]
 (output_dir / "gitops" / "clusters" / cluster_name / "root-application.yaml").write_text("kind: Application\nmetadata:\n  name: platform-stack-gitops-root\n")
 PY
 chmod +x "${repo_dir}/scripts/render-gitops-repo.py"
+
+cat >"${repo_dir}/scripts/render-sandbox-images-repo.py" <<'PY'
+#!/usr/bin/env python3
+from pathlib import Path
+import sys
+
+args = sys.argv[1:]
+print("render-sandbox-images-repo.py", *args)
+output_dir = Path(args[args.index("--output-dir") + 1])
+(output_dir / "README.md").write_text("# sandbox images\n")
+PY
+chmod +x "${repo_dir}/scripts/render-sandbox-images-repo.py"
 
 mkdir -p "${sandbox_dir}/bin"
 
@@ -138,6 +157,7 @@ printf 'curl %s\n' "$*" >>"${FAKE_CURL_LOG:?}"
 case "$*" in
   *"/users/coder-bot"*) printf '404' ;;
   *"/repos/coder-bot/cluster-gitops"*) printf '404' ;;
+  *"/repos/coder-bot/openclaw-sandbox-images"*) printf '404' ;;
   *"/api/v1/version"*) printf '{"version":"1.0"}' ;;
   *) printf '{}' ;;
 esac
@@ -189,13 +209,15 @@ kubectl_output="$(cat "${kubectl_log}")"
 curl_output="$(cat "${curl_log}")"
 git_output="$(cat "${git_log}")"
 
-assert_contains "${commands}" "bootstrap-stack.sh --profile k3d --bootstrap-config ${bootstrap_config_path} --release-name platform-stack --namespace ai-homebase --skip-secrets --skip-gitops --enable-service argo-cd"
+assert_contains "${commands}" "bootstrap-stack.sh --profile k3d --bootstrap-config ${bootstrap_config_path} --release-name platform-stack --namespace ai-homebase --skip-gitops --enable-service argo-cd"
 assert_contains "${commands}" "bootstrap-secrets.sh --profile k3d --bootstrap-config ${bootstrap_config_path} --release-name platform-stack --namespace ai-homebase"
+assert_contains "${commands}" "bootstrap-memgraph.sh --release-name platform-stack --namespace ai-homebase"
 assert_contains "${commands}" "--remote-docker-key ${remote_docker_key_path}"
 assert_contains "${commands}" "--remote-docker-host 10.10.0.1"
 assert_contains "${commands}" "--remote-docker-port 2222"
 assert_contains "${curl_output}" "/api/v1/admin/users"
 assert_contains "${curl_output}" "/api/v1/user/repos"
+assert_contains "${curl_output}" "/repos/coder-bot/openclaw-sandbox-images"
 assert_contains "${kubectl_output}" "root-application.yaml"
 assert_contains "${kubectl_output}" "get application platform-stack-gitops-root"
 assert_contains "${kubectl_output}" "get application platform-stack-platform-stack"
@@ -204,6 +226,7 @@ assert_contains "${git_output}" "push --force origin HEAD:main"
 assert_contains "${output}" "GitOps bootstrap complete."
 assert_contains "${output}" "Argo CD URL: http://argocd.test.internal"
 assert_contains "${output}" "render-gitops-repo.py"
+assert_contains "${output}" "render-sandbox-images-repo.py"
 assert_contains "${output}" "--remote-docker-host 10.10.0.1"
 assert_contains "${output}" "--remote-docker-port 2222"
 assert_contains "${output}" "Triggering the initial Argo CD sync"

@@ -15,7 +15,7 @@ This chart deploys Nextcloud as a single primary web workload plus a dedicated c
 
 ## Required secrets
 
-The chart supports compatibility patterns (`existingSecret`, `secretRefs[]`), but for deterministic deployments you should provide explicit secret references for required credentials:
+The chart supports explicit secret reference patterns (`existingSecret`, `secretRefs[]`), and deterministic deployments should provide those references for required credentials:
 
 1. **Admin bootstrap password**
    - Value path: `admin.passwordSecret.{name,key}`
@@ -86,7 +86,7 @@ If a restart finds broken or incomplete persisted state:
 
 ## App bootstrap model
 
-Use `bootstrapApps[]` when you want Helm bootstrap and later reruns to keep a specific app set present. The standard stack uses that path for:
+Use `bootstrapApps[]` when you want Helm bootstrap to enforce a specific app set. The standard stack uses that path for:
 
 - `notes`
 - `tables`
@@ -97,7 +97,7 @@ Use `bootstrapApps[]` when you want Helm bootstrap and later reruns to keep a sp
 
 ## Project content bootstrap model
 
-Use `bootstrapProjectContent[]` when you want Helm bootstrap and later reruns to keep specific project documentation present for a Nextcloud user.
+Use `bootstrapProjectContent[]` when you want Helm bootstrap to seed specific project documentation for a Nextcloud user.
 
 Each entry defines:
 
@@ -105,7 +105,7 @@ Each entry defines:
 - `ownerUsername`: Nextcloud user that owns the seeded content
 - `projectsFiles[]`: durable curated files written into `/Projects/<slug>/`
 
-The chart still supports that inline form directly. The umbrella `platform-stack` chart also supports file-backed project content by selecting `projectsFilesDir`, then rendering the bootstrap ConfigMap/Job from chart-owned files in `charts/platform-stack/files/`.
+The standard stack uses file-backed project content by selecting `projectsFilesDir` and rendering the bootstrap ConfigMap/Job from chart-owned files in `charts/platform-stack/files/`.
 
 This repo treats those locations differently:
 

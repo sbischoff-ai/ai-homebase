@@ -15,16 +15,22 @@ assert_contains() {
   fi
 }
 
+assert_not_contains() {
+  local haystack="$1"
+  local needle="$2"
+
+  if [[ "${haystack}" == *"${needle}"* ]]; then
+    printf 'did not expect output to contain: %s\n' "${needle}" >&2
+    printf 'actual output:\n%s\n' "${haystack}" >&2
+    exit 1
+  fi
+}
+
 run_case() {
   local case_name="$1"
   local ssh_keyscan_mode="$2"
   local key_mode="$3"
-  local existing_postgres_admin_password_mode="$4"
-  local existing_redis_password_mode="$5"
-  local existing_gitea_db_password_mode="$6"
-  local existing_vaultwarden_db_password_mode="$7"
-  local existing_vaultwarden_admin_token_mode="$8"
-  shift 8
+  shift 3
 
   local sandbox_dir
   sandbox_dir="$(mktemp -d)"
@@ -58,81 +64,7 @@ if [[ "$1" == "-n" ]]; then
   shift 2
 fi
 
-    case "$1" in
-  get)
-    if [[ "$2" == "secret" && "$3" == "gitea-config-secrets" ]]; then
-      if [[ "${FAKE_EXISTING_GITEA_DB_PASSWORD_B64:-}" != "" ]]; then
-        printf '%s' "${FAKE_EXISTING_GITEA_DB_PASSWORD_B64}"
-      fi
-      exit 0
-    fi
-    if [[ "$2" == "secret" && "$3" == "shared-postgresql-auth" ]]; then
-      if [[ "${FAKE_EXISTING_POSTGRES_ADMIN_PASSWORD_B64:-}" != "" ]]; then
-        printf '%s' "${FAKE_EXISTING_POSTGRES_ADMIN_PASSWORD_B64}"
-      fi
-      exit 0
-    fi
-    if [[ "$2" == "secret" && "$3" == "shared-redis-auth" ]]; then
-      if [[ "${FAKE_EXISTING_REDIS_PASSWORD_B64:-}" != "" ]]; then
-        printf '%s' "${FAKE_EXISTING_REDIS_PASSWORD_B64}"
-      fi
-      exit 0
-    fi
-    if [[ "$2" == "secret" && "$3" == "vaultwarden-config-secrets" ]]; then
-      if [[ "$5" == "jsonpath={.data.VAULTWARDEN_DB_PASSWORD}" ]]; then
-        if [[ "${FAKE_EXISTING_VAULTWARDEN_DB_PASSWORD_B64:-}" != "" ]]; then
-          printf '%s' "${FAKE_EXISTING_VAULTWARDEN_DB_PASSWORD_B64}"
-        fi
-      elif [[ "$5" == "jsonpath={.data.ADMIN_TOKEN}" ]]; then
-        if [[ "${FAKE_EXISTING_VAULTWARDEN_ADMIN_TOKEN_B64:-}" != "" ]]; then
-          printf '%s' "${FAKE_EXISTING_VAULTWARDEN_ADMIN_TOKEN_B64}"
-        fi
-      fi
-      exit 0
-    fi
-    if [[ "$2" == "secret" && "$3" == "gitea-admin-secret" ]]; then
-      if [[ "${FAKE_EXISTING_GITEA_ADMIN_PASSWORD_B64:-}" != "" ]]; then
-        printf '%s' "${FAKE_EXISTING_GITEA_ADMIN_PASSWORD_B64}"
-      fi
-      exit 0
-    fi
-    if [[ "$2" == "secret" && "$3" == "nextcloud-config-secrets" ]]; then
-      case "${4:-}" in
-        -o)
-          if [[ "$5" == "jsonpath={.data.POSTGRES_PASSWORD}" ]]; then
-            printf '%s' "${FAKE_EXISTING_NEXTCLOUD_DB_PASSWORD_B64:-}"
-          elif [[ "$5" == "jsonpath={.data.NEXTCLOUD_ADMIN_PASSWORD}" ]]; then
-            printf '%s' "${FAKE_EXISTING_NEXTCLOUD_ADMIN_PASSWORD_B64:-}"
-          fi
-          exit 0
-          ;;
-      esac
-    fi
-    if [[ "$2" == "secret" && "$3" == "openclaw-nextcloud-mcp-secrets" ]]; then
-      case "${4:-}" in
-        -o)
-          if [[ "$5" == "jsonpath={.data.NEXTCLOUD_PASSWORD}" ]]; then
-            printf '%s' "${FAKE_EXISTING_OPENCLAW_NEXTCLOUD_MCP_PASSWORD_B64:-}"
-          fi
-          exit 0
-          ;;
-      esac
-    fi
-    if [[ "$2" == "secret" && "$3" == "paperless-config-secrets" ]]; then
-      case "${4:-}" in
-        -o)
-          if [[ "$5" == "jsonpath={.data.PAPERLESS_DB_PASSWORD}" ]]; then
-            printf '%s' "${FAKE_EXISTING_PAPERLESS_DB_PASSWORD_B64:-}"
-          elif [[ "$5" == "jsonpath={.data.PAPERLESS_ADMIN_PASSWORD}" ]]; then
-            printf '%s' "${FAKE_EXISTING_PAPERLESS_ADMIN_PASSWORD_B64:-}"
-          elif [[ "$5" == "jsonpath={.data.PAPERLESS_SECRET_KEY}" ]]; then
-            printf '%s' "${FAKE_EXISTING_PAPERLESS_SECRET_KEY_B64:-}"
-          fi
-          exit 0
-          ;;
-      esac
-    fi
-    ;;
+case "$1" in
   apply)
     if [[ "$2" == "-f" ]]; then
       manifest_path="$3"
@@ -176,12 +108,13 @@ SH
   cat >"${fake_bin}/openssl" <<'SH'
 #!/usr/bin/env bash
 set -euo pipefail
-if [[ "$1" == "rand" && "$2" == "-base64" ]]; then
-  printf 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdef0123456789\n'
-  exit 0
-fi
 if [[ "$1" == "rand" && "$2" == "-hex" ]]; then
-  printf '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\n'
+  bytes="$3"
+  case "${bytes}" in
+    24) printf '0123456789abcdef0123456789abcdef0123456789abcdef\n' ;;
+    32) printf 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210\n' ;;
+    *) printf 'unexpected openssl rand -hex bytes: %s\n' "${bytes}" >&2; exit 1 ;;
+  esac
   exit 0
 fi
 printf 'unexpected openssl invocation: %s\n' "$*" >&2
@@ -206,32 +139,6 @@ SH
     export FAKE_KUBECTL_LOG="${kubectl_log}"
     export FAKE_NAMESPACE="test-namespace"
     export FAKE_SSH_KEYSCAN_MODE="${ssh_keyscan_mode}"
-    case "${existing_postgres_admin_password_mode}" in
-      none) unset FAKE_EXISTING_POSTGRES_ADMIN_PASSWORD_B64 ;;
-      existing) export FAKE_EXISTING_POSTGRES_ADMIN_PASSWORD_B64="ZXhpc3RpbmctcG9zdGdyZXMtYWRtaW4tcGFzc3dvcmQ=" ;;
-      *) printf 'unknown existing_postgres_admin_password_mode: %s\n' "${existing_postgres_admin_password_mode}" >&2; exit 1 ;;
-    esac
-    case "${existing_redis_password_mode}" in
-      none) unset FAKE_EXISTING_REDIS_PASSWORD_B64 ;;
-      existing) export FAKE_EXISTING_REDIS_PASSWORD_B64="ZXhpc3RpbmctcmVkaXMtcGFzc3dvcmQ=" ;;
-      *) printf 'unknown existing_redis_password_mode: %s\n' "${existing_redis_password_mode}" >&2; exit 1 ;;
-    esac
-    case "${existing_gitea_db_password_mode}" in
-      none) unset FAKE_EXISTING_GITEA_DB_PASSWORD_B64 ;;
-      existing) export FAKE_EXISTING_GITEA_DB_PASSWORD_B64="ZXhpc3RpbmctZ2l0ZWEtcGFzc3dvcmQ=" ;;
-      *) printf 'unknown existing_gitea_db_password_mode: %s\n' "${existing_gitea_db_password_mode}" >&2; exit 1 ;;
-    esac
-    case "${existing_vaultwarden_db_password_mode}" in
-      none) unset FAKE_EXISTING_VAULTWARDEN_DB_PASSWORD_B64 ;;
-      existing) export FAKE_EXISTING_VAULTWARDEN_DB_PASSWORD_B64="ZXhpc3RpbmctdmF1bHR3YXJkZW4tcGFzc3dvcmQ=" ;;
-      *) printf 'unknown existing_vaultwarden_db_password_mode: %s\n' "${existing_vaultwarden_db_password_mode}" >&2; exit 1 ;;
-    esac
-    case "${existing_vaultwarden_admin_token_mode}" in
-      none) unset FAKE_EXISTING_VAULTWARDEN_ADMIN_TOKEN_B64 ;;
-      existing) export FAKE_EXISTING_VAULTWARDEN_ADMIN_TOKEN_B64="ZXhpc3RpbmctdmF1bHR3YXJkZW4tYWRtaW4tdG9rZW4=" ;;
-      *) printf 'unknown existing_vaultwarden_admin_token_mode: %s\n' "${existing_vaultwarden_admin_token_mode}" >&2; exit 1 ;;
-    esac
-    export FAKE_EXISTING_GITEA_ADMIN_PASSWORD_B64="ZXhpc3RpbmctZ2l0ZWEtYWRtaW4tcGFzc3dvcmQ="
     export HOME="${sandbox_dir}/home"
     mkdir -p "${HOME}"
 
@@ -335,25 +242,23 @@ EOF
     success-openai)
       [[ ${status} -eq 0 ]] || { printf 'expected success, got status %s\n%s\n' "${status}" "${output}" >&2; exit 1; }
       assert_contains "${output}" "updated secret openclaw-remote-docker-ssh"
-      assert_contains "${kubectl_output}" "literal=postgres-password=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-      assert_contains "${kubectl_output}" "literal=redis-password=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-      assert_contains "${kubectl_output}" "literal=OPENCLAW_GATEWAY_TOKEN=local-dev-token"
+      assert_contains "${kubectl_output}" "literal=postgres-password=0123456789abcdef0123456789abcdef0123456789abcdef"
+      assert_contains "${kubectl_output}" "literal=redis-password=0123456789abcdef0123456789abcdef0123456789abcdef"
+      assert_contains "${kubectl_output}" "literal=OPENCLAW_GATEWAY_TOKEN=0123456789abcdef0123456789abcdef0123456789abcdef"
       assert_contains "${kubectl_output}" "literal=OPENAI_API_KEY=test-openai-key"
-      assert_contains "${kubectl_output}" "literal=GITEA__database__PASSWD=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      assert_contains "${kubectl_output}" "literal=GITEA__database__PASSWD=0123456789abcdef0123456789abcdef0123456789abcdef"
       assert_contains "${kubectl_output}" "literal=username=git-admin"
       assert_contains "${kubectl_output}" "literal=email=git@example.invalid"
-      assert_contains "${kubectl_output}" "literal=password=existing-gitea-admin-password"
-      assert_contains "${kubectl_output}" "literal=VAULTWARDEN_DB_PASSWORD=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-      assert_contains "${kubectl_output}" "get secret openclaw-nextcloud-mcp-secrets -o jsonpath={.data.NEXTCLOUD_PASSWORD}"
+      assert_contains "${kubectl_output}" "literal=password=0123456789abcdef0123456789abcdef0123456789abcdef"
+      assert_contains "${kubectl_output}" "literal=VAULTWARDEN_DB_PASSWORD=0123456789abcdef0123456789abcdef0123456789abcdef"
+      assert_contains "${kubectl_output}" "literal=ADMIN_TOKEN=0123456789abcdef0123456789abcdef0123456789abcdef"
       assert_contains "${kubectl_output}" "literal=NEXTCLOUD_USERNAME=openclaw"
-      assert_contains "${kubectl_output}" "literal=NEXTCLOUD_PASSWORD=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-      assert_contains "${kubectl_output}" "literal=OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER=Basic b3BlbmNsYXc6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmMDEyMzQ1Njc4OWFiY2RlZg=="
+      assert_contains "${kubectl_output}" "literal=NEXTCLOUD_PASSWORD=0123456789abcdef0123456789abcdef0123456789abcdef"
+      assert_contains "${kubectl_output}" "literal=OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER=Basic b3BlbmNsYXc6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVm"
+      assert_contains "${kubectl_output}" "literal=PAPERLESS_SECRET_KEY=fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210"
       assert_contains "${kubectl_output}" "validated-id-ed25519=${key_path}"
       assert_contains "${kubectl_output}" "validated-known-hosts="
-      ;;
-    success-anthropic)
-      [[ ${status} -eq 0 ]] || { printf 'expected success, got status %s\n%s\n' "${status}" "${output}" >&2; exit 1; }
-      assert_contains "${kubectl_output}" "literal=ANTHROPIC_API_KEY=test-anthropic-key"
+      assert_not_contains "${kubectl_output}" "get secret "
       ;;
     success-multiple)
       [[ ${status} -eq 0 ]] || { printf 'expected success, got status %s\n%s\n' "${status}" "${output}" >&2; exit 1; }
@@ -361,51 +266,17 @@ EOF
       assert_contains "${kubectl_output}" "literal=BRAVE_API_KEY=test-brave-key"
       assert_contains "${kubectl_output}" "literal=GEMINI_API_KEY=test-gemini-key"
       ;;
-    success-existing-gitea-password)
-      [[ ${status} -eq 0 ]] || { printf 'expected success, got status %s\n%s\n' "${status}" "${output}" >&2; exit 1; }
-      assert_contains "${kubectl_output}" "get secret gitea-config-secrets -o jsonpath={.data.GITEA__database__PASSWD}"
-      assert_contains "${kubectl_output}" "literal=GITEA__database__PASSWD=existing-gitea-password"
-      ;;
-    success-existing-shared-passwords)
-      [[ ${status} -eq 0 ]] || { printf 'expected success, got status %s\n%s\n' "${status}" "${output}" >&2; exit 1; }
-      assert_contains "${kubectl_output}" "get secret shared-postgresql-auth -o jsonpath={.data.postgres-password}"
-      assert_contains "${kubectl_output}" "get secret shared-redis-auth -o jsonpath={.data.redis-password}"
-      assert_contains "${kubectl_output}" "literal=postgres-password=existing-postgres-admin-password"
-      assert_contains "${kubectl_output}" "literal=redis-password=existing-redis-password"
-      ;;
     success-explicit-gitea-password)
       [[ ${status} -eq 0 ]] || { printf 'expected success, got status %s\n%s\n' "${status}" "${output}" >&2; exit 1; }
       assert_contains "${kubectl_output}" "literal=GITEA__database__PASSWD=explicit-gitea-password"
-      if [[ "${kubectl_output}" == *"get secret gitea-config-secrets -o jsonpath={.data.GITEA__database__PASSWD}"* ]]; then
-        printf 'did not expect bootstrap to read the existing gitea secret when an explicit password was provided\n%s\n' "${kubectl_output}" >&2
-        exit 1
-      fi
-      ;;
-    success-existing-vaultwarden-password)
-      [[ ${status} -eq 0 ]] || { printf 'expected success, got status %s\n%s\n' "${status}" "${output}" >&2; exit 1; }
-      assert_contains "${kubectl_output}" "get secret vaultwarden-config-secrets -o jsonpath={.data.VAULTWARDEN_DB_PASSWORD}"
-      assert_contains "${kubectl_output}" "literal=VAULTWARDEN_DB_PASSWORD=existing-vaultwarden-password"
       ;;
     success-explicit-vaultwarden-password)
       [[ ${status} -eq 0 ]] || { printf 'expected success, got status %s\n%s\n' "${status}" "${output}" >&2; exit 1; }
       assert_contains "${kubectl_output}" "literal=VAULTWARDEN_DB_PASSWORD=explicit-vaultwarden-password"
-      if [[ "${kubectl_output}" == *"get secret vaultwarden-config-secrets -o jsonpath={.data.VAULTWARDEN_DB_PASSWORD}"* ]]; then
-        printf 'did not expect bootstrap to read the existing vaultwarden secret when an explicit password was provided\n%s\n' "${kubectl_output}" >&2
-        exit 1
-      fi
-      ;;
-    success-existing-vaultwarden-admin-token)
-      [[ ${status} -eq 0 ]] || { printf 'expected success, got status %s\n%s\n' "${status}" "${output}" >&2; exit 1; }
-      assert_contains "${kubectl_output}" "get secret vaultwarden-config-secrets -o jsonpath={.data.ADMIN_TOKEN}"
-      assert_contains "${kubectl_output}" "literal=ADMIN_TOKEN=existing-vaultwarden-admin-token"
       ;;
     success-explicit-vaultwarden-admin-token)
       [[ ${status} -eq 0 ]] || { printf 'expected success, got status %s\n%s\n' "${status}" "${output}" >&2; exit 1; }
       assert_contains "${kubectl_output}" "literal=ADMIN_TOKEN=explicit-vaultwarden-admin-token"
-      if [[ "${kubectl_output}" == *"get secret vaultwarden-config-secrets -o jsonpath={.data.ADMIN_TOKEN}"* ]]; then
-        printf 'did not expect bootstrap to read the existing vaultwarden admin token when an explicit token was provided\n%s\n' "${kubectl_output}" >&2
-        exit 1
-      fi
       ;;
     missing-provider)
       [[ ${status} -ne 0 ]] || { printf 'expected failure without provider/search key\n%s\n' "${output}" >&2; exit 1; }
@@ -430,18 +301,13 @@ EOF
   rm -rf "${sandbox_dir}"
 }
 
-run_case success-openai success present none none none none none OPENAI_API_KEY=test-openai-key ANTHROPIC_API_KEY=test-anthropic-key
-run_case success-anthropic success present none none none none none OPENAI_API_KEY=test-openai-key ANTHROPIC_API_KEY=test-anthropic-key
-run_case success-multiple success present none none none none none OPENAI_API_KEY=test-openai-key ANTHROPIC_API_KEY=test-anthropic-key BRAVE_API_KEY=test-brave-key GEMINI_API_KEY=test-gemini-key
-run_case success-existing-shared-passwords success present existing existing none none none OPENAI_API_KEY=test-openai-key ANTHROPIC_API_KEY=test-anthropic-key
-run_case success-existing-gitea-password success present none none existing none none OPENAI_API_KEY=test-openai-key ANTHROPIC_API_KEY=test-anthropic-key
-run_case success-explicit-gitea-password success present none none none none none OPENAI_API_KEY=test-openai-key ANTHROPIC_API_KEY=test-anthropic-key GITEA_DB_PASSWORD=explicit-gitea-password
-run_case success-existing-vaultwarden-password success present none none none existing none OPENAI_API_KEY=test-openai-key ANTHROPIC_API_KEY=test-anthropic-key
-run_case success-explicit-vaultwarden-password success present none none none none none OPENAI_API_KEY=test-openai-key ANTHROPIC_API_KEY=test-anthropic-key VAULTWARDEN_DB_PASSWORD=explicit-vaultwarden-password
-run_case success-existing-vaultwarden-admin-token success present none none none none existing OPENAI_API_KEY=test-openai-key ANTHROPIC_API_KEY=test-anthropic-key
-run_case success-explicit-vaultwarden-admin-token success present none none none none none OPENAI_API_KEY=test-openai-key ANTHROPIC_API_KEY=test-anthropic-key VAULTWARDEN_ADMIN_TOKEN=explicit-vaultwarden-admin-token
-run_case missing-provider success present none none none none none
-run_case missing-key success empty none none none none none OPENAI_API_KEY=test-openai-key ANTHROPIC_API_KEY=test-anthropic-key
-run_case empty-known-hosts empty present none none none none none OPENAI_API_KEY=test-openai-key ANTHROPIC_API_KEY=test-anthropic-key
+run_case success-openai success present OPENAI_API_KEY=test-openai-key ANTHROPIC_API_KEY=test-anthropic-key
+run_case success-multiple success present OPENAI_API_KEY=test-openai-key ANTHROPIC_API_KEY=test-anthropic-key BRAVE_API_KEY=test-brave-key GEMINI_API_KEY=test-gemini-key
+run_case success-explicit-gitea-password success present OPENAI_API_KEY=test-openai-key ANTHROPIC_API_KEY=test-anthropic-key GITEA_DB_PASSWORD=explicit-gitea-password
+run_case success-explicit-vaultwarden-password success present OPENAI_API_KEY=test-openai-key ANTHROPIC_API_KEY=test-anthropic-key VAULTWARDEN_DB_PASSWORD=explicit-vaultwarden-password
+run_case success-explicit-vaultwarden-admin-token success present OPENAI_API_KEY=test-openai-key ANTHROPIC_API_KEY=test-anthropic-key VAULTWARDEN_ADMIN_TOKEN=explicit-vaultwarden-admin-token
+run_case missing-provider success present
+run_case missing-key success empty OPENAI_API_KEY=test-openai-key ANTHROPIC_API_KEY=test-anthropic-key
+run_case empty-known-hosts empty present OPENAI_API_KEY=test-openai-key ANTHROPIC_API_KEY=test-anthropic-key
 
 echo "k3d bootstrap secrets tests passed"

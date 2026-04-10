@@ -142,7 +142,7 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["slug", "ownerUsername"],
+        "required": ["slug", "ownerUsername", "projectsFilesDir", "projectsFiles"],
         "additionalProperties": true,
         "properties": {
           "slug": {
@@ -163,9 +163,6 @@
                 "path": {
                   "type": "string",
                   "minLength": 1
-                },
-                "content": {
-                  "type": "string"
                 }
               }
             }

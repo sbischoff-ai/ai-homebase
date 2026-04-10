@@ -142,7 +142,6 @@ spec:
                 exit 1
               }
               {{- $filesDir := $agentConfig.filesDir | default "" }}
-              {{- if $filesDir }}
               {{- range $path, $_ := $.Files.Glob (printf "files/%s/**" $filesDir) }}
               {{- $filePath := trimPrefix (printf "files/%s/" $filesDir) $path }}
               target_path="${workspace_dir}/{{ $filePath }}"
@@ -160,25 +159,6 @@ spec:
                 }
                 normalize_seeded_skill "${target_path}"
               fi
-              {{- end }}
-              {{- else }}
-              {{- range $filePath, $_ := $agentConfig.files }}
-              target_path="${workspace_dir}/{{ $filePath }}"
-              target_parent="$(dirname "${target_path}")"
-              mkdir -p "${target_parent}" || {
-                echo >&2 "Failed to create ${target_parent} before seeding {{ $filePath }} for agent {{ $agentId }}."
-                exit 1
-              }
-              if [ -e "${target_path}" ]; then
-                echo "Preserving existing {{ $filePath }} in ${workspace_dir}."
-              else
-                cp -f /config-source/{{ printf "workspace-%s-%s" $agentId (replace "/" "__" $filePath) }} "${target_path}" || {
-                  echo >&2 "Failed to seed {{ $filePath }} into ${workspace_dir} for agent {{ $agentId }}."
-                  exit 1
-                }
-                normalize_seeded_skill "${target_path}"
-              fi
-              {{- end }}
               {{- end }}
               {{- end }}
               {{- end }}
@@ -545,20 +525,6 @@ spec:
             {{- end }}
             {{- with $.Values.secretKeys.githubToken }}
             - name: GITHUB_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: {{ $.Values.existingSecret }}
-                  key: {{ . }}
-            {{- end }}
-            {{- with $.Values.secretKeys.googleApiKey }}
-            - name: GOOGLE_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ $.Values.existingSecret }}
-                  key: {{ . }}
-            {{- end }}
-            {{- with $.Values.secretKeys.braveSearchApiKey }}
-            - name: BRAVE_SEARCH_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: {{ $.Values.existingSecret }}

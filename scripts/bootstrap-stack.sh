@@ -18,7 +18,6 @@ INCUS_VM_NAME="${INCUS_VM_NAME:-openclaw-sandbox}"
 INCUS_CONNECTION_INFO_PATH="${INCUS_CONNECTION_INFO_PATH:-}"
 BOOTSTRAP_VALUES_FILE=""
 REMOTE_DOCKER_OVERRIDE_VALUES_FILE=""
-SKIP_SECRETS=0
 SKIP_GITOPS=0
 VERBOSE=0
 CERT_MANAGER_CRD_WAIT_TIMEOUT="${CERT_MANAGER_CRD_WAIT_TIMEOUT:-180s}"
@@ -343,7 +342,6 @@ Options:
   --values-file <path>         Extra values file path (repeatable)
   --enable-service <name>      Enable a service (repeatable)
   --disable-service <name>     Disable a service (repeatable)
-  --skip-secrets               Skip bootstrap-secrets.sh and only apply the Helm release
   --skip-gitops                Skip the integrated GitOps handoff and Argo CD validation
   --remote-docker-secret <n>   Override SSH secret name for OpenClaw remote Docker bootstrap
   --remote-docker-host <host>  Override OpenClaw remote Docker SSH host
@@ -377,7 +375,6 @@ while [[ $# -gt 0 ]]; do
       SET_ARGS+=(--set "${service_key}.enabled=false")
       shift 2
       ;;
-    --skip-secrets) SKIP_SECRETS=1; shift ;;
     --skip-gitops) SKIP_GITOPS=1; shift ;;
     --remote-docker-secret) REMOTE_DOCKER_SECRET_NAME="$2"; shift 2 ;;
     --remote-docker-host) REMOTE_DOCKER_HOST="$2"; shift 2 ;;
@@ -502,9 +499,7 @@ if [[ "$VERBOSE" -eq 1 ]]; then
   BOOTSTRAP_SECRETS_CMD+=(--verbose)
 fi
 
-if [[ "$SKIP_SECRETS" -eq 0 ]]; then
-  "${BOOTSTRAP_SECRETS_CMD[@]}"
-fi
+"${BOOTSTRAP_SECRETS_CMD[@]}"
 
 prepare_openclaw_runtime_images
 

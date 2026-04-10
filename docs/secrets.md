@@ -1,8 +1,8 @@
 # Secrets and SOPS
 
-This repository is moving from imperative `kubectl create secret` bootstrap steps to repo-managed SOPS-encrypted Secret manifests.
+The canonical first-run secret path in this repository is `scripts/bootstrap-secrets.sh`.
 
-The `secrets/` directory is the operator workspace for that flow:
+The `secrets/` directory is the operator workspace for optional encrypted-manifest management after bootstrap:
 
 - Plaintext templates live as `secrets/*.yaml` and are gitignored.
 - Encrypted manifests live as `secrets/*.enc.yaml` and are intended to be committed.
@@ -83,12 +83,12 @@ The coder sandbox must not receive:
 
 That keeps the coding environment encrypt-only. Operators can ask coder to prepare manifest structure, but final value entry and encryption with the real private key must happen outside the sandbox.
 
-## Current migration scope
+## Current repo templates
 
-The SOPS workflow in this task covers:
+The repo currently ships plaintext templates for:
 
 - `openclaw-secrets`
 - `coder-credentials`
 - `nextcloud-config-secrets`
 
-[`scripts/bootstrap-secrets.sh`](../scripts/bootstrap-secrets.sh) remains in the repository as a deprecated legacy path for Secrets that have not yet been migrated.
+Use `scripts/bootstrap-secrets.sh` for the first install, and use encrypted manifests from `secrets/` when you want those long-lived secrets committed and synced through GitOps afterward.

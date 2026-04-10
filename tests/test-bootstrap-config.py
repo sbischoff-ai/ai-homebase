@@ -317,18 +317,22 @@ assert rendered_values["nextcloud"]["bootstrapUsers"][0]["username"] == "opencla
 assert rendered_values["nextcloud"]["bootstrapUsers"][0]["displayName"] == "OpenClaw"
 assert rendered_values["nextcloud"]["bootstrapProjectContent"][0]["slug"] == "ai-homebase"
 assert rendered_values["nextcloud"]["bootstrapProjectContent"][0]["ownerUsername"] == "openclaw"
+assert rendered_values["nextcloud"]["bootstrapProjectContent"][0]["projectsFilesDir"] == "bootstrap-content/ai-homebase/projects"
 assert rendered_values["nextcloud"]["bootstrapProjectContent"][0]["projectsFiles"][0]["path"] == "overview.md"
-assert "running AI homebase cluster" in rendered_values["nextcloud"]["bootstrapProjectContent"][0]["projectsFiles"][0]["content"]
 project_files = rendered_values["nextcloud"]["bootstrapProjectContent"][0]["projectsFiles"]
-assert any(item["path"] == "qdrant-memory-schema.md" and "Qdrant Semantic Memory Schema" in item["content"] for item in project_files)
-assert any(item["path"] == "knowledge-graph-schema.md" and "Knowledge Graph Schema" in item["content"] for item in project_files)
-assert any(item["path"] == "project-documentation-model.md" and "/Desk/" in item["content"] for item in project_files)
-assert any(item["path"] == "project-documentation-model.md" and "created by `main` at bootstrap or first use" in item["content"] for item in project_files)
 assert any(item["path"] == "incidents/README.md" for item in project_files)
 assert any(item["path"] == "baselines.md" for item in project_files)
 assert any(item["path"] == "escalation-rules.md" for item in project_files)
 assert "notes" not in rendered_values["nextcloud"]["bootstrapProjectContent"][0]
 assert not any(item["path"].startswith("Desk/") for item in project_files)
+
+project_docs_dir = REPO_ROOT / "charts" / "platform-stack" / "files" / "bootstrap-content" / "ai-homebase" / "projects"
+assert "running AI homebase cluster" in (project_docs_dir / "overview.md").read_text()
+assert "Qdrant Semantic Memory Schema" in (project_docs_dir / "qdrant-memory-schema.md").read_text()
+assert "Knowledge Graph Schema" in (project_docs_dir / "knowledge-graph-schema.md").read_text()
+project_documentation_model = (project_docs_dir / "project-documentation-model.md").read_text()
+assert "/Desk/" in project_documentation_model
+assert "created by `main` at bootstrap or first use" in project_documentation_model
 assert rendered_values["nextcloud"]["ingress"]["private"]["host"] == "nextcloud.test.internal"
 assert rendered_values["nextcloud"]["ingress"]["public"]["host"] == "nextcloud.example.com"
 assert rendered_values["nextcloud"]["smtp"]["host"] == "platform-stack-postfix-relay"

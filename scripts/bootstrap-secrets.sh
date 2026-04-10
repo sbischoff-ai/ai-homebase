@@ -1,10 +1,6 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-# DEPRECATED: prefer repo-managed SOPS Secret manifests under ./secrets/ and Argo CD
-# decryption at deploy time. This script remains only for legacy bootstrap flows and
-# Secrets that have not yet been migrated to the SOPS workflow. See docs/secrets.md.
-
 source "$(dirname "$0")/lib/logging.sh"
 
 PROFILE="${PROFILE:-}"
@@ -73,7 +69,7 @@ usage() {
   cat <<USAGE
 Usage: $0 --profile <k3d|k3s> [options]
 
-Create or refresh bootstrap Secrets from a local bootstrap config file.
+Create bootstrap Secrets from a local bootstrap config file.
 
 Options:
   --profile <k3d|k3s>          Supported target profile
@@ -136,8 +132,6 @@ done
 BOOTSTRAP_SHELL_VARS="$(python3 ./scripts/bootstrap-config.py shell-vars --config "$BOOTSTRAP_CONFIG_PATH")" || exit 1
 eval "$BOOTSTRAP_SHELL_VARS"
 
-OPENCLAW_GATEWAY_TOKEN="${OPENCLAW_GATEWAY_TOKEN:-local-dev-token}"
-
 KUBECTL_ARGS=()
 if [[ -n "$KUBECONFIG_PATH" ]]; then
   KUBECTL_ARGS=(--kubeconfig "$KUBECONFIG_PATH")
@@ -182,22 +176,6 @@ remote_docker_secret_contract_hint() {
   printf 'Secret %s must provide non-empty id_ed25519 and known_hosts keys. OpenClaw init will fail if those keys are absent.' "$secret_name"
 }
 
-existing_remote_docker_secret_is_usable() {
-  local secret_name="$1"
-  local key_b64 known_hosts_b64
-
-  key_b64="$(
-    kubectl "${KUBECTL_ARGS[@]}" -n "$NAMESPACE" get secret "$secret_name" \
-      -o 'jsonpath={.data.id_ed25519}' 2>>"$BOOTSTRAP_LOG_FILE" || true
-  )"
-  known_hosts_b64="$(
-    kubectl "${KUBECTL_ARGS[@]}" -n "$NAMESPACE" get secret "$secret_name" \
-      -o 'jsonpath={.data.known_hosts}' 2>>"$BOOTSTRAP_LOG_FILE" || true
-  )"
-
-  [[ -n "$key_b64" && -n "$known_hosts_b64" ]]
-}
-
 create_remote_docker_secret() {
   local secret_name="$1"
   local remote_host="$2"
@@ -215,10 +193,6 @@ create_remote_docker_secret() {
 
   if [[ ! -s "$known_hosts_file" ]]; then
     rm -f "$known_hosts_file"
-    if existing_remote_docker_secret_is_usable "$secret_name"; then
-      warn "ssh-keyscan did not resolve ${remote_host}:${remote_port}; preserving existing ${secret_name}."
-      return 0
-    fi
     fail "ssh-keyscan did not write known_hosts data for ${remote_host}:${remote_port}. $(remote_docker_secret_contract_hint "$secret_name")"
     return 1
   fi
@@ -230,48 +204,25 @@ create_remote_docker_secret() {
   rm -f "$known_hosts_file"
 }
 
-resolve_from_existing_secret_or_generate() {
-  local explicit_value="$1"
-  local secret_name="$2"
-  local jsonpath="$3"
+generate_secret_hex() {
+  local bytes="${1:-24}"
+  openssl rand -hex "$bytes"
+}
 
-  local existing_value_b64=""
+resolve_or_generate() {
+  local explicit_value="$1"
+  local bytes="${2:-24}"
 
   if [[ -n "$explicit_value" ]]; then
     printf '%s' "$explicit_value"
     return 0
   fi
 
-  existing_value_b64="$(
-    kubectl "${KUBECTL_ARGS[@]}" -n "$NAMESPACE" get secret "$secret_name" \
-      -o "jsonpath=${jsonpath}" 2>>"$BOOTSTRAP_LOG_FILE" || true
-  )"
-  if [[ -n "$existing_value_b64" ]]; then
-    printf '%s' "$existing_value_b64" | base64 --decode
-    return 0
-  fi
-
-  openssl rand -hex 24
+  generate_secret_hex "$bytes"
 }
 
 resolve_paperless_secret_key() {
-  local existing_secret_key_b64=""
-
-  if [[ -n "$PAPERLESS_SECRET_KEY" ]]; then
-    printf '%s' "$PAPERLESS_SECRET_KEY"
-    return 0
-  fi
-
-  existing_secret_key_b64="$(
-    kubectl "${KUBECTL_ARGS[@]}" -n "$NAMESPACE" get secret paperless-config-secrets \
-      -o jsonpath='{.data.PAPERLESS_SECRET_KEY}' 2>>"$BOOTSTRAP_LOG_FILE" || true
-  )"
-  if [[ -n "$existing_secret_key_b64" ]]; then
-    printf '%s' "$existing_secret_key_b64" | base64 --decode
-    return 0
-  fi
-
-  openssl rand -hex 32
+  resolve_or_generate "$PAPERLESS_SECRET_KEY" 32
 }
 
 generate_htpasswd_entry() {
@@ -292,30 +243,6 @@ generate_htpasswd_entry() {
   return 1
 }
 
-resolve_from_existing_secret_or_empty() {
-  local explicit_value="$1"
-  local secret_name="$2"
-  local jsonpath="$3"
-
-  local existing_value_b64=""
-
-  if [[ -n "$explicit_value" ]]; then
-    printf '%s' "$explicit_value"
-    return 0
-  fi
-
-  existing_value_b64="$(
-    kubectl "${KUBECTL_ARGS[@]}" -n "$NAMESPACE" get secret "$secret_name" \
-      -o "jsonpath=${jsonpath}" 2>>"$BOOTSTRAP_LOG_FILE" || true
-  )"
-  if [[ -n "$existing_value_b64" ]]; then
-    printf '%s' "$existing_value_b64" | base64 --decode
-    return 0
-  fi
-
-  printf ''
-}
-
 step "Ensuring namespace ${NAMESPACE} exists"
 apply_manifest <<MANIFEST
 apiVersion: v1
@@ -325,8 +252,9 @@ metadata:
 MANIFEST
 
 step "Applying bootstrap secrets from ${BOOTSTRAP_CONFIG_PATH}"
-POSTGRES_ADMIN_PASSWORD="$(resolve_from_existing_secret_or_generate "$POSTGRES_ADMIN_PASSWORD" shared-postgresql-auth '{.data.postgres-password}')"
-REDIS_PASSWORD="$(resolve_from_existing_secret_or_generate "$REDIS_PASSWORD" shared-redis-auth '{.data.redis-password}')"
+OPENCLAW_GATEWAY_TOKEN="$(resolve_or_generate "$OPENCLAW_GATEWAY_TOKEN")"
+POSTGRES_ADMIN_PASSWORD="$(resolve_or_generate "$POSTGRES_ADMIN_PASSWORD")"
+REDIS_PASSWORD="$(resolve_or_generate "$REDIS_PASSWORD")"
 create_and_apply_secret shared-postgresql-auth \
   --from-literal=postgres-password="$POSTGRES_ADMIN_PASSWORD" \
   --from-literal=password="$POSTGRES_ADMIN_PASSWORD"
@@ -334,19 +262,19 @@ create_and_apply_secret shared-postgresql-auth \
 create_and_apply_secret shared-redis-auth \
   --from-literal=redis-password="$REDIS_PASSWORD"
 
-GITEA_DB_PASSWORD="$(resolve_from_existing_secret_or_generate "$GITEA_DB_PASSWORD" gitea-config-secrets '{.data.GITEA__database__PASSWD}')"
-GITEA_ADMIN_PASSWORD="$(resolve_from_existing_secret_or_generate "$GITEA_ADMIN_PASSWORD" gitea-admin-secret '{.data.password}')"
-VAULTWARDEN_DB_PASSWORD="$(resolve_from_existing_secret_or_generate "$VAULTWARDEN_DB_PASSWORD" vaultwarden-config-secrets '{.data.VAULTWARDEN_DB_PASSWORD}')"
-VAULTWARDEN_ADMIN_TOKEN="$(resolve_from_existing_secret_or_empty "$VAULTWARDEN_ADMIN_TOKEN" vaultwarden-config-secrets '{.data.ADMIN_TOKEN}')"
-NEXTCLOUD_DB_PASSWORD="$(resolve_from_existing_secret_or_generate "$NEXTCLOUD_DB_PASSWORD" nextcloud-config-secrets '{.data.POSTGRES_PASSWORD}')"
-NEXTCLOUD_ADMIN_PASSWORD="$(resolve_from_existing_secret_or_generate "$NEXTCLOUD_ADMIN_PASSWORD" nextcloud-config-secrets '{.data.NEXTCLOUD_ADMIN_PASSWORD}')"
-OPENCLAW_NEXTCLOUD_MCP_PASSWORD="$(resolve_from_existing_secret_or_generate "$OPENCLAW_NEXTCLOUD_MCP_PASSWORD" openclaw-nextcloud-mcp-secrets '{.data.NEXTCLOUD_PASSWORD}')"
-PAPERLESS_DB_PASSWORD="$(resolve_from_existing_secret_or_generate "$PAPERLESS_DB_PASSWORD" paperless-config-secrets '{.data.PAPERLESS_DB_PASSWORD}')"
-PAPERLESS_ADMIN_PASSWORD="$(resolve_from_existing_secret_or_generate "$PAPERLESS_ADMIN_PASSWORD" paperless-config-secrets '{.data.PAPERLESS_ADMIN_PASSWORD}')"
+GITEA_DB_PASSWORD="$(resolve_or_generate "$GITEA_DB_PASSWORD")"
+GITEA_ADMIN_PASSWORD="$(resolve_or_generate "$GITEA_ADMIN_PASSWORD")"
+VAULTWARDEN_DB_PASSWORD="$(resolve_or_generate "$VAULTWARDEN_DB_PASSWORD")"
+VAULTWARDEN_ADMIN_TOKEN="$(resolve_or_generate "$VAULTWARDEN_ADMIN_TOKEN")"
+NEXTCLOUD_DB_PASSWORD="$(resolve_or_generate "$NEXTCLOUD_DB_PASSWORD")"
+NEXTCLOUD_ADMIN_PASSWORD="$(resolve_or_generate "$NEXTCLOUD_ADMIN_PASSWORD")"
+OPENCLAW_NEXTCLOUD_MCP_PASSWORD="$(resolve_or_generate "$OPENCLAW_NEXTCLOUD_MCP_PASSWORD")"
+PAPERLESS_DB_PASSWORD="$(resolve_or_generate "$PAPERLESS_DB_PASSWORD")"
+PAPERLESS_ADMIN_PASSWORD="$(resolve_or_generate "$PAPERLESS_ADMIN_PASSWORD")"
 PAPERLESS_SECRET_KEY="$(resolve_paperless_secret_key)"
 REGISTRY_USERNAME="${REGISTRY_USERNAME:-coder}"
-REGISTRY_PASSWORD="$(resolve_from_existing_secret_or_generate "$REGISTRY_PASSWORD" registry-auth-secret '{.data.password}')"
-CODER_GITEA_PASSWORD="$(resolve_from_existing_secret_or_generate "${CODER_GITEA_PASSWORD:-}" coder-credentials '{.data.CODER_GITEA_PASSWORD}')"
+REGISTRY_PASSWORD="$(resolve_or_generate "$REGISTRY_PASSWORD")"
+CODER_GITEA_PASSWORD="$(resolve_or_generate "${CODER_GITEA_PASSWORD:-}")"
 GITEA_REDIS_URI="redis://:${REDIS_PASSWORD}@platform-stack-shared-redis:6379/0?pool_size=100&idle_timeout=180s"
 PAPERLESS_REDIS_URI="redis://:${REDIS_PASSWORD}@platform-stack-shared-redis:6379/0"
 REGISTRY_HTPASSWD="$(generate_htpasswd_entry "$REGISTRY_USERNAME" "$REGISTRY_PASSWORD")"

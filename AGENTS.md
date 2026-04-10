@@ -5,6 +5,11 @@
 - Read values layering and target model: `docs/configuration.md`.
 - Read service toggles, defaults, and secret contracts: `docs/services.md`.
 
+## Bootstrap-only rule
+- Treat this repository as a first-run bootstrap system for a brand-new `ai-homebase` cluster.
+- Every script, chart default, seeded file, and helper exists to initialize a fresh installation exactly once before GitOps and the running services take over their own durable state.
+- Do not keep backward-compatibility shims, deprecated paths, rerun-preservation behavior, or stale bootstrap code. If a repo-managed bootstrap path is no longer the canonical first-run path, remove it instead of leaving it behind.
+
 ## Canonical validation commands
 - Update nested wrapper + umbrella dependencies when chart metadata changes or a render must include wrapper-managed resources:
   - `helm dependency update charts/argo-cd`

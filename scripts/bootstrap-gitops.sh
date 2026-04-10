@@ -515,7 +515,7 @@ else
   CODER_GITEA_PASSWORD="$(generate_password)"
 fi
 
-step "Refreshing bootstrap-managed secrets before the GitOps handoff"
+step "Applying bootstrap secrets before the GitOps handoff"
 BOOTSTRAP_SECRETS_CMD=(
   ./scripts/bootstrap-secrets.sh
   --profile "$PROFILE"
@@ -545,7 +545,6 @@ if [[ "$SKIP_INSTALL" -eq 0 ]]; then
     --bootstrap-config "$BOOTSTRAP_CONFIG_PATH"
     --release-name "$RELEASE_NAME"
     --namespace "$NAMESPACE"
-    --skip-secrets
     --skip-gitops
     --enable-service argo-cd
   )

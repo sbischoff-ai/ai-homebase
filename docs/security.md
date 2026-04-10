@@ -25,7 +25,7 @@ Bootstrap-managed Secrets include:
 - `paperless-config-secrets`
 - shared PostgreSQL and Redis auth Secrets
 
-The preferred workflow for migrated Secrets is now SOPS-encrypted manifests under [`secrets/`](../secrets/) with operator guidance in [`docs/secrets.md`](./secrets.md). The imperative `scripts/bootstrap-secrets.sh` flow is deprecated and remains only for legacy or not-yet-migrated Secrets.
+The canonical bootstrap workflow is `scripts/bootstrap-secrets.sh`, which creates the runtime Secrets for a fresh cluster from `bootstrap.local.toml`. Operators can later move long-lived secret management into encrypted manifests under [`secrets/`](../secrets/) with the guidance in [`docs/secrets.md`](./secrets.md).
 
 ## User-Provided Tokens
 
@@ -36,11 +36,11 @@ Some values are intentionally operator-supplied rather than always generated:
 
 `vaultwarden_admin_token` maps to Vaultwarden `ADMIN_TOKEN`. It enables the Vaultwarden admin panel so operators can create users manually after bootstrap. This repo does not bootstrap Vaultwarden users directly.
 
-## Generated vs Preserved Secrets
+## Generated Secrets
 
-When a secret field in `bootstrap.local.toml` is empty, the bootstrap flow tries to preserve the existing in-cluster value first. If nothing exists and the field is one of the generated credentials, it creates a new value.
+When a generated secret field in `bootstrap.local.toml` is empty, the bootstrap flow creates a fresh value for that first install.
 
-That preserves state across repeated bootstrap runs while still allowing explicit rotation by changing the bootstrap config.
+Set a value explicitly in `bootstrap.local.toml` when you need a specific credential instead of a generated one.
 
 ## Internal CA and TLS
 

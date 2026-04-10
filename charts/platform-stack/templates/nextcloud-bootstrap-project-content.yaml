@@ -1,11 +1,5 @@
 {{- $projects := .Values.nextcloud.bootstrapProjectContent | default (list) -}}
-{{- $hasFileBackedBootstrapProjectContent := false -}}
-{{- range $project := $projects }}
-  {{- if ($project.projectsFilesDir | default "") }}
-    {{- $hasFileBackedBootstrapProjectContent = true -}}
-  {{- end }}
-{{- end }}
-{{- if and (.Values.nextcloud.enabled | default false) $projects $hasFileBackedBootstrapProjectContent }}
+{{- if and (.Values.nextcloud.enabled | default false) $projects }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -21,24 +15,9 @@ metadata:
 data:
   {{- range $projectIndex, $project := $projects }}
   {{- $projectsFilesDir := $project.projectsFilesDir | default "" }}
-  {{- if $projectsFilesDir }}
-  {{- if $project.projectsFiles }}
   {{- range $fileIndex, $file := $project.projectsFiles }}
   project-{{ $projectIndex }}-file-{{ $fileIndex }}: |
 {{ $.Files.Get (printf "files/%s/%s" $projectsFilesDir $file.path) | trimSuffix "\n" | nindent 4 }}
-  {{- end }}
-  {{- else }}
-    {{- range $path, $_ := $.Files.Glob (printf "files/%s/**" $projectsFilesDir) }}
-    {{- $relativePath := trimPrefix (printf "files/%s/" $projectsFilesDir) $path }}
-  project-{{ $projectIndex }}-project-{{ $relativePath | replace "/" "-" | replace "." "-" | replace "_" "-" }}: |
-{{ $.Files.Get $path | trimSuffix "\n" | nindent 4 }}
-    {{- end }}
-  {{- end }}
-  {{- else }}
-  {{- range $fileIndex, $file := ($project.projectsFiles | default (list)) }}
-  project-{{ $projectIndex }}-file-{{ $fileIndex }}: |
-{{ $file.content | trimSuffix "\n" | nindent 4 }}
-  {{- end }}
   {{- end }}
   {{- end }}
 {{- end }}

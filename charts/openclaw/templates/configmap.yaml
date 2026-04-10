@@ -38,15 +38,9 @@ data:
   {{- if .Values.workspaceBootstrap.enabled }}
   {{- range $agentId, $agentConfig := .Values.workspaceBootstrap.agents }}
   {{- $filesDir := $agentConfig.filesDir | default "" }}
-  {{- if $filesDir }}
   {{- range $path, $_ := $.Files.Glob (printf "files/%s/**" $filesDir) }}
   {{- $filePath := trimPrefix (printf "files/%s/" $filesDir) $path }}
 {{ printf "  workspace-%s-%s: |\n%s" $agentId (replace "/" "__" $filePath) ($.Files.Get $path | trimPrefix "\n" | indent 4) }}
-  {{- end }}
-  {{- else }}
-  {{- range $filePath, $content := $agentConfig.files }}
-{{ printf "  workspace-%s-%s: |\n%s" $agentId (replace "/" "__" $filePath) ($content | trimPrefix "\n" | indent 4) }}
-  {{- end }}
   {{- end }}
   {{- end }}
   {{- end }}

@@ -376,8 +376,6 @@ secretKeys:
   geminiApiKey: ""
   xaiApiKey: ""
   githubToken: ""
-  googleApiKey: "" # backward-compatible legacy alias for GEMINI_API_KEY-style setups
-  braveSearchApiKey: "" # backward-compatible legacy alias for BRAVE_API_KEY-style setups
 secretRefs: [] # [{name: openclaw-secrets, key: OPENCLAW_API_TOKEN, envVar: OPENCLAW_API_TOKEN}]
 
 podSecurityContext:
