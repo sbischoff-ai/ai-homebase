@@ -1,6 +1,6 @@
 # Tools
 
-Local notes for this setup.
+This file records how this OpenClaw setup expects you to use your available tools and skills. It distinguishes local workspace files from remote Nextcloud paths where that matters.
 
 ## Files
 
@@ -10,7 +10,7 @@ Local notes for this setup.
 - Nextcloud `/Projects/...` are remote paths for review packets, verdicts, and compact evidence summaries.
 - Use Qdrant for recurring patterns and durable findings that should influence future reviews without turning into large standing documents.
 - Keep `TOOLS.md` stable. Put active surface references in `SURFACES.md` and shared non-project registrations in Nextcloud `/Desk/index.md`.
-- Seeded ai-homebase review surfaces you will commonly read or update:
+- ai-homebase review surfaces you will commonly read or update:
   - Nextcloud `/Projects/ai-homebase/audit-log.md`
   - Nextcloud `/Projects/ai-homebase/budget-policy.md`
   - Nextcloud `/Projects/ai-homebase/watchdog-status-log.md`

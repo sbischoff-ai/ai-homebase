@@ -1,6 +1,6 @@
 ---
-name: consult-nextcloud-knowledge
-description: Use when Nextcloud documentation may support graph or memory work, especially for schema notes, nc_refs, or shared project artifacts.
+name: use-nextcloud-docs-for-graph-work
+description: Use this to find and cite Nextcloud documents that support knowledge-graph curation, schema decisions, or Qdrant memory references.
 ---
 
 # Nextcloud Knowledge Support

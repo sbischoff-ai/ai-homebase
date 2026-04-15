@@ -77,4 +77,4 @@ Register recurring calendars, task lists, tables, and any user-shared folders in
 Store durable preferences in Qdrant.
 Store shared short-term continuity in Nextcloud `/Desk/`.
 Store durable collaboration artifacts in Nextcloud.
-Retire this file only when bootstrap is complete and no longer needed by the seeded workspace model.
+Delete `BOOTSTRAP.md` only when bootstrap is complete and the standing workspace can orient without it.

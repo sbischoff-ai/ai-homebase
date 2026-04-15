@@ -1,6 +1,6 @@
 # Tools
 
-Local notes for this setup.
+This file records how this OpenClaw setup expects you to use your available tools and skills. It distinguishes local workspace files from remote Nextcloud paths where that matters.
 
 ## Files
 

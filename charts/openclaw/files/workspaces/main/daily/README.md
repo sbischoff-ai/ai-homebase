@@ -1,6 +1,6 @@
 # Daily Notes - Main
 
-Each file here is a historical wrap-up for one day, written in past tense so it cannot be confused with `CURRENT.md`.
+Each file here is a historical wrap-up for one day, kept in past tense so it cannot be confused with `CURRENT.md`.
 
 Include:
 - what happened that day and still mattered afterward

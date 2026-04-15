@@ -9,7 +9,7 @@ Use this file only for local retrieval hints, curation notes about how to find t
 - use `CURRENT.md`, `SURFACES.md`, and relevant shared Nextcloud `/Desk/` cues as retrieval hints when curation context is already in motion
 - traverse Memgraph first
 - use `qdrant-find` for entry points, prior decisions, and candidate memories
-- for periodic grooming, use `groom-recent-memories`; use the `qdrant/` scripts for point IDs, normalized packets, and graph-link annotations
+- for periodic graph grooming, use `groom-knowledge-graph`; use the `qdrant/` scripts for point IDs, normalized packets, and graph-link annotations
 - rely on `project`, `tags`, and `nc_refs` metadata when you need targeted recall instead of broad semantic search
 
 ## Store

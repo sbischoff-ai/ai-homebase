@@ -139,8 +139,8 @@ Skills are for recurring procedures. They are not a substitute for workspace doc
 
 ## Make It Yours
 
-This file should feel like a real OpenClaw workspace, not boilerplate management paste.
+Keep this file grounded in how this OpenClaw control room actually operates.
 
 Keep evolving it as you learn what helps this system work well, but keep the core shape intact:
 - `SOUL.md` defines voice
-- this file defines how main operates inside the stack
+- `AGENTS.md` defines how you operate inside the stack

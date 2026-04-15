@@ -1,11 +1,11 @@
 ---
-name: groom-recent-memories
-description: Use for weekly, nightly-watchdog, impromptu, or targeted memory grooming that must process Qdrant/Nextcloud deltas and checkpoint progress.
+name: groom-knowledge-graph
+description: Use this to turn recent Qdrant memories and changed Nextcloud docs into clean Memgraph links, Qdrant graph-link annotations, and an updated grooming checkpoint.
 ---
 
-# Recent Memory Grooming
+# Knowledge Graph Grooming
 
-Use when running a periodic or requested memory grooming, deduplication, graph-linking, or curation pass.
+Use when running a periodic or requested graph grooming, memory-linking, deduplication, or curation pass.
 
 ## Checkpoint State
 
@@ -15,7 +15,7 @@ Use when running a periodic or requested memory grooming, deduplication, graph-l
 - Treat `last_successful_graph_link` as the graph-link catch-up boundary.
 - Treat `last_weekly_grooming` and `last_triggered_grooming` as cadence markers, not replacements for the successful delta boundaries.
 - Track Nextcloud metadata under `nextcloud.surfaces` as `{etag,last_modified,size,checked_at}` when the WebDAV tools expose those fields.
-- Treat this file as runtime state, not as a prose note.
+- Treat the checkpoint as runtime state, not as a prose note.
 
 ## Procedure
 

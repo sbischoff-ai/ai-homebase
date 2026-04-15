@@ -1,6 +1,6 @@
 # Tools
 
-Local notes for this setup.
+This file records how this OpenClaw setup expects you to use your available tools and skills. It distinguishes local workspace files from remote Nextcloud paths where that matters.
 
 ## Memgraph
 
@@ -23,7 +23,7 @@ Local notes for this setup.
 - Nextcloud `/Desk/...` are remote paths for shared continuity and live indexing. Use them only to discover relevant supporting surfaces.
 - Nextcloud `/Projects/...` are remote paths for supporting documentation, not your primary truth source.
 - Keep `TOOLS.md` stable. Put active surface references in `SURFACES.md`, and let Nextcloud `/Desk/index.md` point to shared supporting docs when they matter outside your workspace.
-- Seeded ai-homebase docs you will commonly reference:
+- ai-homebase docs you will commonly reference:
   - Nextcloud `/Projects/ai-homebase/knowledge-graph-schema.md`
   - Nextcloud `/Projects/ai-homebase/qdrant-memory-schema.md`
   - Nextcloud `/Projects/ai-homebase/archivist-grooming-log.md`
@@ -34,4 +34,4 @@ Local notes for this setup.
 
 ## Notes
 
-- Keep this file current when Memgraph connection variables, query-library conventions, or seeded schema references change.
+- Keep this file current when Memgraph connection variables, query-library conventions, or schema references change.

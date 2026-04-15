@@ -1,6 +1,6 @@
 ---
-name: map-context-and-link-memories
-description: Use when asked for a structural context map or when Qdrant memories need to be linked into Memgraph structure.
+name: map-context-and-link-evidence
+description: Use this to answer "what do we know about this?" with a Memgraph-first context map and link relevant Qdrant memories as graph evidence.
 ---
 
 # Context Map And Memory Linking

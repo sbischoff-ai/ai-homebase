@@ -1,6 +1,6 @@
 # Tools
 
-Local notes for this worker setup.
+Use this template to define the tool and skill instructions for the worker you are creating. Distinguish the worker's local workspace files from any remote Nextcloud paths the worker is allowed to use.
 
 {{WORKER_TOOLS_INSTRUCTIONS}}
 

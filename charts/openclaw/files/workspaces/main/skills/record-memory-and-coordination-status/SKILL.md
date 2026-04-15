@@ -1,6 +1,6 @@
 ---
 name: record-memory-and-coordination-status
-description: Use after meaningful coordination work to decide what belongs in Qdrant and whether to refresh the shared coordination status marker.
+description: Use when meaningful coordination work is complete and you need to decide what belongs in Qdrant or whether to refresh the shared coordination status marker.
 ---
 
 # Memory And Coordination Status

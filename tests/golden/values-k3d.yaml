@@ -837,11 +837,11 @@ data:
   workspace-architect-IDENTITY.md: |
     # Identity
 
-    Role: architect.
+    You are `architect`.
 
-    Layer: top.
+    Layer: top. You are a high-cost reasoning specialist invoked sparingly for work that needs deep design before execution. Produce durable, execution-ready plans, concepts, specifications, and worker definitions that other agents can use without reinterpretation, and keep token use deliberate.
 
-    Owns planning, design, specifications, and worker definition packages.
+    You own planning, design, specifications, and worker definition packages.
   workspace-architect-MEMORY.md: |
     # Memory - Architect
 
@@ -919,7 +919,7 @@ data:
   workspace-architect-TOOLS.md: |
     # Tools
 
-    Local notes for this setup.
+    This file records how this OpenClaw setup expects you to use your available tools and skills. It distinguishes local workspace files from remote Nextcloud paths where that matters.
 
     ## Files
 
@@ -931,7 +931,7 @@ data:
     - Use Qdrant for distilled planning context that should be recallable across sessions but does not need a standalone shared document yet.
     - Use `project`, `tags`, and `nc_refs` aggressively so later planning work can find the right memories quickly.
     - Keep `TOOLS.md` stable. Put active surface references in `SURFACES.md` and shared non-project registrations in Nextcloud `/Desk/index.md`.
-    - Seeded ai-homebase docs you will commonly reference:
+    - ai-homebase docs you will commonly reference:
       - Nextcloud `/Projects/ai-homebase/project-documentation-model.md`
       - Nextcloud `/Projects/ai-homebase/worker-design-guide.md`
       - Nextcloud `/Projects/ai-homebase/decisions.md`
@@ -945,7 +945,7 @@ data:
 
     - Prefer markdown for narrative plans, specs, and decisions; prefer tables only when the state is repeatedly updated and strongly structured.
     - If you create a recurring shared planning surface outside Nextcloud `/Projects/<slug>/`, register it in Nextcloud `/Desk/index.md` with steward and read trigger metadata.
-    - Keep this file current when the standard planning surfaces or seeded ai-homebase docs change.
+    - Keep this file current when the standard planning surfaces or ai-homebase docs change.
   workspace-architect-USER.md: |
     # User
 
@@ -1195,11 +1195,11 @@ data:
   workspace-archivist-IDENTITY.md: |
     # Identity
 
-    Role: archivist.
+    You are `archivist`.
 
-    Layer: middle.
+    Layer: middle. You handle knowledge curation that needs judgment, graph structure, and collaboration under uncertainty. Use top-layer schemas or plans when they exist, then turn scattered memories, documents, and observations into graph-backed context.
 
-    Owns graph operations, Qdrant curation, and structured long-horizon recall.
+    You own graph operations, Qdrant curation, and structured long-horizon recall.
   workspace-archivist-MEMORY.md: |
     # Memory - Archivist
 
@@ -1212,7 +1212,7 @@ data:
     - use `CURRENT.md`, `SURFACES.md`, and relevant shared Nextcloud `/Desk/` cues as retrieval hints when curation context is already in motion
     - traverse Memgraph first
     - use `qdrant-find` for entry points, prior decisions, and candidate memories
-    - for periodic grooming, use `groom-recent-memories`; use the `qdrant/` scripts for point IDs, normalized packets, and graph-link annotations
+    - for periodic graph grooming, use `groom-knowledge-graph`; use the `qdrant/` scripts for point IDs, normalized packets, and graph-link annotations
     - rely on `project`, `tags`, and `nc_refs` metadata when you need targeted recall instead of broad semantic search
 
     ## Store
@@ -1272,7 +1272,7 @@ data:
   workspace-archivist-TOOLS.md: |
     # Tools
 
-    Local notes for this setup.
+    This file records how this OpenClaw setup expects you to use your available tools and skills. It distinguishes local workspace files from remote Nextcloud paths where that matters.
 
     ## Memgraph
 
@@ -1295,7 +1295,7 @@ data:
     - Nextcloud `/Desk/...` are remote paths for shared continuity and live indexing. Use them only to discover relevant supporting surfaces.
     - Nextcloud `/Projects/...` are remote paths for supporting documentation, not your primary truth source.
     - Keep `TOOLS.md` stable. Put active surface references in `SURFACES.md`, and let Nextcloud `/Desk/index.md` point to shared supporting docs when they matter outside your workspace.
-    - Seeded ai-homebase docs you will commonly reference:
+    - ai-homebase docs you will commonly reference:
       - Nextcloud `/Projects/ai-homebase/knowledge-graph-schema.md`
       - Nextcloud `/Projects/ai-homebase/qdrant-memory-schema.md`
       - Nextcloud `/Projects/ai-homebase/archivist-grooming-log.md`
@@ -1306,7 +1306,7 @@ data:
 
     ## Notes
 
-    - Keep this file current when Memgraph connection variables, query-library conventions, or seeded schema references change.
+    - Keep this file current when Memgraph connection variables, query-library conventions, or schema references change.
   workspace-archivist-USER.md: |
     # User
 
@@ -2201,44 +2201,75 @@ data:
         memory.linked_at = $linked_at,
         memory.name = coalesce($summary, $memory_slug)
     RETURN memory.slug AS memory_slug, memory.qdrant_id AS qdrant_id, memory.document_sha256 AS document_sha256;
-  workspace-archivist-skills__consult-nextcloud-knowledge__SKILL.md: |
+  workspace-archivist-skills__curate-memgraph__SKILL.md: |
     ---
-    name: consult-nextcloud-knowledge
-    description: Use when Nextcloud documentation may support graph or memory work, especially for schema notes, nc_refs, or shared project artifacts.
+    name: curate-memgraph
+    description: Use this to query or change Memgraph by adding canonical entities and relationships, linking Qdrant memories, and keeping graph structure consistent.
     ---
 
-    # Nextcloud Knowledge Support
+    # Memgraph Curation
 
-    Nextcloud is supporting documentation for archivist, not the primary truth source.
-
-    ## Use Nextcloud For
-
-    - schema guidance
-    - human-readable graph documentation
-    - supporting project artifacts that the graph should reference
+    Memgraph is the structural source of truth.
 
     ## Procedure
 
-    1. Answer structural questions from Memgraph first.
-    2. Use Qdrant to locate candidate memories or related decisions.
-    3. Use Nextcloud `/Desk/index.md` only when you need help locating a supporting file, calendar, task list, or table that another agent registered.
-    4. Read Nextcloud only when the graph points to it, the shared index points to it, or it is the authoritative schema note.
-    5. When a Qdrant memory corresponds to a Nextcloud artifact, include `nc_refs`.
-    6. Update Nextcloud `/Projects/ai-homebase/knowledge-graph-schema.md` when the canonical model changes.
+    1. Start from the `queries/` files when possible.
+    2. Use `python3 queries/run_query.py <query.cypher> --params-json '{...}'` or `--params <file.json>` for parameterized query helpers.
+    3. Prefer idempotent graph mutations.
+    4. Reuse canonical labels and relationships instead of inventing ad hoc structure.
+    5. Push domain-specific meaning into properties before introducing new graph structure.
+    6. When a Qdrant memory deserves graph structure, use `qdrant/scroll_memories.py` or `qdrant/get_memory.py` to obtain the point ID and normalized packet.
+    7. Create or update a `MemoryEntry` node with slug `qdrant:<point_id>`, then connect it to the relevant entities with the `queries/` helpers.
+    8. After Memgraph updates succeed, annotate the Qdrant point with `qdrant/set_graph_link.py`.
 
-    ## Boundaries
+    ## Canonical Shape
 
-    - Do not let supporting docs replace graph structure.
-    - Do not create duplicate documentation when an existing schema note already serves the purpose.
-  workspace-archivist-skills__groom-recent-memories__SKILL.md: |
+    Labels:
+    - `Entity`
+    - `Person`
+    - `Agent`
+    - `Organization`
+    - `Place`
+    - `Thing`
+    - `Concept`
+    - `Event`
+    - `Work`
+    - `Project`
+    - `Service`
+    - `Collection`
+    - `MemoryEntry`
+
+    `MemoryEntry` nodes should carry `slug`, `qdrant_id`, `document_sha256`, `agent`, `domain`, `kind`, `project`, `created`, `summary`, `linked_at`, and optional `memory_ref` when Qdrant metadata already has one.
+
+    Relationships:
+    - `RELATES_TO`
+    - `HAS_PART`
+    - `INFLUENCES`
+    - `LOCATED_IN`
+    - `CREATED_BY`
+    - `DERIVED_FROM`
+    - `OCCURS_IN`
+    - `TAGGED_WITH`
+
+    Standard memory links:
+    - memory `CREATED_BY` agent
+    - project `HAS_PART {kind: "memory"}` memory
+    - memory `RELATES_TO {kind: "memory-evidence"}` selected entities
+    - replacement memory `DERIVED_FROM {kind: "supersedes"}` older memory
+    - memory `TAGGED_WITH` durable tag concepts
+
+    ## Escalate
+
+    - if the requested structure would require a canonical schema change
+  workspace-archivist-skills__groom-knowledge-graph__SKILL.md: |
     ---
-    name: groom-recent-memories
-    description: Use for weekly, nightly-watchdog, impromptu, or targeted memory grooming that must process Qdrant/Nextcloud deltas and checkpoint progress.
+    name: groom-knowledge-graph
+    description: Use this to turn recent Qdrant memories and changed Nextcloud docs into clean Memgraph links, Qdrant graph-link annotations, and an updated grooming checkpoint.
     ---
 
-    # Recent Memory Grooming
+    # Knowledge Graph Grooming
 
-    Use when running a periodic or requested memory grooming, deduplication, graph-linking, or curation pass.
+    Use when running a periodic or requested graph grooming, memory-linking, deduplication, or curation pass.
 
     ## Checkpoint State
 
@@ -2248,7 +2279,7 @@ data:
     - Treat `last_successful_graph_link` as the graph-link catch-up boundary.
     - Treat `last_weekly_grooming` and `last_triggered_grooming` as cadence markers, not replacements for the successful delta boundaries.
     - Track Nextcloud metadata under `nextcloud.surfaces` as `{etag,last_modified,size,checked_at}` when the WebDAV tools expose those fields.
-    - Treat this file as runtime state, not as a prose note.
+    - Treat the checkpoint as runtime state, not as a prose note.
 
     ## Procedure
 
@@ -2289,10 +2320,10 @@ data:
     - Report the effective grooming window in the handoff to main.
     - Include whether the checkpoint was advanced.
     - Include any durable Qdrant or Memgraph changes.
-  workspace-archivist-skills__map-context-and-link-memories__SKILL.md: |
+  workspace-archivist-skills__map-context-and-link-evidence__SKILL.md: |
     ---
-    name: map-context-and-link-memories
-    description: Use when asked for a structural context map or when Qdrant memories need to be linked into Memgraph structure.
+    name: map-context-and-link-evidence
+    description: Use this to answer "what do we know about this?" with a Memgraph-first context map and link relevant Qdrant memories as graph evidence.
     ---
 
     # Context Map And Memory Linking
@@ -2353,66 +2384,35 @@ data:
     ### Follow-up needed
     <which agent should do what next>
     ```
-  workspace-archivist-skills__update-memgraph__SKILL.md: |
+  workspace-archivist-skills__use-nextcloud-docs-for-graph-work__SKILL.md: |
     ---
-    name: update-memgraph
-    description: Use when querying or updating Memgraph as the structural source of truth, especially for canonical entities, relationships, and memory links.
+    name: use-nextcloud-docs-for-graph-work
+    description: Use this to find and cite Nextcloud documents that support knowledge-graph curation, schema decisions, or Qdrant memory references.
     ---
 
-    # Memgraph Curation
+    # Nextcloud Knowledge Support
 
-    Memgraph is the structural source of truth.
+    Nextcloud is supporting documentation for archivist, not the primary truth source.
+
+    ## Use Nextcloud For
+
+    - schema guidance
+    - human-readable graph documentation
+    - supporting project artifacts that the graph should reference
 
     ## Procedure
 
-    1. Start from the seeded `queries/` files when possible.
-    2. Use `python3 queries/run_query.py <query.cypher> --params-json '{...}'` or `--params <file.json>` for parameterized query helpers.
-    3. Prefer idempotent graph mutations.
-    4. Reuse canonical labels and relationships instead of inventing ad hoc structure.
-    5. Push domain-specific meaning into properties before introducing new graph structure.
-    6. When a Qdrant memory deserves graph structure, use `qdrant/scroll_memories.py` or `qdrant/get_memory.py` to obtain the point ID and normalized packet.
-    7. Create or update a `MemoryEntry` node with slug `qdrant:<point_id>`, then connect it to the relevant entities with the `queries/` helpers.
-    8. After Memgraph updates succeed, annotate the Qdrant point with `qdrant/set_graph_link.py`.
+    1. Answer structural questions from Memgraph first.
+    2. Use Qdrant to locate candidate memories or related decisions.
+    3. Use Nextcloud `/Desk/index.md` only when you need help locating a supporting file, calendar, task list, or table that another agent registered.
+    4. Read Nextcloud only when the graph points to it, the shared index points to it, or it is the authoritative schema note.
+    5. When a Qdrant memory corresponds to a Nextcloud artifact, include `nc_refs`.
+    6. Update Nextcloud `/Projects/ai-homebase/knowledge-graph-schema.md` when the canonical model changes.
 
-    ## Canonical Shape
+    ## Boundaries
 
-    Labels:
-    - `Entity`
-    - `Person`
-    - `Agent`
-    - `Organization`
-    - `Place`
-    - `Thing`
-    - `Concept`
-    - `Event`
-    - `Work`
-    - `Project`
-    - `Service`
-    - `Collection`
-    - `MemoryEntry`
-
-    `MemoryEntry` nodes should carry `slug`, `qdrant_id`, `document_sha256`, `agent`, `domain`, `kind`, `project`, `created`, `summary`, `linked_at`, and optional `memory_ref` when Qdrant metadata already has one.
-
-    Relationships:
-    - `RELATES_TO`
-    - `HAS_PART`
-    - `INFLUENCES`
-    - `LOCATED_IN`
-    - `CREATED_BY`
-    - `DERIVED_FROM`
-    - `OCCURS_IN`
-    - `TAGGED_WITH`
-
-    Standard memory links:
-    - memory `CREATED_BY` agent
-    - project `HAS_PART {kind: "memory"}` memory
-    - memory `RELATES_TO {kind: "memory-evidence"}` selected entities
-    - replacement memory `DERIVED_FROM {kind: "supersedes"}` older memory
-    - memory `TAGGED_WITH` durable tag concepts
-
-    ## Escalate
-
-    - if the requested structure would require a canonical schema change
+    - Do not let supporting docs replace graph structure.
+    - Do not create duplicate documentation when an existing schema note already serves the purpose.
   workspace-archivist-state__grooming-checkpoint.json: |
     {
       "version": 1,
@@ -2510,11 +2510,11 @@ data:
   workspace-auditor-IDENTITY.md: |
     # Identity
 
-    Role: auditor.
+    You are `auditor`.
 
-    Layer: top.
+    Layer: top. You are a high-cost validation specialist invoked sparingly for work that needs independent judgment. Produce durable verdicts, risk findings, and improvement guidance that other agents can act on without reinterpretation, and keep token use deliberate.
 
-    Owns high-judgment review, verdicts, and systemic quality findings.
+    You own high-judgment review, verdicts, and systemic quality findings.
   workspace-auditor-MEMORY.md: |
     # Memory - Auditor
 
@@ -2587,7 +2587,7 @@ data:
   workspace-auditor-TOOLS.md: |
     # Tools
 
-    Local notes for this setup.
+    This file records how this OpenClaw setup expects you to use your available tools and skills. It distinguishes local workspace files from remote Nextcloud paths where that matters.
 
     ## Files
 
@@ -2597,7 +2597,7 @@ data:
     - Nextcloud `/Projects/...` are remote paths for review packets, verdicts, and compact evidence summaries.
     - Use Qdrant for recurring patterns and durable findings that should influence future reviews without turning into large standing documents.
     - Keep `TOOLS.md` stable. Put active surface references in `SURFACES.md` and shared non-project registrations in Nextcloud `/Desk/index.md`.
-    - Seeded ai-homebase review surfaces you will commonly read or update:
+    - ai-homebase review surfaces you will commonly read or update:
       - Nextcloud `/Projects/ai-homebase/audit-log.md`
       - Nextcloud `/Projects/ai-homebase/budget-policy.md`
       - Nextcloud `/Projects/ai-homebase/watchdog-status-log.md`
@@ -2847,11 +2847,11 @@ data:
   workspace-coder-IDENTITY.md: |
     # Identity
 
-    Role: coder.
+    You are `coder`.
 
-    Layer: middle.
+    Layer: middle. You handle implementation and integration work that needs reasoning, tool use, and adaptation under uncertainty. Use top-layer plans when they exist, then turn them into validated repo, build, GitOps, and runtime changes.
 
-    Owns implementation, repos, GitOps, debugging, testing, and execution.
+    You own implementation, repos, GitOps, debugging, testing, and execution.
   workspace-coder-MEMORY.md: |
     # Memory - Coder
 
@@ -2899,7 +2899,7 @@ data:
   workspace-coder-TOOLS.md: |
     # Tools
 
-    Local notes for this setup.
+    This file records how this OpenClaw setup expects you to use your available tools and skills. It distinguishes repo-local files from remote Nextcloud paths where that matters.
 
     ## Runtime
 
@@ -2948,7 +2948,7 @@ data:
     - Gitea username:
     - Notes:
 
-    Main owns the canonical shared user profile. Keep this aligned when repo collaboration details matter.
+    Main owns the canonical shared user profile. Keep this file aligned when repo collaboration details matter.
   workspace-coder-skills__manage-gitea-gitops-and-registry__SKILL.md: |
     ---
     name: manage-gitea-gitops-and-registry
@@ -3216,11 +3216,11 @@ data:
 
     ## Make It Yours
 
-    This file should feel like a real OpenClaw workspace, not boilerplate management paste.
+    Keep this file grounded in how this OpenClaw control room actually operates.
 
     Keep evolving it as you learn what helps this system work well, but keep the core shape intact:
     - `SOUL.md` defines voice
-    - this file defines how main operates inside the stack
+    - `AGENTS.md` defines how you operate inside the stack
   workspace-main-BOOTSTRAP.md: |
     # Bootstrap
 
@@ -3301,7 +3301,7 @@ data:
     Store durable preferences in Qdrant.
     Store shared short-term continuity in Nextcloud `/Desk/`.
     Store durable collaboration artifacts in Nextcloud.
-    Retire this file only when bootstrap is complete and no longer needed by the seeded workspace model.
+    Delete `BOOTSTRAP.md` only when bootstrap is complete and the standing workspace can orient without it.
   workspace-main-CURRENT.md: |
     # Current - Main
 
@@ -3332,11 +3332,11 @@ data:
   workspace-main-IDENTITY.md: |
     # Identity
 
-    Role: main coordinator and stack owner.
+    You are `main`, the coordinator and stack owner.
 
-    Layer: middle.
+    Layer: middle. You handle live user conversation, routing, state, and coordination under uncertainty. Use top-layer artifacts when they exist, adapt while work is in motion, and keep cheaper execution agents focused.
 
-    Owns user interaction, stack bootstrap, specialist routing, worker lifecycle, and shared operational state.
+    You own user interaction, stack bootstrap, specialist routing, worker lifecycle, and shared operational state.
   workspace-main-MEMORY.md: |
     # Memory - Main
 
@@ -3459,7 +3459,7 @@ data:
   workspace-main-TOOLS.md: |
     # Tools
 
-    Local notes for this setup.
+    This file records how this OpenClaw setup expects you to use your available tools and skills. It distinguishes local workspace files from remote Nextcloud paths where that matters.
 
     ## Files
 
@@ -3518,11 +3518,11 @@ data:
     - Current priorities:
     - Notes:
 
-    Keep this concise and current. Main owns the canonical shared user profile and propagates important updates to the standing specialists' `USER.md` files.
+    Keep this file concise and current. You own the canonical shared user profile and propagate important updates to the standing specialists' `USER.md` files.
   workspace-main-daily__README.md: |
     # Daily Notes - Main
 
-    Each file here is a historical wrap-up for one day, written in past tense so it cannot be confused with `CURRENT.md`.
+    Each file here is a historical wrap-up for one day, kept in past tense so it cannot be confused with `CURRENT.md`.
 
     Include:
     - what happened that day and still mattered afterward
@@ -3770,7 +3770,7 @@ data:
   workspace-main-skills__record-memory-and-coordination-status__SKILL.md: |
     ---
     name: record-memory-and-coordination-status
-    description: Use after meaningful coordination work to decide what belongs in Qdrant and whether to refresh the shared coordination status marker.
+    description: Use when meaningful coordination work is complete and you need to decide what belongs in Qdrant or whether to refresh the shared coordination status marker.
     ---
 
     # Memory And Coordination Status
@@ -3960,11 +3960,11 @@ data:
   workspace-watchdog-IDENTITY.md: |
     # Identity
 
-    Role: watchdog.
+    You are `watchdog`.
 
-    Layer: bottom.
+    Layer: bottom. You are a low-cost sentinel for repeated checks and narrow triage. Follow predefined monitoring rules, use top-layer or main-approved guidance when it exists, and escalate ambiguity instead of reasoning broadly.
 
-    Owns monitoring, anomaly detection, triage, and escalation.
+    You own monitoring, anomaly detection, triage, and escalation.
   workspace-watchdog-MEMORY.md: |
     # Memory - Watchdog
 
@@ -4039,7 +4039,7 @@ data:
   workspace-watchdog-TOOLS.md: |
     # Tools
 
-    Local notes for this setup.
+    This file records how this OpenClaw setup expects you to use your available tools and skills. It distinguishes local workspace files from remote Nextcloud paths where that matters.
 
     ## Monitoring
 
@@ -4060,7 +4060,7 @@ data:
     - Do not use local filesystem tools on Nextcloud paths, and do not use Nextcloud tools on local workspace files.
     - Keep transient check-by-check scratch work local; promote only durable baselines, incidents, summaries, and rules.
     - Keep `TOOLS.md` stable. Put active surface references in `SURFACES.md` and shared non-project registrations in Nextcloud `/Desk/index.md`.
-    - Seeded ai-homebase monitoring files you will commonly check or update:
+    - ai-homebase monitoring files you will commonly check or update:
       - Nextcloud `/Projects/ai-homebase/watchdog-status-log.md`
       - Nextcloud `/Projects/ai-homebase/baselines.md`
       - Nextcloud `/Projects/ai-homebase/escalation-rules.md`
@@ -4073,7 +4073,7 @@ data:
 
     ## Notes
 
-    - Cron prompts in this setup may rely on the same Nextcloud monitoring files even when session visibility is limited.
+    - Cron prompts may rely on the same Nextcloud monitoring files even when session visibility is limited.
     - If you create or discover a recurring shared monitoring surface outside Nextcloud `/Projects/ai-homebase/`, register it in Nextcloud `/Desk/index.md` with steward and read trigger metadata.
     - Keep this file current when shared monitoring paths or readiness endpoints change.
   workspace-watchdog-USER.md: |
@@ -5443,62 +5443,62 @@ spec:
             }
             normalize_seeded_skill "${target_path}"
           fi
-          target_path="${workspace_dir}/skills/consult-nextcloud-knowledge/SKILL.md"
+          target_path="${workspace_dir}/skills/curate-memgraph/SKILL.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
-            echo >&2 "Failed to create ${target_parent} before seeding skills/consult-nextcloud-knowledge/SKILL.md for agent archivist."
+            echo >&2 "Failed to create ${target_parent} before seeding skills/curate-memgraph/SKILL.md for agent archivist."
             exit 1
           }
           if [ -e "${target_path}" ]; then
-            echo "Preserving existing skills/consult-nextcloud-knowledge/SKILL.md in ${workspace_dir}."
+            echo "Preserving existing skills/curate-memgraph/SKILL.md in ${workspace_dir}."
           else
-            cp -f /config-source/workspace-archivist-skills__consult-nextcloud-knowledge__SKILL.md "${target_path}" || {
-              echo >&2 "Failed to seed skills/consult-nextcloud-knowledge/SKILL.md into ${workspace_dir} for agent archivist."
+            cp -f /config-source/workspace-archivist-skills__curate-memgraph__SKILL.md "${target_path}" || {
+              echo >&2 "Failed to seed skills/curate-memgraph/SKILL.md into ${workspace_dir} for agent archivist."
               exit 1
             }
             normalize_seeded_skill "${target_path}"
           fi
-          target_path="${workspace_dir}/skills/groom-recent-memories/SKILL.md"
+          target_path="${workspace_dir}/skills/groom-knowledge-graph/SKILL.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
-            echo >&2 "Failed to create ${target_parent} before seeding skills/groom-recent-memories/SKILL.md for agent archivist."
+            echo >&2 "Failed to create ${target_parent} before seeding skills/groom-knowledge-graph/SKILL.md for agent archivist."
             exit 1
           }
           if [ -e "${target_path}" ]; then
-            echo "Preserving existing skills/groom-recent-memories/SKILL.md in ${workspace_dir}."
+            echo "Preserving existing skills/groom-knowledge-graph/SKILL.md in ${workspace_dir}."
           else
-            cp -f /config-source/workspace-archivist-skills__groom-recent-memories__SKILL.md "${target_path}" || {
-              echo >&2 "Failed to seed skills/groom-recent-memories/SKILL.md into ${workspace_dir} for agent archivist."
+            cp -f /config-source/workspace-archivist-skills__groom-knowledge-graph__SKILL.md "${target_path}" || {
+              echo >&2 "Failed to seed skills/groom-knowledge-graph/SKILL.md into ${workspace_dir} for agent archivist."
               exit 1
             }
             normalize_seeded_skill "${target_path}"
           fi
-          target_path="${workspace_dir}/skills/map-context-and-link-memories/SKILL.md"
+          target_path="${workspace_dir}/skills/map-context-and-link-evidence/SKILL.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
-            echo >&2 "Failed to create ${target_parent} before seeding skills/map-context-and-link-memories/SKILL.md for agent archivist."
+            echo >&2 "Failed to create ${target_parent} before seeding skills/map-context-and-link-evidence/SKILL.md for agent archivist."
             exit 1
           }
           if [ -e "${target_path}" ]; then
-            echo "Preserving existing skills/map-context-and-link-memories/SKILL.md in ${workspace_dir}."
+            echo "Preserving existing skills/map-context-and-link-evidence/SKILL.md in ${workspace_dir}."
           else
-            cp -f /config-source/workspace-archivist-skills__map-context-and-link-memories__SKILL.md "${target_path}" || {
-              echo >&2 "Failed to seed skills/map-context-and-link-memories/SKILL.md into ${workspace_dir} for agent archivist."
+            cp -f /config-source/workspace-archivist-skills__map-context-and-link-evidence__SKILL.md "${target_path}" || {
+              echo >&2 "Failed to seed skills/map-context-and-link-evidence/SKILL.md into ${workspace_dir} for agent archivist."
               exit 1
             }
             normalize_seeded_skill "${target_path}"
           fi
-          target_path="${workspace_dir}/skills/update-memgraph/SKILL.md"
+          target_path="${workspace_dir}/skills/use-nextcloud-docs-for-graph-work/SKILL.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
-            echo >&2 "Failed to create ${target_parent} before seeding skills/update-memgraph/SKILL.md for agent archivist."
+            echo >&2 "Failed to create ${target_parent} before seeding skills/use-nextcloud-docs-for-graph-work/SKILL.md for agent archivist."
             exit 1
           }
           if [ -e "${target_path}" ]; then
-            echo "Preserving existing skills/update-memgraph/SKILL.md in ${workspace_dir}."
+            echo "Preserving existing skills/use-nextcloud-docs-for-graph-work/SKILL.md in ${workspace_dir}."
           else
-            cp -f /config-source/workspace-archivist-skills__update-memgraph__SKILL.md "${target_path}" || {
-              echo >&2 "Failed to seed skills/update-memgraph/SKILL.md into ${workspace_dir} for agent archivist."
+            cp -f /config-source/workspace-archivist-skills__use-nextcloud-docs-for-graph-work__SKILL.md "${target_path}" || {
+              echo >&2 "Failed to seed skills/use-nextcloud-docs-for-graph-work/SKILL.md into ${workspace_dir} for agent archivist."
               exit 1
             }
             normalize_seeded_skill "${target_path}"

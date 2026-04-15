@@ -1,6 +1,6 @@
 # Tools
 
-Local notes for this setup.
+This file records how this OpenClaw setup expects you to use your available tools and skills. It distinguishes local workspace files from remote Nextcloud paths where that matters.
 
 ## Files
 
@@ -12,7 +12,7 @@ Local notes for this setup.
 - Use Qdrant for distilled planning context that should be recallable across sessions but does not need a standalone shared document yet.
 - Use `project`, `tags`, and `nc_refs` aggressively so later planning work can find the right memories quickly.
 - Keep `TOOLS.md` stable. Put active surface references in `SURFACES.md` and shared non-project registrations in Nextcloud `/Desk/index.md`.
-- Seeded ai-homebase docs you will commonly reference:
+- ai-homebase docs you will commonly reference:
   - Nextcloud `/Projects/ai-homebase/project-documentation-model.md`
   - Nextcloud `/Projects/ai-homebase/worker-design-guide.md`
   - Nextcloud `/Projects/ai-homebase/decisions.md`
@@ -26,4 +26,4 @@ Local notes for this setup.
 
 - Prefer markdown for narrative plans, specs, and decisions; prefer tables only when the state is repeatedly updated and strongly structured.
 - If you create a recurring shared planning surface outside Nextcloud `/Projects/<slug>/`, register it in Nextcloud `/Desk/index.md` with steward and read trigger metadata.
-- Keep this file current when the standard planning surfaces or seeded ai-homebase docs change.
+- Keep this file current when the standard planning surfaces or ai-homebase docs change.

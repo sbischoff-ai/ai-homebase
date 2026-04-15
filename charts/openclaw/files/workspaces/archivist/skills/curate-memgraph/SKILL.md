@@ -1,6 +1,6 @@
 ---
-name: update-memgraph
-description: Use when querying or updating Memgraph as the structural source of truth, especially for canonical entities, relationships, and memory links.
+name: curate-memgraph
+description: Use this to query or change Memgraph by adding canonical entities and relationships, linking Qdrant memories, and keeping graph structure consistent.
 ---
 
 # Memgraph Curation
@@ -9,7 +9,7 @@ Memgraph is the structural source of truth.
 
 ## Procedure
 
-1. Start from the seeded `queries/` files when possible.
+1. Start from the `queries/` files when possible.
 2. Use `python3 queries/run_query.py <query.cypher> --params-json '{...}'` or `--params <file.json>` for parameterized query helpers.
 3. Prefer idempotent graph mutations.
 4. Reuse canonical labels and relationships instead of inventing ad hoc structure.

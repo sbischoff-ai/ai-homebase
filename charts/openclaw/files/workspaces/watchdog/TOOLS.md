@@ -1,6 +1,6 @@
 # Tools
 
-Local notes for this setup.
+This file records how this OpenClaw setup expects you to use your available tools and skills. It distinguishes local workspace files from remote Nextcloud paths where that matters.
 
 ## Monitoring
 
@@ -21,7 +21,7 @@ Local notes for this setup.
 - Do not use local filesystem tools on Nextcloud paths, and do not use Nextcloud tools on local workspace files.
 - Keep transient check-by-check scratch work local; promote only durable baselines, incidents, summaries, and rules.
 - Keep `TOOLS.md` stable. Put active surface references in `SURFACES.md` and shared non-project registrations in Nextcloud `/Desk/index.md`.
-- Seeded ai-homebase monitoring files you will commonly check or update:
+- ai-homebase monitoring files you will commonly check or update:
   - Nextcloud `/Projects/ai-homebase/watchdog-status-log.md`
   - Nextcloud `/Projects/ai-homebase/baselines.md`
   - Nextcloud `/Projects/ai-homebase/escalation-rules.md`
@@ -34,6 +34,6 @@ Local notes for this setup.
 
 ## Notes
 
-- Cron prompts in this setup may rely on the same Nextcloud monitoring files even when session visibility is limited.
+- Cron prompts may rely on the same Nextcloud monitoring files even when session visibility is limited.
 - If you create or discover a recurring shared monitoring surface outside Nextcloud `/Projects/ai-homebase/`, register it in Nextcloud `/Desk/index.md` with steward and read trigger metadata.
 - Keep this file current when shared monitoring paths or readiness endpoints change.
