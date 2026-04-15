@@ -1,11 +1,11 @@
 ---
 name: map-context-and-link-memories
-description: Use when archivist needs to return a structural context map or connect Qdrant memories to graph structure. Covers the Context Map format, graph-promotion rules, and nc_refs linkage.
+description: Use when asked for a structural context map or when Qdrant memories need to be linked into Memgraph structure.
 ---
 
 # Context Map And Memory Linking
 
-Use this skill when another agent needs durable cross-entity context.
+Use when asked for durable cross-entity context.
 
 ## Context Map Format
 
@@ -34,10 +34,12 @@ Use this skill when another agent needs durable cross-entity context.
 ## Linking Rules
 
 - Memgraph first for relationships
-- Qdrant second for candidate memories and prior decisions
+- Qdrant exact lookup second when Memgraph has `MemoryEntry.qdrant_id`: run `python3 qdrant/get_memory.py "<point-id>"`
+- Qdrant MCP semantic search only when graph traversal is sparse or the entity is unknown
 - shared Nextcloud `/Desk/` cues and Nextcloud references third for supporting docs
-- when a Qdrant memory deserves graph structure, represent it as linked `MemoryEntry` structure
+- when a Qdrant memory deserves graph structure, represent it as linked `MemoryEntry` structure with slug `qdrant:<point_id>`
 - include `nc_refs` when a memory points to a Nextcloud artifact
+- after successful Memgraph linking, annotate the Qdrant point with `python3 qdrant/set_graph_link.py`
 
 ## General Archivist Return Format
 

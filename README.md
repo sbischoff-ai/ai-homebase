@@ -65,6 +65,7 @@ That is the current safety model: bold automation inside the loop, explicit oper
 - a coder flow that goes from specification to code to Gitea to GitOps to cluster
 - an in-cluster sandbox-images repo and registry for evolving the agent runtime itself
 - repo-managed per-agent continuity files plus seeded daily wrap-up cron jobs for the standing desk agents
+- weekly archivist graph grooming, with watchdog nightly activity checks that trigger extra delta grooming only when recent work warrants it
 - a weekly auditor loop that can identify quality issues, cost leaks, workflow bottlenecks, and candidates to replace repeated LLM work with deterministic Kubernetes services or CronJobs
 - one bootstrap input model for both fast local iteration in `k3d` and long-running deployment in `k3s`
 
@@ -103,7 +104,7 @@ In both cases, fill in the `[mail]` section and the per-agent model sections in 
 
 The sandbox init writes a modern `~/.codex/config.toml` with top-level `model = "<bare-model>"`, forces API-key login mode, and seeds `~/.codex/auth.json` with `codex login --with-api-key` from `OPENAI_API_KEY`, so the default CLI model stays Helm-configurable without rebuilding the image and the built-in OpenAI provider can use its normal websocket path. The canonical first-run secret flow is `scripts/bootstrap-secrets.sh`, and operators can later manage long-lived encrypted manifests through the workflow documented in [docs/secrets.md](./docs/secrets.md). The default coder posture assumes a Claude-based orchestrator delegating substantial coding to Codex, so the standard bootstrap expects both `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` through the `openclaw-secrets` Secret.
 
-The same bootstrap flow also creates a dedicated `openclaw` Nextcloud user, seeds the standard Nextcloud MCP server definition, pre-seeds specialist workspace files for the multi-agent topology, and seeds the initial Memgraph knowledge graph baseline for the cluster. Archivist keeps one canonical `mgconsole` command surface in both runtimes: the gateway gets the in-cluster Memgraph Service as `MEMGRAPH_HOST`, while the Docker sandbox gets the routed external Memgraph hostname under that same variable.
+The same bootstrap flow also creates a dedicated `openclaw` Nextcloud user, seeds the standard Nextcloud MCP server definition, pre-seeds specialist workspace files for the multi-agent topology, and seeds the initial Memgraph knowledge graph baseline for the cluster. Archivist keeps one canonical `mgconsole` command surface in both runtimes: the gateway gets the in-cluster Memgraph Service as `MEMGRAPH_HOST`, while the Docker sandbox gets the routed external Memgraph hostname under that same variable. Archivist also gets curated Qdrant REST helper scripts for graph-link grooming; ordinary memory search and storage still stays on the Qdrant MCP tools.
 
 ## Documentation Map
 

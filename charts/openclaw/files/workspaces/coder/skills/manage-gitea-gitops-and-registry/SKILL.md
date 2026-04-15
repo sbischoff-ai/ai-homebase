@@ -1,11 +1,11 @@
 ---
 name: manage-gitea-gitops-and-registry
-description: Use when coder is working with Gitea, GitOps repos, the in-cluster registry, or Codex-backed execution. Covers repo workflow, validation expectations, image naming, and Codex logging discipline.
+description: Use when working with Gitea, GitOps repos, the in-cluster registry, or Codex-backed implementation.
 ---
 
 # Gitea, GitOps, and Registry
 
-Use this skill for repo and deployment-definition workflow.
+Use for repo and deployment-definition workflow.
 
 ## Repo Rules
 

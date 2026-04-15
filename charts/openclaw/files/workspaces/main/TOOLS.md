@@ -11,7 +11,7 @@ Local notes for this setup.
 - Nextcloud `/Projects/...` are remote paths owned by the shared `openclaw` Nextcloud account, which is separate from the user's own Nextcloud account.
 - Shared ai-homebase files you will check often live under Nextcloud `/Projects/ai-homebase/`, especially:
   - `budget-policy.md`
-  - `heartbeat.json`
+  - `coordination-status.json`
   - `watchdog-status-log.md`
   - `audit-log.md`
   - `archivist-grooming-log.md`
@@ -22,7 +22,7 @@ Local notes for this setup.
   - purpose
   - steward agent
   - project slug or domain when relevant
-  - read trigger such as `orientation`, `heartbeat`, `active-project`, or `only-when-escalated`
+  - read trigger such as `orientation`, `coordination-status`, `active-project`, or `only-when-escalated`
 - Use Qdrant for shared quick recall, decisions, and note-like context that should shape later work but does not need a user-facing document yet.
 - Query Qdrant from the cues in `CURRENT.md`, `SURFACES.md`, and Nextcloud `/Desk/current.md`; do not treat orientation work as a blind memory dump.
 - Ask archivist when the missing context is structural, cross-entity, or hard to recover through targeted semantic search.

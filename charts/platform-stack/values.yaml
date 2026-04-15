@@ -116,6 +116,12 @@ openclaw:
     ssh:
       secretName: openclaw-remote-docker-ssh
       mountPath: /home/node/.ssh
+  qdrant:
+    url: ""
+    collectionName: openclaw-memory
+    apiKeySecret:
+      name: ""
+      key: QDRANT_API_KEY
   workspaceBootstrap:
     enabled: true
     agents:
@@ -181,6 +187,9 @@ openclaw:
               MEMGRAPH_HOST: memgraph.homebase.local
               MEMGRAPH_PORT: "7687"
               MEMGRAPH_BOLT_URI: bolt://memgraph.homebase.local:7687
+              QDRANT_URL: https://qdrant.homebase.local
+              QDRANT_COLLECTION: openclaw-memory
+              QDRANT_API_KEY: ${QDRANT_API_KEY}
             user: 1000:1000
             capDrop:
               - ALL
@@ -213,7 +222,7 @@ openclaw:
             - worker_lifecycle
             - channel_binding
             - nextcloud_coordination
-            - memory_and_heartbeat
+            - memory_and_coordination_status
             - budget_tracking
           subagents:
             allowAgents:
@@ -523,7 +532,7 @@ nextcloud:
         - path: budget-policy.md
         - path: archivist-grooming-log.md
         - path: incidents/README.md
-        - path: heartbeat.json
+        - path: coordination-status.json
         - path: codex-usage/.gitkeep
         - path: audit-log.md
         - path: baselines.md
@@ -638,8 +647,10 @@ qdrantMcp:
     store: |
       Store a memory for cross-agent recall. Use this to preserve durable knowledge such as user preferences, decisions, conventions, patterns, incidents, plans, creative content, and reusable context.
 
-      REQUIRED: The `information` parameter must begin with domain and kind tags in brackets, followed by a complete statement:
+      REQUIRED: Store one atomic durable claim per memory. The `information` parameter must begin with domain and kind tags in brackets, followed by 1 to 3 compact, self-contained, retrieval-optimized sentences:
         [real|speculative|fictional|synthetic] [user-preference|user-context|decision|convention|pattern|fact|plan|task-context|incident|monitor-rule|creative|relationship|reference] Your memory text here.
+
+      Include natural retrieval anchors in `information` when relevant: project slug, service/component, agent/person, artifact path, common aliases, incident name, and source reference. Metadata alone does not improve vector ranking, so important recall terms must appear in `information`.
 
       REQUIRED: The `metadata` parameter must be a JSON object with at minimum:
         {"kind": "...", "domain": "...", "agent": "...", "created": "ISO-8601"}
@@ -648,10 +659,13 @@ qdrantMcp:
 
       Guidelines:
       - Store facts you would want any agent to recall weeks later.
+      - Split unrelated decisions, facts, preferences, incidents, or document summaries into separate memories.
+      - Do not store multi-topic summaries as one memory.
       - Do not store ephemeral task status, transient tool output, or easily re-derivable information.
       - Do not store secrets or credentials.
       - For fictional or creative content, always use domain `fictional`.
-      - If correcting a prior memory, include `supersedes` in metadata and mention the correction in the text.
+      - If correcting a prior memory, store a new append-only replacement memory with `supersedes` in metadata and mention the correction in the text.
+      - The current Qdrant MCP tools cannot update, delete, merge, or mark existing entries.
       - Include Nextcloud references in both the text and `nc_refs` metadata when relevant.
     find: |
       Search shared semantic memory across all agents. Returns memories ranked by relevance.
@@ -670,17 +684,19 @@ qdrantMcp:
       - Returned memories include metadata such as kind, domain, agent, confidence, and Nextcloud references.
       - Treat speculative or low-confidence results cautiously.
       - Treat expired memories as potentially stale.
- 
+
       Filtering:
       - You can filter by metadata fields using the `query_filter` parameter.
-      - All memories include a `created` ISO-8601 timestamp in metadata.
-      - Common metadata fields: `kind`, `domain`, `agent`, `confidence`, `project`, `tags`.
+      - Qdrant MCP stores memory metadata under nested payload keys. Use `metadata.created`, `metadata.kind`, `metadata.domain`, `metadata.agent`, `metadata.confidence`, `metadata.project`, and `metadata.tags`.
+      - Combine semantic search terms with metadata filters for project, domain, kind, agent, and recency.
       - Example: Find memories from the last 24 hours:
-        query_filter: {"must": [{"key": "created", "range": {"gte": "2026-04-02T00:00:00Z"}}]}
+        query_filter: {"must": [{"key": "metadata.created", "range": {"gte": "2026-04-02T00:00:00Z"}}]}
       - Example: Find memories by a specific agent:
-        query_filter: {"must": [{"key": "agent", "match": {"value": "coder"}}]}
+        query_filter: {"must": [{"key": "metadata.agent", "match": {"value": "coder"}}]}
       - Example: Find decisions from a specific project:
-        query_filter: {"must": [{"key": "kind", "match": {"value": "decision"}}, {"key": "project", "match": {"value": "ai-homebase"}}]}
+        query_filter: {"must": [{"key": "metadata.domain", "match": {"value": "real"}}, {"key": "metadata.kind", "match": {"value": "decision"}}, {"key": "metadata.project", "match": {"value": "ai-homebase"}}]}
+      - Example: Find memories with a tag:
+        query_filter: {"must": [{"key": "metadata.tags", "match": {"value": "qdrant"}}]}
       - Combine semantic search (the `query` parameter) with filters for best results.
 
 memgraph:

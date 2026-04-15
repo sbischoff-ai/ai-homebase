@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "last_successful_grooming": null,
+  "last_successful_graph_link": null,
+  "last_weekly_grooming": null,
+  "last_triggered_grooming": null,
+  "last_run": {
+    "run_id": null,
+    "trigger": null,
+    "scope": null,
+    "started_at": null,
+    "completed_at": null,
+    "status": null
+  },
+  "nextcloud": {
+    "last_successful_scan": null,
+    "surfaces": {}
+  }
+}

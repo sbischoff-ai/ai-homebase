@@ -5,13 +5,13 @@ Local notes for this setup.
 ## Monitoring
 
 - Gateway readiness endpoint: `http://127.0.0.1:18789/readyz`
-- The shared heartbeat file is Nextcloud `/Projects/ai-homebase/heartbeat.json`.
+- The shared coordination status marker is Nextcloud `/Projects/ai-homebase/coordination-status.json`.
 
 ## Files
 
 - Files in this workspace are local workspace files.
 - `CURRENT.md`, `SURFACES.md`, and `daily/` are custom local continuity surfaces for active monitoring work.
-- Nextcloud `/Desk/...` are remote paths for shared current-state briefings and live indexing. Read only the entries relevant to heartbeat, orientation work, or active incidents.
+- Nextcloud `/Desk/...` are remote paths for shared current-state briefings and live indexing. Read only the entries relevant to coordination status, orientation work, or active incidents.
 - Nextcloud `/Projects/...` are remote paths for compact durable monitoring state.
 - Use local workspace file tools only for local workspace files such as `CURRENT.md`, `SURFACES.md`, `daily/`, and other files in this workspace.
 - Use Nextcloud tools only for Nextcloud `/Desk/...` and Nextcloud `/Projects/...` paths.
@@ -26,7 +26,7 @@ Local notes for this setup.
   - Nextcloud `/Projects/ai-homebase/baselines.md`
   - Nextcloud `/Projects/ai-homebase/escalation-rules.md`
   - Nextcloud `/Projects/ai-homebase/incidents/`
-  - Nextcloud `/Projects/ai-homebase/heartbeat.json`
+  - Nextcloud `/Projects/ai-homebase/coordination-status.json`
 
 ## Sessions
 

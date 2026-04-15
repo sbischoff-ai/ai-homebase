@@ -1,6 +1,6 @@
 ---
 name: track-budget
-description: Use when main needs to check or manage OpenClaw/Codex spend before delegating specialist work. Covers tokscale checks, combining coder Codex usage from Nextcloud, and short delegation guidance under budget pressure.
+description: Use before or during delegation when OpenClaw/Codex spend or budget pressure may affect staffing decisions.
 ---
 
 # Budget Tracking

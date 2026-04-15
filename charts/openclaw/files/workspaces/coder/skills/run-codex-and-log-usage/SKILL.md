@@ -1,11 +1,11 @@
 ---
 name: run-codex-and-log-usage
-description: Use when coder is invoking Codex CLI or recording Codex usage. Covers PTY and background rules, model heuristics, safe workdir rules, and the expected usage-log schema.
+description: Use when invoking Codex CLI or recording Codex usage for implementation work.
 ---
 
 # Codex Execution And Logging
 
-Use this skill for Codex-backed implementation work.
+Use for Codex-backed implementation work.
 
 ## Invocation Rules
 

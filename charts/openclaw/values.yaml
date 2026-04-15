@@ -17,6 +17,7 @@ global:
   hosts:
     openclaw: ""
     nextcloudMcp: ""
+    qdrant: ""
     qdrantMcp: ""
   commonLabels: {}
   podAnnotations: {}
@@ -85,6 +86,13 @@ remoteDocker:
   ssh:
     secretName: openclaw-remote-docker-ssh
     mountPath: /home/node/.ssh
+
+qdrant:
+  url: ""
+  collectionName: openclaw-memory
+  apiKeySecret:
+    name: ""
+    key: QDRANT_API_KEY
 
 workspaceBootstrap:
   enabled: true
@@ -157,6 +165,9 @@ openclaw:
             MEMGRAPH_HOST: memgraph.example.com
             MEMGRAPH_PORT: "7687"
             MEMGRAPH_BOLT_URI: bolt://memgraph.example.com:7687
+            QDRANT_URL: https://qdrant.example.com
+            QDRANT_COLLECTION: openclaw-memory
+            QDRANT_API_KEY: ${QDRANT_API_KEY}
           user: 1000:1000
           capDrop:
             - ALL
@@ -189,7 +200,7 @@ openclaw:
           - manage-worker-lifecycle
           - bind-channels
           - coordinate-in-nextcloud
-          - record-memory-and-heartbeat
+          - record-memory-and-coordination-status
           - track-budget
         subagents:
           allowAgents:

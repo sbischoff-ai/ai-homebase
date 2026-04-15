@@ -8,7 +8,7 @@ For each important surface, record:
 - purpose
 - steward
 - project or domain when relevant
-- read trigger such as `orientation`, `heartbeat`, `active-project`, or `only-when-escalated`
+- read trigger such as `orientation`, `coordination-status`, `active-project`, or `only-when-escalated`
 
 ## Shared Continuity Surfaces
 
@@ -18,7 +18,7 @@ For each important surface, record:
 
 ## Shared Coordination Surfaces
 
-- Nextcloud `/Projects/ai-homebase/heartbeat.json` - shared stack heartbeat - steward: main - trigger: heartbeat
+- Nextcloud `/Projects/ai-homebase/coordination-status.json` - shared coordination status marker - steward: main - trigger: coordination-status
 - Nextcloud `/Projects/ai-homebase/budget-policy.md` - user-managed budget posture - steward: main - trigger: orientation when budget or staffing matters
 - Nextcloud `/Projects/ai-homebase/watchdog-status-log.md` - compact monitoring state - steward: watchdog - trigger: orientation when recent operational issues matter
 - Nextcloud `/Projects/ai-homebase/audit-log.md` - compact review history - steward: auditor - trigger: active-project or risk review

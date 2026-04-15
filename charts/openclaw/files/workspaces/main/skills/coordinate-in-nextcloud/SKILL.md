@@ -1,6 +1,6 @@
 ---
 name: coordinate-in-nextcloud
-description: Use when main needs to operate Nextcloud as the shared coordination layer. Covers project folder ownership, sharing, calendars, todos, tables, heartbeat state, and when to hand work to another agent instead of authoring project artifacts directly.
+description: Use when operating Nextcloud as the shared coordination layer for desk state, calendars, todos, tables, sharing, or coordination status.
 ---
 
 # Nextcloud Coordination
@@ -14,7 +14,7 @@ Use Nextcloud for:
 - Nextcloud `/Projects/` sharing and top-level coordination
 - user-facing status docs and shared outputs
 - calendars, todos, reminders, and tables when they improve collaboration
-- Nextcloud `/Projects/ai-homebase/heartbeat.json`
+- Nextcloud `/Projects/ai-homebase/coordination-status.json`
 - quiet background collaboration in the shared `openclaw` account before something is intentionally shared with the user's own account
 
 Do not use Nextcloud to:
@@ -39,7 +39,7 @@ Do not use Nextcloud to:
 12. Register new folders outside Nextcloud `/Projects/<slug>/`, relevant calendars, task lists, tables, and user-shared folders in Nextcloud `/Desk/index.md`.
 13. Each Nextcloud `/Desk/index.md` entry should include `type`, stable `id` or path, purpose, steward, project or domain, and a read trigger.
 14. Use shares when an artifact should become user-visible outside the agent loop.
-15. When shared coordination state changes in a way watchdog should notice, update Nextcloud `/Projects/ai-homebase/heartbeat.json`.
+15. When shared coordination state changes in a way watchdog should notice, update Nextcloud `/Projects/ai-homebase/coordination-status.json`.
 16. When durable facts or rules are created, store a Qdrant summary with `project`, `tags`, and `nc_refs`, plus `expiry` when the memory is intentionally short-lived.
 
 Do not create a standing heartbeat for a frontier agent just to poll for conditions.
@@ -55,7 +55,7 @@ Do not let Nextcloud `/Desk/` become a generic archive; move stable material int
 - Nextcloud `/Desk/daily/`
 - Nextcloud `/Projects/<slug>/status.md`
 - Nextcloud `/Projects/<slug>/outputs/`
-- Nextcloud `/Projects/ai-homebase/heartbeat.json`
+- Nextcloud `/Projects/ai-homebase/coordination-status.json`
 
 ## Escalate
 

@@ -1,23 +1,23 @@
 ---
 name: check-heartbeat-and-budget
-description: Use when watchdog is doing heartbeat-driven monitoring or budget sentinel checks. Covers the readiness endpoint, heartbeat file, cron-safe behavior, and spend-threshold alerts.
+description: Use for heartbeat-driven monitoring, readiness checks, coordination-status checks, or budget sentinel alerts.
 ---
 
 # Heartbeat And Budget Sentinel
 
-Use this skill for lightweight recurring checks.
+Use for lightweight recurring checks.
 
 ## Signals
 
 - gateway readiness endpoint: `http://127.0.0.1:18789/readyz`
-- shared heartbeat file: Nextcloud `/Projects/ai-homebase/heartbeat.json`
+- shared coordination status marker: Nextcloud `/Projects/ai-homebase/coordination-status.json`
 - spend posture: `tokscale --openclaw --today --json`
 
 ## Procedure
 
 1. Read the relevant shared Nextcloud `/Desk/current.md`, Nextcloud `/Desk/index.md`, and local desk cues only when heartbeat or orientation review genuinely needs them.
 2. Check readiness.
-3. Read the shared heartbeat file when heartbeat-based monitoring is relevant.
+3. Read the shared coordination status marker when activity context is relevant.
 4. Review only the calendars, task lists, or tables registered for `heartbeat` or `orientation` review.
 5. Compare against known baselines before calling something a deviation.
 6. Compare spend posture against Nextcloud `/Projects/ai-homebase/budget-policy.md` and treat "approaching a ceiling" as a warning signal, not an automatic emergency.

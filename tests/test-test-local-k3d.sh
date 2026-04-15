@@ -96,6 +96,12 @@ for ((i=0; i<${#args[@]}; i++)); do
       printf 'platform-stack-openclaw'
       exit 0
     fi
+    if [[ "${resource}" == "configmap" ]]; then
+      cat <<'JSON'
+{"commands":{"mcp":true},"cron":{"enabled":true,"store":"~/.openclaw/cron/jobs.json"},"agents":{"defaults":{"sandbox":{"backend":"docker","docker":{"image":"registry.localtest.me/openclaw/openclaw-sandbox:trixie-slim"}}},"list":[{"id":"coder","sandbox":{"docker":{"image":"registry.localtest.me/openclaw/openclaw-sandbox-coder:trixie-slim"}}}]},"mcp":{"servers":{"nextcloud":{"args":["${OPENCLAW_NEXTCLOUD_MCP_INTERNAL_URL}","${OPENCLAW_NEXTCLOUD_MCP_EXTERNAL_URL}"]}}}}
+JSON
+      exit 0
+    fi
     if [[ "${resource}" == "statefulset/platform-stack-gitea" || "${resource}" == "service/platform-stack-gitea-http" || "${resource}" == "service/platform-stack-gitea-ssh" ]]; then
       exit 0
     fi
@@ -110,11 +116,20 @@ for ((i=0; i<${#args[@]}; i++)); do
       printf 'platform-stack-paperless-ngx'
       exit 0
     fi
+    if [[ "${resource}" == "ingress" || "${resource}" == ingress/* ]]; then
+      exit 0
+    fi
   fi
   if [[ "${args[$i]}" == "rollout" && $((i+2)) -lt ${#args[@]} && "${args[$((i+1))]}" == "status" ]]; then
     exit 0
   fi
   if [[ "${args[$i]}" == "wait" ]]; then
+    exit 0
+  fi
+  if [[ "${args[$i]}" == "exec" && "$*" == *"openclaw cron list --json"* ]]; then
+    cat <<'JSON'
+[{"name":"Watchdog platform sweep"},{"name":"Watchdog nightly activity check"},{"name":"Watchdog daily digest"},{"name":"Archivist weekly graph grooming"},{"name":"Auditor weekly review"},{"name":"Watchdog daily wrap-up"},{"name":"Architect daily wrap-up"},{"name":"Archivist daily wrap-up"},{"name":"Auditor daily wrap-up"},{"name":"Main daily wrap-up"}]
+JSON
     exit 0
   fi
   if [[ "${args[$i]}" == "exec" ]]; then
@@ -144,7 +159,14 @@ exit 0
 FAKECURL
   chmod +x "${fake_bin}/curl"
 
-  (
+  cat >"${fake_bin}/incus" <<'FAKEINCUS'
+#!/usr/bin/env bash
+set -euo pipefail
+exit 0
+FAKEINCUS
+  chmod +x "${fake_bin}/incus"
+
+  if ! (
     cd "${repo_dir}"
     export PATH="${fake_bin}:$PATH"
     export FAKE_HELM_LOG="${helm_log}"
@@ -159,7 +181,10 @@ FAKECURL
       --namespace ai-homebase \
       --kubeconfig "${sandbox_dir}/kubeconfig.yaml" \
       --skip-install
-  ) >"${output_file}" 2>&1
+  ) >"${output_file}" 2>&1; then
+    cat "${output_file}" >&2
+    exit 1
+  fi
 
   local output helm_output kubectl_output curl_output
   output="$(cat "${output_file}")"

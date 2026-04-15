@@ -153,6 +153,30 @@
         }
       }
     },
+    "qdrant": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "url": {
+          "type": "string",
+          "default": "",
+          "description": "Gateway Qdrant REST URL for archivist-only graph grooming scripts. Empty uses the in-cluster release service URL."
+        },
+        "collectionName": {
+          "type": "string",
+          "default": "openclaw-memory",
+          "description": "Qdrant collection used by the shared memory system."
+        },
+        "apiKeySecret": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "name": { "type": "string", "default": "" },
+            "key": { "type": "string", "default": "QDRANT_API_KEY" }
+          }
+        }
+      }
+    },
     "existingSecret": {
       "type": "string",
       "default": "openclaw-secrets",

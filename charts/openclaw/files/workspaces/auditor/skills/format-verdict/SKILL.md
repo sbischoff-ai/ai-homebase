@@ -1,6 +1,6 @@
 ---
 name: format-verdict
-description: Use when auditor is producing a review result. Covers the required verdict structure, evidence expectations, and how to keep the output compact and decision-ready.
+description: Use when producing a review verdict that needs clear evidence, risk level, and a compact decision-ready result.
 ---
 
 # Verdict Formatting

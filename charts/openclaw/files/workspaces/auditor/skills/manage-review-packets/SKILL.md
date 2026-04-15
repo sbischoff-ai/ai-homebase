@@ -1,6 +1,6 @@
 ---
 name: manage-review-packets
-description: Use when auditor needs to read or write durable review artifacts in Nextcloud. Covers review packet intake, evidence selection, durable findings storage, and keeping the packet compact.
+description: Use when reading or writing durable review artifacts in Nextcloud, including review packets, evidence, and findings.
 ---
 
 # Nextcloud Review Packets

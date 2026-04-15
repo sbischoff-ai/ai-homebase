@@ -185,6 +185,7 @@ assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][0]["default"] i
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][0]["model"]["primary"] == "openai/gpt-5.4"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][0]["model"]["fallbacks"] == ["anthropic/claude-sonnet-4-6"]
 assert rendered_values["openclaw"]["openclaw"]["agents"]["defaults"]["sandbox"]["workspaceAccess"] == "rw"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["defaults"]["sandbox"]["docker"]["env"]["QDRANT_API_KEY"] == "${QDRANT_API_KEY}"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["id"] == "coder"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["workspace"] == "/home/node/.openclaw/workspace-coder"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["model"]["primary"] == "anthropic/claude-sonnet-4-6"
@@ -270,7 +271,7 @@ assert "Retrieval Cues" in main_current
 
 main_surfaces = (REPO_ROOT / "charts" / "openclaw" / "files" / "workspaces" / "main" / "SURFACES.md").read_text()
 assert "/Desk/current.md" in main_surfaces
-assert "/Projects/ai-homebase/heartbeat.json" in main_surfaces
+assert "/Projects/ai-homebase/coordination-status.json" in main_surfaces
 
 coder_tools = (REPO_ROOT / "charts" / "openclaw" / "files" / "workspaces" / "coder" / "TOOLS.md").read_text()
 assert "CODER_GITEA_BASE_URL" in coder_tools
@@ -285,7 +286,11 @@ assert "/Desk/index.md" in architect_tools
 
 archivist_tools = (REPO_ROOT / "charts" / "openclaw" / "files" / "workspaces" / "archivist" / "TOOLS.md").read_text()
 assert "MEMGRAPH_BOLT_URI" in archivist_tools
-assert "state/grooming-cursor.json" in archivist_tools
+assert "state/grooming-checkpoint.json" in archivist_tools
+assert "queries/run_query.py" in archivist_tools
+assert "grooming/update_checkpoint.py" in archivist_tools
+assert "state/grooming-cursor.json" not in archivist_tools
+assert "state/qdrant-graph-link-cursor.json" not in archivist_tools
 assert "/Desk/index.md" in archivist_tools
 
 watchdog_tools = (REPO_ROOT / "charts" / "openclaw" / "files" / "workspaces" / "watchdog" / "TOOLS.md").read_text()
@@ -321,6 +326,8 @@ assert rendered_values["nextcloud"]["bootstrapProjectContent"][0]["projectsFiles
 assert rendered_values["nextcloud"]["bootstrapProjectContent"][0]["projectsFiles"][0]["path"] == "overview.md"
 project_files = rendered_values["nextcloud"]["bootstrapProjectContent"][0]["projectsFiles"]
 assert any(item["path"] == "incidents/README.md" for item in project_files)
+assert any(item["path"] == "coordination-status.json" for item in project_files)
+assert not any(item["path"] == "heartbeat.json" for item in project_files)
 assert any(item["path"] == "baselines.md" for item in project_files)
 assert any(item["path"] == "escalation-rules.md" for item in project_files)
 assert "notes" not in rendered_values["nextcloud"]["bootstrapProjectContent"][0]
@@ -369,6 +376,9 @@ assert rendered_values["openclaw"]["openclaw"]["agents"]["defaults"]["sandbox"][
     "MEMGRAPH_HOST": "memgraph.test.internal",
     "MEMGRAPH_PORT": "7687",
     "MEMGRAPH_BOLT_URI": "bolt://memgraph.test.internal:7687",
+    "QDRANT_URL": "https://qdrant.test.internal",
+    "QDRANT_COLLECTION": "openclaw-memory",
+    "QDRANT_API_KEY": "${QDRANT_API_KEY}",
 }
 
 coder_dockerfile = (REPO_ROOT / "images" / "openclaw-sandbox-coder" / "Dockerfile").read_text(encoding="utf-8")

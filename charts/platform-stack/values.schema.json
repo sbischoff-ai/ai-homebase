@@ -245,6 +245,22 @@
             }
           }
         },
+        "qdrant": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "url": { "type": "string", "default": "" },
+            "collectionName": { "type": "string", "default": "openclaw-memory" },
+            "apiKeySecret": {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "name": { "type": "string", "default": "" },
+                "key": { "type": "string", "default": "QDRANT_API_KEY" }
+              }
+            }
+          }
+        },
         "service": {
           "$ref": "#/definitions/service"
         },

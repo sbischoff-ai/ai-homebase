@@ -4,9 +4,9 @@ This document defines the repo-managed memory contract for the shared OpenClaw Q
 
 ## Summary
 
-All five OpenClaw agents share one Qdrant collection for durable semantic memory. The `qdrant-find` tool currently relies on semantic retrieval, so the stored text itself must carry the structural signals needed to separate factual, speculative, and creative memories.
+The bootstrapped OpenClaw agents share one Qdrant collection for durable semantic memory. The `qdrant-find` tool currently relies on semantic retrieval, so the stored text itself must carry the structural signals needed to separate factual, speculative, and creative memories.
 
-Metadata remains required for auditability, later filtering, and cleanup, but text prefixes are part of the retrieval contract today.
+Metadata remains required for auditability, filtering, and cleanup, but it does not improve vector ranking by itself. Any term that should help semantic recall must also appear naturally in the stored `information` text.
 
 ## Required metadata
 
@@ -14,7 +14,7 @@ Every `qdrant-store` call must include a `metadata` object with:
 
 - `kind`: memory category
 - `domain`: reality domain
-- `agent`: one of `main`, `coder`, `architect`, `archivist`, `watchdog`
+- `agent`: one of `main`, `coder`, `architect`, `archivist`, `watchdog`, `auditor`
 - `created`: ISO 8601 timestamp such as `2026-03-31T10:00:00Z`
 
 ## Optional metadata
@@ -23,7 +23,7 @@ Every `qdrant-store` call must include a `metadata` object with:
 - `project`: project slug such as `ai-homebase`
 - `nc_refs`: array of Nextcloud references
 - `tags`: 1 to 4 short free-form tags
-- `supersedes`: short description of replaced memory
+- `supersedes`: short description of an older memory that this new append-only memory replaces or corrects
 - `expiry`: ISO 8601 timestamp for staleness handling
 - `source_url`: external source URL
 
@@ -55,23 +55,29 @@ Every `qdrant-store` call must include a `metadata` object with:
 Every stored `information` string must use this shape:
 
 ```text
-[domain] [kind] Complete self-contained statement.
+[domain] [kind] Complete self-contained retrieval-optimized statement.
 ```
 
 Examples:
 
 ```text
-[real] [decision] OpenClaw agents use a single shared Qdrant collection with domain and kind prefixes in stored text.
+[real] [decision] In project ai-homebase, OpenClaw agents use a single shared Qdrant collection with domain and kind prefixes in stored memory text.
 [fictional] [creative] In the Ironvale story, Commander Hask leads the northern garrison and reports to the Regent.
-[speculative] [plan] Proposed migration path: move Nextcloud from SQLite to PostgreSQL in Q2 with a short downtime window.
+[speculative] [plan] For project ai-homebase, proposed Nextcloud migration path: move from SQLite to PostgreSQL in Q2 with a short downtime window.
 ```
 
 Rules:
 
 - Prefix tags are lowercase and bracket-wrapped.
 - The summary after the tags must be a complete statement, not a fragment.
-- If the memory is project-specific, include the project name naturally in the text.
-- If the memory corrects a prior memory, mention that in both the text and `supersedes`.
+- Store one durable claim per memory. Split unrelated decisions, facts, preferences, or incidents into separate memories.
+- Use 1 to 3 compact sentences. Do not store multi-topic summaries, raw command output, or whole document digests as one memory.
+- If the memory is project-specific, include the project slug or project name naturally in the text.
+- Include natural retrieval anchors when relevant: service or component names, agent or person names, artifact paths, common aliases, incident names, and source references.
+- Do not rely on metadata-only terms for recall. If a future query should match a term, put that term in `information`.
+- If the memory corrects or replaces a prior memory, create a new memory that mentions the correction in both the text and `supersedes`.
+- Qdrant MCP is append-only in this stack: agents cannot update, delete, merge, or mark existing Qdrant points with the current `qdrant-store` and `qdrant-find` tools.
+- `archivist` has separate seeded Qdrant REST scripts for graph-link grooming. Those scripts may recover point IDs and set a top-level `graph` payload, but they must not create semantic memories, modify vectors, or overwrite MCP-managed `document` or `metadata`.
 - If the memory points to Nextcloud content, include the identifier or path naturally in the text.
 
 ## Nextcloud references
@@ -102,7 +108,17 @@ Guidance:
 - use `tags` for discoverability across future work
 - use `expiry` for short-lived current-context memories that should stop shaping recall after the near term
 - use `nc_refs` whenever a memory points to a Nextcloud artifact or shared surface
+- combine semantic query terms with metadata filters for project, domain, kind, agent, and recency when possible
 - do not treat orientation work as a blind memory dump
+
+The upstream Qdrant MCP server stores user-provided metadata under the `metadata` payload object. Use nested payload keys in `query_filter`, for example:
+
+```json
+{"must": [{"key": "metadata.created", "range": {"gte": "2026-04-02T00:00:00Z"}}]}
+{"must": [{"key": "metadata.agent", "match": {"value": "coder"}}]}
+{"must": [{"key": "metadata.domain", "match": {"value": "real"}}, {"key": "metadata.kind", "match": {"value": "decision"}}, {"key": "metadata.project", "match": {"value": "ai-homebase"}}]}
+{"must": [{"key": "metadata.tags", "match": {"value": "qdrant"}}]}
+```
 
 ## Storage guidance
 
@@ -126,12 +142,26 @@ Do not store:
 
 Short-term continuity that only needs to survive the next run belongs in local desk notes or shared `/Desk/` surfaces instead of Qdrant.
 
+## Append-only corrections
+
+The current Qdrant MCP tool surface can only search and store memories. It cannot mutate existing points. To correct, split, or consolidate prior memories:
+
+- use `qdrant-find` to recover the old memory text and metadata
+- store one or more new atomic replacement memories with `supersedes` metadata describing the older memory
+- mention in the new `information` text that it replaces or corrects the prior memory
+- do not claim that the old Qdrant entry was edited, deleted, merged, or marked
+
+Old entries may still appear in future search results. Treat a result as stale when a newer returned memory clearly supersedes it.
+
 ## Future filtering
 
-The schema is designed to support later metadata filtering for at least:
+The schema supports metadata filtering through nested payload keys:
 
-- `kind`
-- `domain`
-- `agent`
+- `metadata.kind`
+- `metadata.domain`
+- `metadata.agent`
+- `metadata.project`
+- `metadata.created`
+- `metadata.tags`
 
-That future change should be additive. The current retrieval contract still depends on the text prefixes above.
+The current retrieval contract still depends on the text prefixes and natural-language anchors above because vector ranking only embeds the `information` text.

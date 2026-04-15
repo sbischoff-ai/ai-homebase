@@ -1,6 +1,6 @@
 ---
 name: consult-nextcloud-knowledge
-description: Use when archivist needs to use Nextcloud as supporting documentation for graph and memory work. Covers schema-note usage, nc_refs linkage, and keeping documentation secondary to Memgraph and Qdrant.
+description: Use when Nextcloud documentation may support graph or memory work, especially for schema notes, nc_refs, or shared project artifacts.
 ---
 
 # Nextcloud Knowledge Support

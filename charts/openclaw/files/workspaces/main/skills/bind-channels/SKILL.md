@@ -1,11 +1,11 @@
 ---
 name: bind-channels
-description: Use when main needs to set up, inspect, or change messaging channel bindings for the user or a dedicated specialist channel. Covers binding rules, inspection, and safe ownership boundaries.
+description: Use when setting up, inspecting, or changing messaging channel bindings for the user or a dedicated specialist channel.
 ---
 
 # Channel Binding
 
-Use this skill when channel setup, routing, or binding inspection is part of the task.
+Use when channel setup, routing, or binding inspection is part of the task.
 Load it only when channel setup, routing, or binding inspection is actually involved.
 
 ## Concepts

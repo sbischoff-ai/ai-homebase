@@ -163,7 +163,7 @@ data:
 
     ## Known Patterns
     - sessions_list returns 0 from sandboxed cron context (expected - sandbox isolation)
-    - First heartbeat after deploy may show stale timestamp (expected - main has not run yet)
+    - First coordination-status marker after deploy may show a stale timestamp (expected - main has not run yet)
 
     Watchdog should update this document as new baselines are established.
   project-0-file-15: |2
@@ -282,18 +282,23 @@ data:
 
     This document defines the shared OpenClaw memory contract for the Qdrant MCP server.
 
-    Summary:
-    - all agents share one Qdrant collection for durable semantic memory;
-    - retrieval is currently semantic, so text prefixes are part of the contract;
-    - metadata is still required for auditability, cleanup, and future filtering.
+    ## Summary
 
-    Required metadata:
+    - all agents share one Qdrant collection for durable semantic memory
+    - retrieval ranks the embedded `information` text, so text prefixes and natural anchors matter
+    - metadata is required for auditability, filtering, and grooming, but metadata alone does not improve vector ranking
+    - ordinary search and storage use `qdrant-find` and `qdrant-store`
+    - `archivist` has separate Qdrant REST scripts only for graph-link grooming
+
+    ## Required Metadata
+
     - `kind`
     - `domain`
     - `agent`
     - `created`
 
     Optional metadata:
+
     - `confidence`
     - `project`
     - `nc_refs`
@@ -303,6 +308,7 @@ data:
     - `source_url`
 
     Stable kind vocabulary:
+
     - `user-preference`
     - `user-context`
     - `decision`
@@ -318,22 +324,44 @@ data:
     - `reference`
 
     Stable domain vocabulary:
+
     - `real`
     - `speculative`
     - `fictional`
     - `synthetic`
 
-    Required text format:
-    - `[domain] [kind] Complete self-contained statement.`
+    ## Required Text Format
 
-    Guidance:
-    - brief from local desk notes and shared `/Desk/` continuity first, then query Qdrant from those cues;
-    - use `project`, `tags`, `expiry`, and `nc_refs` to keep retrieval targeted;
-    - store durable knowledge, not transient status;
-    - do not store secrets;
-    - use `fictional` for creative content;
-    - include Nextcloud references in both text and `nc_refs` when relevant.
-  project-0-file-7: "\n# Knowledge Graph Schema\n\nThis document defines the canonical Memgraph schema for the user's long-term cross-domain world model.\n\n## Canonical node labels\n\nEvery node must have the `Entity` label plus one or more specialized labels from this hierarchy:\n\n```text\nEntity                    \u2014 base label, all nodes have this\n\u251C\u2500\u2500 Person                \u2014 humans, fictional characters, contacts, personas\n\u251C\u2500\u2500 Agent                 \u2014 AI agents (subtype of Person in this system)\n\u251C\u2500\u2500 Organization          \u2014 companies, teams, groups, factions, guilds\n\u251C\u2500\u2500 Place                 \u2014 locations, venues, regions, fictional lands\n\u251C\u2500\u2500 Thing                 \u2014 physical objects, items, equipment, artifacts\n\u251C\u2500\u2500 Concept               \u2014 abstract ideas, topics, skills, fields, genres\n\u251C\u2500\u2500 Event                 \u2014 occurrences with temporal extent (meetings, incidents, sessions, campaigns)\n\u251C\u2500\u2500 Work                  \u2014 creative or intellectual outputs (documents, code, art, publications)\n\u251C\u2500\u2500 Project               \u2014 tracked efforts with goals (software projects, campaigns, trips, research)\n\u251C\u2500\u2500 Service               \u2014 running systems, APIs, platforms, tools\n\u251C\u2500\u2500 Collection            \u2014 named groupings (playlists, reading lists, inventories, tag bundles)\n\u2514\u2500\u2500 MemoryEntry           \u2014 Qdrant-linked memory nodes (grooming artifacts)\n```\n\n### Properties for specialization\n\nUse properties instead of inventing more labels unless traversal semantics truly require a new one:\n\n- `domain`: `real` | `fictional` | `speculative` | `synthetic`\n- `kind`: freeform string for subtype (for example `repository`, `NPC`, `recipe`, `medication`)\n- `category`: freeform grouping (for example `source-control`, `fantasy`)\n- `status`: `active` | `archived` | `draft` | `completed` | `abandoned`\n- `slug`: stable identifier for `MERGE`-based idempotency\n- `name`: human-readable display name\n\n### When to add a new label\n\nOnly add a new label if the concept requires structurally different traversal patterns or if it would be queried independently by label very frequently. If the concept can be represented with `kind` on an existing label, do not add a label.\n\n## Canonical relationships\n\nUse this compact set of reusable relationships and push domain-specific semantics into relationship properties:\n\n| Relationship | Meaning | Key properties |\n| --- | --- | --- |\n| `RELATES_TO` | General association; fallback when nothing more specific fits | `role`, `kind`, `context`, `weight` |\n| `HAS_PART` | Composition or membership: project has member, organization has department, collection has item, system has component | `role`, `kind`, `since`, `until` |\n| `INFLUENCES` | Causal or directional effect: person influences decision, event influences project, concept influences work, medication influences condition | `kind`, `strength`, `context` |\n| `LOCATED_IN` | Spatial containment: person lives in place, event happens at place, service runs on infrastructure, item stored in location | `kind`, `since`, `until` |\n| `CREATED_BY` | Authorship or origin: work created by person, project started by organization, memory stored by agent, artifact made by character | `role`, `context` |\n| `DERIVED_FROM` | Provenance or lineage: work based on work, decision derived from plan, fork from repo, adaptation from source material | `kind`, `context` |\n| `OCCURS_IN` | Temporal or narrative containment: event occurs in project, scene occurs in campaign, transaction occurs in period, session occurs in day | `kind`, `sequence` |\n| `TAGGED_WITH` | Classification or annotation: any entity tagged with a concept, topic, or category | `confidence`, `context` |\n\n### Relationship properties\n\nEvery relationship may use these properties for specialization:\n\n- `role`: the specific role of this connection (for example `maintainer`, `antagonist`, `primary-care`)\n- `kind`: sub-type of the relationship (for example on `HAS_PART`: `member`, `component`, `chapter`)\n- `context`: freeform note about why this relationship exists\n- `since` / `until`: ISO-8601 timestamps for temporal relationships\n- `weight` / `strength`: numeric relevance from `0.0` to `1.0` for weighted traversals\n- `confidence`: for inferred relationships (`high`, `medium`, `low`)\n\n### When to add a new relationship\n\nOnly add a new relationship if it has genuinely different traversal semantics that cannot be expressed with `kind` or `role` on an existing one. If an existing relationship plus properties can express the fact, do not add a new relationship.\n\nExamples:\n\n- \"Person X plays in Campaign Y\" becomes `Campaign -[:HAS_PART {role: \"player\"}]-> Person`\n- \"Doctor prescribed medication\" becomes `Person -[:INFLUENCES {kind: \"prescription\"}]-> Thing`\n"
+    `[domain] [kind] Complete self-contained retrieval-optimized statement.`
+
+    Rules:
+
+    - store one atomic durable claim per memory
+    - use 1 to 3 compact sentences
+    - include natural anchors such as project slug, service/component, agent/person, artifact path, aliases, and source reference when relevant
+    - include important recall terms in `information`, not only in metadata
+    - do not store multi-topic summaries, raw command output, transient status, secrets, or easily re-derived information
+    - include Nextcloud references in both text and `nc_refs` when relevant
+
+    ## Filtering
+
+    Qdrant MCP stores memory metadata under nested payload keys:
+
+    - `metadata.kind`
+    - `metadata.domain`
+    - `metadata.agent`
+    - `metadata.project`
+    - `metadata.created`
+    - `metadata.tags`
+
+    Combine semantic query terms with metadata filters when project, domain, kind, agent, or recency is known.
+
+    ## Archivist Graph Grooming
+
+    Qdrant MCP is append-only for normal agents: existing points cannot be updated, deleted, merged, or marked with `qdrant-store` and `qdrant-find`.
+
+    For graph grooming only, `archivist` may use the seeded `qdrant/` scripts to recover point IDs and set a top-level `graph` payload after Memgraph `MemoryEntry` links are written. These scripts must not create semantic memories, modify vectors, or overwrite MCP-managed `document` or `metadata`.
+  project-0-file-7: "\n# Knowledge Graph Schema\n\nThis document defines the canonical Memgraph schema for the user's long-term cross-domain world model.\n\n## Canonical node labels\n\nEvery node must have the `Entity` label plus one or more specialized labels from this hierarchy:\n\n```text\nEntity                    \u2014 base label, all nodes have this\n\u251C\u2500\u2500 Person                \u2014 humans, fictional characters, contacts, personas\n\u251C\u2500\u2500 Agent                 \u2014 AI agents (subtype of Person in this system)\n\u251C\u2500\u2500 Organization          \u2014 companies, teams, groups, factions, guilds\n\u251C\u2500\u2500 Place                 \u2014 locations, venues, regions, fictional lands\n\u251C\u2500\u2500 Thing                 \u2014 physical objects, items, equipment, artifacts\n\u251C\u2500\u2500 Concept               \u2014 abstract ideas, topics, skills, fields, genres\n\u251C\u2500\u2500 Event                 \u2014 occurrences with temporal extent (meetings, incidents, sessions, campaigns)\n\u251C\u2500\u2500 Work                  \u2014 creative or intellectual outputs (documents, code, art, publications)\n\u251C\u2500\u2500 Project               \u2014 tracked efforts with goals (software projects, campaigns, trips, research)\n\u251C\u2500\u2500 Service               \u2014 running systems, APIs, platforms, tools\n\u251C\u2500\u2500 Collection            \u2014 named groupings (playlists, reading lists, inventories, tag bundles)\n\u2514\u2500\u2500 MemoryEntry           \u2014 Qdrant-linked memory nodes (grooming artifacts)\n```\n\n### Properties for specialization\n\nUse properties instead of inventing more labels unless traversal semantics truly require a new one:\n\n- `domain`: `real` | `fictional` | `speculative` | `synthetic`\n- `kind`: freeform string for subtype (for example `repository`, `NPC`, `recipe`, `medication`)\n- `category`: freeform grouping (for example `source-control`, `fantasy`)\n- `status`: `active` | `archived` | `draft` | `completed` | `abandoned`\n- `slug`: stable identifier for `MERGE`-based idempotency\n- `name`: human-readable display name\n\n### When to add a new label\n\nOnly add a new label if the concept requires structurally different traversal patterns or if it would be queried independently by label very frequently. If the concept can be represented with `kind` on an existing label, do not add a label.\n\n## Canonical relationships\n\nUse this compact set of reusable relationships and push domain-specific semantics into relationship properties:\n\n| Relationship | Meaning | Key properties |\n| --- | --- | --- |\n| `RELATES_TO` | General association; fallback when nothing more specific fits | `role`, `kind`, `context`, `weight` |\n| `HAS_PART` | Composition or membership: project has member, organization has department, collection has item, system has component | `role`, `kind`, `since`, `until` |\n| `INFLUENCES` | Causal or directional effect: person influences decision, event influences project, concept influences work, medication influences condition | `kind`, `strength`, `context` |\n| `LOCATED_IN` | Spatial containment: person lives in place, event happens at place, service runs on infrastructure, item stored in location | `kind`, `since`, `until` |\n| `CREATED_BY` | Authorship or origin: work created by person, project started by organization, memory stored by agent, artifact made by character | `role`, `context` |\n| `DERIVED_FROM` | Provenance or lineage: work based on work, decision derived from plan, fork from repo, adaptation from source material | `kind`, `context` |\n| `OCCURS_IN` | Temporal or narrative containment: event occurs in project, scene occurs in campaign, transaction occurs in period, session occurs in day | `kind`, `sequence` |\n| `TAGGED_WITH` | Classification or annotation: any entity tagged with a concept, topic, or category | `confidence`, `context` |\n\n### Relationship properties\n\nEvery relationship may use these properties for specialization:\n\n- `role`: the specific role of this connection (for example `maintainer`, `antagonist`, `primary-care`)\n- `kind`: sub-type of the relationship (for example on `HAS_PART`: `member`, `component`, `chapter`)\n- `context`: freeform note about why this relationship exists\n- `since` / `until`: ISO-8601 timestamps for temporal relationships\n- `weight` / `strength`: numeric relevance from `0.0` to `1.0` for weighted traversals\n- `confidence`: for inferred relationships (`high`, `medium`, `low`)\n\n### When to add a new relationship\n\nOnly add a new relationship if it has genuinely different traversal semantics that cannot be expressed with `kind` or `role` on an existing one. If an existing relationship plus properties can express the fact, do not add a new relationship.\n\nExamples:\n\n- \"Person X plays in Campaign Y\" becomes `Campaign -[:HAS_PART {role: \"player\"}]-> Person`\n- \"Doctor prescribed medication\" becomes `Person -[:INFLUENCES {kind: \"prescription\"}]-> Thing`\n\n## Qdrant linkage\n\nQdrant remains the semantic memory store. Memgraph stores structural knowledge and graph-promoted memory nodes.\n\nWhen a Qdrant memory deserves graph structure, `archivist` should:\n\n- retrieve the Qdrant point ID and normalized payload with the seeded `qdrant/` scripts\n- create or update a `:Entity:MemoryEntry` node with `slug = \"qdrant:<point_id>\"`\n- store `qdrant_id`, `document_sha256`, `agent`, `domain`, `kind`, `project`, `created`, `summary`, `linked_at`, and optional `memory_ref`\n- connect the memory to relevant entities with the standard relationships\n- annotate the Qdrant point's top-level `graph` payload only after Memgraph links succeed\n\nStandard memory links:\n\n- memory `CREATED_BY` agent when `metadata.agent` maps to an agent node\n- project `HAS_PART {kind: \"memory\"}` memory when `metadata.project` maps to a project node\n- memory `RELATES_TO {kind: \"memory-evidence\"}` relevant entities selected by archivist\n- memory `DERIVED_FROM {kind: \"supersedes\"}` older `MemoryEntry` when supersession is clear\n- memory `TAGGED_WITH` durable tag concepts\n\nThe Qdrant graph annotation is bookkeeping, not the source of structural truth. Do not modify Qdrant vectors, `document`, or MCP-managed `metadata` during graph grooming.\n"
   project-0-file-8: |2
 
     # LLM Budget Policy
@@ -424,10 +452,10 @@ data:
 
     # Archivist Grooming Log
 
-    Nightly grooming summaries are appended here.
+    Archivist grooming summaries are appended here. Each run records its trigger, effective delta window, checkpoint movement, and any issue that prevented checkpoint advancement.
 
-    | Date | Memories Processed | Graph Changes | Issues |
-    | --- | --- | --- | --- |
+    | Completed At | Run ID | Trigger | Window | Reason Codes | Qdrant Memories | Nextcloud Surfaces | Memgraph Changes | Checkpoint | Issues |
+    | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 kind: ConfigMap
 metadata:
   labels:
@@ -721,8 +749,8 @@ data:
         "trustedProxies": []
       },
       "agents": {
-        "defaults": {"models":{"anthropic/claude-opus-4-6":{"alias":"Auditor"},"anthropic/claude-sonnet-4-6":{"alias":"Main / Architect"},"openai/gpt-5.4":{"alias":"Main / Coder / Architect / Archivist / Auditor"},"openai/gpt-5.4-nano":{"alias":"Watchdog"}},"sandbox":{"backend":"docker","browser":{"cdpPort":9222,"cdpSourceRange":"","enableNoVnc":true,"enabled":true,"headless":false,"image":"openclaw-sandbox-browser:bookworm-slim","network":"bridge","noVncPort":6080,"vncPort":5900},"docker":{"capDrop":["ALL"],"cpus":1,"env":{"MEMGRAPH_BOLT_URI":"bolt://memgraph.homebase.local:7687","MEMGRAPH_HOST":"memgraph.homebase.local","MEMGRAPH_PORT":"7687"},"image":"registry.homebase.local/coder/openclaw-sandbox:trixie-slim","memory":"1g","memorySwap":"2g","network":"bridge","pidsLimit":256,"readOnlyRoot":true,"tmpfs":["/tmp","/var/tmp","/run"],"user":"1000:1000","workdir":"/workspace"},"mode":"non-main","scope":"agent","sessionToolsVisibility":"all","workspaceAccess":"rw"},"workspace":"/home/node/.openclaw/workspace"},
-        "list": [{"default":true,"id":"main","model":{"fallbacks":["anthropic/claude-sonnet-4-6"],"primary":"openai/gpt-5.4"},"name":"OpenClaw Assistant","skills":["specialist_handoff","worker_lifecycle","channel_binding","nextcloud_coordination","memory_and_heartbeat","budget_tracking"],"subagents":{"allowAgents":["coder","architect","archivist","auditor"]},"workspace":"/home/node/.openclaw/workspace"},{"id":"coder","model":{"fallbacks":["openai/gpt-5.4"],"primary":"anthropic/claude-sonnet-4-6"},"name":"Coder","sandbox":{"docker":{"binds":["/var/run/docker.sock:/var/run/docker.sock"],"env":{"CODER_GITEA_BASE_URL":"https://gitea.homebase.local","CODER_GITEA_EMAIL":"coder@example.invalid","CODER_GITEA_HOST":"gitea.homebase.local","CODER_GITEA_PASSWORD":"${CODER_GITEA_PASSWORD}","CODER_GITEA_TEA_LOGIN_NAME":"coder","CODER_GITEA_TEA_TOKEN_NAME":"openclaw-coder-sandbox","CODER_GITEA_USERNAME":"coder","CODER_GITOPS_PROJECT":"platform-stack","CODER_GITOPS_REPO_BRANCH":"main","CODER_GITOPS_REPO_NAME":"cluster-gitops","CODER_REGISTRY_BASE_URL":"https://registry.homebase.local","CODER_REGISTRY_HOST":"registry.homebase.local","CODER_REGISTRY_NAMESPACE":"coder","CODER_REGISTRY_PASSWORD":"${CODER_REGISTRY_PASSWORD}","CODER_REGISTRY_USERNAME":"coder","CODER_SANDBOX_IMAGES_REPO_NAME":"openclaw-sandbox-images","CODEX_DEFAULT_MODEL":"gpt-5.4-mini","CODEX_HOME":"/workspace/.home/.codex","CODEX_MODEL":"openai/gpt-5.3-codex","GITHUB_TOKEN":"${GITHUB_TOKEN}","HOME":"/workspace/.home","OPENAI_API_KEY":"${OPENAI_API_KEY}","XDG_CACHE_HOME":"/workspace/.home/.cache","XDG_CONFIG_HOME":"/workspace/.home/.config","XDG_STATE_HOME":"/workspace/.home/.local/state"},"image":"registry.homebase.local/coder/openclaw-sandbox-coder:trixie-slim","setupCommand":"/usr/local/bin/coder-init.sh","tmpfs":["/tmp","/var/tmp","/run"]},"mode":"all","workspaceAccess":"rw"},"skills":["gitea_gitops_registry","codex_execution_and_logging","nextcloud_implementation_handoff","coding-agent","github","tmux"],"workspace":"/home/node/.openclaw/workspace-coder"},{"id":"architect","model":{"fallbacks":["openai/gpt-5.4"],"primary":"anthropic/claude-sonnet-4-6"},"name":"Architect","skills":["nextcloud_project_planning","worker_definition_package","design_handoff"],"workspace":"/home/node/.openclaw/workspace-architect"},{"id":"archivist","model":{"fallbacks":["anthropic/claude-sonnet-4-6"],"primary":"openai/gpt-5.4-mini"},"name":"Archivist","sandbox":{"mode":"non-main"},"skills":["memgraph_curation","recent_memory_grooming","context_map_and_memory_linking","nextcloud_knowledge_support"],"workspace":"/home/node/.openclaw/workspace-archivist"},{"id":"watchdog","model":{"fallbacks":["anthropic/claude-haiku-4-5"],"primary":"openai/gpt-5.4-nano"},"name":"Watchdog","sandbox":{"mode":"off"},"skills":["severity_and_escalation","nextcloud_incident_ops","heartbeat_and_budget_sentinel","healthcheck","session-logs"],"workspace":"/home/node/.openclaw/workspace-watchdog"},{"id":"auditor","model":{"fallbacks":["openai/gpt-5.4"],"primary":"anthropic/claude-opus-4-6"},"name":"Auditor","sandbox":{"mode":"off"},"skills":["review_modes_and_handoff","nextcloud_review_packets","verdict_formatting","summarize"],"workspace":"/home/node/.openclaw/workspace-auditor"}]
+        "defaults": {"models":{"anthropic/claude-opus-4-6":{"alias":"Auditor"},"anthropic/claude-sonnet-4-6":{"alias":"Main / Architect"},"openai/gpt-5.4":{"alias":"Main / Coder / Architect / Archivist / Auditor"},"openai/gpt-5.4-nano":{"alias":"Watchdog"}},"sandbox":{"backend":"docker","browser":{"cdpPort":9222,"cdpSourceRange":"","enableNoVnc":true,"enabled":true,"headless":false,"image":"openclaw-sandbox-browser:bookworm-slim","network":"bridge","noVncPort":6080,"vncPort":5900},"docker":{"capDrop":["ALL"],"cpus":1,"env":{"MEMGRAPH_BOLT_URI":"bolt://memgraph.homebase.local:7687","MEMGRAPH_HOST":"memgraph.homebase.local","MEMGRAPH_PORT":"7687","QDRANT_API_KEY":"${QDRANT_API_KEY}","QDRANT_COLLECTION":"openclaw-memory","QDRANT_URL":"https://qdrant.homebase.local"},"image":"registry.homebase.local/coder/openclaw-sandbox:trixie-slim","memory":"1g","memorySwap":"2g","network":"bridge","pidsLimit":256,"readOnlyRoot":true,"tmpfs":["/tmp","/var/tmp","/run"],"user":"1000:1000","workdir":"/workspace"},"mode":"non-main","scope":"agent","sessionToolsVisibility":"all","workspaceAccess":"rw"},"workspace":"/home/node/.openclaw/workspace"},
+        "list": [{"default":true,"id":"main","model":{"fallbacks":["anthropic/claude-sonnet-4-6"],"primary":"openai/gpt-5.4"},"name":"OpenClaw Assistant","skills":["specialist_handoff","worker_lifecycle","channel_binding","nextcloud_coordination","memory_and_coordination_status","budget_tracking"],"subagents":{"allowAgents":["coder","architect","archivist","auditor"]},"workspace":"/home/node/.openclaw/workspace"},{"id":"coder","model":{"fallbacks":["openai/gpt-5.4"],"primary":"anthropic/claude-sonnet-4-6"},"name":"Coder","sandbox":{"docker":{"binds":["/var/run/docker.sock:/var/run/docker.sock"],"env":{"CODER_GITEA_BASE_URL":"https://gitea.homebase.local","CODER_GITEA_EMAIL":"coder@example.invalid","CODER_GITEA_HOST":"gitea.homebase.local","CODER_GITEA_PASSWORD":"${CODER_GITEA_PASSWORD}","CODER_GITEA_TEA_LOGIN_NAME":"coder","CODER_GITEA_TEA_TOKEN_NAME":"openclaw-coder-sandbox","CODER_GITEA_USERNAME":"coder","CODER_GITOPS_PROJECT":"platform-stack","CODER_GITOPS_REPO_BRANCH":"main","CODER_GITOPS_REPO_NAME":"cluster-gitops","CODER_REGISTRY_BASE_URL":"https://registry.homebase.local","CODER_REGISTRY_HOST":"registry.homebase.local","CODER_REGISTRY_NAMESPACE":"coder","CODER_REGISTRY_PASSWORD":"${CODER_REGISTRY_PASSWORD}","CODER_REGISTRY_USERNAME":"coder","CODER_SANDBOX_IMAGES_REPO_NAME":"openclaw-sandbox-images","CODEX_DEFAULT_MODEL":"gpt-5.4-mini","CODEX_HOME":"/workspace/.home/.codex","CODEX_MODEL":"openai/gpt-5.3-codex","GITHUB_TOKEN":"${GITHUB_TOKEN}","HOME":"/workspace/.home","OPENAI_API_KEY":"${OPENAI_API_KEY}","XDG_CACHE_HOME":"/workspace/.home/.cache","XDG_CONFIG_HOME":"/workspace/.home/.config","XDG_STATE_HOME":"/workspace/.home/.local/state"},"image":"registry.homebase.local/coder/openclaw-sandbox-coder:trixie-slim","setupCommand":"/usr/local/bin/coder-init.sh","tmpfs":["/tmp","/var/tmp","/run"]},"mode":"all","workspaceAccess":"rw"},"skills":["gitea_gitops_registry","codex_execution_and_logging","nextcloud_implementation_handoff","coding-agent","github","tmux"],"workspace":"/home/node/.openclaw/workspace-coder"},{"id":"architect","model":{"fallbacks":["openai/gpt-5.4"],"primary":"anthropic/claude-sonnet-4-6"},"name":"Architect","skills":["nextcloud_project_planning","worker_definition_package","design_handoff"],"workspace":"/home/node/.openclaw/workspace-architect"},{"id":"archivist","model":{"fallbacks":["anthropic/claude-sonnet-4-6"],"primary":"openai/gpt-5.4-mini"},"name":"Archivist","sandbox":{"mode":"non-main"},"skills":["memgraph_curation","recent_memory_grooming","context_map_and_memory_linking","nextcloud_knowledge_support"],"workspace":"/home/node/.openclaw/workspace-archivist"},{"id":"watchdog","model":{"fallbacks":["anthropic/claude-haiku-4-5"],"primary":"openai/gpt-5.4-nano"},"name":"Watchdog","sandbox":{"mode":"off"},"skills":["severity_and_escalation","nextcloud_incident_ops","heartbeat_and_budget_sentinel","healthcheck","session-logs"],"workspace":"/home/node/.openclaw/workspace-watchdog"},{"id":"auditor","model":{"fallbacks":["openai/gpt-5.4"],"primary":"anthropic/claude-opus-4-6"},"name":"Auditor","sandbox":{"mode":"off"},"skills":["review_modes_and_handoff","nextcloud_review_packets","verdict_formatting","summarize"],"workspace":"/home/node/.openclaw/workspace-auditor"}]
       },
       "skills": {"allowBundled":["weather","healthcheck","node-connect","skill-creator","session-logs","coding-agent","tmux","summarize","github"]},
       "mcp": {"servers":{"nextcloud":{"args":["/opt/openclaw-runtime/mcp/mcp-http-bridge.mjs","--url","${OPENCLAW_NEXTCLOUD_MCP_INTERNAL_URL}","--url","${OPENCLAW_NEXTCLOUD_MCP_EXTERNAL_URL}","--header","Authorization=${OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER}"],"command":"node"},"qdrant":{"args":["/opt/openclaw-runtime/mcp/mcp-http-bridge.mjs","--url","${OPENCLAW_QDRANT_MCP_INTERNAL_URL}","--url","${OPENCLAW_QDRANT_MCP_EXTERNAL_URL}"],"command":"node"}}},
@@ -840,6 +868,12 @@ data:
     - summaries of major specs or plans
     - shared open questions or planning context that later sessions should be able to find quickly
 
+    Shape stored memories for semantic retrieval:
+    - store one atomic durable claim per memory
+    - use 1 to 3 compact, self-contained sentences
+    - include natural anchors such as project slug, service/component, agent/person, artifact path, aliases, open-loop name, or source reference when relevant
+    - include important recall terms in the `information` text, not only in metadata
+
     Use metadata aggressively:
     - set `project` whenever the memory belongs to a project slug
     - add 1 to 4 short `tags`
@@ -847,7 +881,7 @@ data:
     - include `nc_refs` when the source of truth lives in Nextcloud
 
     Every stored memory must use this text format:
-    `[domain] [kind] Complete statement here.`
+    `[domain] [kind] Complete self-contained retrieval-optimized statement here.`
 
     Every stored memory must include metadata with at least:
     `{"kind":"...","domain":"...","agent":"architect","created":"ISO-8601"}`
@@ -938,12 +972,12 @@ data:
   workspace-architect-skills__deliver-design__SKILL.md: |
     ---
     name: deliver-design
-    description: Use when architect is returning a plan or design deliverable to main. Covers the Handoff Complete structure, durable artifact placement, and what a complete design return must contain.
+    description: Use when returning a plan or design deliverable to main, especially when the response needs a structured handoff and durable artifact references.
     ---
 
     # Design Handoff
 
-    Use this skill when returning completed planning work to main.
+    Use when returning completed planning work to main.
 
     ## Return Format
 
@@ -985,7 +1019,7 @@ data:
   workspace-architect-skills__package-worker-definitions__SKILL.md: |
     ---
     name: package-worker-definitions
-    description: Use when architect is defining a recurring worker workflow. Covers the required package fields, output structure, safety boundaries, and when auditor review is required.
+    description: Use when defining a recurring worker workflow that needs a complete worker package, safety boundaries, and review guidance.
     ---
 
     # Worker Definition Package
@@ -1044,7 +1078,7 @@ data:
   workspace-architect-skills__plan-projects__SKILL.md: |
     ---
     name: plan-projects
-    description: Use when architect needs to create or update durable planning artifacts in Nextcloud. Covers project folder structure, specs, decision logs, planning trackers, and when to prefer markdown versus tables.
+    description: Use when creating or updating durable project planning artifacts in Nextcloud, including specs, decisions, and planning trackers.
     ---
 
     # Nextcloud Project Planning
@@ -1126,10 +1160,11 @@ data:
     ## Custom Continuity Surfaces
 
     - `queries/`: canonical starting points for common Cypher tasks
+    - `grooming/`: checkpoint update helpers for grooming runs
     - `CURRENT.md`: local desk for curation continuity
     - `SURFACES.md`: live registry of the supporting surfaces worth checking
     - `daily/`: historical daily wrap-ups when recent curation work still matters
-    - `state/grooming-cursor.json`: last successful memory-grooming boundary
+    - `state/grooming-checkpoint.json`: canonical grooming checkpoint for Qdrant and Nextcloud deltas
 
     ## Red Lines
 
@@ -1177,7 +1212,7 @@ data:
     - use `CURRENT.md`, `SURFACES.md`, and relevant shared Nextcloud `/Desk/` cues as retrieval hints when curation context is already in motion
     - traverse Memgraph first
     - use `qdrant-find` for entry points, prior decisions, and candidate memories
-    - for periodic grooming, use `groom-recent-memories` and scope Qdrant search to memories newer than `state/grooming-cursor.json`
+    - for periodic grooming, use `groom-recent-memories`; use the `qdrant/` scripts for point IDs, normalized packets, and graph-link annotations
     - rely on `project`, `tags`, and `nc_refs` metadata when you need targeted recall instead of broad semantic search
 
     ## Store
@@ -1187,6 +1222,12 @@ data:
     - memory grooming outcomes
     - summaries of important curation changes
 
+    Shape stored memories for semantic retrieval:
+    - store one atomic durable claim per memory
+    - use 1 to 3 compact, self-contained sentences
+    - include natural anchors such as project slug, entity slug, service/component, schema label, artifact path, aliases, or source reference when relevant
+    - include important recall terms in the `information` text, not only in metadata
+
     Use metadata aggressively:
     - set `project` whenever the memory belongs to a project slug
     - add short `tags` for entity, schema, or subsystem names
@@ -1194,12 +1235,12 @@ data:
     - include `nc_refs` when a memory points to Nextcloud content
 
     Every stored memory must use this text format:
-    `[domain] [kind] Complete statement here.`
+    `[domain] [kind] Complete self-contained retrieval-optimized statement here.`
 
     Every stored memory must include metadata with at least:
     `{"kind":"...","domain":"...","agent":"archivist","created":"ISO-8601"}`
 
-    When a semantic memory deserves structure, reflect it in Memgraph as well.
+    When a semantic memory deserves structure, reflect it in Memgraph as a `MemoryEntry` with slug `qdrant:<point_id>` and annotate the Qdrant point's top-level `graph` payload after the Memgraph links succeed.
   workspace-archivist-SOUL.md: |
     Operate as a precise curator.
 
@@ -1237,8 +1278,15 @@ data:
 
     - `mgconsole` is the standard client in this stack.
     - Use `MEMGRAPH_HOST`, `MEMGRAPH_PORT`, or `MEMGRAPH_BOLT_URI` instead of hard-coding endpoints.
-    - Reusable Cypher entry points live under `queries/`.
-    - `state/grooming-cursor.json` is local workspace state for grooming passes.
+    - Reusable Cypher entry points and the `queries/run_query.py` parameter helper live under `queries/`.
+    - `state/grooming-checkpoint.json` is the canonical local workspace checkpoint for grooming passes.
+    - Use `grooming/update_checkpoint.py` to patch the checkpoint instead of hand-editing JSON.
+
+    ## Qdrant
+
+    - Use `qdrant-find` and `qdrant-store` for ordinary semantic memory search and storage.
+    - Use `QDRANT_URL`, `QDRANT_COLLECTION`, and optional `QDRANT_API_KEY` only with the archivist scripts in `qdrant/`.
+    - The `qdrant/` scripts recover point IDs, produce normalized JSONL, and annotate top-level `graph` payload linkage without changing vectors, `document`, or `metadata`.
 
     ## Files
 
@@ -1281,6 +1329,580 @@ data:
     - useful query hints that are not yet stable enough for permanent docs
 
     Keep live curation state in `CURRENT.md`. Promote stable knowledge into Memgraph, Qdrant, or canonical schema notes instead of leaving it here.
+  workspace-archivist-grooming__update_checkpoint.py: |
+    #!/usr/bin/env python3
+    """Patch the archivist grooming checkpoint JSON atomically."""
+
+    from __future__ import annotations
+
+    import argparse
+    import json
+    import tempfile
+    from pathlib import Path
+    from typing import Any
+
+
+    DEFAULT_CHECKPOINT: dict[str, Any] = {
+        "version": 1,
+        "last_successful_grooming": None,
+        "last_successful_graph_link": None,
+        "last_weekly_grooming": None,
+        "last_triggered_grooming": None,
+        "last_run": {
+            "run_id": None,
+            "trigger": None,
+            "scope": None,
+            "started_at": None,
+            "completed_at": None,
+            "status": None,
+        },
+        "nextcloud": {
+            "last_successful_scan": None,
+            "surfaces": {},
+        },
+    }
+
+
+    def deep_merge(base: dict[str, Any], patch: dict[str, Any]) -> dict[str, Any]:
+        merged = dict(base)
+        for key, value in patch.items():
+            if isinstance(value, dict) and isinstance(merged.get(key), dict):
+                merged[key] = deep_merge(merged[key], value)
+            else:
+                merged[key] = value
+        return merged
+
+
+    def parse_value(raw: str) -> Any:
+        try:
+            return json.loads(raw)
+        except json.JSONDecodeError:
+            return raw
+
+
+    def set_dotted(target: dict[str, Any], dotted: str, value: Any) -> None:
+        parts = dotted.split(".")
+        if not parts or any(not part for part in parts):
+            raise SystemExit(f"Invalid dotted path: {dotted}")
+        cursor = target
+        for part in parts[:-1]:
+            existing = cursor.setdefault(part, {})
+            if not isinstance(existing, dict):
+                raise SystemExit(f"Cannot set child key under non-object path: {part}")
+            cursor = existing
+        cursor[parts[-1]] = value
+
+
+    def load_checkpoint(path: Path) -> dict[str, Any]:
+        if not path.exists():
+            return dict(DEFAULT_CHECKPOINT)
+        loaded = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(loaded, dict):
+            raise SystemExit(f"Checkpoint is not a JSON object: {path}")
+        return deep_merge(DEFAULT_CHECKPOINT, loaded)
+
+
+    def parse_args() -> argparse.Namespace:
+        parser = argparse.ArgumentParser(description=__doc__)
+        parser.add_argument("--file", default="state/grooming-checkpoint.json", help="Checkpoint path.")
+        parser.add_argument("--patch-json", default="", help="JSON object to deep-merge into the checkpoint.")
+        parser.add_argument("--set", action="append", default=[], metavar="PATH=VALUE", help="Set dotted path to JSON VALUE or string. May be repeated.")
+        parser.add_argument("--dry-run", action="store_true", help="Print the resulting checkpoint without writing.")
+        return parser.parse_args()
+
+
+    def main() -> None:
+        args = parse_args()
+        path = Path(args.file)
+        checkpoint = load_checkpoint(path)
+        if args.patch_json:
+            patch = json.loads(args.patch_json)
+            if not isinstance(patch, dict):
+                raise SystemExit("--patch-json must be a JSON object")
+            checkpoint = deep_merge(checkpoint, patch)
+        for item in args.set:
+            if "=" not in item:
+                raise SystemExit("--set expects PATH=VALUE")
+            key, raw_value = item.split("=", 1)
+            set_dotted(checkpoint, key, parse_value(raw_value))
+
+        text = json.dumps(checkpoint, indent=2, sort_keys=False) + "\n"
+        if args.dry_run:
+            print(text, end="")
+            return
+
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=str(path.parent), delete=False) as handle:
+            handle.write(text)
+            temp_path = Path(handle.name)
+        temp_path.replace(path)
+
+
+    if __name__ == "__main__":
+        main()
+  workspace-archivist-qdrant__README.md: |
+    ## Archivist Qdrant Scripts
+
+    These scripts are the archivist-only Qdrant REST surface for graph grooming.
+    Ordinary semantic memory search and storage still goes through `qdrant-find` and `qdrant-store`.
+
+    The runtime provides:
+
+    - `QDRANT_URL`
+    - `QDRANT_COLLECTION` (defaults to `openclaw-memory`)
+    - optional `QDRANT_API_KEY`
+
+    ## Common Flows
+
+    Read the grooming checkpoint before choosing a delta:
+
+    ```bash
+    cat state/grooming-checkpoint.json
+    ```
+
+    Scroll recent memories into normalized JSONL:
+
+    ```bash
+    python3 qdrant/scroll_memories.py --since "2026-04-15T00:00:00Z" --limit 100 --out state/qdrant-candidates.jsonl
+    ```
+
+    Scroll unbounded only when explicitly backfilling:
+
+    ```bash
+    python3 qdrant/scroll_memories.py --limit 200 --out state/qdrant-backfill.jsonl
+    ```
+
+    Filter by project, kind, agent, or tag:
+
+    ```bash
+    python3 qdrant/scroll_memories.py --project ai-homebase --kind decision --agent architect --tag gitops --limit 50
+    ```
+
+    Inspect graph-link catch-up candidates:
+
+    ```bash
+    python3 qdrant/scroll_memories.py --graph-status pending --limit 100 --out state/qdrant-link-catchup.jsonl
+    ```
+
+    Fetch one exact Qdrant point after graph traversal returns `MemoryEntry.qdrant_id`:
+
+    ```bash
+    python3 qdrant/get_memory.py "<point-id>"
+    ```
+
+    Annotate a successfully linked point. This only sets the top-level `graph` payload object; it does not change vectors, `document`, or `metadata`.
+
+    ```bash
+    python3 qdrant/set_graph_link.py \
+      --point-id "<point-id>" \
+      --entity-slug ai-homebase \
+      --entity-slug archivist \
+      --status linked
+    ```
+
+    Preview the payload before writing:
+
+    ```bash
+    python3 qdrant/set_graph_link.py --point-id "<point-id>" --entity-slug ai-homebase --dry-run
+    ```
+
+    ## Normalized Packet Shape
+
+    Each JSONL row contains:
+
+    - `point_id`
+    - `document`
+    - `document_sha256`
+    - `metadata`
+    - `payload`
+
+    Use `point_id` as the Memgraph `MemoryEntry.qdrant_id`, `qdrant:<point_id>` as the default `MemoryEntry.slug`, and `document_sha256` to detect whether a graph entry still matches the Qdrant memory text.
+  workspace-archivist-qdrant___qdrant_common.py: |
+    #!/usr/bin/env python3
+    """Shared helpers for archivist Qdrant grooming scripts."""
+
+    from __future__ import annotations
+
+    import argparse
+    import hashlib
+    import json
+    import os
+    import sys
+    import urllib.error
+    import urllib.request
+    from datetime import datetime, timezone
+    from pathlib import Path
+    from typing import Any
+
+
+    DEFAULT_COLLECTION = "openclaw-memory"
+
+
+    def add_common_args(parser: argparse.ArgumentParser) -> None:
+        parser.add_argument(
+            "--qdrant-url",
+            default=os.environ.get("QDRANT_URL", ""),
+            help="Qdrant base URL. Defaults to QDRANT_URL.",
+        )
+        parser.add_argument(
+            "--collection",
+            default=os.environ.get("QDRANT_COLLECTION", DEFAULT_COLLECTION),
+            help=f"Qdrant collection name. Defaults to QDRANT_COLLECTION or {DEFAULT_COLLECTION}.",
+        )
+        parser.add_argument(
+            "--api-key",
+            default=os.environ.get("QDRANT_API_KEY", ""),
+            help="Optional Qdrant API key. Defaults to QDRANT_API_KEY.",
+        )
+
+
+    def require_qdrant_url(raw_url: str) -> str:
+        url = raw_url.rstrip("/")
+        if not url:
+            raise SystemExit("QDRANT_URL is required. Set QDRANT_URL or pass --qdrant-url.")
+        return url
+
+
+    def qdrant_request(
+        qdrant_url: str,
+        method: str,
+        path: str,
+        body: dict[str, Any] | None,
+        api_key: str = "",
+    ) -> dict[str, Any]:
+        data = None if body is None else json.dumps(body, sort_keys=True).encode("utf-8")
+        headers = {"Content-Type": "application/json"}
+        if api_key:
+            headers["api-key"] = api_key
+        request = urllib.request.Request(
+            f"{qdrant_url}{path}",
+            data=data,
+            method=method,
+            headers=headers,
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=30) as response:
+                raw = response.read().decode("utf-8")
+        except urllib.error.HTTPError as exc:
+            details = exc.read().decode("utf-8", errors="replace")
+            raise SystemExit(f"Qdrant HTTP {exc.code} for {path}: {details}") from exc
+        except urllib.error.URLError as exc:
+            raise SystemExit(f"Unable to reach Qdrant at {qdrant_url}: {exc}") from exc
+
+        if not raw:
+            return {}
+        return json.loads(raw)
+
+
+    def document_from_payload(payload: dict[str, Any]) -> str:
+        for key in ("document", "information", "text", "page_content"):
+            value = payload.get(key)
+            if isinstance(value, str):
+                return value
+        value = payload.get("content")
+        if isinstance(value, str):
+            return value
+        return ""
+
+
+    def normalize_point(point: dict[str, Any]) -> dict[str, Any]:
+        payload = point.get("payload") or {}
+        if not isinstance(payload, dict):
+            payload = {}
+        metadata = payload.get("metadata") or {}
+        if not isinstance(metadata, dict):
+            metadata = {}
+        document = document_from_payload(payload)
+        return {
+            "point_id": str(point.get("id", "")),
+            "document": document,
+            "document_sha256": hashlib.sha256(document.encode("utf-8")).hexdigest(),
+            "metadata": metadata,
+            "payload": payload,
+        }
+
+
+    def write_jsonl(rows: list[dict[str, Any]], output_path: str) -> None:
+        lines = [json.dumps(row, sort_keys=True, ensure_ascii=False) for row in rows]
+        text = "\n".join(lines)
+        if text:
+            text += "\n"
+        if output_path:
+            path = Path(output_path)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(text, encoding="utf-8")
+        else:
+            sys.stdout.write(text)
+
+
+    def utc_now_iso() -> str:
+        return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+    def build_filter(
+        *,
+        created_gte: str = "",
+        created_lte: str = "",
+        project: str = "",
+        kind: str = "",
+        domain: str = "",
+        agent: str = "",
+        tags: list[str] | None = None,
+        graph_status: str = "",
+    ) -> dict[str, Any] | None:
+        must: list[dict[str, Any]] = []
+        created_range: dict[str, str] = {}
+        if created_gte:
+            created_range["gte"] = created_gte
+        if created_lte:
+            created_range["lte"] = created_lte
+        if created_range:
+            must.append({"key": "metadata.created", "range": created_range})
+
+        for key, value in (
+            ("metadata.project", project),
+            ("metadata.kind", kind),
+            ("metadata.domain", domain),
+            ("metadata.agent", agent),
+            ("graph.status", graph_status),
+        ):
+            if value:
+                must.append({"key": key, "match": {"value": value}})
+
+        for tag in tags or []:
+            if tag:
+                must.append({"key": "metadata.tags", "match": {"value": tag}})
+
+        if not must:
+            return None
+        return {"must": must}
+
+
+    def read_json_arg(raw: str, default: Any) -> Any:
+        if not raw:
+            return default
+        try:
+            return json.loads(raw)
+        except json.JSONDecodeError as exc:
+            raise SystemExit(f"Invalid JSON argument: {exc}") from exc
+  workspace-archivist-qdrant__get_memory.py: |
+    #!/usr/bin/env python3
+    """Fetch one Qdrant memory point by ID and print the normalized packet."""
+
+    from __future__ import annotations
+
+    import argparse
+    import json
+
+    from _qdrant_common import add_common_args, normalize_point, qdrant_request, require_qdrant_url
+
+
+    def parse_args() -> argparse.Namespace:
+        parser = argparse.ArgumentParser(description=__doc__)
+        add_common_args(parser)
+        parser.add_argument("point_id", help="Qdrant point ID.")
+        return parser.parse_args()
+
+
+    def main() -> None:
+        args = parse_args()
+        qdrant_url = require_qdrant_url(args.qdrant_url)
+        response = qdrant_request(
+            qdrant_url,
+            "POST",
+            f"/collections/{args.collection}/points",
+            {"ids": [args.point_id], "with_payload": True, "with_vector": False},
+            args.api_key,
+        )
+        points = response.get("result") or []
+        if not points:
+            raise SystemExit(f"Qdrant point not found: {args.point_id}")
+        packet = normalize_point(points[0])
+        print(json.dumps(packet, sort_keys=True, ensure_ascii=False))
+
+
+    if __name__ == "__main__":
+        main()
+  workspace-archivist-qdrant__scroll_memories.py: |
+    #!/usr/bin/env python3
+    """Scroll Qdrant memories into normalized JSONL packets for graph grooming."""
+
+    from __future__ import annotations
+
+    import argparse
+    from typing import Any
+
+    from _qdrant_common import add_common_args, build_filter, normalize_point, qdrant_request, require_qdrant_url, write_jsonl
+
+
+    def scroll_memories(
+        *,
+        qdrant_url: str,
+        collection: str,
+        api_key: str,
+        query_filter: dict[str, Any] | None,
+        limit: int,
+        page_size: int,
+    ) -> list[dict[str, Any]]:
+        rows: list[dict[str, Any]] = []
+        offset: Any = None
+
+        while len(rows) < limit:
+            request_limit = min(page_size, limit - len(rows))
+            body: dict[str, Any] = {
+                "limit": request_limit,
+                "with_payload": True,
+                "with_vector": False,
+            }
+            if query_filter:
+                body["filter"] = query_filter
+            if offset is not None:
+                body["offset"] = offset
+
+            response = qdrant_request(
+                qdrant_url,
+                "POST",
+                f"/collections/{collection}/points/scroll",
+                body,
+                api_key,
+            )
+            result = response.get("result") or {}
+            points = result.get("points") or []
+            if not points:
+                break
+            rows.extend(normalize_point(point) for point in points)
+            offset = result.get("next_page_offset")
+            if offset is None:
+                break
+
+        return rows
+
+
+    def parse_args() -> argparse.Namespace:
+        parser = argparse.ArgumentParser(description=__doc__)
+        add_common_args(parser)
+        parser.add_argument("--since", default="", help="Alias for --created-gte.")
+        parser.add_argument("--created-gte", default="", help="Filter metadata.created greater than or equal to this ISO-8601 timestamp.")
+        parser.add_argument("--created-lte", default="", help="Filter metadata.created less than or equal to this ISO-8601 timestamp.")
+        parser.add_argument("--project", default="", help="Filter metadata.project.")
+        parser.add_argument("--kind", default="", help="Filter metadata.kind.")
+        parser.add_argument("--domain", default="", help="Filter metadata.domain.")
+        parser.add_argument("--agent", default="", help="Filter metadata.agent.")
+        parser.add_argument("--tag", action="append", default=[], help="Filter metadata.tags. May be repeated.")
+        parser.add_argument("--graph-status", default="", help="Filter graph.status when rechecking annotated points.")
+        parser.add_argument("--limit", type=int, default=100, help="Maximum normalized rows to emit.")
+        parser.add_argument("--page-size", type=int, default=64, help="Qdrant scroll page size.")
+        parser.add_argument("--out", default="", help="Write JSONL output to this path. Defaults to stdout.")
+        return parser.parse_args()
+
+
+    def main() -> None:
+        args = parse_args()
+        if args.limit < 1:
+            raise SystemExit("--limit must be at least 1")
+        if args.page_size < 1:
+            raise SystemExit("--page-size must be at least 1")
+
+        qdrant_url = require_qdrant_url(args.qdrant_url)
+        created_gte = args.created_gte or args.since
+        query_filter = build_filter(
+            created_gte=created_gte,
+            created_lte=args.created_lte,
+            project=args.project,
+            kind=args.kind,
+            domain=args.domain,
+            agent=args.agent,
+            tags=args.tag,
+            graph_status=args.graph_status,
+        )
+        rows = scroll_memories(
+            qdrant_url=qdrant_url,
+            collection=args.collection,
+            api_key=args.api_key,
+            query_filter=query_filter,
+            limit=args.limit,
+            page_size=args.page_size,
+        )
+        write_jsonl(rows, args.out)
+
+
+    if __name__ == "__main__":
+        main()
+  workspace-archivist-qdrant__set_graph_link.py: |
+    #!/usr/bin/env python3
+    """Annotate selected Qdrant points with graph-link payload metadata."""
+
+    from __future__ import annotations
+
+    import argparse
+    import json
+    from typing import Any
+
+    from _qdrant_common import add_common_args, read_json_arg, qdrant_request, require_qdrant_url, utc_now_iso
+
+
+    def build_graph_payload(args: argparse.Namespace) -> dict[str, Any]:
+        linked_entity_slugs = list(dict.fromkeys(args.entity_slug or []))
+        derived_from = list(dict.fromkeys(args.supersedes or []))
+        graph: dict[str, Any] = {
+            "status": args.status,
+            "linked_at": args.linked_at or utc_now_iso(),
+            "memory_slug": args.memory_slug,
+            "linked_entity_slugs": linked_entity_slugs,
+        }
+        if derived_from:
+            graph["supersedes_memory_slugs"] = derived_from
+        extra = read_json_arg(args.extra, {})
+        if not isinstance(extra, dict):
+            raise SystemExit("--extra must be a JSON object")
+        graph.update(extra)
+        return graph
+
+
+    def parse_args() -> argparse.Namespace:
+        parser = argparse.ArgumentParser(description=__doc__)
+        add_common_args(parser)
+        parser.add_argument("--point-id", action="append", required=True, help="Qdrant point ID to annotate. May be repeated.")
+        parser.add_argument("--memory-slug", default="", help="Memgraph MemoryEntry slug. Defaults to qdrant:<point_id> for a single point.")
+        parser.add_argument("--entity-slug", action="append", default=[], help="Linked Memgraph entity slug. May be repeated.")
+        parser.add_argument("--supersedes", action="append", default=[], help="Older Memgraph memory slug superseded by this memory. May be repeated.")
+        parser.add_argument("--status", default="linked", choices=["candidate", "linked", "partial", "skipped"], help="Graph-link status.")
+        parser.add_argument("--linked-at", default="", help="ISO-8601 timestamp. Defaults to current UTC time.")
+        parser.add_argument("--extra", default="", help="Optional JSON object merged into the graph payload.")
+        parser.add_argument("--dry-run", action="store_true", help="Print the Qdrant set-payload request without sending it.")
+        return parser.parse_args()
+
+
+    def main() -> None:
+        args = parse_args()
+        point_ids = list(dict.fromkeys(args.point_id))
+        if len(point_ids) == 1 and not args.memory_slug:
+            args.memory_slug = f"qdrant:{point_ids[0]}"
+        if not args.memory_slug:
+            raise SystemExit("--memory-slug is required when annotating multiple points")
+
+        graph = build_graph_payload(args)
+        body = {
+            "payload": {"graph": graph},
+            "points": point_ids,
+        }
+        if args.dry_run:
+            print(json.dumps(body, sort_keys=True, ensure_ascii=False))
+            return
+
+        qdrant_url = require_qdrant_url(args.qdrant_url)
+        qdrant_request(
+            qdrant_url,
+            "POST",
+            f"/collections/{args.collection}/points/payload",
+            body,
+            args.api_key,
+        )
+        print(json.dumps({"updated_point_ids": point_ids, "graph": graph}, sort_keys=True, ensure_ascii=False))
+
+
+    if __name__ == "__main__":
+        main()
   workspace-archivist-queries__README.md: |
     ## Archivist Query Library
 
@@ -1288,16 +1910,27 @@ data:
 
     - Prefer reusing and extending these files over writing one-off Cypher from scratch.
     - Keep queries idempotent when they mutate canonical entities or relationships.
-    - Use `MEMGRAPH_HOST` and `MEMGRAPH_PORT` with `mgconsole` for execution. The same command should work unchanged from both the gateway and the archivist sandbox because the runtime injects the correct reachable endpoint.
+    - Use `queries/run_query.py` for parameterized helpers so you do not have to hand-render Cypher literals. The same command should work unchanged from both the gateway and the archivist sandbox because the runtime injects `MEMGRAPH_HOST` and `MEMGRAPH_PORT`.
 
     Examples:
 
     ```bash
-    mgconsole --host "$MEMGRAPH_HOST" --port "$MEMGRAPH_PORT" --output-format csv < queries/entity-by-slug.cypher
-    mgconsole --host "$MEMGRAPH_HOST" --port "$MEMGRAPH_PORT" --output-format csv < queries/project-service-agent-overview.cypher
+    python3 queries/run_query.py queries/entity-by-slug.cypher --params-json '{"slug":"ai-homebase"}'
+    python3 queries/run_query.py queries/project-service-agent-overview.cypher --params-json '{"project_slug":"ai-homebase"}'
+    python3 queries/run_query.py queries/upsert-memory-entry.cypher --params state/memory-entry-params.json
+    python3 queries/run_query.py queries/upsert-memory-entry.cypher --params state/memory-entry-params.json --dry-run
     ```
 
     - `context-map.cypher`: Retrieves an entity and its full immediate neighborhood (one hop). Used by the structured recall mode to build context maps on demand.
+    - `upsert-memory-entry.cypher`: Creates or refreshes a `MemoryEntry` node from a normalized Qdrant packet.
+    - `link-memory-created-by-agent.cypher`: Connects a memory to the agent that stored or curated it.
+    - `link-project-memory.cypher`: Connects a project to a graph-promoted memory.
+    - `link-memory-to-entity.cypher`: Connects a memory to a selected entity as evidence.
+    - `link-memory-supersedes.cypher`: Connects append-only replacement memories to older memory nodes.
+    - `link-memory-tag.cypher`: Promotes durable Qdrant tags to `Concept` nodes.
+    - `unlinked-memory-entries.cypher`: Lists graph-promoted memories still missing entity evidence links.
+
+    `run_query.py` replaces `$param` placeholders with escaped Cypher literals from JSON. Missing parameters default to `null`; pass `--strict` when you want missing parameters to fail before execution.
   workspace-archivist-queries__context-map.cypher: |
     // Context map for a given entity slug.
     // Usage: replace $slug with the target entity's slug value.
@@ -1342,6 +1975,58 @@ data:
       neighbor.name AS neighbor_name,
       neighbor.kind AS neighbor_kind
     ORDER BY relationship, neighbor_slug;
+  workspace-archivist-queries__link-memory-created-by-agent.cypher: |
+    // Link a MemoryEntry to the agent that stored or curated it.
+    // Required params: memory_slug, agent_slug.
+
+    MATCH (memory:Entity:MemoryEntry {slug: $memory_slug})
+    MATCH (agent:Entity:Agent {slug: $agent_slug})
+    MERGE (memory)-[rel:CREATED_BY {role: 'memory-agent'}]->(agent)
+    SET rel.context = 'Qdrant memory provenance'
+    RETURN memory.slug AS memory_slug, agent.slug AS agent_slug, type(rel) AS relationship;
+  workspace-archivist-queries__link-memory-supersedes.cypher: |
+    // Link a replacement memory to the older MemoryEntry it supersedes.
+    // Required params: new_memory_slug, old_memory_slug.
+
+    MATCH (new_memory:Entity:MemoryEntry {slug: $new_memory_slug})
+    MATCH (old_memory:Entity:MemoryEntry {slug: $old_memory_slug})
+    MERGE (new_memory)-[rel:DERIVED_FROM {kind: 'supersedes'}]->(old_memory)
+    SET rel.context = 'Append-only Qdrant memory correction'
+    RETURN new_memory.slug AS new_memory_slug, old_memory.slug AS old_memory_slug, type(rel) AS relationship;
+  workspace-archivist-queries__link-memory-tag.cypher: |
+    // Link a MemoryEntry to a durable tag concept.
+    // Required params: memory_slug, tag_slug, tag_name.
+    // Optional params: confidence.
+
+    MATCH (memory:Entity:MemoryEntry {slug: $memory_slug})
+    MERGE (tag:Entity:Concept {slug: $tag_slug})
+    ON CREATE SET tag.name = $tag_name,
+                  tag.domain = 'real',
+                  tag.kind = 'tag'
+    MERGE (memory)-[rel:TAGGED_WITH]->(tag)
+    SET rel.confidence = $confidence,
+        rel.context = 'Qdrant memory metadata tag'
+    RETURN memory.slug AS memory_slug, tag.slug AS tag_slug, type(rel) AS relationship;
+  workspace-archivist-queries__link-memory-to-entity.cypher: |
+    // Link a MemoryEntry to one relevant entity selected by archivist.
+    // Required params: memory_slug, entity_slug.
+    // Optional params: context, confidence.
+
+    MATCH (memory:Entity:MemoryEntry {slug: $memory_slug})
+    MATCH (entity:Entity {slug: $entity_slug})
+    MERGE (memory)-[rel:RELATES_TO {kind: 'memory-evidence'}]->(entity)
+    SET rel.context = $context,
+        rel.confidence = $confidence
+    RETURN memory.slug AS memory_slug, entity.slug AS entity_slug, type(rel) AS relationship;
+  workspace-archivist-queries__link-project-memory.cypher: |
+    // Link a project to a graph-promoted Qdrant memory.
+    // Required params: project_slug, memory_slug.
+
+    MATCH (project:Entity:Project {slug: $project_slug})
+    MATCH (memory:Entity:MemoryEntry {slug: $memory_slug})
+    MERGE (project)-[rel:HAS_PART {kind: 'memory'}]->(memory)
+    SET rel.context = 'Graph-promoted Qdrant memory'
+    RETURN project.slug AS project_slug, memory.slug AS memory_slug, type(rel) AS relationship;
   workspace-archivist-queries__memory-links.cypher: |
     MATCH (memory:Entity:MemoryEntry)-[rel]-(entity:Entity)
     WHERE memory.slug = $memory_slug OR memory.qdrant_id = $qdrant_id
@@ -1357,6 +2042,139 @@ data:
     MATCH (project:Entity:Project {slug: $project_slug})-[:HAS_PART]->(part:Entity)
     RETURN labels(part) AS labels, part.slug AS slug, part.name AS name, part.kind AS kind
     ORDER BY slug;
+  workspace-archivist-queries__run_query.py: |
+    #!/usr/bin/env python3
+    """Render or run an archivist Cypher helper with JSON parameters."""
+
+    from __future__ import annotations
+
+    import argparse
+    import json
+    import os
+    import re
+    import subprocess
+    import sys
+    import tempfile
+    from pathlib import Path
+    from typing import Any
+
+
+    PARAM_RE = re.compile(r"\$([A-Za-z_][A-Za-z0-9_]*)")
+
+
+    def cypher_literal(value: Any) -> str:
+        if value is None:
+            return "null"
+        if isinstance(value, bool):
+            return "true" if value else "false"
+        if isinstance(value, (int, float)):
+            return str(value)
+        if isinstance(value, str):
+            escaped = value.replace("\\", "\\\\").replace("'", "\\'")
+            return f"'{escaped}'"
+        if isinstance(value, list):
+            return "[" + ", ".join(cypher_literal(item) for item in value) + "]"
+        if isinstance(value, dict):
+            items = []
+            for key, item in value.items():
+                if not isinstance(key, str):
+                    raise SystemExit("Cypher map parameter keys must be strings")
+                safe_key = key if re.match(r"^[A-Za-z_][A-Za-z0-9_]*$", key) else f"`{key.replace('`', '``')}`"
+                items.append(f"{safe_key}: {cypher_literal(item)}")
+            return "{" + ", ".join(items) + "}"
+        raise SystemExit(f"Unsupported parameter type for Cypher literal: {type(value).__name__}")
+
+
+    def read_params(args: argparse.Namespace) -> dict[str, Any]:
+        merged: dict[str, Any] = {}
+        if args.params:
+            raw = Path(args.params).read_text(encoding="utf-8")
+            loaded = json.loads(raw)
+            if not isinstance(loaded, dict):
+                raise SystemExit("--params must point to a JSON object")
+            merged.update(loaded)
+        if args.params_json:
+            loaded = json.loads(args.params_json)
+            if not isinstance(loaded, dict):
+                raise SystemExit("--params-json must be a JSON object")
+            merged.update(loaded)
+        return merged
+
+
+    def render_query(template: str, params: dict[str, Any], strict: bool) -> str:
+        names = set(PARAM_RE.findall(template))
+        missing = sorted(name for name in names if name not in params)
+        if missing and strict:
+            raise SystemExit(f"Missing required parameter(s): {', '.join(missing)}")
+        if missing:
+            print(f"Defaulting missing parameter(s) to null: {', '.join(missing)}", file=sys.stderr)
+            params = {**params, **{name: None for name in missing}}
+        return PARAM_RE.sub(lambda match: cypher_literal(params[match.group(1)]), template)
+
+
+    def parse_args() -> argparse.Namespace:
+        parser = argparse.ArgumentParser(description=__doc__)
+        parser.add_argument("query", help="Path to a .cypher helper.")
+        parser.add_argument("--params", default="", help="JSON file containing query parameters.")
+        parser.add_argument("--params-json", default="", help="Inline JSON object merged after --params.")
+        parser.add_argument("--host", default=os.environ.get("MEMGRAPH_HOST", "127.0.0.1"))
+        parser.add_argument("--port", default=os.environ.get("MEMGRAPH_PORT", "7687"))
+        parser.add_argument("--output-format", default="csv")
+        parser.add_argument("--strict", action="store_true", help="Fail if any $param is missing.")
+        parser.add_argument("--dry-run", action="store_true", help="Print rendered Cypher instead of running mgconsole.")
+        return parser.parse_args()
+
+
+    def main() -> None:
+        args = parse_args()
+        template = Path(args.query).read_text(encoding="utf-8")
+        rendered = render_query(template, read_params(args), args.strict)
+        if args.dry_run:
+            sys.stdout.write(rendered)
+            if rendered and not rendered.endswith("\n"):
+                sys.stdout.write("\n")
+            return
+
+        with tempfile.NamedTemporaryFile("w", encoding="utf-8", suffix=".cypher", delete=False) as handle:
+            handle.write(rendered)
+            temp_path = handle.name
+        try:
+            with open(temp_path, "r", encoding="utf-8") as stdin:
+                subprocess.run(
+                    [
+                        "mgconsole",
+                        "--host",
+                        args.host,
+                        "--port",
+                        str(args.port),
+                        "--output-format",
+                        args.output_format,
+                    ],
+                    stdin=stdin,
+                    check=True,
+                )
+        finally:
+            Path(temp_path).unlink(missing_ok=True)
+
+
+    if __name__ == "__main__":
+        main()
+  workspace-archivist-queries__unlinked-memory-entries.cypher: |
+    // MemoryEntry nodes that have not yet been connected to durable graph structure.
+
+    MATCH (memory:Entity:MemoryEntry)
+    WHERE NOT (memory)-[:RELATES_TO {kind: 'memory-evidence'}]->(:Entity)
+    RETURN
+      memory.slug AS memory_slug,
+      memory.qdrant_id AS qdrant_id,
+      memory.agent AS agent,
+      memory.domain AS domain,
+      memory.kind AS kind,
+      memory.project AS project,
+      memory.created AS created,
+      memory.summary AS summary
+    ORDER BY memory.created DESC, memory.slug
+    LIMIT 100;
   workspace-archivist-queries__upsert-entity-and-link.cypher: |
     MERGE (source:Entity {slug: $source_slug})
     ON CREATE SET source.name = $source_name, source.domain = $source_domain, source.kind = $source_kind
@@ -1365,10 +2183,28 @@ data:
     MERGE (source)-[rel:RELATES_TO {kind: $relationship_kind}]->(target)
     SET rel.context = $relationship_context
     RETURN source.slug AS source_slug, target.slug AS target_slug, type(rel) AS relationship;
+  workspace-archivist-queries__upsert-memory-entry.cypher: |
+    // Idempotently create or refresh a graph node for one Qdrant memory packet.
+    // Required params: memory_slug, qdrant_id, document_sha256, summary.
+    // Optional params: agent, domain, kind, project, created, memory_ref, linked_at.
+
+    MERGE (memory:Entity:MemoryEntry {slug: $memory_slug})
+    SET memory.qdrant_id = $qdrant_id,
+        memory.document_sha256 = $document_sha256,
+        memory.summary = $summary,
+        memory.agent = $agent,
+        memory.domain = $domain,
+        memory.kind = $kind,
+        memory.project = $project,
+        memory.created = $created,
+        memory.memory_ref = $memory_ref,
+        memory.linked_at = $linked_at,
+        memory.name = coalesce($summary, $memory_slug)
+    RETURN memory.slug AS memory_slug, memory.qdrant_id AS qdrant_id, memory.document_sha256 AS document_sha256;
   workspace-archivist-skills__consult-nextcloud-knowledge__SKILL.md: |
     ---
     name: consult-nextcloud-knowledge
-    description: Use when archivist needs to use Nextcloud as supporting documentation for graph and memory work. Covers schema-note usage, nc_refs linkage, and keeping documentation secondary to Memgraph and Qdrant.
+    description: Use when Nextcloud documentation may support graph or memory work, especially for schema notes, nc_refs, or shared project artifacts.
     ---
 
     # Nextcloud Knowledge Support
@@ -1397,50 +2233,71 @@ data:
   workspace-archivist-skills__groom-recent-memories__SKILL.md: |
     ---
     name: groom-recent-memories
-    description: Use when archivist is running a memory grooming, deduplication, or curation pass. Covers the last-successful-grooming cursor, recency-scoped Qdrant search, bootstrap behavior, and when to advance the cursor.
+    description: Use for weekly, nightly-watchdog, impromptu, or targeted memory grooming that must process Qdrant/Nextcloud deltas and checkpoint progress.
     ---
 
     # Recent Memory Grooming
 
-    Use this when running a periodic memory grooming, deduplication, or curation pass.
+    Use when running a periodic or requested memory grooming, deduplication, graph-linking, or curation pass.
 
-    ## Cursor State
+    ## Checkpoint State
 
-    - Read the last successful grooming boundary from `state/grooming-cursor.json`.
-    - The cursor file must contain `last_successful_grooming` as an ISO-8601 timestamp or `null`.
+    - Read `state/grooming-checkpoint.json` before any search, scan, or update.
+    - Supported triggers are `weekly`, `nightly-watchdog`, `impromptu`, and `targeted`.
+    - Treat `last_successful_grooming` as the default Qdrant memory delta boundary.
+    - Treat `last_successful_graph_link` as the graph-link catch-up boundary.
+    - Treat `last_weekly_grooming` and `last_triggered_grooming` as cadence markers, not replacements for the successful delta boundaries.
+    - Track Nextcloud metadata under `nextcloud.surfaces` as `{etag,last_modified,size,checked_at}` when the WebDAV tools expose those fields.
     - Treat this file as runtime state, not as a prose note.
 
     ## Procedure
 
-    1. Read `state/grooming-cursor.json` before searching Qdrant.
-    2. If `last_successful_grooming` is present, search only for candidate memories newer than that timestamp.
-    3. If `last_successful_grooming` is `null`, do a bootstrap pass over a bounded recent window instead of an unbounded historical search.
-    4. Groom, deduplicate, merge, or link only the candidate memories returned by that recency-scoped search.
-    5. If the pass produces durable semantic outcomes, store them in Qdrant using the standard archivist memory rules.
-    6. If a groomed memory deserves graph structure, update Memgraph and link it through the existing `MemoryEntry` rules.
-    7. Advance `last_successful_grooming` only after the grooming pass completes successfully.
-    8. If the pass aborts, fails, or leaves the work incomplete, do not change the cursor.
+    1. Read `state/grooming-checkpoint.json` and assign a compact run ID such as `groom-YYYYMMDD-HHMMSS`.
+    2. Identify the trigger:
+       - `weekly`: scheduled weekly graph grooming.
+       - `nightly-watchdog`: watchdog sent a scored activity trigger with reason codes.
+       - `impromptu`: user or another agent requested grooming without a special scope.
+       - `targeted`: the request names a project, entity, source, or since-window.
+    3. Choose the Qdrant window:
+       - default to `last_successful_grooming`.
+       - use `last_successful_graph_link` for graph-link catch-up.
+       - for `weekly`, also inspect recent/unlinked points since `last_weekly_grooming` when present.
+    4. Run `python3 qdrant/scroll_memories.py --since "<cursor>" --limit <n> --out state/qdrant-candidates.jsonl` when a cursor exists. If the cursor is `null`, do a bounded recent bootstrap pass instead of an unbounded historical search.
+    5. Scan Nextcloud only for registered high-value surfaces from `SURFACES.md`, Nextcloud `/Desk/index.md`, and current ai-homebase project docs. Compare WebDAV metadata against `nextcloud.surfaces`, and read content only for changed surfaces or paths named in a watchdog/user trigger.
+    6. Review the normalized Qdrant packets and changed Nextcloud surfaces. Groom, deduplicate, split, supersede, or link only candidates in the effective delta.
+    7. If the pass produces durable semantic outcomes, store replacement memories through `qdrant-store` using the standard archivist memory rules.
+    8. If a groomed memory deserves graph structure, create or update the Memgraph `MemoryEntry` and links with the `queries/` helpers through `python3 queries/run_query.py ...`.
+    9. After Memgraph succeeds, run `python3 qdrant/set_graph_link.py --point-id "<point-id>" ...` to annotate only the Qdrant top-level `graph` payload.
+    10. Append exactly one row to Nextcloud `/Projects/ai-homebase/archivist-grooming-log.md` with completed time, run ID, trigger, window, reason codes, Qdrant count, Nextcloud surface count, Memgraph changes, checkpoint summary, and issues.
+    11. Advance `state/grooming-checkpoint.json` with `python3 grooming/update_checkpoint.py ...` only after the grooming pass, Memgraph updates, Qdrant graph annotations, and grooming-log row complete successfully.
+    12. If the pass aborts, fails, or leaves work incomplete, record the issue in the grooming log and do not advance successful checkpoint timestamps.
 
-    ## Bootstrap Window
+    Qdrant MCP is append-only here: `qdrant-store` adds a new entry, and there is no update, delete, merge, or mark operation for existing points. When splitting or consolidating overloaded memories, store new atomic replacement memories with `supersedes` metadata that describes the older memory text returned by `qdrant-find`; do not claim the old Qdrant entry was changed. Merge only by storing a new consolidated memory when the result remains one durable claim with clear retrieval anchors.
+
+    The archivist-only `qdrant/` scripts may read point IDs and set the top-level `graph` payload for linkage bookkeeping. They must not create semantic memories, modify vectors, or overwrite MCP-managed `document` or `metadata`.
+
+    ## Bootstrap And Delta Windows
 
     - A first-run bootstrap pass should stay bounded to recent history.
     - Prefer the smallest recent window that still captures ungroomed backlog for the active task.
     - Do not run an unbounded full-history search unless main explicitly asks for historical backfill.
+    - If an impromptu request does not specify scope, use the checkpoint delta.
+    - If a targeted request specifies project, entity, source, or since-window, constrain the pass to that scope but still update the checkpoint only after a successful run.
 
     ## Return Notes
 
     - Report the effective grooming window in the handoff to main.
-    - Include whether the cursor was advanced.
+    - Include whether the checkpoint was advanced.
     - Include any durable Qdrant or Memgraph changes.
   workspace-archivist-skills__map-context-and-link-memories__SKILL.md: |
     ---
     name: map-context-and-link-memories
-    description: Use when archivist needs to return a structural context map or connect Qdrant memories to graph structure. Covers the Context Map format, graph-promotion rules, and nc_refs linkage.
+    description: Use when asked for a structural context map or when Qdrant memories need to be linked into Memgraph structure.
     ---
 
     # Context Map And Memory Linking
 
-    Use this skill when another agent needs durable cross-entity context.
+    Use when asked for durable cross-entity context.
 
     ## Context Map Format
 
@@ -1469,10 +2326,12 @@ data:
     ## Linking Rules
 
     - Memgraph first for relationships
-    - Qdrant second for candidate memories and prior decisions
+    - Qdrant exact lookup second when Memgraph has `MemoryEntry.qdrant_id`: run `python3 qdrant/get_memory.py "<point-id>"`
+    - Qdrant MCP semantic search only when graph traversal is sparse or the entity is unknown
     - shared Nextcloud `/Desk/` cues and Nextcloud references third for supporting docs
-    - when a Qdrant memory deserves graph structure, represent it as linked `MemoryEntry` structure
+    - when a Qdrant memory deserves graph structure, represent it as linked `MemoryEntry` structure with slug `qdrant:<point_id>`
     - include `nc_refs` when a memory points to a Nextcloud artifact
+    - after successful Memgraph linking, annotate the Qdrant point with `python3 qdrant/set_graph_link.py`
 
     ## General Archivist Return Format
 
@@ -1497,7 +2356,7 @@ data:
   workspace-archivist-skills__update-memgraph__SKILL.md: |
     ---
     name: update-memgraph
-    description: Use when archivist needs to query or update Memgraph as the structural source of truth. Covers the Memgraph-first workflow, canonical labels and relationships, and idempotent graph updates.
+    description: Use when querying or updating Memgraph as the structural source of truth, especially for canonical entities, relationships, and memory links.
     ---
 
     # Memgraph Curation
@@ -1507,11 +2366,13 @@ data:
     ## Procedure
 
     1. Start from the seeded `queries/` files when possible.
-    2. Use `${MEMGRAPH_HOST}:${MEMGRAPH_PORT}` or `${MEMGRAPH_BOLT_URI}` as the runtime target.
+    2. Use `python3 queries/run_query.py <query.cypher> --params-json '{...}'` or `--params <file.json>` for parameterized query helpers.
     3. Prefer idempotent graph mutations.
     4. Reuse canonical labels and relationships instead of inventing ad hoc structure.
     5. Push domain-specific meaning into properties before introducing new graph structure.
-    6. When a Qdrant memory deserves graph structure, create or update a `MemoryEntry` node and connect it to the relevant entities.
+    6. When a Qdrant memory deserves graph structure, use `qdrant/scroll_memories.py` or `qdrant/get_memory.py` to obtain the point ID and normalized packet.
+    7. Create or update a `MemoryEntry` node with slug `qdrant:<point_id>`, then connect it to the relevant entities with the `queries/` helpers.
+    8. After Memgraph updates succeed, annotate the Qdrant point with `qdrant/set_graph_link.py`.
 
     ## Canonical Shape
 
@@ -1530,6 +2391,8 @@ data:
     - `Collection`
     - `MemoryEntry`
 
+    `MemoryEntry` nodes should carry `slug`, `qdrant_id`, `document_sha256`, `agent`, `domain`, `kind`, `project`, `created`, `summary`, `linked_at`, and optional `memory_ref` when Qdrant metadata already has one.
+
     Relationships:
     - `RELATES_TO`
     - `HAS_PART`
@@ -1540,12 +2403,35 @@ data:
     - `OCCURS_IN`
     - `TAGGED_WITH`
 
+    Standard memory links:
+    - memory `CREATED_BY` agent
+    - project `HAS_PART {kind: "memory"}` memory
+    - memory `RELATES_TO {kind: "memory-evidence"}` selected entities
+    - replacement memory `DERIVED_FROM {kind: "supersedes"}` older memory
+    - memory `TAGGED_WITH` durable tag concepts
+
     ## Escalate
 
     - if the requested structure would require a canonical schema change
-  workspace-archivist-state__grooming-cursor.json: |
+  workspace-archivist-state__grooming-checkpoint.json: |
     {
-      "last_successful_grooming": null
+      "version": 1,
+      "last_successful_grooming": null,
+      "last_successful_graph_link": null,
+      "last_weekly_grooming": null,
+      "last_triggered_grooming": null,
+      "last_run": {
+        "run_id": null,
+        "trigger": null,
+        "scope": null,
+        "started_at": null,
+        "completed_at": null,
+        "status": null
+      },
+      "nextcloud": {
+        "last_successful_scan": null,
+        "surfaces": {}
+      }
     }
   workspace-auditor-AGENTS.md: |
     # Auditor
@@ -1650,6 +2536,12 @@ data:
     - durable verdict summaries
     - review conventions
 
+    Shape stored memories for semantic retrieval:
+    - store one atomic durable claim per memory
+    - use 1 to 3 compact, self-contained sentences
+    - include natural anchors such as project slug, repo, service/component, risk area, review mode, finding signature, or source reference when relevant
+    - include important recall terms in the `information` text, not only in metadata
+
     Use metadata aggressively:
     - set `project` whenever the review belongs to a project slug
     - add short `tags` for subsystem, risk area, or review mode
@@ -1657,7 +2549,7 @@ data:
     - include `nc_refs` when the durable artifact lives in Nextcloud
 
     Every stored memory must use this text format:
-    `[domain] [kind] Complete statement here.`
+    `[domain] [kind] Complete self-contained retrieval-optimized statement here.`
 
     Every stored memory must include metadata with at least:
     `{"kind":"...","domain":"...","agent":"auditor","created":"ISO-8601"}`
@@ -1744,12 +2636,12 @@ data:
   workspace-auditor-skills__classify-review-mode__SKILL.md: |
     ---
     name: classify-review-mode
-    description: Use when auditor needs to classify the review mode or return a completed review packet to main. Covers on-demand, risk-triggered, and scheduled reviews plus the compact Audit Complete handoff.
+    description: Use when classifying a review request or returning a completed review packet to main.
     ---
 
     # Review Modes And Handoff
 
-    Use this skill when deciding how the review is being invoked and how to return it.
+    Use when deciding how the review is being invoked and how to return it.
 
     ## Review Modes
 
@@ -1797,7 +2689,7 @@ data:
   workspace-auditor-skills__format-verdict__SKILL.md: |
     ---
     name: format-verdict
-    description: Use when auditor is producing a review result. Covers the required verdict structure, evidence expectations, and how to keep the output compact and decision-ready.
+    description: Use when producing a review verdict that needs clear evidence, risk level, and a compact decision-ready result.
     ---
 
     # Verdict Formatting
@@ -1869,7 +2761,7 @@ data:
   workspace-auditor-skills__manage-review-packets__SKILL.md: |
     ---
     name: manage-review-packets
-    description: Use when auditor needs to read or write durable review artifacts in Nextcloud. Covers review packet intake, evidence selection, durable findings storage, and keeping the packet compact.
+    description: Use when reading or writing durable review artifacts in Nextcloud, including review packets, evidence, and findings.
     ---
 
     # Nextcloud Review Packets
@@ -1981,6 +2873,12 @@ data:
     - durable technical decisions
     - summaries of major runbooks or deployment changes
 
+    Shape stored memories for semantic retrieval:
+    - store one atomic durable claim per memory
+    - use 1 to 3 compact, self-contained sentences
+    - include natural anchors such as project slug, repo, service/component, file path, chart name, tool name, error signature, or source reference when relevant
+    - include important recall terms in the `information` text, not only in metadata
+
     Use metadata aggressively:
     - set `project` whenever the work belongs to a project slug
     - add short `tags` for repo, service, or subsystem names
@@ -1988,7 +2886,7 @@ data:
     - use `expiry` only for short-lived implementation context that should fade soon
 
     Every stored memory must use this text format:
-    `[domain] [kind] Complete statement here.`
+    `[domain] [kind] Complete self-contained retrieval-optimized statement here.`
 
     Every stored memory must include metadata with at least:
     `{"kind":"...","domain":"...","agent":"coder","created":"ISO-8601"}`
@@ -2054,12 +2952,12 @@ data:
   workspace-coder-skills__manage-gitea-gitops-and-registry__SKILL.md: |
     ---
     name: manage-gitea-gitops-and-registry
-    description: Use when coder is working with Gitea, GitOps repos, the in-cluster registry, or Codex-backed execution. Covers repo workflow, validation expectations, image naming, and Codex logging discipline.
+    description: Use when working with Gitea, GitOps repos, the in-cluster registry, or Codex-backed implementation.
     ---
 
     # Gitea, GitOps, and Registry
 
-    Use this skill for repo and deployment-definition workflow.
+    Use for repo and deployment-definition workflow.
 
     ## Repo Rules
 
@@ -2100,12 +2998,12 @@ data:
   workspace-coder-skills__run-codex-and-log-usage__SKILL.md: |
     ---
     name: run-codex-and-log-usage
-    description: Use when coder is invoking Codex CLI or recording Codex usage. Covers PTY and background rules, model heuristics, safe workdir rules, and the expected usage-log schema.
+    description: Use when invoking Codex CLI or recording Codex usage for implementation work.
     ---
 
     # Codex Execution And Logging
 
-    Use this skill for Codex-backed implementation work.
+    Use for Codex-backed implementation work.
 
     ## Invocation Rules
 
@@ -2138,7 +3036,7 @@ data:
   workspace-coder-skills__update-implementation-notes__SKILL.md: |
     ---
     name: update-implementation-notes
-    description: Use when coder needs to read governing specs from Nextcloud or write durable implementation notes back. Covers what belongs in Nextcloud, what does not, and the standard handoff artifacts after non-obvious implementation work.
+    description: Use when reading governing specs from Nextcloud or writing durable implementation notes after non-obvious implementation work.
     ---
 
     # Nextcloud Implementation Handoff
@@ -2466,6 +3364,12 @@ data:
     - durable artifact summaries
     - shared quick note-like context that should influence later work but does not need a user-facing document yet
 
+    Shape stored memories for semantic retrieval:
+    - store one atomic durable claim per memory
+    - use 1 to 3 compact, self-contained sentences
+    - include natural anchors such as project slug, service/component, agent/person, artifact path, aliases, incident name, or source reference when relevant
+    - include important recall terms in the `information` text, not only in metadata
+
     Use metadata aggressively:
     - set `project` whenever the memory belongs to a project slug
     - add 1 to 4 short `tags` for discoverability
@@ -2473,7 +3377,7 @@ data:
     - include `nc_refs` whenever the memory points to a Nextcloud artifact or shared surface
 
     Every stored memory must use this text format:
-    `[domain] [kind] Complete statement here.`
+    `[domain] [kind] Complete self-contained retrieval-optimized statement here.`
 
     Every stored memory must include metadata with at least:
     `{"kind":"...","domain":"...","agent":"main","created":"ISO-8601"}`
@@ -2533,7 +3437,7 @@ data:
     - purpose
     - steward
     - project or domain when relevant
-    - read trigger such as `orientation`, `heartbeat`, `active-project`, or `only-when-escalated`
+    - read trigger such as `orientation`, `coordination-status`, `active-project`, or `only-when-escalated`
 
     ## Shared Continuity Surfaces
 
@@ -2543,7 +3447,7 @@ data:
 
     ## Shared Coordination Surfaces
 
-    - Nextcloud `/Projects/ai-homebase/heartbeat.json` - shared stack heartbeat - steward: main - trigger: heartbeat
+    - Nextcloud `/Projects/ai-homebase/coordination-status.json` - shared coordination status marker - steward: main - trigger: coordination-status
     - Nextcloud `/Projects/ai-homebase/budget-policy.md` - user-managed budget posture - steward: main - trigger: orientation when budget or staffing matters
     - Nextcloud `/Projects/ai-homebase/watchdog-status-log.md` - compact monitoring state - steward: watchdog - trigger: orientation when recent operational issues matter
     - Nextcloud `/Projects/ai-homebase/audit-log.md` - compact review history - steward: auditor - trigger: active-project or risk review
@@ -2566,7 +3470,7 @@ data:
     - Nextcloud `/Projects/...` are remote paths owned by the shared `openclaw` Nextcloud account, which is separate from the user's own Nextcloud account.
     - Shared ai-homebase files you will check often live under Nextcloud `/Projects/ai-homebase/`, especially:
       - `budget-policy.md`
-      - `heartbeat.json`
+      - `coordination-status.json`
       - `watchdog-status-log.md`
       - `audit-log.md`
       - `archivist-grooming-log.md`
@@ -2577,7 +3481,7 @@ data:
       - purpose
       - steward agent
       - project slug or domain when relevant
-      - read trigger such as `orientation`, `heartbeat`, `active-project`, or `only-when-escalated`
+      - read trigger such as `orientation`, `coordination-status`, `active-project`, or `only-when-escalated`
     - Use Qdrant for shared quick recall, decisions, and note-like context that should shape later work but does not need a user-facing document yet.
     - Query Qdrant from the cues in `CURRENT.md`, `SURFACES.md`, and Nextcloud `/Desk/current.md`; do not treat orientation work as a blind memory dump.
     - Ask archivist when the missing context is structural, cross-entity, or hard to recover through targeted semantic search.
@@ -2632,12 +3536,12 @@ data:
   workspace-main-skills__bind-channels__SKILL.md: |
     ---
     name: bind-channels
-    description: Use when main needs to set up, inspect, or change messaging channel bindings for the user or a dedicated specialist channel. Covers binding rules, inspection, and safe ownership boundaries.
+    description: Use when setting up, inspecting, or changing messaging channel bindings for the user or a dedicated specialist channel.
     ---
 
     # Channel Binding
 
-    Use this skill when channel setup, routing, or binding inspection is part of the task.
+    Use when channel setup, routing, or binding inspection is part of the task.
     Load it only when channel setup, routing, or binding inspection is actually involved.
 
     ## Concepts
@@ -2694,7 +3598,7 @@ data:
   workspace-main-skills__coordinate-in-nextcloud__SKILL.md: |
     ---
     name: coordinate-in-nextcloud
-    description: Use when main needs to operate Nextcloud as the shared coordination layer. Covers project folder ownership, sharing, calendars, todos, tables, heartbeat state, and when to hand work to another agent instead of authoring project artifacts directly.
+    description: Use when operating Nextcloud as the shared coordination layer for desk state, calendars, todos, tables, sharing, or coordination status.
     ---
 
     # Nextcloud Coordination
@@ -2708,7 +3612,7 @@ data:
     - Nextcloud `/Projects/` sharing and top-level coordination
     - user-facing status docs and shared outputs
     - calendars, todos, reminders, and tables when they improve collaboration
-    - Nextcloud `/Projects/ai-homebase/heartbeat.json`
+    - Nextcloud `/Projects/ai-homebase/coordination-status.json`
     - quiet background collaboration in the shared `openclaw` account before something is intentionally shared with the user's own account
 
     Do not use Nextcloud to:
@@ -2733,7 +3637,7 @@ data:
     12. Register new folders outside Nextcloud `/Projects/<slug>/`, relevant calendars, task lists, tables, and user-shared folders in Nextcloud `/Desk/index.md`.
     13. Each Nextcloud `/Desk/index.md` entry should include `type`, stable `id` or path, purpose, steward, project or domain, and a read trigger.
     14. Use shares when an artifact should become user-visible outside the agent loop.
-    15. When shared coordination state changes in a way watchdog should notice, update Nextcloud `/Projects/ai-homebase/heartbeat.json`.
+    15. When shared coordination state changes in a way watchdog should notice, update Nextcloud `/Projects/ai-homebase/coordination-status.json`.
     16. When durable facts or rules are created, store a Qdrant summary with `project`, `tags`, and `nc_refs`, plus `expiry` when the memory is intentionally short-lived.
 
     Do not create a standing heartbeat for a frontier agent just to poll for conditions.
@@ -2749,7 +3653,7 @@ data:
     - Nextcloud `/Desk/daily/`
     - Nextcloud `/Projects/<slug>/status.md`
     - Nextcloud `/Projects/<slug>/outputs/`
-    - Nextcloud `/Projects/ai-homebase/heartbeat.json`
+    - Nextcloud `/Projects/ai-homebase/coordination-status.json`
 
     ## Escalate
 
@@ -2758,12 +3662,12 @@ data:
   workspace-main-skills__handoff-specialist-work__SKILL.md: |
     ---
     name: handoff-specialist-work
-    description: Use when main needs to route work to a standing specialist or review a specialist return. Covers the pre-handoff recall check, the exact Task Handoff format, and how to evaluate returned deliverables.
+    description: Use when routing work to a standing specialist or reviewing a specialist return.
     ---
 
     # Specialist Handoff
 
-    Use this skill when routing real specialist work.
+    Use when routing real specialist work.
 
     ## Before Sending Work
 
@@ -2818,12 +3722,12 @@ data:
   workspace-main-skills__manage-worker-lifecycle__SKILL.md: |
     ---
     name: manage-worker-lifecycle
-    description: Use when main needs to decide whether a worker is appropriate, request a worker definition from architect, instantiate an approved worker, or retire one. Covers worker-definition inputs, activation steps, update flow, and decommissioning.
+    description: Use when deciding whether recurring work should become a worker, or when requesting, activating, updating, or retiring a worker.
     ---
 
     # Worker Lifecycle
 
-    Use this skill when recurring work might become a worker.
+    Use when recurring work might become a worker.
 
     ## Decision Rule
 
@@ -2863,13 +3767,13 @@ data:
     - Main owns instantiation, scheduling, and retirement after approval.
     - Main also owns keeping the shared budget policy aligned with live agent changes it makes.
     - Do not skip architect when the workflow needs a real worker definition.
-  workspace-main-skills__record-memory-and-heartbeat__SKILL.md: |
+  workspace-main-skills__record-memory-and-coordination-status__SKILL.md: |
     ---
-    name: record-memory-and-heartbeat
-    description: Use when main needs to decide what durable facts belong in Qdrant or when to update the shared heartbeat file. Covers memory triggers, nc_refs, and the exact heartbeat write shape.
+    name: record-memory-and-coordination-status
+    description: Use after meaningful coordination work to decide what belongs in Qdrant and whether to refresh the shared coordination status marker.
     ---
 
-    # Memory And Heartbeat
+    # Memory And Coordination Status
 
     Use this skill after meaningful coordination work.
 
@@ -2898,7 +3802,7 @@ data:
     - durable recall -> Qdrant
     - structural world-model changes -> archivist plus Memgraph
 
-    ## Heartbeat
+    ## Coordination Status
 
     After meaningful coordination work:
     - refresh `CURRENT.md` and the latest local note when short-term continuity changed
@@ -2906,10 +3810,10 @@ data:
     - register newly important shared surfaces in Nextcloud `/Desk/index.md`
     - capture user-relevant decisions in Nextcloud when they belong in a durable artifact
     - store durable new preferences or rules in Qdrant when recall should survive the current work
-    - refresh Nextcloud `/Projects/ai-homebase/heartbeat.json` when shared coordination state changed in a way watchdog should notice
+    - refresh Nextcloud `/Projects/ai-homebase/coordination-status.json` when shared coordination state changed in a way watchdog should notice
     - do nothing extra when nothing durable changed
 
-    When you refresh the shared heartbeat file, write:
+    When you refresh the shared coordination status marker, write:
     `{"lastActivity":"ISO-8601","agent":"main","status":"ok"}`
 
     ## Boundaries
@@ -2920,7 +3824,7 @@ data:
   workspace-main-skills__track-budget__SKILL.md: |
     ---
     name: track-budget
-    description: Use when main needs to check or manage OpenClaw/Codex spend before delegating specialist work. Covers tokscale checks, combining coder Codex usage from Nextcloud, and short delegation guidance under budget pressure.
+    description: Use before or during delegation when OpenClaw/Codex spend or budget pressure may affect staffing decisions.
     ---
 
     # Budget Tracking
@@ -3041,7 +3945,7 @@ data:
 
     1. Load `check-heartbeat-and-budget` first.
     2. Check the gateway readiness endpoint.
-    3. Read Nextcloud `/Projects/ai-homebase/heartbeat.json`.
+    3. Read Nextcloud `/Projects/ai-homebase/coordination-status.json`.
     4. Compare the result against Nextcloud `/Projects/ai-homebase/baselines.md`, Nextcloud `/Projects/ai-homebase/budget-policy.md`, and the recent watchdog status log when needed.
     5. Use `classify-severity-and-escalate` before deciding whether the result is `info`, `warning`, or `critical`.
     6. Use `manage-nextcloud-incidents` to write the smallest durable status update that preserves the signal.
@@ -3083,6 +3987,12 @@ data:
     - baseline summaries
     - durable incident-pattern findings
 
+    Shape stored memories for semantic retrieval:
+    - store one atomic durable claim per memory
+    - use 1 to 3 compact, self-contained sentences
+    - include natural anchors such as project slug, service/component, signal name, alert name, incident name, error signature, or source reference when relevant
+    - include important recall terms in the `information` text, not only in metadata
+
     Use metadata aggressively:
     - set `project` whenever the memory belongs to a project slug
     - add short `tags` for service, subsystem, or signal names
@@ -3090,7 +4000,7 @@ data:
     - include `nc_refs` when the durable artifact lives in Nextcloud
 
     Every stored memory must use this text format:
-    `[domain] [kind] Complete statement here.`
+    `[domain] [kind] Complete self-contained retrieval-optimized statement here.`
 
     Every stored memory must include metadata with at least:
     `{"kind":"...","domain":"...","agent":"watchdog","created":"ISO-8601"}`
@@ -3116,12 +4026,12 @@ data:
     ## Shared Continuity Surfaces
 
     - Nextcloud `/Desk/current.md` - shared current state - steward: main - trigger: orientation or active-incident
-    - Nextcloud `/Desk/index.md` - shared surface registry - steward: main - trigger: orientation or heartbeat
+    - Nextcloud `/Desk/index.md` - shared surface registry - steward: main - trigger: orientation or coordination-status
     - Nextcloud `/Desk/daily/` - shared daily continuity - steward: main - trigger: orientation
 
     ## Common Monitoring Surfaces
 
-    - Nextcloud `/Projects/ai-homebase/heartbeat.json` - stack liveness handoff - steward: main - trigger: heartbeat
+    - Nextcloud `/Projects/ai-homebase/coordination-status.json` - shared coordination status marker - steward: main - trigger: coordination-status
     - Nextcloud `/Projects/ai-homebase/watchdog-status-log.md` - durable status summary - steward: watchdog - trigger: orientation
     - Nextcloud `/Projects/ai-homebase/baselines.md` - monitoring baselines - steward: watchdog - trigger: orientation
     - Nextcloud `/Projects/ai-homebase/escalation-rules.md` - escalation policy - steward: watchdog - trigger: orientation
@@ -3134,13 +4044,13 @@ data:
     ## Monitoring
 
     - Gateway readiness endpoint: `http://127.0.0.1:18789/readyz`
-    - The shared heartbeat file is Nextcloud `/Projects/ai-homebase/heartbeat.json`.
+    - The shared coordination status marker is Nextcloud `/Projects/ai-homebase/coordination-status.json`.
 
     ## Files
 
     - Files in this workspace are local workspace files.
     - `CURRENT.md`, `SURFACES.md`, and `daily/` are custom local continuity surfaces for active monitoring work.
-    - Nextcloud `/Desk/...` are remote paths for shared current-state briefings and live indexing. Read only the entries relevant to heartbeat, orientation work, or active incidents.
+    - Nextcloud `/Desk/...` are remote paths for shared current-state briefings and live indexing. Read only the entries relevant to coordination status, orientation work, or active incidents.
     - Nextcloud `/Projects/...` are remote paths for compact durable monitoring state.
     - Use local workspace file tools only for local workspace files such as `CURRENT.md`, `SURFACES.md`, `daily/`, and other files in this workspace.
     - Use Nextcloud tools only for Nextcloud `/Desk/...` and Nextcloud `/Projects/...` paths.
@@ -3155,7 +4065,7 @@ data:
       - Nextcloud `/Projects/ai-homebase/baselines.md`
       - Nextcloud `/Projects/ai-homebase/escalation-rules.md`
       - Nextcloud `/Projects/ai-homebase/incidents/`
-      - Nextcloud `/Projects/ai-homebase/heartbeat.json`
+      - Nextcloud `/Projects/ai-homebase/coordination-status.json`
 
     ## Sessions
 
@@ -3190,24 +4100,24 @@ data:
   workspace-watchdog-skills__check-heartbeat-and-budget__SKILL.md: |
     ---
     name: check-heartbeat-and-budget
-    description: Use when watchdog is doing heartbeat-driven monitoring or budget sentinel checks. Covers the readiness endpoint, heartbeat file, cron-safe behavior, and spend-threshold alerts.
+    description: Use for heartbeat-driven monitoring, readiness checks, coordination-status checks, or budget sentinel alerts.
     ---
 
     # Heartbeat And Budget Sentinel
 
-    Use this skill for lightweight recurring checks.
+    Use for lightweight recurring checks.
 
     ## Signals
 
     - gateway readiness endpoint: `http://127.0.0.1:18789/readyz`
-    - shared heartbeat file: Nextcloud `/Projects/ai-homebase/heartbeat.json`
+    - shared coordination status marker: Nextcloud `/Projects/ai-homebase/coordination-status.json`
     - spend posture: `tokscale --openclaw --today --json`
 
     ## Procedure
 
     1. Read the relevant shared Nextcloud `/Desk/current.md`, Nextcloud `/Desk/index.md`, and local desk cues only when heartbeat or orientation review genuinely needs them.
     2. Check readiness.
-    3. Read the shared heartbeat file when heartbeat-based monitoring is relevant.
+    3. Read the shared coordination status marker when activity context is relevant.
     4. Review only the calendars, task lists, or tables registered for `heartbeat` or `orientation` review.
     5. Compare against known baselines before calling something a deviation.
     6. Compare spend posture against Nextcloud `/Projects/ai-homebase/budget-policy.md` and treat "approaching a ceiling" as a warning signal, not an automatic emergency.
@@ -3222,12 +4132,12 @@ data:
   workspace-watchdog-skills__classify-severity-and-escalate__SKILL.md: |
     ---
     name: classify-severity-and-escalate
-    description: Use when watchdog must classify a monitoring result or decide whether to escalate. Covers severity gates, false-positive controls, cron caveats, and the Watchdog Alert format.
+    description: Use when classifying a monitoring result, deciding whether to escalate, or preparing a Watchdog Alert.
     ---
 
     # Severity And Escalation
 
-    Use this skill whenever watchdog must decide whether to log, wait, or escalate.
+    Use when deciding whether to log, wait, or escalate.
 
     ## Severity Gates
 
@@ -3273,7 +4183,7 @@ data:
   workspace-watchdog-skills__manage-nextcloud-incidents__SKILL.md: |
     ---
     name: manage-nextcloud-incidents
-    description: Use when watchdog needs to record or update durable monitoring state in Nextcloud. Covers incident report paths, baseline notes, escalation trails, and what should not produce a durable document.
+    description: Use when recording or updating durable monitoring state in Nextcloud, including incidents, baselines, and escalation trails.
     ---
 
     # Nextcloud Incident Ops
@@ -3286,7 +4196,7 @@ data:
     - Nextcloud `/Projects/ai-homebase/baselines.md`
     - Nextcloud `/Projects/ai-homebase/escalation-rules.md`
     - Nextcloud `/Projects/ai-homebase/watchdog-status-log.md`
-    - Nextcloud `/Projects/ai-homebase/heartbeat.json`
+    - Nextcloud `/Projects/ai-homebase/coordination-status.json`
 
     ## Procedure
 
@@ -3710,6 +4620,14 @@ spec:
           value: http://platform-stack-qdrant-mcp.ai-homebase.svc.cluster.local:8000/mcp
         - name: OPENCLAW_QDRANT_MCP_EXTERNAL_URL
           value: https://qdrant-mcp.homebase.local/mcp
+        - name: OPENCLAW_QDRANT_INTERNAL_URL
+          value: http://platform-stack-qdrant.ai-homebase.svc.cluster.local:6333
+        - name: OPENCLAW_QDRANT_EXTERNAL_URL
+          value: https://qdrant.homebase.local
+        - name: QDRANT_URL
+          value: http://platform-stack-qdrant.ai-homebase.svc.cluster.local:6333
+        - name: QDRANT_COLLECTION
+          value: openclaw-memory
         - name: DOCKER_HOST
           value: ssh://docker-remote@openclaw-sandbox:2222
         - name: HOME
@@ -4208,6 +5126,96 @@ spec:
             }
             normalize_seeded_skill "${target_path}"
           fi
+          target_path="${workspace_dir}/grooming/update_checkpoint.py"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding grooming/update_checkpoint.py for agent archivist."
+            exit 1
+          }
+          if [ -e "${target_path}" ]; then
+            echo "Preserving existing grooming/update_checkpoint.py in ${workspace_dir}."
+          else
+            cp -f /config-source/workspace-archivist-grooming__update_checkpoint.py "${target_path}" || {
+              echo >&2 "Failed to seed grooming/update_checkpoint.py into ${workspace_dir} for agent archivist."
+              exit 1
+            }
+            normalize_seeded_skill "${target_path}"
+          fi
+          target_path="${workspace_dir}/qdrant/README.md"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding qdrant/README.md for agent archivist."
+            exit 1
+          }
+          if [ -e "${target_path}" ]; then
+            echo "Preserving existing qdrant/README.md in ${workspace_dir}."
+          else
+            cp -f /config-source/workspace-archivist-qdrant__README.md "${target_path}" || {
+              echo >&2 "Failed to seed qdrant/README.md into ${workspace_dir} for agent archivist."
+              exit 1
+            }
+            normalize_seeded_skill "${target_path}"
+          fi
+          target_path="${workspace_dir}/qdrant/_qdrant_common.py"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding qdrant/_qdrant_common.py for agent archivist."
+            exit 1
+          }
+          if [ -e "${target_path}" ]; then
+            echo "Preserving existing qdrant/_qdrant_common.py in ${workspace_dir}."
+          else
+            cp -f /config-source/workspace-archivist-qdrant___qdrant_common.py "${target_path}" || {
+              echo >&2 "Failed to seed qdrant/_qdrant_common.py into ${workspace_dir} for agent archivist."
+              exit 1
+            }
+            normalize_seeded_skill "${target_path}"
+          fi
+          target_path="${workspace_dir}/qdrant/get_memory.py"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding qdrant/get_memory.py for agent archivist."
+            exit 1
+          }
+          if [ -e "${target_path}" ]; then
+            echo "Preserving existing qdrant/get_memory.py in ${workspace_dir}."
+          else
+            cp -f /config-source/workspace-archivist-qdrant__get_memory.py "${target_path}" || {
+              echo >&2 "Failed to seed qdrant/get_memory.py into ${workspace_dir} for agent archivist."
+              exit 1
+            }
+            normalize_seeded_skill "${target_path}"
+          fi
+          target_path="${workspace_dir}/qdrant/scroll_memories.py"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding qdrant/scroll_memories.py for agent archivist."
+            exit 1
+          }
+          if [ -e "${target_path}" ]; then
+            echo "Preserving existing qdrant/scroll_memories.py in ${workspace_dir}."
+          else
+            cp -f /config-source/workspace-archivist-qdrant__scroll_memories.py "${target_path}" || {
+              echo >&2 "Failed to seed qdrant/scroll_memories.py into ${workspace_dir} for agent archivist."
+              exit 1
+            }
+            normalize_seeded_skill "${target_path}"
+          fi
+          target_path="${workspace_dir}/qdrant/set_graph_link.py"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding qdrant/set_graph_link.py for agent archivist."
+            exit 1
+          }
+          if [ -e "${target_path}" ]; then
+            echo "Preserving existing qdrant/set_graph_link.py in ${workspace_dir}."
+          else
+            cp -f /config-source/workspace-archivist-qdrant__set_graph_link.py "${target_path}" || {
+              echo >&2 "Failed to seed qdrant/set_graph_link.py into ${workspace_dir} for agent archivist."
+              exit 1
+            }
+            normalize_seeded_skill "${target_path}"
+          fi
           target_path="${workspace_dir}/queries/README.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
@@ -4268,6 +5276,81 @@ spec:
             }
             normalize_seeded_skill "${target_path}"
           fi
+          target_path="${workspace_dir}/queries/link-memory-created-by-agent.cypher"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding queries/link-memory-created-by-agent.cypher for agent archivist."
+            exit 1
+          }
+          if [ -e "${target_path}" ]; then
+            echo "Preserving existing queries/link-memory-created-by-agent.cypher in ${workspace_dir}."
+          else
+            cp -f /config-source/workspace-archivist-queries__link-memory-created-by-agent.cypher "${target_path}" || {
+              echo >&2 "Failed to seed queries/link-memory-created-by-agent.cypher into ${workspace_dir} for agent archivist."
+              exit 1
+            }
+            normalize_seeded_skill "${target_path}"
+          fi
+          target_path="${workspace_dir}/queries/link-memory-supersedes.cypher"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding queries/link-memory-supersedes.cypher for agent archivist."
+            exit 1
+          }
+          if [ -e "${target_path}" ]; then
+            echo "Preserving existing queries/link-memory-supersedes.cypher in ${workspace_dir}."
+          else
+            cp -f /config-source/workspace-archivist-queries__link-memory-supersedes.cypher "${target_path}" || {
+              echo >&2 "Failed to seed queries/link-memory-supersedes.cypher into ${workspace_dir} for agent archivist."
+              exit 1
+            }
+            normalize_seeded_skill "${target_path}"
+          fi
+          target_path="${workspace_dir}/queries/link-memory-tag.cypher"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding queries/link-memory-tag.cypher for agent archivist."
+            exit 1
+          }
+          if [ -e "${target_path}" ]; then
+            echo "Preserving existing queries/link-memory-tag.cypher in ${workspace_dir}."
+          else
+            cp -f /config-source/workspace-archivist-queries__link-memory-tag.cypher "${target_path}" || {
+              echo >&2 "Failed to seed queries/link-memory-tag.cypher into ${workspace_dir} for agent archivist."
+              exit 1
+            }
+            normalize_seeded_skill "${target_path}"
+          fi
+          target_path="${workspace_dir}/queries/link-memory-to-entity.cypher"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding queries/link-memory-to-entity.cypher for agent archivist."
+            exit 1
+          }
+          if [ -e "${target_path}" ]; then
+            echo "Preserving existing queries/link-memory-to-entity.cypher in ${workspace_dir}."
+          else
+            cp -f /config-source/workspace-archivist-queries__link-memory-to-entity.cypher "${target_path}" || {
+              echo >&2 "Failed to seed queries/link-memory-to-entity.cypher into ${workspace_dir} for agent archivist."
+              exit 1
+            }
+            normalize_seeded_skill "${target_path}"
+          fi
+          target_path="${workspace_dir}/queries/link-project-memory.cypher"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding queries/link-project-memory.cypher for agent archivist."
+            exit 1
+          }
+          if [ -e "${target_path}" ]; then
+            echo "Preserving existing queries/link-project-memory.cypher in ${workspace_dir}."
+          else
+            cp -f /config-source/workspace-archivist-queries__link-project-memory.cypher "${target_path}" || {
+              echo >&2 "Failed to seed queries/link-project-memory.cypher into ${workspace_dir} for agent archivist."
+              exit 1
+            }
+            normalize_seeded_skill "${target_path}"
+          fi
           target_path="${workspace_dir}/queries/memory-links.cypher"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
@@ -4298,6 +5381,36 @@ spec:
             }
             normalize_seeded_skill "${target_path}"
           fi
+          target_path="${workspace_dir}/queries/run_query.py"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding queries/run_query.py for agent archivist."
+            exit 1
+          }
+          if [ -e "${target_path}" ]; then
+            echo "Preserving existing queries/run_query.py in ${workspace_dir}."
+          else
+            cp -f /config-source/workspace-archivist-queries__run_query.py "${target_path}" || {
+              echo >&2 "Failed to seed queries/run_query.py into ${workspace_dir} for agent archivist."
+              exit 1
+            }
+            normalize_seeded_skill "${target_path}"
+          fi
+          target_path="${workspace_dir}/queries/unlinked-memory-entries.cypher"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding queries/unlinked-memory-entries.cypher for agent archivist."
+            exit 1
+          }
+          if [ -e "${target_path}" ]; then
+            echo "Preserving existing queries/unlinked-memory-entries.cypher in ${workspace_dir}."
+          else
+            cp -f /config-source/workspace-archivist-queries__unlinked-memory-entries.cypher "${target_path}" || {
+              echo >&2 "Failed to seed queries/unlinked-memory-entries.cypher into ${workspace_dir} for agent archivist."
+              exit 1
+            }
+            normalize_seeded_skill "${target_path}"
+          fi
           target_path="${workspace_dir}/queries/upsert-entity-and-link.cypher"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
@@ -4309,6 +5422,21 @@ spec:
           else
             cp -f /config-source/workspace-archivist-queries__upsert-entity-and-link.cypher "${target_path}" || {
               echo >&2 "Failed to seed queries/upsert-entity-and-link.cypher into ${workspace_dir} for agent archivist."
+              exit 1
+            }
+            normalize_seeded_skill "${target_path}"
+          fi
+          target_path="${workspace_dir}/queries/upsert-memory-entry.cypher"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding queries/upsert-memory-entry.cypher for agent archivist."
+            exit 1
+          }
+          if [ -e "${target_path}" ]; then
+            echo "Preserving existing queries/upsert-memory-entry.cypher in ${workspace_dir}."
+          else
+            cp -f /config-source/workspace-archivist-queries__upsert-memory-entry.cypher "${target_path}" || {
+              echo >&2 "Failed to seed queries/upsert-memory-entry.cypher into ${workspace_dir} for agent archivist."
               exit 1
             }
             normalize_seeded_skill "${target_path}"
@@ -4373,17 +5501,17 @@ spec:
             }
             normalize_seeded_skill "${target_path}"
           fi
-          target_path="${workspace_dir}/state/grooming-cursor.json"
+          target_path="${workspace_dir}/state/grooming-checkpoint.json"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
-            echo >&2 "Failed to create ${target_parent} before seeding state/grooming-cursor.json for agent archivist."
+            echo >&2 "Failed to create ${target_parent} before seeding state/grooming-checkpoint.json for agent archivist."
             exit 1
           }
           if [ -e "${target_path}" ]; then
-            echo "Preserving existing state/grooming-cursor.json in ${workspace_dir}."
+            echo "Preserving existing state/grooming-checkpoint.json in ${workspace_dir}."
           else
-            cp -f /config-source/workspace-archivist-state__grooming-cursor.json "${target_path}" || {
-              echo >&2 "Failed to seed state/grooming-cursor.json into ${workspace_dir} for agent archivist."
+            cp -f /config-source/workspace-archivist-state__grooming-checkpoint.json "${target_path}" || {
+              echo >&2 "Failed to seed state/grooming-checkpoint.json into ${workspace_dir} for agent archivist."
               exit 1
             }
             normalize_seeded_skill "${target_path}"
@@ -4928,17 +6056,17 @@ spec:
             }
             normalize_seeded_skill "${target_path}"
           fi
-          target_path="${workspace_dir}/skills/record-memory-and-heartbeat/SKILL.md"
+          target_path="${workspace_dir}/skills/record-memory-and-coordination-status/SKILL.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
-            echo >&2 "Failed to create ${target_parent} before seeding skills/record-memory-and-heartbeat/SKILL.md for agent main."
+            echo >&2 "Failed to create ${target_parent} before seeding skills/record-memory-and-coordination-status/SKILL.md for agent main."
             exit 1
           }
           if [ -e "${target_path}" ]; then
-            echo "Preserving existing skills/record-memory-and-heartbeat/SKILL.md in ${workspace_dir}."
+            echo "Preserving existing skills/record-memory-and-coordination-status/SKILL.md in ${workspace_dir}."
           else
-            cp -f /config-source/workspace-main-skills__record-memory-and-heartbeat__SKILL.md "${target_path}" || {
-              echo >&2 "Failed to seed skills/record-memory-and-heartbeat/SKILL.md into ${workspace_dir} for agent main."
+            cp -f /config-source/workspace-main-skills__record-memory-and-coordination-status__SKILL.md "${target_path}" || {
+              echo >&2 "Failed to seed skills/record-memory-and-coordination-status/SKILL.md into ${workspace_dir} for agent main."
               exit 1
             }
             normalize_seeded_skill "${target_path}"
@@ -5543,8 +6671,10 @@ spec:
           value: |
             Store a memory for cross-agent recall. Use this to preserve durable knowledge such as user preferences, decisions, conventions, patterns, incidents, plans, creative content, and reusable context.
 
-            REQUIRED: The `information` parameter must begin with domain and kind tags in brackets, followed by a complete statement:
+            REQUIRED: Store one atomic durable claim per memory. The `information` parameter must begin with domain and kind tags in brackets, followed by 1 to 3 compact, self-contained, retrieval-optimized sentences:
               [real|speculative|fictional|synthetic] [user-preference|user-context|decision|convention|pattern|fact|plan|task-context|incident|monitor-rule|creative|relationship|reference] Your memory text here.
+
+            Include natural retrieval anchors in `information` when relevant: project slug, service/component, agent/person, artifact path, common aliases, incident name, and source reference. Metadata alone does not improve vector ranking, so important recall terms must appear in `information`.
 
             REQUIRED: The `metadata` parameter must be a JSON object with at minimum:
               {"kind": "...", "domain": "...", "agent": "...", "created": "ISO-8601"}
@@ -5553,10 +6683,13 @@ spec:
 
             Guidelines:
             - Store facts you would want any agent to recall weeks later.
+            - Split unrelated decisions, facts, preferences, incidents, or document summaries into separate memories.
+            - Do not store multi-topic summaries as one memory.
             - Do not store ephemeral task status, transient tool output, or easily re-derivable information.
             - Do not store secrets or credentials.
             - For fictional or creative content, always use domain `fictional`.
-            - If correcting a prior memory, include `supersedes` in metadata and mention the correction in the text.
+            - If correcting a prior memory, store a new append-only replacement memory with `supersedes` in metadata and mention the correction in the text.
+            - The current Qdrant MCP tools cannot update, delete, merge, or mark existing entries.
             - Include Nextcloud references in both the text and `nc_refs` metadata when relevant.
         - name: TOOL_FIND_DESCRIPTION
           value: |
@@ -5579,14 +6712,16 @@ spec:
 
             Filtering:
             - You can filter by metadata fields using the `query_filter` parameter.
-            - All memories include a `created` ISO-8601 timestamp in metadata.
-            - Common metadata fields: `kind`, `domain`, `agent`, `confidence`, `project`, `tags`.
+            - Qdrant MCP stores memory metadata under nested payload keys. Use `metadata.created`, `metadata.kind`, `metadata.domain`, `metadata.agent`, `metadata.confidence`, `metadata.project`, and `metadata.tags`.
+            - Combine semantic search terms with metadata filters for project, domain, kind, agent, and recency.
             - Example: Find memories from the last 24 hours:
-              query_filter: {"must": [{"key": "created", "range": {"gte": "2026-04-02T00:00:00Z"}}]}
+              query_filter: {"must": [{"key": "metadata.created", "range": {"gte": "2026-04-02T00:00:00Z"}}]}
             - Example: Find memories by a specific agent:
-              query_filter: {"must": [{"key": "agent", "match": {"value": "coder"}}]}
+              query_filter: {"must": [{"key": "metadata.agent", "match": {"value": "coder"}}]}
             - Example: Find decisions from a specific project:
-              query_filter: {"must": [{"key": "kind", "match": {"value": "decision"}}, {"key": "project", "match": {"value": "ai-homebase"}}]}
+              query_filter: {"must": [{"key": "metadata.domain", "match": {"value": "real"}}, {"key": "metadata.kind", "match": {"value": "decision"}}, {"key": "metadata.project", "match": {"value": "ai-homebase"}}]}
+            - Example: Find memories with a tag:
+              query_filter: {"must": [{"key": "metadata.tags", "match": {"value": "qdrant"}}]}
             - Combine semantic search (the `query` parameter) with filters for best results.
         - name: HOME
           value: /tmp
@@ -6239,8 +7374,8 @@ spec:
           write_managed_file "${project_root}/archivist-grooming-log.md" "/bootstrap-content/project-0-file-9"
           ensure_parent_dir "${project_root}/incidents/README.md"
           write_managed_file "${project_root}/incidents/README.md" "/bootstrap-content/project-0-file-10"
-          ensure_parent_dir "${project_root}/heartbeat.json"
-          write_managed_file "${project_root}/heartbeat.json" "/bootstrap-content/project-0-file-11"
+          ensure_parent_dir "${project_root}/coordination-status.json"
+          write_managed_file "${project_root}/coordination-status.json" "/bootstrap-content/project-0-file-11"
           ensure_parent_dir "${project_root}/codex-usage/.gitkeep"
           write_managed_file "${project_root}/codex-usage/.gitkeep" "/bootstrap-content/project-0-file-12"
           ensure_parent_dir "${project_root}/audit-log.md"

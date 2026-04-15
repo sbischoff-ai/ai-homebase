@@ -86,6 +86,9 @@ openclaw:
               MEMGRAPH_HOST: memgraph.vpn.homebase.internal
               MEMGRAPH_PORT: "7687"
               MEMGRAPH_BOLT_URI: bolt://memgraph.vpn.homebase.internal:7687
+              QDRANT_URL: https://qdrant.vpn.homebase.internal
+              QDRANT_COLLECTION: openclaw-memory
+              QDRANT_API_KEY: ${QDRANT_API_KEY}
 
 
 nextcloud:

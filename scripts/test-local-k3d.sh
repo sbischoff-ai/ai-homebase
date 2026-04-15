@@ -612,10 +612,11 @@ verify_openclaw_gateway_tooling() {
   local deployment_name="$1"
 
   step "Checking OpenClaw gateway tooling for watchdog/session-logs"
-  CURRENT_COMMAND="kubectl exec deployment/${deployment_name} -- sh -ceu 'command -v jq && command -v rg && command -v tokscale'"
+  CURRENT_COMMAND="kubectl exec deployment/${deployment_name} -- sh -ceu 'command -v jq && command -v rg && command -v python3 && command -v tokscale'"
   run_checked kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" exec "deployment/${deployment_name}" -- sh -ceu "
     command -v jq >/dev/null
     command -v rg >/dev/null
+    command -v python3 >/dev/null
     command -v tokscale >/dev/null
   "
 }
@@ -684,6 +685,7 @@ expected = {
     "Watchdog platform sweep",
     "Watchdog nightly activity check",
     "Watchdog daily digest",
+    "Archivist weekly graph grooming",
     "Auditor weekly review",
     "Watchdog daily wrap-up",
     "Architect daily wrap-up",
@@ -727,12 +729,25 @@ verify_openclaw_workspace_bootstrap() {
 
     test -f /home/node/.openclaw/workspace-archivist/TOOLS.md
     grep -F "MEMGRAPH_BOLT_URI" /home/node/.openclaw/workspace-archivist/TOOLS.md >/dev/null
-    grep -F "state/grooming-cursor.json" /home/node/.openclaw/workspace-archivist/TOOLS.md >/dev/null
+    grep -F "state/grooming-checkpoint.json" /home/node/.openclaw/workspace-archivist/TOOLS.md >/dev/null
+    grep -F "QDRANT_URL" /home/node/.openclaw/workspace-archivist/TOOLS.md >/dev/null
+    test -f /home/node/.openclaw/workspace-archivist/qdrant/scroll_memories.py
+    test -f /home/node/.openclaw/workspace-archivist/qdrant/get_memory.py
+    test -f /home/node/.openclaw/workspace-archivist/qdrant/set_graph_link.py
+    test -f /home/node/.openclaw/workspace-archivist/qdrant/README.md
+    test -f /home/node/.openclaw/workspace-archivist/state/grooming-checkpoint.json
+    grep -F "\"last_successful_graph_link\"" /home/node/.openclaw/workspace-archivist/state/grooming-checkpoint.json >/dev/null
+    test ! -e /home/node/.openclaw/workspace-archivist/state/grooming-cursor.json
+    test ! -e /home/node/.openclaw/workspace-archivist/state/qdrant-graph-link-cursor.json
+    test -f /home/node/.openclaw/workspace-archivist/grooming/update_checkpoint.py
     test -f /home/node/.openclaw/workspace-archivist/queries/README.md
-    grep -F "Use \`MEMGRAPH_HOST\` and \`MEMGRAPH_PORT\` with \`mgconsole\` for execution." /home/node/.openclaw/workspace-archivist/queries/README.md >/dev/null
+    test -f /home/node/.openclaw/workspace-archivist/queries/run_query.py
+    grep -F "Use \`queries/run_query.py\` for parameterized helpers" /home/node/.openclaw/workspace-archivist/queries/README.md >/dev/null
     test -f /home/node/.openclaw/workspace-archivist/skills/update-memgraph/SKILL.md
-    grep -F "create or update a \`MemoryEntry\` node" /home/node/.openclaw/workspace-archivist/skills/update-memgraph/SKILL.md >/dev/null
+    grep -F "slug \`qdrant:<point_id>\`" /home/node/.openclaw/workspace-archivist/skills/update-memgraph/SKILL.md >/dev/null
     test -f /home/node/.openclaw/workspace-archivist/queries/entity-by-slug.cypher
+    test -f /home/node/.openclaw/workspace-archivist/queries/upsert-memory-entry.cypher
+    test -f /home/node/.openclaw/workspace-archivist/queries/link-memory-to-entity.cypher
     test ! -e /home/node/.openclaw/workspace-archivist/HEARTBEAT.md
 
     test -f /home/node/.openclaw/workspace-architect/AGENTS.md
@@ -762,8 +777,9 @@ verify_nextcloud_bootstrap_content() {
   run_checked kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" exec "statefulset/${statefulset_name}" -- sh -ceu '
     project_root=/var/www/html/data/openclaw/files/Projects/ai-homebase
 
-    test -f "${project_root}/heartbeat.json"
-    grep -F "\"agent\": \"bootstrap\"" "${project_root}/heartbeat.json" >/dev/null
+    test -f "${project_root}/coordination-status.json"
+    grep -F "\"agent\": \"bootstrap\"" "${project_root}/coordination-status.json" >/dev/null
+    test ! -e "${project_root}/heartbeat.json"
     test -f "${project_root}/knowledge-graph-schema.md"
     grep -F "MemoryEntry" "${project_root}/knowledge-graph-schema.md" >/dev/null
     test -f "${project_root}/archivist-grooming-log.md"
@@ -783,8 +799,9 @@ verify_qdrant_mcp_runtime() {
   run_checked kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" exec "deployment/${deployment_name}" -- sh -ceu '
     [ "${QDRANT_ALLOW_ARBITRARY_FILTER:-}" = "true" ]
     printf "%s" "${TOOL_FIND_DESCRIPTION:-}" | grep -F "query_filter" >/dev/null
-    printf "%s" "${TOOL_FIND_DESCRIPTION:-}" | grep -F "\"created\"" >/dev/null
-    printf "%s" "${TOOL_FIND_DESCRIPTION:-}" | grep -F "\"project\"" >/dev/null
+    printf "%s" "${TOOL_FIND_DESCRIPTION:-}" | grep -F "metadata.created" >/dev/null
+    printf "%s" "${TOOL_FIND_DESCRIPTION:-}" | grep -F "metadata.project" >/dev/null
+    printf "%s" "${TOOL_STORE_DESCRIPTION:-}" | grep -F "atomic durable claim" >/dev/null
   '
 }
 
@@ -855,8 +872,32 @@ verify_coder_sandbox_runtime() {
   "
 }
 
+verify_gateway_qdrant_runtime() {
+  local deployment_name="$1"
+  local expected_url="http://${RELEASE_NAME}-qdrant.${NAMESPACE}.svc.cluster.local:6333"
+
+  step "Checking gateway Qdrant runtime env and archivist scripts"
+  CURRENT_COMMAND="kubectl exec deployment/${deployment_name} -- sh -ceu 'check gateway Qdrant env and scripts'"
+  run_checked kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" exec "deployment/${deployment_name}" -- sh -ceu "
+    [ \"\$QDRANT_URL\" = \"${expected_url}\" ]
+    [ \"\$QDRANT_COLLECTION\" = \"openclaw-memory\" ]
+    python3 -m py_compile \
+      /home/node/.openclaw/workspace-archivist/qdrant/_qdrant_common.py \
+      /home/node/.openclaw/workspace-archivist/qdrant/scroll_memories.py \
+      /home/node/.openclaw/workspace-archivist/qdrant/get_memory.py \
+      /home/node/.openclaw/workspace-archivist/qdrant/set_graph_link.py \
+      /home/node/.openclaw/workspace-archivist/queries/run_query.py \
+      /home/node/.openclaw/workspace-archivist/grooming/update_checkpoint.py
+    python3 /home/node/.openclaw/workspace-archivist/qdrant/set_graph_link.py \
+      --point-id smoke-test-point \
+      --entity-slug ai-homebase \
+      --dry-run | grep -F '\"graph\"' >/dev/null
+  "
+}
+
 verify_archivist_sandbox_runtime() {
   local memgraph_host="$1"
+  local qdrant_url="$2"
 
   if ! command -v incus >/dev/null 2>&1; then
     warn "Skipping archivist sandbox runtime checks because incus is not installed in the current shell"
@@ -871,11 +912,17 @@ verify_archivist_sandbox_runtime() {
       -e MEMGRAPH_HOST='${memgraph_host}' \
       -e MEMGRAPH_PORT='7687' \
       -e MEMGRAPH_BOLT_URI='bolt://${memgraph_host}:7687' \
+      -e QDRANT_URL='${qdrant_url}' \
+      -e QDRANT_COLLECTION='openclaw-memory' \
+      -e QDRANT_API_KEY='test-qdrant-key' \
       openclaw-sandbox:trixie-slim -ceu '
       command -v mgconsole >/dev/null
       [ \"\$MEMGRAPH_HOST\" = \"${memgraph_host}\" ]
       [ \"\$MEMGRAPH_PORT\" = \"7687\" ]
       [ \"\$MEMGRAPH_BOLT_URI\" = \"bolt://${memgraph_host}:7687\" ]
+      [ \"\$QDRANT_URL\" = \"${qdrant_url}\" ]
+      [ \"\$QDRANT_COLLECTION\" = \"openclaw-memory\" ]
+      [ \"\$QDRANT_API_KEY\" = \"test-qdrant-key\" ]
     '
   "
 }
@@ -1054,6 +1101,11 @@ fi
 if [[ "$(is_qdrant_enabled)" == "true" ]]; then
   wait_for_workload qdrant "$QDRANT_WAIT_TIMEOUT"
   verify_labeled_service qdrant
+  if [[ -n "$HOST_LISTEN_ADDRESS_VALUE" ]]; then
+    verify_incus_hostname_resolution "$QDRANT_INGRESS_HOST" "$HOST_LISTEN_ADDRESS_VALUE" "/readyz" "Qdrant"
+  else
+    warn "Skipping Incus sandbox DNS checks for Qdrant because ${INCUS_CONNECTION_INFO_PATH} is missing or does not define HOST_LISTEN_ADDRESS"
+  fi
   step "Checking qdrant ingress endpoint"
   CURRENT_COMMAND="curl --silent --show-error --fail -H Host: ${QDRANT_INGRESS_HOST} http://127.0.0.1/readyz"
   wait_for_http_endpoint "${QDRANT_INGRESS_HOST}" "http://127.0.0.1/readyz" "Qdrant"
@@ -1083,8 +1135,15 @@ MEMGRAPH_DEPLOYMENT_NAME="$(resolve_deployment_name memgraph)"
 verify_labeled_service memgraph
 verify_memgraph_bootstrap "$MEMGRAPH_DEPLOYMENT_NAME"
 verify_gateway_memgraph_runtime "$(resolve_deployment_name openclaw)"
+if [[ "$(is_qdrant_enabled)" == "true" ]]; then
+  verify_gateway_qdrant_runtime "$(resolve_deployment_name openclaw)"
+fi
 if [[ -n "$HOST_LISTEN_ADDRESS_VALUE" ]]; then
-  verify_archivist_sandbox_runtime "$MEMGRAPH_INGRESS_HOST"
+  if [[ "$(is_qdrant_enabled)" == "true" ]]; then
+    verify_archivist_sandbox_runtime "$MEMGRAPH_INGRESS_HOST" "http://${QDRANT_INGRESS_HOST}"
+  else
+    verify_archivist_sandbox_runtime "$MEMGRAPH_INGRESS_HOST" ""
+  fi
   verify_coder_sandbox_runtime "$MEMGRAPH_INGRESS_HOST"
 else
   warn "Skipping sandbox runtime checks because ${INCUS_CONNECTION_INFO_PATH} is missing or does not define HOST_LISTEN_ADDRESS"

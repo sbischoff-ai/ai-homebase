@@ -1,78 +1,69 @@
 # Knowledge Graph Schema
 
-This document defines the repo-managed baseline schema for the Memgraph knowledge graph curated by the `archivist` agent.
+This document defines the canonical Memgraph schema for the user's long-term cross-domain world model. The same starter schema is seeded into Nextcloud for the `archivist`; the live graph may grow from this baseline as real knowledge enters the system.
 
-## Summary
+## Canonical Node Labels
 
-The graph complements Qdrant rather than replacing it:
+Every node must have the `Entity` label plus one or more specialized labels from this hierarchy:
 
-- Qdrant remains the shared semantic-memory store for all agents.
-- Memgraph stores durable entities, relationships, and graph-linked memory nodes.
-- `archivist` is the schema gatekeeper and the primary graph curator.
+```text
+Entity                    - base label, all nodes have this
+|-- Person                - humans, fictional characters, contacts, personas
+|-- Agent                 - AI agents (subtype of Person in this system)
+|-- Organization          - companies, teams, groups, factions, guilds
+|-- Place                 - locations, venues, regions, fictional lands
+|-- Thing                 - physical objects, items, equipment, artifacts
+|-- Concept               - abstract ideas, topics, skills, fields, genres
+|-- Event                 - occurrences with temporal extent (meetings, incidents, sessions, campaigns)
+|-- Work                  - creative or intellectual outputs (documents, code, art, publications)
+|-- Project               - tracked efforts with goals (software projects, campaigns, trips, research)
+|-- Service               - running systems, APIs, platforms, tools
+|-- Collection            - named groupings (playlists, reading lists, inventories, tag bundles)
+`-- MemoryEntry           - Qdrant-linked memory nodes (grooming artifacts)
+```
 
-## Stable labels
+Use properties instead of inventing more labels unless traversal semantics truly require a new label:
 
-- `Entity`
-- `Person`
-- `User`
-- `Agent`
-- `Service`
-- `System`
-- `Project`
-- `Repository`
-- `MemoryEntry`
+- `domain`: `real` | `fictional` | `speculative` | `synthetic`
+- `kind`: freeform subtype
+- `category`: freeform grouping
+- `status`: `active` | `archived` | `draft` | `completed` | `abandoned`
+- `slug`: stable identifier for `MERGE`-based idempotency
+- `name`: human-readable display name
 
-Use multiple labels when they fit one canonical entity, for example `:Entity:Agent:Person` or `:Entity:Project:System`.
-For durable first-class nodes, prefer including `Entity` unless there is a clear reason not to.
+## Canonical Relationships
 
-## Stable relationships
+Use this compact set and push domain-specific meaning into relationship properties:
 
-- `HAS_MEMBER`
-- `USES`
-- `PART_OF`
-- `MANAGES`
-- `REFERS_TO`
-- `RELATES_TO`
-- `DERIVED_FROM`
+| Relationship | Meaning | Key properties |
+| --- | --- | --- |
+| `RELATES_TO` | General association; fallback when nothing more specific fits | `role`, `kind`, `context`, `weight` |
+| `HAS_PART` | Composition or membership | `role`, `kind`, `since`, `until` |
+| `INFLUENCES` | Causal or directional effect | `kind`, `strength`, `context` |
+| `LOCATED_IN` | Spatial containment | `kind`, `since`, `until` |
+| `CREATED_BY` | Authorship or origin | `role`, `context` |
+| `DERIVED_FROM` | Provenance or lineage | `kind`, `context` |
+| `OCCURS_IN` | Temporal or narrative containment | `kind`, `sequence` |
+| `TAGGED_WITH` | Classification or annotation | `confidence`, `context` |
 
-Prefer an existing relationship over inventing a new one unless there is a clear modeling gap.
-When semantics differ only by responsibility or context, keep the relationship type broad and store the distinction on the edge with properties such as `role`, `kind`, or `context`.
+## Qdrant Linkage
 
-## Metadata guidance
+Qdrant remains the semantic memory store. Memgraph stores structural knowledge and graph-promoted memory nodes.
 
-Keep canonical fields stable and type-oriented:
+When a Qdrant memory deserves graph structure, `archivist` should:
 
-- entities should carry stable identifiers such as `slug`, `name`, `domain`, `kind`, `category`, or `role`
-- memory nodes should carry the Qdrant ID plus provenance fields such as `agent`, `domain`, `kind`, and timestamps
-- relationship properties are preferred over relationship-type sprawl when modeling role-specific semantics
-- label-specific metadata is acceptable, but avoid ad hoc field drift
+- retrieve the Qdrant point ID and normalized payload with the seeded `qdrant/` scripts
+- create or update a `:Entity:MemoryEntry` node with `slug = "qdrant:<point_id>"`
+- store `qdrant_id`, `document_sha256`, `agent`, `domain`, `kind`, `project`, `created`, `summary`, `linked_at`, and optional `memory_ref`
+- connect the memory to relevant entities with the standard relationships
+- annotate the Qdrant point's top-level `graph` payload only after Memgraph links succeed
 
-## Qdrant linkage
+Standard memory links:
 
-When a Qdrant memory deserves graph structure:
+- memory `CREATED_BY` agent when `metadata.agent` maps to an agent node
+- project `HAS_PART {kind: "memory"}` memory when `metadata.project` maps to a project node
+- memory `RELATES_TO {kind: "memory-evidence"}` relevant entities selected by archivist
+- memory `DERIVED_FROM {kind: "supersedes"}` older `MemoryEntry` when supersession is clear
+- memory `TAGGED_WITH` durable tag concepts
 
-- create or update a `MemoryEntry` node
-- store the Qdrant ID in node metadata
-- connect that node to the relevant entities
-- keep the semantic memory in Qdrant and the structural context in Memgraph
-
-This enables graph traversal first and semantic search second, or the reverse, depending on the task.
-
-## Initial seeded graph
-
-Fresh cluster bootstrap seeds at least:
-
-- the user
-- `ai-homebase`
-- OpenClaw
-- `main`, `architect`, `coder`, `archivist`, and `watchdog`
-- Nextcloud, Qdrant, Memgraph, Memgraph Lab, Gitea, Argo CD, and the registry
-- the GitOps repo and sandbox-images repo
-
-The seed is idempotent and intended as a stable baseline, not as a complete world model.
-The seeded edges deliberately stay broad:
-
-- `HAS_MEMBER` for membership, such as project to user
-- `USES` for dependencies and tooling/resource use, including services and repositories
-- `PART_OF` for containment, such as specialist agents belonging to OpenClaw
-- `MANAGES` for stewardship or operational responsibility, with edge properties carrying the exact role
+The Qdrant graph annotation is bookkeeping, not the source of structural truth. Do not modify Qdrant vectors, `document`, or MCP-managed `metadata` during graph grooming.

@@ -13,6 +13,7 @@ RUN apt-get update && \
       docker.io \
       jq \
       openssh-client \
+      python3 \
       ripgrep && \
     rm -rf /var/lib/apt/lists/*
 

@@ -1,6 +1,6 @@
 ---
 name: manage-nextcloud-incidents
-description: Use when watchdog needs to record or update durable monitoring state in Nextcloud. Covers incident report paths, baseline notes, escalation trails, and what should not produce a durable document.
+description: Use when recording or updating durable monitoring state in Nextcloud, including incidents, baselines, and escalation trails.
 ---
 
 # Nextcloud Incident Ops
@@ -13,7 +13,7 @@ Watchdog uses Nextcloud for durable monitoring state.
 - Nextcloud `/Projects/ai-homebase/baselines.md`
 - Nextcloud `/Projects/ai-homebase/escalation-rules.md`
 - Nextcloud `/Projects/ai-homebase/watchdog-status-log.md`
-- Nextcloud `/Projects/ai-homebase/heartbeat.json`
+- Nextcloud `/Projects/ai-homebase/coordination-status.json`
 
 ## Procedure
 

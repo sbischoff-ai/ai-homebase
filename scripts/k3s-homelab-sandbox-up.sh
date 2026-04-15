@@ -18,7 +18,7 @@ Usage: $0 [options]
 Create or reuse the Incus-backed remote Docker sandbox VM for the homelab k3s path.
 
 Options:
-  --bootstrap-config <path>    Bootstrap config file used to discover the Nextcloud/Qdrant MCP hostnames (default: ${BOOTSTRAP_CONFIG_PATH})
+  --bootstrap-config <path>    Bootstrap config file used to discover service hostnames (default: ${BOOTSTRAP_CONFIG_PATH})
   --vm-name <name>             Incus VM name (default: ${VM_NAME})
   --host-alias <name>          Hostname the VM should expose for the SSH-backed Docker endpoint (default: ${HOST_ALIAS})
   --shared-openclaw-state-source <path>
@@ -52,6 +52,7 @@ bootstrap_init_logging
 
 NEXTCLOUD_MCP_HOST=""
 NEXTCLOUD_HOST=""
+QDRANT_HOST=""
 QDRANT_MCP_HOST=""
 GITEA_HOST=""
 REGISTRY_HOST=""
@@ -63,6 +64,7 @@ if [[ -f "$BOOTSTRAP_CONFIG_PATH" ]]; then
   eval "$BOOTSTRAP_SHELL_VARS"
   NEXTCLOUD_MCP_HOST="${NEXTCLOUD_MCP_HOST:-}"
   NEXTCLOUD_HOST="${NEXTCLOUD_HOST:-}"
+  QDRANT_HOST="${QDRANT_HOST:-}"
   QDRANT_MCP_HOST="${QDRANT_MCP_HOST:-}"
   GITEA_HOST="${GITEA_HOST:-}"
   REGISTRY_HOST="${REGISTRY_HOST:-}"
@@ -84,6 +86,9 @@ if [[ -n "$NEXTCLOUD_HOST" ]]; then
 fi
 if [[ -n "$NEXTCLOUD_MCP_HOST" ]]; then
   INCUS_VM_CMD+=(--resolve-host "$NEXTCLOUD_MCP_HOST")
+fi
+if [[ -n "$QDRANT_HOST" ]]; then
+  INCUS_VM_CMD+=(--resolve-host "$QDRANT_HOST")
 fi
 if [[ -n "$QDRANT_MCP_HOST" ]]; then
   INCUS_VM_CMD+=(--resolve-host "$QDRANT_MCP_HOST")
@@ -120,6 +125,9 @@ if [[ -n "$NEXTCLOUD_HOST" ]]; then
 fi
 if [[ -n "$NEXTCLOUD_MCP_HOST" ]]; then
   echo "  Nextcloud MCP host override inside sandbox: ${NEXTCLOUD_MCP_HOST}"
+fi
+if [[ -n "$QDRANT_HOST" ]]; then
+  echo "  Qdrant host override inside sandbox: ${QDRANT_HOST}"
 fi
 if [[ -n "$QDRANT_MCP_HOST" ]]; then
   echo "  Qdrant MCP host override inside sandbox: ${QDRANT_MCP_HOST}"

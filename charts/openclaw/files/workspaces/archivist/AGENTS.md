@@ -40,10 +40,11 @@ You do not own:
 ## Custom Continuity Surfaces
 
 - `queries/`: canonical starting points for common Cypher tasks
+- `grooming/`: checkpoint update helpers for grooming runs
 - `CURRENT.md`: local desk for curation continuity
 - `SURFACES.md`: live registry of the supporting surfaces worth checking
 - `daily/`: historical daily wrap-ups when recent curation work still matters
-- `state/grooming-cursor.json`: last successful memory-grooming boundary
+- `state/grooming-checkpoint.json`: canonical grooming checkpoint for Qdrant and Nextcloud deltas
 
 ## Red Lines
 

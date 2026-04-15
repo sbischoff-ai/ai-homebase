@@ -1,9 +1,9 @@
 ---
-name: record-memory-and-heartbeat
-description: Use when main needs to decide what durable facts belong in Qdrant or when to update the shared heartbeat file. Covers memory triggers, nc_refs, and the exact heartbeat write shape.
+name: record-memory-and-coordination-status
+description: Use after meaningful coordination work to decide what belongs in Qdrant and whether to refresh the shared coordination status marker.
 ---
 
-# Memory And Heartbeat
+# Memory And Coordination Status
 
 Use this skill after meaningful coordination work.
 
@@ -32,7 +32,7 @@ Use desk promotion first when the information is only short-term continuity:
 - durable recall -> Qdrant
 - structural world-model changes -> archivist plus Memgraph
 
-## Heartbeat
+## Coordination Status
 
 After meaningful coordination work:
 - refresh `CURRENT.md` and the latest local note when short-term continuity changed
@@ -40,10 +40,10 @@ After meaningful coordination work:
 - register newly important shared surfaces in Nextcloud `/Desk/index.md`
 - capture user-relevant decisions in Nextcloud when they belong in a durable artifact
 - store durable new preferences or rules in Qdrant when recall should survive the current work
-- refresh Nextcloud `/Projects/ai-homebase/heartbeat.json` when shared coordination state changed in a way watchdog should notice
+- refresh Nextcloud `/Projects/ai-homebase/coordination-status.json` when shared coordination state changed in a way watchdog should notice
 - do nothing extra when nothing durable changed
 
-When you refresh the shared heartbeat file, write:
+When you refresh the shared coordination status marker, write:
 `{"lastActivity":"ISO-8601","agent":"main","status":"ok"}`
 
 ## Boundaries

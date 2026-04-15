@@ -24,6 +24,12 @@ Use `qdrant-store` for:
 - durable artifact summaries
 - shared quick note-like context that should influence later work but does not need a user-facing document yet
 
+Shape stored memories for semantic retrieval:
+- store one atomic durable claim per memory
+- use 1 to 3 compact, self-contained sentences
+- include natural anchors such as project slug, service/component, agent/person, artifact path, aliases, incident name, or source reference when relevant
+- include important recall terms in the `information` text, not only in metadata
+
 Use metadata aggressively:
 - set `project` whenever the memory belongs to a project slug
 - add 1 to 4 short `tags` for discoverability
@@ -31,7 +37,7 @@ Use metadata aggressively:
 - include `nc_refs` whenever the memory points to a Nextcloud artifact or shared surface
 
 Every stored memory must use this text format:
-`[domain] [kind] Complete statement here.`
+`[domain] [kind] Complete self-contained retrieval-optimized statement here.`
 
 Every stored memory must include metadata with at least:
 `{"kind":"...","domain":"...","agent":"main","created":"ISO-8601"}`

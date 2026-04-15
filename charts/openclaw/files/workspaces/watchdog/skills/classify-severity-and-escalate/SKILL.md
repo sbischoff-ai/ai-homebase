@@ -1,11 +1,11 @@
 ---
 name: classify-severity-and-escalate
-description: Use when watchdog must classify a monitoring result or decide whether to escalate. Covers severity gates, false-positive controls, cron caveats, and the Watchdog Alert format.
+description: Use when classifying a monitoring result, deciding whether to escalate, or preparing a Watchdog Alert.
 ---
 
 # Severity And Escalation
 
-Use this skill whenever watchdog must decide whether to log, wait, or escalate.
+Use when deciding whether to log, wait, or escalate.
 
 ## Severity Gates
 

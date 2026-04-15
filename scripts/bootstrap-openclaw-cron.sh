@@ -141,6 +141,14 @@ ensure_job "Watchdog daily digest" \
   --no-deliver \
   --message "$(read_message "watchdog-daily-digest.md")"
 
+ensure_job "Archivist weekly graph grooming" \
+  --name "Archivist weekly graph grooming" \
+  --cron "0 1 * * 0" \
+  --session main \
+  --wake now \
+  --agent archivist \
+  --system-event "$(read_message "archivist-weekly-graph-grooming.md")"
+
 ensure_job "Auditor weekly review" \
   --name "Auditor weekly review" \
   --cron "0 3 * * 0" \

@@ -1,6 +1,6 @@
 ---
 name: plan-projects
-description: Use when architect needs to create or update durable planning artifacts in Nextcloud. Covers project folder structure, specs, decision logs, planning trackers, and when to prefer markdown versus tables.
+description: Use when creating or updating durable project planning artifacts in Nextcloud, including specs, decisions, and planning trackers.
 ---
 
 # Nextcloud Project Planning

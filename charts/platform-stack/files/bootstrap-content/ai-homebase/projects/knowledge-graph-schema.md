@@ -71,3 +71,25 @@ Examples:
 
 - "Person X plays in Campaign Y" becomes `Campaign -[:HAS_PART {role: "player"}]-> Person`
 - "Doctor prescribed medication" becomes `Person -[:INFLUENCES {kind: "prescription"}]-> Thing`
+
+## Qdrant linkage
+
+Qdrant remains the semantic memory store. Memgraph stores structural knowledge and graph-promoted memory nodes.
+
+When a Qdrant memory deserves graph structure, `archivist` should:
+
+- retrieve the Qdrant point ID and normalized payload with the seeded `qdrant/` scripts
+- create or update a `:Entity:MemoryEntry` node with `slug = "qdrant:<point_id>"`
+- store `qdrant_id`, `document_sha256`, `agent`, `domain`, `kind`, `project`, `created`, `summary`, `linked_at`, and optional `memory_ref`
+- connect the memory to relevant entities with the standard relationships
+- annotate the Qdrant point's top-level `graph` payload only after Memgraph links succeed
+
+Standard memory links:
+
+- memory `CREATED_BY` agent when `metadata.agent` maps to an agent node
+- project `HAS_PART {kind: "memory"}` memory when `metadata.project` maps to a project node
+- memory `RELATES_TO {kind: "memory-evidence"}` relevant entities selected by archivist
+- memory `DERIVED_FROM {kind: "supersedes"}` older `MemoryEntry` when supersession is clear
+- memory `TAGGED_WITH` durable tag concepts
+
+The Qdrant graph annotation is bookkeeping, not the source of structural truth. Do not modify Qdrant vectors, `document`, or MCP-managed `metadata` during graph grooming.

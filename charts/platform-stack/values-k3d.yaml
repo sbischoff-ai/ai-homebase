@@ -105,6 +105,9 @@ openclaw:
               MEMGRAPH_HOST: memgraph.localtest.me
               MEMGRAPH_PORT: "7687"
               MEMGRAPH_BOLT_URI: bolt://memgraph.localtest.me:7687
+              QDRANT_URL: http://qdrant.localtest.me
+              QDRANT_COLLECTION: openclaw-memory
+              QDRANT_API_KEY: ${QDRANT_API_KEY}
 
 
 nextcloud:

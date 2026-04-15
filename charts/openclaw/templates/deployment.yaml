@@ -14,10 +14,14 @@
 {{- $remoteDockerCliInstallPath := .Values.remoteDocker.cli.installPath | default "/opt/openclaw-tools/bin" }}
 {{- $memgraphToolsInstallPath := "/opt/memgraph-tools/bin" }}
 {{- $nextcloudMcpHost := .Values.global.hosts.nextcloudMcp | default "" }}
+{{- $qdrantHost := .Values.global.hosts.qdrant | default "" }}
 {{- $qdrantMcpHost := .Values.global.hosts.qdrantMcp | default "" }}
 {{- $nextcloudMcpExternalScheme := ternary "http" "https" (hasSuffix ".localtest.me" $nextcloudMcpHost) }}
 {{- $nextcloudMcpExternalUrl := ternary (printf "%s://%s/mcp" $nextcloudMcpExternalScheme $nextcloudMcpHost) "" (ne $nextcloudMcpHost "") }}
 {{- $nextcloudMcpInternalUrl := printf "http://%s-nextcloud-mcp.%s.svc.cluster.local:8000/mcp" .Release.Name .Release.Namespace }}
+{{- $qdrantExternalScheme := ternary "http" "https" (hasSuffix ".localtest.me" $qdrantHost) }}
+{{- $qdrantExternalUrl := ternary (printf "%s://%s" $qdrantExternalScheme $qdrantHost) "" (ne $qdrantHost "") }}
+{{- $qdrantInternalUrl := printf "http://%s-qdrant.%s.svc.cluster.local:6333" .Release.Name .Release.Namespace }}
 {{- $qdrantMcpExternalScheme := ternary "http" "https" (hasSuffix ".localtest.me" $qdrantMcpHost) }}
 {{- $qdrantMcpExternalUrl := ternary (printf "%s://%s/mcp" $qdrantMcpExternalScheme $qdrantMcpHost) "" (ne $qdrantMcpHost "") }}
 {{- $qdrantMcpInternalUrl := printf "http://%s-qdrant-mcp.%s.svc.cluster.local:8000/mcp" .Release.Name .Release.Namespace }}
@@ -442,6 +446,21 @@ spec:
               value: {{ $qdrantMcpInternalUrl | quote }}
             - name: OPENCLAW_QDRANT_MCP_EXTERNAL_URL
               value: {{ $qdrantMcpExternalUrl | quote }}
+            - name: OPENCLAW_QDRANT_INTERNAL_URL
+              value: {{ $qdrantInternalUrl | quote }}
+            - name: OPENCLAW_QDRANT_EXTERNAL_URL
+              value: {{ $qdrantExternalUrl | quote }}
+            - name: QDRANT_URL
+              value: {{ (.Values.qdrant.url | default $qdrantInternalUrl) | quote }}
+            - name: QDRANT_COLLECTION
+              value: {{ (.Values.qdrant.collectionName | default "openclaw-memory") | quote }}
+            {{- with .Values.qdrant.apiKeySecret.name }}
+            - name: QDRANT_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ . }}
+                  key: {{ $.Values.qdrant.apiKeySecret.key | default "QDRANT_API_KEY" }}
+            {{- end }}
             {{- if $remoteDockerEnabled }}
             - name: DOCKER_HOST
               value: {{ .Values.remoteDocker.dockerHost | quote }}

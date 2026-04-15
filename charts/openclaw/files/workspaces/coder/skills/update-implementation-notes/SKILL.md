@@ -1,6 +1,6 @@
 ---
 name: update-implementation-notes
-description: Use when coder needs to read governing specs from Nextcloud or write durable implementation notes back. Covers what belongs in Nextcloud, what does not, and the standard handoff artifacts after non-obvious implementation work.
+description: Use when reading governing specs from Nextcloud or writing durable implementation notes after non-obvious implementation work.
 ---
 
 # Nextcloud Implementation Handoff

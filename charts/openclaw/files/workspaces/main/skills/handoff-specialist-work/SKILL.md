@@ -1,11 +1,11 @@
 ---
 name: handoff-specialist-work
-description: Use when main needs to route work to a standing specialist or review a specialist return. Covers the pre-handoff recall check, the exact Task Handoff format, and how to evaluate returned deliverables.
+description: Use when routing work to a standing specialist or reviewing a specialist return.
 ---
 
 # Specialist Handoff
 
-Use this skill when routing real specialist work.
+Use when routing real specialist work.
 
 ## Before Sending Work
 

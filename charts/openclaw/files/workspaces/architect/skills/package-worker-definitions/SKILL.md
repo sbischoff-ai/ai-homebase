@@ -1,6 +1,6 @@
 ---
 name: package-worker-definitions
-description: Use when architect is defining a recurring worker workflow. Covers the required package fields, output structure, safety boundaries, and when auditor review is required.
+description: Use when defining a recurring worker workflow that needs a complete worker package, safety boundaries, and review guidance.
 ---
 
 # Worker Definition Package

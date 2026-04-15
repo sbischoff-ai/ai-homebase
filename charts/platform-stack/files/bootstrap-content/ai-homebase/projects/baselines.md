@@ -15,6 +15,6 @@
 
 ## Known Patterns
 - sessions_list returns 0 from sandboxed cron context (expected - sandbox isolation)
-- First heartbeat after deploy may show stale timestamp (expected - main has not run yet)
+- First coordination-status marker after deploy may show a stale timestamp (expected - main has not run yet)
 
 Watchdog should update this document as new baselines are established.

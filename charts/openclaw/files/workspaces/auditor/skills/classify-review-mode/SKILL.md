@@ -1,11 +1,11 @@
 ---
 name: classify-review-mode
-description: Use when auditor needs to classify the review mode or return a completed review packet to main. Covers on-demand, risk-triggered, and scheduled reviews plus the compact Audit Complete handoff.
+description: Use when classifying a review request or returning a completed review packet to main.
 ---
 
 # Review Modes And Handoff
 
-Use this skill when deciding how the review is being invoked and how to return it.
+Use when deciding how the review is being invoked and how to return it.
 
 ## Review Modes
 

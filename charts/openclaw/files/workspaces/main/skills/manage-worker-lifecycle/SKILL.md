@@ -1,11 +1,11 @@
 ---
 name: manage-worker-lifecycle
-description: Use when main needs to decide whether a worker is appropriate, request a worker definition from architect, instantiate an approved worker, or retire one. Covers worker-definition inputs, activation steps, update flow, and decommissioning.
+description: Use when deciding whether recurring work should become a worker, or when requesting, activating, updating, or retiring a worker.
 ---
 
 # Worker Lifecycle
 
-Use this skill when recurring work might become a worker.
+Use when recurring work might become a worker.
 
 ## Decision Rule
 

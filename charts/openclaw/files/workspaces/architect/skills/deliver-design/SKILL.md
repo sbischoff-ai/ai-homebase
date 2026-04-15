@@ -1,11 +1,11 @@
 ---
 name: deliver-design
-description: Use when architect is returning a plan or design deliverable to main. Covers the Handoff Complete structure, durable artifact placement, and what a complete design return must contain.
+description: Use when returning a plan or design deliverable to main, especially when the response needs a structured handoff and durable artifact references.
 ---
 
 # Design Handoff
 
-Use this skill when returning completed planning work to main.
+Use when returning completed planning work to main.
 
 ## Return Format
 

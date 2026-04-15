@@ -166,7 +166,7 @@ NEXTCLOUD_PROJECT_BOOTSTRAP_FILES = [
     "budget-policy.md",
     "archivist-grooming-log.md",
     "incidents/README.md",
-    "heartbeat.json",
+    "coordination-status.json",
     "codex-usage/.gitkeep",
     "audit-log.md",
     "baselines.md",
@@ -514,6 +514,8 @@ def command_render_values(args: argparse.Namespace) -> int:
     full_mail_from = f"{values['MAIL_FROM_LOCALPART']}@{values['MAIL_DOMAIN']}"
     gitea_scheme = "http" if values["GITEA_HOST"].endswith(".localtest.me") else "https"
     gitea_base_url = f"{gitea_scheme}://{values['GITEA_HOST']}"
+    qdrant_scheme = "http" if values["QDRANT_HOST"].endswith(".localtest.me") else "https"
+    qdrant_sandbox_url = f"{qdrant_scheme}://{values['QDRANT_HOST']}" if values["QDRANT_HOST"] else ""
     openclaw["openclaw"] = {
         "skills": {
             "allowBundled": BUNDLED_SKILLS,
@@ -537,6 +539,9 @@ def command_render_values(args: argparse.Namespace) -> int:
                             "MEMGRAPH_BOLT_URI": (
                                 f"bolt://{values['MEMGRAPH_HOST']}:7687" if values["MEMGRAPH_HOST"] else ""
                             ),
+                            "QDRANT_URL": qdrant_sandbox_url,
+                            "QDRANT_COLLECTION": "openclaw-memory",
+                            "QDRANT_API_KEY": "${QDRANT_API_KEY}",
                         },
                     },
                 },

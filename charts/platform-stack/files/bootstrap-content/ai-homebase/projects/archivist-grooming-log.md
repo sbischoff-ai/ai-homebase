@@ -1,6 +1,6 @@
 # Archivist Grooming Log
 
-Nightly grooming summaries are appended here.
+Archivist grooming summaries are appended here. Each run records its trigger, effective delta window, checkpoint movement, and any issue that prevented checkpoint advancement.
 
-| Date | Memories Processed | Graph Changes | Issues |
-| --- | --- | --- | --- |
+| Completed At | Run ID | Trigger | Window | Reason Codes | Qdrant Memories | Nextcloud Surfaces | Memgraph Changes | Checkpoint | Issues |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
