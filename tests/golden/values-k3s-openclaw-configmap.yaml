@@ -203,8 +203,8 @@ data:
         "trustedProxies": ["10.42.0.0/16"]
       },
       "agents": {
-        "defaults": {"models":{"anthropic/claude-opus-4-6":{"alias":"Auditor"},"anthropic/claude-sonnet-4-6":{"alias":"Main / Architect"},"openai/gpt-5.4":{"alias":"Main / Coder / Architect / Archivist / Auditor"},"openai/gpt-5.4-nano":{"alias":"Watchdog"}},"sandbox":{"backend":"docker","browser":{"cdpPort":9222,"cdpSourceRange":"","enableNoVnc":true,"enabled":true,"headless":false,"image":"openclaw-sandbox-browser:bookworm-slim","network":"bridge","noVncPort":6080,"vncPort":5900},"docker":{"binds":["/home/node/.openclaw/certs/ai-homebase-ca-bundle.crt:/etc/ssl/certs/ai-homebase-ca-bundle.crt:ro"],"capDrop":["ALL"],"cpus":1,"env":{"ANTHROPIC_API_KEY":"${ANTHROPIC_API_KEY}","CURL_CA_BUNDLE":"/etc/ssl/certs/ai-homebase-ca-bundle.crt","GEMINI_API_KEY":"${GEMINI_API_KEY}","GITHUB_TOKEN":"${GITHUB_TOKEN}","GIT_SSL_CAINFO":"/etc/ssl/certs/ai-homebase-ca-bundle.crt","MEMGRAPH_BOLT_URI":"bolt://memgraph.vpn.homebase.internal:7687","MEMGRAPH_HOST":"memgraph.vpn.homebase.internal","MEMGRAPH_PORT":"7687","NODE_EXTRA_CA_CERTS":"/etc/ssl/certs/ai-homebase-ca-bundle.crt","OPENAI_API_KEY":"${OPENAI_API_KEY}","QDRANT_API_KEY":"${QDRANT_API_KEY}","QDRANT_COLLECTION":"openclaw-memory","QDRANT_URL":"https://qdrant.vpn.homebase.internal","REQUESTS_CA_BUNDLE":"/etc/ssl/certs/ai-homebase-ca-bundle.crt","SSL_CERT_FILE":"/etc/ssl/certs/ai-homebase-ca-bundle.crt"},"image":"registry.homebase.local/coder/openclaw-sandbox:trixie-slim","memory":"1g","memorySwap":"2g","network":"bridge","pidsLimit":256,"readOnlyRoot":true,"tmpfs":["/tmp","/var/tmp","/run"],"user":"1000:1000","workdir":"/workspace"},"mode":"non-main","scope":"agent","sessionToolsVisibility":"all","workspaceAccess":"rw"},"workspace":"/home/node/.openclaw/workspace"},
-        "list": [{"default":true,"id":"main","model":{"fallbacks":["anthropic/claude-sonnet-4-6"],"primary":"openai/gpt-5.4"},"name":"OpenClaw Assistant","skills":["handoff-specialist-work","manage-worker-lifecycle","bind-channels","coordinate-in-nextcloud","record-memory-and-coordination-status","track-budget","healthcheck","node-connect","skill-creator","session-logs","weather","summarize"],"subagents":{"allowAgents":["coder","architect","archivist","auditor"]},"workspace":"/home/node/.openclaw/workspace"},{"id":"coder","model":{"fallbacks":["openai/gpt-5.4"],"primary":"anthropic/claude-sonnet-4-6"},"name":"Coder","sandbox":{"docker":{"binds":["/home/node/.openclaw/certs/ai-homebase-ca-bundle.crt:/etc/ssl/certs/ai-homebase-ca-bundle.crt:ro"],"env":{"CODER_GITEA_BASE_URL":"https://gitea.homebase.local","CODER_GITEA_EMAIL":"coder@example.invalid","CODER_GITEA_HOST":"gitea.homebase.local","CODER_GITEA_PASSWORD":"${CODER_GITEA_PASSWORD}","CODER_GITEA_TEA_LOGIN_NAME":"coder","CODER_GITEA_TEA_TOKEN_NAME":"openclaw-coder-sandbox","CODER_GITEA_USERNAME":"coder","CODER_GITOPS_PROJECT":"platform-stack","CODER_GITOPS_REPO_BRANCH":"main","CODER_GITOPS_REPO_NAME":"cluster-gitops","CODER_REGISTRY_BASE_URL":"https://registry.homebase.local","CODER_REGISTRY_HOST":"registry.homebase.local","CODER_REGISTRY_NAMESPACE":"coder","CODER_REGISTRY_PASSWORD":"${CODER_REGISTRY_PASSWORD}","CODER_REGISTRY_USERNAME":"coder","CODER_SANDBOX_IMAGES_REPO_NAME":"openclaw-sandbox-images","CODEX_DEFAULT_MODEL":"gpt-5.4-mini","CODEX_HOME":"/workspace/.home/.codex","CODEX_MODEL":"openai/gpt-5.3-codex","CURL_CA_BUNDLE":"/etc/ssl/certs/ai-homebase-ca-bundle.crt","GITHUB_TOKEN":"${GITHUB_TOKEN}","GIT_SSL_CAINFO":"/etc/ssl/certs/ai-homebase-ca-bundle.crt","HOME":"/workspace/.home","NODE_EXTRA_CA_CERTS":"/etc/ssl/certs/ai-homebase-ca-bundle.crt","OPENAI_API_KEY":"${OPENAI_API_KEY}","REQUESTS_CA_BUNDLE":"/etc/ssl/certs/ai-homebase-ca-bundle.crt","SSL_CERT_FILE":"/etc/ssl/certs/ai-homebase-ca-bundle.crt","XDG_CACHE_HOME":"/workspace/.home/.cache","XDG_CONFIG_HOME":"/workspace/.home/.config","XDG_STATE_HOME":"/workspace/.home/.local/state"},"image":"registry.homebase.local/coder/openclaw-sandbox-coder:trixie-slim","setupCommand":"/usr/local/bin/coder-init.sh","tmpfs":["/tmp","/var/tmp","/run"]},"mode":"all","workspaceAccess":"rw"},"skills":["manage-gitea-gitops-and-registry","run-codex-and-log-usage","update-implementation-notes","github","tmux"],"workspace":"/home/node/.openclaw/workspace-coder"},{"id":"architect","model":{"fallbacks":["openai/gpt-5.4"],"primary":"anthropic/claude-sonnet-4-6"},"name":"Architect","sandbox":{"docker":{"binds":["/home/node/.openclaw/certs/ai-homebase-ca-bundle.crt:/etc/ssl/certs/ai-homebase-ca-bundle.crt:ro"],"capDrop":["ALL"],"cpus":1,"env":{"ANTHROPIC_API_KEY":"${ANTHROPIC_API_KEY}","CURL_CA_BUNDLE":"/etc/ssl/certs/ai-homebase-ca-bundle.crt","GEMINI_API_KEY":"${GEMINI_API_KEY}","GITHUB_TOKEN":"${GITHUB_TOKEN}","GIT_SSL_CAINFO":"/etc/ssl/certs/ai-homebase-ca-bundle.crt","MEMGRAPH_BOLT_URI":"bolt://memgraph.homebase.local:7687","MEMGRAPH_HOST":"memgraph.homebase.local","MEMGRAPH_PORT":"7687","NODE_EXTRA_CA_CERTS":"/etc/ssl/certs/ai-homebase-ca-bundle.crt","OPENAI_API_KEY":"${OPENAI_API_KEY}","QDRANT_API_KEY":"${QDRANT_API_KEY}","QDRANT_COLLECTION":"openclaw-memory","QDRANT_URL":"https://qdrant.homebase.local","REQUESTS_CA_BUNDLE":"/etc/ssl/certs/ai-homebase-ca-bundle.crt","REVIEWER_GITEA_BASE_URL":"https://gitea.homebase.local","REVIEWER_GITEA_EMAIL":"reviewer@example.invalid","REVIEWER_GITEA_HOST":"gitea.homebase.local","REVIEWER_GITEA_PASSWORD":"${REVIEWER_GITEA_PASSWORD}","REVIEWER_GITEA_TEA_LOGIN_NAME":"reviewer","REVIEWER_GITEA_TEA_TOKEN_NAME":"openclaw-reviewer","REVIEWER_GITEA_USERNAME":"reviewer","SSL_CERT_FILE":"/etc/ssl/certs/ai-homebase-ca-bundle.crt"},"image":"registry.homebase.local/coder/openclaw-sandbox:trixie-slim","memory":"1g","memorySwap":"2g","network":"bridge","pidsLimit":256,"readOnlyRoot":true,"setupCommand":"/usr/local/bin/reviewer-gitea-init.sh","tmpfs":["/tmp","/var/tmp","/run"],"user":"1000:1000","workdir":"/workspace"},"mode":"all","workspaceAccess":"rw"},"skills":["plan-projects","package-worker-definitions","deliver-design","gitea-browse","skill-creator","session-logs","summarize","github"],"tools":{"deny":["tts","image_generate","canvas"]},"workspace":"/home/node/.openclaw/workspace-architect"},{"id":"archivist","model":{"fallbacks":["anthropic/claude-sonnet-4-6"],"primary":"openai/gpt-5.4-mini"},"name":"Archivist","sandbox":{"mode":"non-main"},"skills":["curate-memgraph","groom-knowledge-graph","map-context-and-link-evidence","use-nextcloud-docs-for-graph-work","session-logs","summarize"],"tools":{"deny":["tts","image_generate","canvas","browser"]},"workspace":"/home/node/.openclaw/workspace-archivist"},{"id":"watchdog","model":{"fallbacks":["anthropic/claude-haiku-4-5"],"primary":"openai/gpt-5.4-nano"},"name":"Watchdog","sandbox":{"mode":"off"},"skills":["classify-severity-and-escalate","manage-nextcloud-incidents","check-heartbeat-and-budget","healthcheck","node-connect","session-logs"],"tools":{"deny":["image_generate","canvas","tts","image","browser","sessions_spawn","agents_list","subagents"]},"workspace":"/home/node/.openclaw/workspace-watchdog"},{"id":"auditor","model":{"fallbacks":["openai/gpt-5.4"],"primary":"anthropic/claude-opus-4-6"},"name":"Auditor","sandbox":{"mode":"off"},"skills":["classify-review-mode","manage-review-packets","format-verdict","gitea-browse","session-logs","summarize","github"],"tools":{"deny":["tts","image_generate","canvas"]},"workspace":"/home/node/.openclaw/workspace-auditor"}]
+        "defaults": {"models":{"anthropic/claude-opus-4-6":{"alias":"Auditor"},"anthropic/claude-sonnet-4-6":{"alias":"Main / Architect"},"openai/gpt-5.4":{"alias":"Main / Coder / Architect / Archivist / Auditor"},"openai/gpt-5.4-nano":{"alias":"Watchdog"}},"sandbox":{"backend":"docker","browser":{"cdpPort":9222,"cdpSourceRange":"","enableNoVnc":true,"enabled":true,"headless":false,"image":"openclaw-sandbox-browser:bookworm-slim","network":"bridge","noVncPort":6080,"vncPort":5900},"docker":{"capDrop":["ALL"],"cpus":1,"env":{"ANTHROPIC_API_KEY":"${ANTHROPIC_API_KEY}","CURL_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","GEMINI_API_KEY":"${GEMINI_API_KEY}","GITHUB_TOKEN":"${GITHUB_TOKEN}","GIT_SSL_CAINFO":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","MEMGRAPH_BOLT_URI":"bolt://memgraph.vpn.homebase.internal:7687","MEMGRAPH_HOST":"memgraph.vpn.homebase.internal","MEMGRAPH_PORT":"7687","NODE_EXTRA_CA_CERTS":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","OPENAI_API_KEY":"${OPENAI_API_KEY}","QDRANT_COLLECTION":"openclaw-memory","QDRANT_URL":"https://qdrant.vpn.homebase.internal","REQUESTS_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","SSL_CERT_FILE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt"},"image":"registry.homebase.local/coder/openclaw-sandbox:trixie-slim","memory":"1g","memorySwap":"2g","network":"bridge","pidsLimit":256,"readOnlyRoot":true,"tmpfs":["/tmp","/var/tmp","/run"],"user":"1000:1000","workdir":"/workspace"},"mode":"non-main","scope":"agent","sessionToolsVisibility":"all","workspaceAccess":"rw"},"workspace":"/home/node/.openclaw/workspace"},
+        "list": [{"default":true,"heartbeat":{"every":"0m","includeSystemPromptSection":false},"id":"main","model":{"fallbacks":["anthropic/claude-sonnet-4-6"],"primary":"openai/gpt-5.4"},"name":"OpenClaw Assistant","skills":["handoff-specialist-work","manage-worker-lifecycle","bind-channels","coordinate-in-nextcloud","record-memory-and-coordination-status","track-budget","healthcheck","node-connect","skill-creator","session-logs","weather","summarize"],"subagents":{"allowAgents":["coder","architect","archivist","auditor"]},"workspace":"/home/node/.openclaw/workspace"},{"id":"coder","model":{"fallbacks":["openai/gpt-5.4"],"primary":"anthropic/claude-sonnet-4-6"},"name":"Coder","sandbox":{"docker":{"env":{"CODER_GITEA_BASE_URL":"https://gitea.homebase.local","CODER_GITEA_EMAIL":"coder@example.invalid","CODER_GITEA_HOST":"gitea.homebase.local","CODER_GITEA_PASSWORD":"${CODER_GITEA_PASSWORD}","CODER_GITEA_TEA_LOGIN_NAME":"coder","CODER_GITEA_TEA_TOKEN_NAME":"openclaw-coder-sandbox","CODER_GITEA_USERNAME":"coder","CODER_GITOPS_PROJECT":"platform-stack","CODER_GITOPS_REPO_BRANCH":"main","CODER_GITOPS_REPO_NAME":"cluster-gitops","CODER_REGISTRY_BASE_URL":"https://registry.homebase.local","CODER_REGISTRY_HOST":"registry.homebase.local","CODER_REGISTRY_NAMESPACE":"coder","CODER_REGISTRY_PASSWORD":"${CODER_REGISTRY_PASSWORD}","CODER_REGISTRY_USERNAME":"coder","CODER_SANDBOX_IMAGES_REPO_NAME":"openclaw-sandbox-images","CODEX_DEFAULT_MODEL":"gpt-5.4-mini","CODEX_HOME":"/workspace/.home/.codex","CODEX_MODEL":"openai/gpt-5.3-codex","CURL_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","DOCKER_HOST":"${DOCKER_HOST}","GITHUB_TOKEN":"${GITHUB_TOKEN}","GIT_SSL_CAINFO":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","HOME":"/workspace/.home","NODE_EXTRA_CA_CERTS":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","OPENAI_API_KEY":"${OPENAI_API_KEY}","REQUESTS_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","SSL_CERT_FILE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","XDG_CACHE_HOME":"/workspace/.home/.cache","XDG_CONFIG_HOME":"/workspace/.home/.config","XDG_STATE_HOME":"/workspace/.home/.local/state"},"image":"registry.homebase.local/coder/openclaw-sandbox-coder:trixie-slim","setupCommand":"/usr/local/bin/coder-init.sh","tmpfs":["/tmp","/var/tmp","/run"]},"mode":"all","workspaceAccess":"rw"},"skills":["manage-gitea-gitops-and-registry","run-codex-and-log-usage","update-implementation-notes","github","tmux"],"workspace":"/home/node/.openclaw/workspace-coder"},{"id":"architect","model":{"fallbacks":["openai/gpt-5.4"],"primary":"anthropic/claude-sonnet-4-6"},"name":"Architect","sandbox":{"docker":{"capDrop":["ALL"],"cpus":1,"env":{"ANTHROPIC_API_KEY":"${ANTHROPIC_API_KEY}","CURL_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","GEMINI_API_KEY":"${GEMINI_API_KEY}","GITHUB_TOKEN":"${GITHUB_TOKEN}","GIT_SSL_CAINFO":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","MEMGRAPH_BOLT_URI":"bolt://memgraph.homebase.local:7687","MEMGRAPH_HOST":"memgraph.homebase.local","MEMGRAPH_PORT":"7687","NODE_EXTRA_CA_CERTS":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","OPENAI_API_KEY":"${OPENAI_API_KEY}","QDRANT_COLLECTION":"openclaw-memory","QDRANT_URL":"https://qdrant.homebase.local","REQUESTS_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","REVIEWER_GITEA_BASE_URL":"https://gitea.homebase.local","REVIEWER_GITEA_EMAIL":"reviewer@example.invalid","REVIEWER_GITEA_HOST":"gitea.homebase.local","REVIEWER_GITEA_PASSWORD":"${REVIEWER_GITEA_PASSWORD}","REVIEWER_GITEA_TEA_LOGIN_NAME":"reviewer","REVIEWER_GITEA_TEA_TOKEN_NAME":"openclaw-reviewer","REVIEWER_GITEA_USERNAME":"reviewer","SSL_CERT_FILE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt"},"image":"registry.homebase.local/coder/openclaw-sandbox:trixie-slim","memory":"1g","memorySwap":"2g","network":"bridge","pidsLimit":256,"readOnlyRoot":true,"setupCommand":"/usr/local/bin/reviewer-gitea-init.sh","tmpfs":["/tmp","/var/tmp","/run"],"user":"1000:1000","workdir":"/workspace"},"mode":"non-main","workspaceAccess":"rw"},"skills":["plan-projects","package-worker-definitions","deliver-design","gitea-browse","skill-creator","session-logs","summarize","github"],"tools":{"deny":["tts","image_generate","canvas"]},"workspace":"/home/node/.openclaw/workspace-architect"},{"id":"archivist","model":{"fallbacks":["anthropic/claude-sonnet-4-6"],"primary":"openai/gpt-5.4-mini"},"name":"Archivist","sandbox":{"mode":"non-main"},"skills":["curate-memgraph","groom-knowledge-graph","map-context-and-link-evidence","use-nextcloud-docs-for-graph-work","session-logs","summarize"],"tools":{"deny":["tts","image_generate","canvas","browser"]},"workspace":"/home/node/.openclaw/workspace-archivist"},{"heartbeat":{"every":"30m"},"id":"watchdog","model":{"fallbacks":["anthropic/claude-haiku-4-5"],"primary":"openai/gpt-5.4-nano"},"name":"Watchdog","sandbox":{"mode":"off"},"skills":["classify-severity-and-escalate","manage-nextcloud-incidents","check-heartbeat-and-budget","healthcheck","node-connect","session-logs"],"tools":{"deny":["image_generate","canvas","tts","image","browser","sessions_spawn","agents_list","subagents"]},"workspace":"/home/node/.openclaw/workspace-watchdog"},{"id":"auditor","model":{"fallbacks":["openai/gpt-5.4"],"primary":"anthropic/claude-opus-4-6"},"name":"Auditor","sandbox":{"mode":"off"},"skills":["classify-review-mode","manage-review-packets","format-verdict","gitea-browse","session-logs","summarize","github"],"tools":{"deny":["tts","image_generate","canvas"]},"workspace":"/home/node/.openclaw/workspace-auditor"}]
       },
       "skills": {"allowBundled":["weather","healthcheck","node-connect","skill-creator","session-logs","tmux","summarize","github"]},
       "mcp": {"servers":{"nextcloud":{"args":["/opt/openclaw-runtime/mcp/mcp-http-bridge.mjs","--url","${OPENCLAW_NEXTCLOUD_MCP_INTERNAL_URL}","--url","${OPENCLAW_NEXTCLOUD_MCP_EXTERNAL_URL}","--header","Authorization=${OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER}"],"command":"node"},"qdrant":{"args":["/opt/openclaw-runtime/mcp/mcp-http-bridge.mjs","--url","${OPENCLAW_QDRANT_MCP_INTERNAL_URL}","--url","${OPENCLAW_QDRANT_MCP_EXTERNAL_URL}"],"command":"node"}}},
@@ -2467,6 +2467,7 @@ data:
     - `/workspace` is the repo working tree.
     - Persistent tool state lives under `/workspace/.home`.
     - `HOME`, `CODEX_HOME`, and XDG directories are already pointed into `/workspace/.home`.
+    - Remote Docker access is prewired through `DOCKER_HOST`; the SSH key material lives under `/workspace/.home/.ssh`.
     - Use `CODER_GITEA_BASE_URL` / `CODER_GITEA_HOST` for the in-cluster Gitea service.
     - Use `CODER_REGISTRY_BASE_URL` / `CODER_REGISTRY_HOST` for the in-cluster registry.
     - Canonical repo names in this stack:
@@ -3785,6 +3786,214 @@ data:
     - Prefer one evolving baseline or status log over many fragmented notes.
     - Do not turn Nextcloud `/Desk/` into an incident archive; it is for bounded continuity.
     - Keep incident reports factual and concise.
+  workspace-worker-template-AGENTS.md: |
+    # {{WORKER_NAME}}
+
+    You are a bottom-layer execution agent.
+
+    ## Custom Workspace Surfaces
+
+    - `CURRENT.md`: local short-term continuity when this worker has a persistent workspace.
+    - `SURFACES.md`: live registry of the worker's recurring surfaces when applicable.
+    - `daily/`: historical daily wrap-ups when recent work still matters.
+    - `HEARTBEAT.md`: create and use this only when the approved worker definition explicitly uses heartbeat.
+    - `skills/`: workflow procedures and templates for recurring worker actions.
+
+    ## Core Role
+
+    You follow your defined workflow exactly.
+
+    You do not:
+    - improvise
+    - redesign your task
+    - talk to the user
+    - contact arbitrary agents
+    - spawn sessions
+
+    ## Environment Ownership
+
+    Your environment is whatever your worker definition explicitly grants:
+    - local workspace via `read`, `edit`, `write`, `apply_patch`
+    - shell or runtime via `exec`, `process`
+    - remote shared workspace via Nextcloud tools when specified
+    - shared semantic memory via Qdrant tools only when specified
+
+    ## Operating Order
+
+    1. Confirm the input matches your workflow.
+    2. Read only the minimum relevant custom workspace files, including `CURRENT.md`, `SURFACES.md`, and the latest daily note when this worker keeps continuity.
+    3. Execute the predefined steps.
+    4. If a rule is missing or a tool fails unexpectedly, escalate to main.
+    5. Persist outputs only where your definition says they belong.
+
+    ## Execution Rules
+
+    1. Follow your execution plan exactly.
+    2. Do not guess missing inputs.
+    3. Retry an unexpected tool failure once if your plan allows it, then escalate.
+    4. Escalate when the current situation is outside your rules.
+    5. Send all results and blockers only to `agent:main:main`.
+    6. Do not improvise, redesign the task, or reinterpret ambiguous instructions.
+    7. Do not store Qdrant memories unless your execution plan explicitly allows it.
+
+    Keep `AGENTS.md` short. Put recurring procedures, output templates, and tool-specific recipes in `skills/`.
+
+    ## Tool Routing
+
+    - Local workspace file: `read`, `edit`, `write`, `apply_patch`
+    - Local commands: `exec`, `process`
+    - Nextcloud `/Projects/...` and any other Nextcloud folders: only Nextcloud tools if your workflow uses them
+    - Shared memory: only Qdrant tools if your workflow uses them
+    - Coordination: `sessions_send` only to `agent:main:main`
+    - Shared continuity: use Nextcloud `/Desk/...` only if your workflow explicitly grants and needs it
+
+    ## Schedule
+
+    {{WORKER_SCHEDULE_DESCRIPTION}}
+
+    If this worker is not explicitly heartbeat-driven, do not create `HEARTBEAT.md`; use cron or on-demand triggers only.
+
+    ## Role
+
+    {{WORKER_ROLE_DESCRIPTION}}
+
+    ## Domain
+
+    {{WORKER_DOMAIN_DESCRIPTION}}
+
+    ## Execution Plan
+
+    {{WORKER_EXECUTION_PLAN}}
+
+    ## Escalation Rules
+
+    Escalate to `agent:main:main` when:
+    - a decision rule does not cover the current situation
+    - input is outside expected parameters
+    - a required tool call fails after the allowed retry
+    - reference material is contradictory or incomplete
+    {{WORKER_ADDITIONAL_ESCALATION_RULES}}
+
+    ## Cost Awareness
+
+    You run on `{{WORKER_MODEL}}`.
+    Your soft daily threshold is `{{WORKER_DAILY_BUDGET}}`.
+    If your context grows large, end the run and let the next scheduled run continue instead of stretching a long conversation.
+  workspace-worker-template-CURRENT.md: |
+    # Current - {{WORKER_NAME}}
+
+    Use this file only when the worker keeps live short-term continuity across runs.
+
+    Keep it small and focused on:
+    - active work items
+    - recent changes that still matter
+    - open loops
+    - retrieval cues for any granted shared memory or Nextcloud surfaces
+  workspace-worker-template-HEARTBEAT.md: |
+    Create this file only when the approved worker definition explicitly uses heartbeat.
+
+    For heartbeat-enabled workers:
+    - keep the run narrow, cheap, and procedural
+    - execute only the approved trigger-checking workflow
+    - escalate to main when the rule package says the gate is met
+    - update `CURRENT.md`, the latest daily note, and any explicitly granted shared Nextcloud `/Desk/` entry only when the worker definition says continuity is needed for future runs
+  workspace-worker-template-IDENTITY.md: |
+    # Identity
+
+    You are `{{WORKER_NAME}}`.
+
+    Layer: bottom. You are a low-cost execution agent for one predefined workflow. Use the specification main gives you, follow the front-loaded reasoning in this worker package, and escalate ambiguity instead of redesigning the work.
+
+    Your domain is {{WORKER_DOMAIN_SHORT}}.
+
+    You run on {{WORKER_MODEL}}.
+  workspace-worker-template-MEMORY.md: |
+    # Memory - {{WORKER_NAME}}
+
+    Default: this worker does not use Qdrant unless its definition explicitly requires it.
+
+    Use this file only for local retrieval hints.
+
+    If this worker does use Qdrant, retrieve from cues in `CURRENT.md` and `SURFACES.md` rather than broad memory dumps.
+
+    When a worker definition allows Qdrant writes, store one atomic durable claim per memory, use 1 to 3 compact self-contained sentences, and include natural retrieval anchors such as project slug, service/component, artifact path, aliases, or source reference in the `information` text. Important recall terms must appear in `information`, not only in metadata.
+
+    {{WORKER_MEMORY_INSTRUCTIONS}}
+  workspace-worker-template-SOUL.md: |
+    Execute precisely. Do not improvise. Escalate when your rules stop.
+  workspace-worker-template-SURFACES.md: |
+    # Surfaces - {{WORKER_NAME}}
+
+    Use this file only when the worker needs a live registry of recurring surfaces.
+
+    For each important surface, record:
+    - type
+    - stable id or path
+    - purpose
+    - steward
+    - project or domain
+    - read trigger
+  workspace-worker-template-TOOLS.md: |
+    # Tools
+
+    Use this template to define the tool and skill instructions for the worker you are creating. Distinguish the worker's local workspace files from any remote Nextcloud paths the worker is allowed to use.
+
+    {{WORKER_TOOLS_INSTRUCTIONS}}
+
+    ## Files
+
+    - Local workspace files live in this worker workspace.
+    - Use local workspace files for private execution state and temporary scratch work.
+    - `CURRENT.md`, `SURFACES.md`, and `daily/` are optional custom continuity surfaces when this worker keeps state across runs.
+    - Nextcloud `/Projects/...` are remote paths when this worker is allowed to use them.
+    - Nextcloud `/Desk/...` are shared continuity and index paths only when this worker is explicitly allowed to use them.
+    - Use local workspace file tools only for local workspace files such as `CURRENT.md`, `SURFACES.md`, `daily/`, and other files in this worker workspace.
+    - Use Nextcloud tools only for Nextcloud `/Projects/...` and Nextcloud `/Desk/...` paths.
+    - Creating or editing a local workspace file does not create or update a Nextcloud file.
+    - Creating or editing a Nextcloud file does not create or update a local workspace file.
+    - Local workspace directories and Nextcloud directories are separate storage systems, not mirrored views of the same path.
+    - Do not use local filesystem tools on Nextcloud paths, and do not use Nextcloud tools on local workspace files.
+    - Use Qdrant only when the worker definition explicitly grants that memory surface.
+
+    ## Sessions
+
+    - Standard return target: `agent:main:main`
+
+    ## Notes
+
+    - Record concrete setup facts here: paths, IDs, hosts, schedules, and other worker-specific tool notes.
+    - Keep volatile active-surface references in `SURFACES.md`, not here.
+    - Keep this file current when those local notes change.
+  workspace-worker-template-USER.md: |
+    # User
+
+    - Name:
+    - What to call them:
+    - Timezone:
+    - Notes:
+
+    Main owns the canonical shared user profile. Workers use it only when the execution plan requires it.
+  workspace-worker-template-daily__README.md: |
+    # Daily Notes - {{WORKER_NAME}}
+
+    Use this directory only when the worker keeps continuity across runs. Each file should be a past-tense daily wrap-up rather than a copy of `CURRENT.md`.
+
+    Keep live carry-forward state in `CURRENT.md`. Promote anything durable into the destination your worker definition specifies.
+  workspace-worker-template-skills__define-worker-workflow__SKILL.md: |
+    ---
+    name: define-worker-workflow
+    description: Template skill for worker procedures. Use when defining a worker-local recurring workflow, output template, or escalation recipe that should not live in the always-loaded worker contract.
+    ---
+
+    # Worker Workflow
+
+    Use worker-local skills for:
+    - exact execution procedures
+    - output templates
+    - tool-specific recipes
+    - escalation checklists
+
+    Keep `AGENTS.md` short and stable. Put repeated workflow detail here.
 kind: ConfigMap
 metadata:
   labels:

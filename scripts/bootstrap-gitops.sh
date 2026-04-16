@@ -236,8 +236,9 @@ wait_for_gitea() {
 start_gitea_port_forward() {
   GITEA_PORT_FORWARD_LOG="$(mktemp /tmp/ai-homebase-gitea-port-forward.XXXXXX.log)"
   kubectl "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" port-forward \
+    --address 127.0.0.1 \
     "service/${RELEASE_NAME}-gitea-http" \
-    "127.0.0.1:${GITEA_BOOTSTRAP_LOCAL_PORT}:3000" \
+    "${GITEA_BOOTSTRAP_LOCAL_PORT}:3000" \
     >"$GITEA_PORT_FORWARD_LOG" 2>&1 &
   GITEA_PORT_FORWARD_PID=$!
 
@@ -462,10 +463,9 @@ build_admin_user_edit_payload() {
 import json
 import sys
 
-email, password, full_name = sys.argv[1:4]
+username, email, password, full_name = sys.argv[1:5]
 print(json.dumps({
-    "source_id": 0,
-    "login_name": "",
+    "login_name": username,
     "email": email,
     "password": password,
     "must_change_password": False,
@@ -561,7 +561,7 @@ ensure_gitea_user() {
   local user_status
 
   create_payload="$(build_admin_user_payload "$username" "$email" "$password")"
-  edit_payload="$(build_admin_user_edit_payload "$email" "$password" "$full_name")"
+  edit_payload="$(build_admin_user_edit_payload "$username" "$email" "$password" "$full_name")"
   user_status="$(
     curl -sS -u "${GITEA_ADMIN_USERNAME}:${GITEA_ADMIN_PASSWORD}" \
       -o /dev/null -w '%{http_code}' \
@@ -638,18 +638,37 @@ push_bootstrap_repo() {
   local askpass_script="$3"
   local repo_branch="$4"
   local commit_message="$5"
+  local remote_work_dir=""
+
+  remote_work_dir="$(mktemp -d /tmp/ai-homebase-gitops-remote.XXXXXX)"
 
   (
-    cd "$repo_dir"
-    git init -b "$repo_branch" >/dev/null
-    git add .
+    export GIT_TERMINAL_PROMPT=0
+    export GIT_USERNAME="$CODER_GITEA_USERNAME"
+    export GIT_PASSWORD="$CODER_GITEA_PASSWORD"
+
+    if git -c core.askPass="$askpass_script" ls-remote --exit-code --heads "$remote_url" "$repo_branch" >/dev/null 2>&1; then
+      git -c core.askPass="$askpass_script" clone --branch "$repo_branch" --single-branch "$remote_url" "$remote_work_dir" >/dev/null
+      cd "$remote_work_dir"
+      git rm -r --quiet . >/dev/null 2>&1 || true
+      git clean -fdx >/dev/null
+      cp -a "$repo_dir"/. "$remote_work_dir"/
+      git add --all
+      if git diff --cached --quiet; then
+        exit 0
+      fi
+    else
+      cd "$repo_dir"
+      git init -b "$repo_branch" >/dev/null
+      git add .
+      git remote add origin "$remote_url"
+    fi
+
     git -c user.name="$CODER_GITEA_USERNAME" -c user.email="$CODER_GITEA_EMAIL" commit -m "$commit_message" >/dev/null
-    git remote add origin "$remote_url"
-    GIT_TERMINAL_PROMPT=0 \
-    GIT_USERNAME="$CODER_GITEA_USERNAME" \
-    GIT_PASSWORD="$CODER_GITEA_PASSWORD" \
-    git -c core.askPass="$askpass_script" push --force origin "HEAD:${repo_branch}" >/dev/null
+    git -c core.askPass="$askpass_script" push origin "HEAD:${repo_branch}" >/dev/null
   )
+
+  rm -rf "$remote_work_dir"
 }
 
 step "Validating bootstrap config"
@@ -743,7 +762,7 @@ if [[ "$SKIP_INSTALL" -eq 0 ]]; then
     --bootstrap-config "$BOOTSTRAP_CONFIG_PATH"
     --release-name "$RELEASE_NAME"
     --namespace "$NAMESPACE"
-    --skip-gitops
+    --internal-skip-gitops
     --enable-service argo-cd
   )
   if [[ -n "$KUBECONFIG_PATH" ]]; then

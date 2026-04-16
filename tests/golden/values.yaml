@@ -379,7 +379,7 @@ data:
     2. If risk-triggered review is warranted, main routes the definition to auditor.
     3. Main instantiates the worker at runtime:
        a. Create the workspace directory (e.g., `~/.openclaw/workspace-<worker-id>`).
-       b. Read the worker template from the gateway-accessible repo path `charts/openclaw/files/workspaces/worker-template/`.
+       b. Read the worker template from `/home/node/.openclaw/worker-template/` on the gateway.
        c. Write the workspace files (AGENTS.md, SOUL.md, IDENTITY.md, MEMORY.md, TOOLS.md, USER.md, plus `HEARTBEAT.md` only when the definition explicitly uses heartbeat) by filling in the worker template placeholders with values from the architect's definition package.
        d. Run `openclaw agents add <worker-id> --workspace ~/.openclaw/workspace-<worker-id> --model <model-id>` to register the agent.
        e. Update `/Projects/ai-homebase/budget-policy.md` if the new worker changes the expected ongoing LLM spend posture.
@@ -411,7 +411,7 @@ data:
 
     ## Runtime Note
 
-    `CURRENT.md`, `SURFACES.md`, and `daily/` are prompt-injected continuity surfaces inside an agent workspace, not the full boundary of what gateway sessions can read. When a worker definition tells `main` to use a repo path such as `charts/openclaw/files/workspaces/worker-template/`, that is an explicit runtime fetch step, not preloaded context.
+    `CURRENT.md`, `SURFACES.md`, and `daily/` are local continuity files inside an agent workspace. They are not automatically loaded into a session; an agent reads them explicitly when orientation or continuity requires it.
   project-0-file-6: |2
 
     # Qdrant Semantic Memory Schema
@@ -885,8 +885,8 @@ data:
         "trustedProxies": []
       },
       "agents": {
-        "defaults": {"models":{"anthropic/claude-opus-4-6":{"alias":"Auditor"},"anthropic/claude-sonnet-4-6":{"alias":"Main / Architect"},"openai/gpt-5.4":{"alias":"Main / Coder / Architect / Archivist / Auditor"},"openai/gpt-5.4-nano":{"alias":"Watchdog"}},"sandbox":{"backend":"docker","browser":{"cdpPort":9222,"cdpSourceRange":"","enableNoVnc":true,"enabled":true,"headless":false,"image":"openclaw-sandbox-browser:bookworm-slim","network":"bridge","noVncPort":6080,"vncPort":5900},"docker":{"binds":["/home/node/.openclaw/certs/ai-homebase-ca-bundle.crt:/etc/ssl/certs/ai-homebase-ca-bundle.crt:ro"],"capDrop":["ALL"],"cpus":1,"env":{"ANTHROPIC_API_KEY":"${ANTHROPIC_API_KEY}","CURL_CA_BUNDLE":"/etc/ssl/certs/ai-homebase-ca-bundle.crt","GEMINI_API_KEY":"${GEMINI_API_KEY}","GITHUB_TOKEN":"${GITHUB_TOKEN}","GIT_SSL_CAINFO":"/etc/ssl/certs/ai-homebase-ca-bundle.crt","MEMGRAPH_BOLT_URI":"bolt://memgraph.homebase.local:7687","MEMGRAPH_HOST":"memgraph.homebase.local","MEMGRAPH_PORT":"7687","NODE_EXTRA_CA_CERTS":"/etc/ssl/certs/ai-homebase-ca-bundle.crt","OPENAI_API_KEY":"${OPENAI_API_KEY}","QDRANT_API_KEY":"${QDRANT_API_KEY}","QDRANT_COLLECTION":"openclaw-memory","QDRANT_URL":"https://qdrant.homebase.local","REQUESTS_CA_BUNDLE":"/etc/ssl/certs/ai-homebase-ca-bundle.crt","SSL_CERT_FILE":"/etc/ssl/certs/ai-homebase-ca-bundle.crt"},"image":"registry.homebase.local/coder/openclaw-sandbox:trixie-slim","memory":"1g","memorySwap":"2g","network":"bridge","pidsLimit":256,"readOnlyRoot":true,"tmpfs":["/tmp","/var/tmp","/run"],"user":"1000:1000","workdir":"/workspace"},"mode":"non-main","scope":"agent","sessionToolsVisibility":"all","workspaceAccess":"rw"},"workspace":"/home/node/.openclaw/workspace"},
-        "list": [{"default":true,"id":"main","model":{"fallbacks":["anthropic/claude-sonnet-4-6"],"primary":"openai/gpt-5.4"},"name":"OpenClaw Assistant","skills":["handoff-specialist-work","manage-worker-lifecycle","bind-channels","coordinate-in-nextcloud","record-memory-and-coordination-status","track-budget","healthcheck","node-connect","skill-creator","session-logs","weather","summarize"],"subagents":{"allowAgents":["coder","architect","archivist","auditor"]},"workspace":"/home/node/.openclaw/workspace"},{"id":"coder","model":{"fallbacks":["openai/gpt-5.4"],"primary":"anthropic/claude-sonnet-4-6"},"name":"Coder","sandbox":{"docker":{"binds":["/home/node/.openclaw/certs/ai-homebase-ca-bundle.crt:/etc/ssl/certs/ai-homebase-ca-bundle.crt:ro"],"env":{"CODER_GITEA_BASE_URL":"https://gitea.homebase.local","CODER_GITEA_EMAIL":"coder@example.invalid","CODER_GITEA_HOST":"gitea.homebase.local","CODER_GITEA_PASSWORD":"${CODER_GITEA_PASSWORD}","CODER_GITEA_TEA_LOGIN_NAME":"coder","CODER_GITEA_TEA_TOKEN_NAME":"openclaw-coder-sandbox","CODER_GITEA_USERNAME":"coder","CODER_GITOPS_PROJECT":"platform-stack","CODER_GITOPS_REPO_BRANCH":"main","CODER_GITOPS_REPO_NAME":"cluster-gitops","CODER_REGISTRY_BASE_URL":"https://registry.homebase.local","CODER_REGISTRY_HOST":"registry.homebase.local","CODER_REGISTRY_NAMESPACE":"coder","CODER_REGISTRY_PASSWORD":"${CODER_REGISTRY_PASSWORD}","CODER_REGISTRY_USERNAME":"coder","CODER_SANDBOX_IMAGES_REPO_NAME":"openclaw-sandbox-images","CODEX_DEFAULT_MODEL":"gpt-5.4-mini","CODEX_HOME":"/workspace/.home/.codex","CODEX_MODEL":"openai/gpt-5.3-codex","CURL_CA_BUNDLE":"/etc/ssl/certs/ai-homebase-ca-bundle.crt","GITHUB_TOKEN":"${GITHUB_TOKEN}","GIT_SSL_CAINFO":"/etc/ssl/certs/ai-homebase-ca-bundle.crt","HOME":"/workspace/.home","NODE_EXTRA_CA_CERTS":"/etc/ssl/certs/ai-homebase-ca-bundle.crt","OPENAI_API_KEY":"${OPENAI_API_KEY}","REQUESTS_CA_BUNDLE":"/etc/ssl/certs/ai-homebase-ca-bundle.crt","SSL_CERT_FILE":"/etc/ssl/certs/ai-homebase-ca-bundle.crt","XDG_CACHE_HOME":"/workspace/.home/.cache","XDG_CONFIG_HOME":"/workspace/.home/.config","XDG_STATE_HOME":"/workspace/.home/.local/state"},"image":"registry.homebase.local/coder/openclaw-sandbox-coder:trixie-slim","setupCommand":"/usr/local/bin/coder-init.sh","tmpfs":["/tmp","/var/tmp","/run"]},"mode":"all","workspaceAccess":"rw"},"skills":["manage-gitea-gitops-and-registry","run-codex-and-log-usage","update-implementation-notes","github","tmux"],"workspace":"/home/node/.openclaw/workspace-coder"},{"id":"architect","model":{"fallbacks":["openai/gpt-5.4"],"primary":"anthropic/claude-sonnet-4-6"},"name":"Architect","sandbox":{"docker":{"binds":["/home/node/.openclaw/certs/ai-homebase-ca-bundle.crt:/etc/ssl/certs/ai-homebase-ca-bundle.crt:ro"],"capDrop":["ALL"],"cpus":1,"env":{"ANTHROPIC_API_KEY":"${ANTHROPIC_API_KEY}","CURL_CA_BUNDLE":"/etc/ssl/certs/ai-homebase-ca-bundle.crt","GEMINI_API_KEY":"${GEMINI_API_KEY}","GITHUB_TOKEN":"${GITHUB_TOKEN}","GIT_SSL_CAINFO":"/etc/ssl/certs/ai-homebase-ca-bundle.crt","MEMGRAPH_BOLT_URI":"bolt://memgraph.homebase.local:7687","MEMGRAPH_HOST":"memgraph.homebase.local","MEMGRAPH_PORT":"7687","NODE_EXTRA_CA_CERTS":"/etc/ssl/certs/ai-homebase-ca-bundle.crt","OPENAI_API_KEY":"${OPENAI_API_KEY}","QDRANT_API_KEY":"${QDRANT_API_KEY}","QDRANT_COLLECTION":"openclaw-memory","QDRANT_URL":"https://qdrant.homebase.local","REQUESTS_CA_BUNDLE":"/etc/ssl/certs/ai-homebase-ca-bundle.crt","REVIEWER_GITEA_BASE_URL":"https://gitea.homebase.local","REVIEWER_GITEA_EMAIL":"reviewer@example.invalid","REVIEWER_GITEA_HOST":"gitea.homebase.local","REVIEWER_GITEA_PASSWORD":"${REVIEWER_GITEA_PASSWORD}","REVIEWER_GITEA_TEA_LOGIN_NAME":"reviewer","REVIEWER_GITEA_TEA_TOKEN_NAME":"openclaw-reviewer","REVIEWER_GITEA_USERNAME":"reviewer","SSL_CERT_FILE":"/etc/ssl/certs/ai-homebase-ca-bundle.crt"},"image":"registry.homebase.local/coder/openclaw-sandbox:trixie-slim","memory":"1g","memorySwap":"2g","network":"bridge","pidsLimit":256,"readOnlyRoot":true,"setupCommand":"/usr/local/bin/reviewer-gitea-init.sh","tmpfs":["/tmp","/var/tmp","/run"],"user":"1000:1000","workdir":"/workspace"},"mode":"all","workspaceAccess":"rw"},"skills":["plan-projects","package-worker-definitions","deliver-design","gitea-browse","skill-creator","session-logs","summarize","github"],"tools":{"deny":["tts","image_generate","canvas"]},"workspace":"/home/node/.openclaw/workspace-architect"},{"id":"archivist","model":{"fallbacks":["anthropic/claude-sonnet-4-6"],"primary":"openai/gpt-5.4-mini"},"name":"Archivist","sandbox":{"mode":"non-main"},"skills":["curate-memgraph","groom-knowledge-graph","map-context-and-link-evidence","use-nextcloud-docs-for-graph-work","session-logs","summarize"],"tools":{"deny":["tts","image_generate","canvas","browser"]},"workspace":"/home/node/.openclaw/workspace-archivist"},{"id":"watchdog","model":{"fallbacks":["anthropic/claude-haiku-4-5"],"primary":"openai/gpt-5.4-nano"},"name":"Watchdog","sandbox":{"mode":"off"},"skills":["classify-severity-and-escalate","manage-nextcloud-incidents","check-heartbeat-and-budget","healthcheck","node-connect","session-logs"],"tools":{"deny":["image_generate","canvas","tts","image","browser","sessions_spawn","agents_list","subagents"]},"workspace":"/home/node/.openclaw/workspace-watchdog"},{"id":"auditor","model":{"fallbacks":["openai/gpt-5.4"],"primary":"anthropic/claude-opus-4-6"},"name":"Auditor","sandbox":{"mode":"off"},"skills":["classify-review-mode","manage-review-packets","format-verdict","gitea-browse","session-logs","summarize","github"],"tools":{"deny":["tts","image_generate","canvas"]},"workspace":"/home/node/.openclaw/workspace-auditor"}]
+        "defaults": {"models":{"anthropic/claude-opus-4-6":{"alias":"Auditor"},"anthropic/claude-sonnet-4-6":{"alias":"Main / Architect"},"openai/gpt-5.4":{"alias":"Main / Coder / Architect / Archivist / Auditor"},"openai/gpt-5.4-nano":{"alias":"Watchdog"}},"sandbox":{"backend":"docker","browser":{"cdpPort":9222,"cdpSourceRange":"","enableNoVnc":true,"enabled":true,"headless":false,"image":"openclaw-sandbox-browser:bookworm-slim","network":"bridge","noVncPort":6080,"vncPort":5900},"docker":{"capDrop":["ALL"],"cpus":1,"env":{"ANTHROPIC_API_KEY":"${ANTHROPIC_API_KEY}","CURL_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","GEMINI_API_KEY":"${GEMINI_API_KEY}","GITHUB_TOKEN":"${GITHUB_TOKEN}","GIT_SSL_CAINFO":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","MEMGRAPH_BOLT_URI":"bolt://memgraph.homebase.local:7687","MEMGRAPH_HOST":"memgraph.homebase.local","MEMGRAPH_PORT":"7687","NODE_EXTRA_CA_CERTS":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","OPENAI_API_KEY":"${OPENAI_API_KEY}","QDRANT_COLLECTION":"openclaw-memory","QDRANT_URL":"https://qdrant.homebase.local","REQUESTS_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","SSL_CERT_FILE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt"},"image":"registry.homebase.local/coder/openclaw-sandbox:trixie-slim","memory":"1g","memorySwap":"2g","network":"bridge","pidsLimit":256,"readOnlyRoot":true,"tmpfs":["/tmp","/var/tmp","/run"],"user":"1000:1000","workdir":"/workspace"},"mode":"non-main","scope":"agent","sessionToolsVisibility":"all","workspaceAccess":"rw"},"workspace":"/home/node/.openclaw/workspace"},
+        "list": [{"default":true,"heartbeat":{"every":"0m","includeSystemPromptSection":false},"id":"main","model":{"fallbacks":["anthropic/claude-sonnet-4-6"],"primary":"openai/gpt-5.4"},"name":"OpenClaw Assistant","skills":["handoff-specialist-work","manage-worker-lifecycle","bind-channels","coordinate-in-nextcloud","record-memory-and-coordination-status","track-budget","healthcheck","node-connect","skill-creator","session-logs","weather","summarize"],"subagents":{"allowAgents":["coder","architect","archivist","auditor"]},"workspace":"/home/node/.openclaw/workspace"},{"id":"coder","model":{"fallbacks":["openai/gpt-5.4"],"primary":"anthropic/claude-sonnet-4-6"},"name":"Coder","sandbox":{"docker":{"env":{"CODER_GITEA_BASE_URL":"https://gitea.homebase.local","CODER_GITEA_EMAIL":"coder@example.invalid","CODER_GITEA_HOST":"gitea.homebase.local","CODER_GITEA_PASSWORD":"${CODER_GITEA_PASSWORD}","CODER_GITEA_TEA_LOGIN_NAME":"coder","CODER_GITEA_TEA_TOKEN_NAME":"openclaw-coder-sandbox","CODER_GITEA_USERNAME":"coder","CODER_GITOPS_PROJECT":"platform-stack","CODER_GITOPS_REPO_BRANCH":"main","CODER_GITOPS_REPO_NAME":"cluster-gitops","CODER_REGISTRY_BASE_URL":"https://registry.homebase.local","CODER_REGISTRY_HOST":"registry.homebase.local","CODER_REGISTRY_NAMESPACE":"coder","CODER_REGISTRY_PASSWORD":"${CODER_REGISTRY_PASSWORD}","CODER_REGISTRY_USERNAME":"coder","CODER_SANDBOX_IMAGES_REPO_NAME":"openclaw-sandbox-images","CODEX_DEFAULT_MODEL":"gpt-5.4-mini","CODEX_HOME":"/workspace/.home/.codex","CODEX_MODEL":"openai/gpt-5.3-codex","CURL_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","DOCKER_HOST":"${DOCKER_HOST}","GITHUB_TOKEN":"${GITHUB_TOKEN}","GIT_SSL_CAINFO":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","HOME":"/workspace/.home","NODE_EXTRA_CA_CERTS":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","OPENAI_API_KEY":"${OPENAI_API_KEY}","REQUESTS_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","SSL_CERT_FILE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","XDG_CACHE_HOME":"/workspace/.home/.cache","XDG_CONFIG_HOME":"/workspace/.home/.config","XDG_STATE_HOME":"/workspace/.home/.local/state"},"image":"registry.homebase.local/coder/openclaw-sandbox-coder:trixie-slim","setupCommand":"/usr/local/bin/coder-init.sh","tmpfs":["/tmp","/var/tmp","/run"]},"mode":"all","workspaceAccess":"rw"},"skills":["manage-gitea-gitops-and-registry","run-codex-and-log-usage","update-implementation-notes","github","tmux"],"workspace":"/home/node/.openclaw/workspace-coder"},{"id":"architect","model":{"fallbacks":["openai/gpt-5.4"],"primary":"anthropic/claude-sonnet-4-6"},"name":"Architect","sandbox":{"docker":{"capDrop":["ALL"],"cpus":1,"env":{"ANTHROPIC_API_KEY":"${ANTHROPIC_API_KEY}","CURL_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","GEMINI_API_KEY":"${GEMINI_API_KEY}","GITHUB_TOKEN":"${GITHUB_TOKEN}","GIT_SSL_CAINFO":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","MEMGRAPH_BOLT_URI":"bolt://memgraph.homebase.local:7687","MEMGRAPH_HOST":"memgraph.homebase.local","MEMGRAPH_PORT":"7687","NODE_EXTRA_CA_CERTS":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","OPENAI_API_KEY":"${OPENAI_API_KEY}","QDRANT_COLLECTION":"openclaw-memory","QDRANT_URL":"https://qdrant.homebase.local","REQUESTS_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","REVIEWER_GITEA_BASE_URL":"https://gitea.homebase.local","REVIEWER_GITEA_EMAIL":"reviewer@example.invalid","REVIEWER_GITEA_HOST":"gitea.homebase.local","REVIEWER_GITEA_PASSWORD":"${REVIEWER_GITEA_PASSWORD}","REVIEWER_GITEA_TEA_LOGIN_NAME":"reviewer","REVIEWER_GITEA_TEA_TOKEN_NAME":"openclaw-reviewer","REVIEWER_GITEA_USERNAME":"reviewer","SSL_CERT_FILE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt"},"image":"registry.homebase.local/coder/openclaw-sandbox:trixie-slim","memory":"1g","memorySwap":"2g","network":"bridge","pidsLimit":256,"readOnlyRoot":true,"setupCommand":"/usr/local/bin/reviewer-gitea-init.sh","tmpfs":["/tmp","/var/tmp","/run"],"user":"1000:1000","workdir":"/workspace"},"mode":"non-main","workspaceAccess":"rw"},"skills":["plan-projects","package-worker-definitions","deliver-design","gitea-browse","skill-creator","session-logs","summarize","github"],"tools":{"deny":["tts","image_generate","canvas"]},"workspace":"/home/node/.openclaw/workspace-architect"},{"id":"archivist","model":{"fallbacks":["anthropic/claude-sonnet-4-6"],"primary":"openai/gpt-5.4-mini"},"name":"Archivist","sandbox":{"mode":"non-main"},"skills":["curate-memgraph","groom-knowledge-graph","map-context-and-link-evidence","use-nextcloud-docs-for-graph-work","session-logs","summarize"],"tools":{"deny":["tts","image_generate","canvas","browser"]},"workspace":"/home/node/.openclaw/workspace-archivist"},{"heartbeat":{"every":"30m"},"id":"watchdog","model":{"fallbacks":["anthropic/claude-haiku-4-5"],"primary":"openai/gpt-5.4-nano"},"name":"Watchdog","sandbox":{"mode":"off"},"skills":["classify-severity-and-escalate","manage-nextcloud-incidents","check-heartbeat-and-budget","healthcheck","node-connect","session-logs"],"tools":{"deny":["image_generate","canvas","tts","image","browser","sessions_spawn","agents_list","subagents"]},"workspace":"/home/node/.openclaw/workspace-watchdog"},{"id":"auditor","model":{"fallbacks":["openai/gpt-5.4"],"primary":"anthropic/claude-opus-4-6"},"name":"Auditor","sandbox":{"mode":"off"},"skills":["classify-review-mode","manage-review-packets","format-verdict","gitea-browse","session-logs","summarize","github"],"tools":{"deny":["tts","image_generate","canvas"]},"workspace":"/home/node/.openclaw/workspace-auditor"}]
       },
       "skills": {"allowBundled":["weather","healthcheck","node-connect","skill-creator","session-logs","tmux","summarize","github"]},
       "mcp": {"servers":{"nextcloud":{"args":["/opt/openclaw-runtime/mcp/mcp-http-bridge.mjs","--url","${OPENCLAW_NEXTCLOUD_MCP_INTERNAL_URL}","--url","${OPENCLAW_NEXTCLOUD_MCP_EXTERNAL_URL}","--header","Authorization=${OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER}"],"command":"node"},"qdrant":{"args":["/opt/openclaw-runtime/mcp/mcp-http-bridge.mjs","--url","${OPENCLAW_QDRANT_MCP_INTERNAL_URL}","--url","${OPENCLAW_QDRANT_MCP_EXTERNAL_URL}"],"command":"node"}}},
@@ -3149,6 +3149,7 @@ data:
     - `/workspace` is the repo working tree.
     - Persistent tool state lives under `/workspace/.home`.
     - `HOME`, `CODEX_HOME`, and XDG directories are already pointed into `/workspace/.home`.
+    - Remote Docker access is prewired through `DOCKER_HOST`; the SSH key material lives under `/workspace/.home/.ssh`.
     - Use `CODER_GITEA_BASE_URL` / `CODER_GITEA_HOST` for the in-cluster Gitea service.
     - Use `CODER_REGISTRY_BASE_URL` / `CODER_REGISTRY_HOST` for the in-cluster registry.
     - Canonical repo names in this stack:
@@ -4467,6 +4468,214 @@ data:
     - Prefer one evolving baseline or status log over many fragmented notes.
     - Do not turn Nextcloud `/Desk/` into an incident archive; it is for bounded continuity.
     - Keep incident reports factual and concise.
+  workspace-worker-template-AGENTS.md: |
+    # {{WORKER_NAME}}
+
+    You are a bottom-layer execution agent.
+
+    ## Custom Workspace Surfaces
+
+    - `CURRENT.md`: local short-term continuity when this worker has a persistent workspace.
+    - `SURFACES.md`: live registry of the worker's recurring surfaces when applicable.
+    - `daily/`: historical daily wrap-ups when recent work still matters.
+    - `HEARTBEAT.md`: create and use this only when the approved worker definition explicitly uses heartbeat.
+    - `skills/`: workflow procedures and templates for recurring worker actions.
+
+    ## Core Role
+
+    You follow your defined workflow exactly.
+
+    You do not:
+    - improvise
+    - redesign your task
+    - talk to the user
+    - contact arbitrary agents
+    - spawn sessions
+
+    ## Environment Ownership
+
+    Your environment is whatever your worker definition explicitly grants:
+    - local workspace via `read`, `edit`, `write`, `apply_patch`
+    - shell or runtime via `exec`, `process`
+    - remote shared workspace via Nextcloud tools when specified
+    - shared semantic memory via Qdrant tools only when specified
+
+    ## Operating Order
+
+    1. Confirm the input matches your workflow.
+    2. Read only the minimum relevant custom workspace files, including `CURRENT.md`, `SURFACES.md`, and the latest daily note when this worker keeps continuity.
+    3. Execute the predefined steps.
+    4. If a rule is missing or a tool fails unexpectedly, escalate to main.
+    5. Persist outputs only where your definition says they belong.
+
+    ## Execution Rules
+
+    1. Follow your execution plan exactly.
+    2. Do not guess missing inputs.
+    3. Retry an unexpected tool failure once if your plan allows it, then escalate.
+    4. Escalate when the current situation is outside your rules.
+    5. Send all results and blockers only to `agent:main:main`.
+    6. Do not improvise, redesign the task, or reinterpret ambiguous instructions.
+    7. Do not store Qdrant memories unless your execution plan explicitly allows it.
+
+    Keep `AGENTS.md` short. Put recurring procedures, output templates, and tool-specific recipes in `skills/`.
+
+    ## Tool Routing
+
+    - Local workspace file: `read`, `edit`, `write`, `apply_patch`
+    - Local commands: `exec`, `process`
+    - Nextcloud `/Projects/...` and any other Nextcloud folders: only Nextcloud tools if your workflow uses them
+    - Shared memory: only Qdrant tools if your workflow uses them
+    - Coordination: `sessions_send` only to `agent:main:main`
+    - Shared continuity: use Nextcloud `/Desk/...` only if your workflow explicitly grants and needs it
+
+    ## Schedule
+
+    {{WORKER_SCHEDULE_DESCRIPTION}}
+
+    If this worker is not explicitly heartbeat-driven, do not create `HEARTBEAT.md`; use cron or on-demand triggers only.
+
+    ## Role
+
+    {{WORKER_ROLE_DESCRIPTION}}
+
+    ## Domain
+
+    {{WORKER_DOMAIN_DESCRIPTION}}
+
+    ## Execution Plan
+
+    {{WORKER_EXECUTION_PLAN}}
+
+    ## Escalation Rules
+
+    Escalate to `agent:main:main` when:
+    - a decision rule does not cover the current situation
+    - input is outside expected parameters
+    - a required tool call fails after the allowed retry
+    - reference material is contradictory or incomplete
+    {{WORKER_ADDITIONAL_ESCALATION_RULES}}
+
+    ## Cost Awareness
+
+    You run on `{{WORKER_MODEL}}`.
+    Your soft daily threshold is `{{WORKER_DAILY_BUDGET}}`.
+    If your context grows large, end the run and let the next scheduled run continue instead of stretching a long conversation.
+  workspace-worker-template-CURRENT.md: |
+    # Current - {{WORKER_NAME}}
+
+    Use this file only when the worker keeps live short-term continuity across runs.
+
+    Keep it small and focused on:
+    - active work items
+    - recent changes that still matter
+    - open loops
+    - retrieval cues for any granted shared memory or Nextcloud surfaces
+  workspace-worker-template-HEARTBEAT.md: |
+    Create this file only when the approved worker definition explicitly uses heartbeat.
+
+    For heartbeat-enabled workers:
+    - keep the run narrow, cheap, and procedural
+    - execute only the approved trigger-checking workflow
+    - escalate to main when the rule package says the gate is met
+    - update `CURRENT.md`, the latest daily note, and any explicitly granted shared Nextcloud `/Desk/` entry only when the worker definition says continuity is needed for future runs
+  workspace-worker-template-IDENTITY.md: |
+    # Identity
+
+    You are `{{WORKER_NAME}}`.
+
+    Layer: bottom. You are a low-cost execution agent for one predefined workflow. Use the specification main gives you, follow the front-loaded reasoning in this worker package, and escalate ambiguity instead of redesigning the work.
+
+    Your domain is {{WORKER_DOMAIN_SHORT}}.
+
+    You run on {{WORKER_MODEL}}.
+  workspace-worker-template-MEMORY.md: |
+    # Memory - {{WORKER_NAME}}
+
+    Default: this worker does not use Qdrant unless its definition explicitly requires it.
+
+    Use this file only for local retrieval hints.
+
+    If this worker does use Qdrant, retrieve from cues in `CURRENT.md` and `SURFACES.md` rather than broad memory dumps.
+
+    When a worker definition allows Qdrant writes, store one atomic durable claim per memory, use 1 to 3 compact self-contained sentences, and include natural retrieval anchors such as project slug, service/component, artifact path, aliases, or source reference in the `information` text. Important recall terms must appear in `information`, not only in metadata.
+
+    {{WORKER_MEMORY_INSTRUCTIONS}}
+  workspace-worker-template-SOUL.md: |
+    Execute precisely. Do not improvise. Escalate when your rules stop.
+  workspace-worker-template-SURFACES.md: |
+    # Surfaces - {{WORKER_NAME}}
+
+    Use this file only when the worker needs a live registry of recurring surfaces.
+
+    For each important surface, record:
+    - type
+    - stable id or path
+    - purpose
+    - steward
+    - project or domain
+    - read trigger
+  workspace-worker-template-TOOLS.md: |
+    # Tools
+
+    Use this template to define the tool and skill instructions for the worker you are creating. Distinguish the worker's local workspace files from any remote Nextcloud paths the worker is allowed to use.
+
+    {{WORKER_TOOLS_INSTRUCTIONS}}
+
+    ## Files
+
+    - Local workspace files live in this worker workspace.
+    - Use local workspace files for private execution state and temporary scratch work.
+    - `CURRENT.md`, `SURFACES.md`, and `daily/` are optional custom continuity surfaces when this worker keeps state across runs.
+    - Nextcloud `/Projects/...` are remote paths when this worker is allowed to use them.
+    - Nextcloud `/Desk/...` are shared continuity and index paths only when this worker is explicitly allowed to use them.
+    - Use local workspace file tools only for local workspace files such as `CURRENT.md`, `SURFACES.md`, `daily/`, and other files in this worker workspace.
+    - Use Nextcloud tools only for Nextcloud `/Projects/...` and Nextcloud `/Desk/...` paths.
+    - Creating or editing a local workspace file does not create or update a Nextcloud file.
+    - Creating or editing a Nextcloud file does not create or update a local workspace file.
+    - Local workspace directories and Nextcloud directories are separate storage systems, not mirrored views of the same path.
+    - Do not use local filesystem tools on Nextcloud paths, and do not use Nextcloud tools on local workspace files.
+    - Use Qdrant only when the worker definition explicitly grants that memory surface.
+
+    ## Sessions
+
+    - Standard return target: `agent:main:main`
+
+    ## Notes
+
+    - Record concrete setup facts here: paths, IDs, hosts, schedules, and other worker-specific tool notes.
+    - Keep volatile active-surface references in `SURFACES.md`, not here.
+    - Keep this file current when those local notes change.
+  workspace-worker-template-USER.md: |
+    # User
+
+    - Name:
+    - What to call them:
+    - Timezone:
+    - Notes:
+
+    Main owns the canonical shared user profile. Workers use it only when the execution plan requires it.
+  workspace-worker-template-daily__README.md: |
+    # Daily Notes - {{WORKER_NAME}}
+
+    Use this directory only when the worker keeps continuity across runs. Each file should be a past-tense daily wrap-up rather than a copy of `CURRENT.md`.
+
+    Keep live carry-forward state in `CURRENT.md`. Promote anything durable into the destination your worker definition specifies.
+  workspace-worker-template-skills__define-worker-workflow__SKILL.md: |
+    ---
+    name: define-worker-workflow
+    description: Template skill for worker procedures. Use when defining a worker-local recurring workflow, output template, or escalation recipe that should not live in the always-loaded worker contract.
+    ---
+
+    # Worker Workflow
+
+    Use worker-local skills for:
+    - exact execution procedures
+    - output templates
+    - tool-specific recipes
+    - escalation checklists
+
+    Keep `AGENTS.md` short and stable. Put repeated workflow detail here.
 kind: ConfigMap
 metadata:
   labels:
@@ -4838,6 +5047,8 @@ spec:
       app.kubernetes.io/name: openclaw
   template:
     metadata:
+      annotations:
+        checksum/config: dac97241aaec736a9d25797f2035c82c4692301e4cf65ec246798452bf6513d7
       labels:
         app.kubernetes.io/instance: platform-stack
         app.kubernetes.io/name: openclaw
@@ -4879,6 +5090,8 @@ spec:
           value: http://platform-stack-qdrant.ai-homebase.svc.cluster.local:6333
         - name: QDRANT_COLLECTION
           value: openclaw-memory
+        - name: QDRANT_API_KEY
+          value: ''
         - name: DOCKER_HOST
           value: ssh://docker-remote@openclaw-sandbox:2222
         - name: HOME
@@ -5073,1530 +5286,1400 @@ spec:
             echo >&2 "Rendered ConfigMap file /config-source/openclaw.json is missing or empty; verify the openclaw ConfigMap rendered correctly before deployment."
             exit 1
           fi
-          if [ -s "${target_file}" ]; then
-            echo "Preserving existing OpenClaw config at ${target_file}."
-          else
-            cp -f /config-source/openclaw.json "${target_file}" || {
-              echo >&2 "Failed to bootstrap ${target_file} from /config-source/openclaw.json; verify the writable config target volume is mounted and accessible to the init container."
-              exit 1
-            }
-          fi
+          cp -f /config-source/openclaw.json "${target_file}" || {
+            echo >&2 "Failed to bootstrap ${target_file} from /config-source/openclaw.json; verify the writable config target volume is mounted and accessible to the init container."
+            exit 1
+          }
           state_root=/config-target-root
+          sandbox_runtime_rel=.openclaw-runtime
+          sandbox_ca_source="${state_root}/certs/ai-homebase-ca-bundle.crt"
+          if [ ! -s "${sandbox_ca_source}" ]; then
+            echo >&2 "Missing shared CA bundle at ${sandbox_ca_source}; bootstrap must export the internal CA before OpenClaw sandboxes start."
+            exit 1
+          fi
           workspace_dir="${state_root}/workspace-architect"
           mkdir -p "${workspace_dir}" || {
             echo >&2 "Failed to create bootstrapped workspace directory ${workspace_dir} for agent architect."
             exit 1
           }
+          runtime_dir="${workspace_dir}/${sandbox_runtime_rel}"
+          mkdir -p "${runtime_dir}" || {
+            echo >&2 "Failed to create sandbox runtime directory ${runtime_dir} for agent architect."
+            exit 1
+          }
+          cp -f "${sandbox_ca_source}" "${runtime_dir}/ai-homebase-ca-bundle.crt" || {
+            echo >&2 "Failed to seed sandbox CA bundle into ${runtime_dir} for agent architect."
+            exit 1
+          }
+          if [ ! -e /config-source/workspace-architect-HEARTBEAT.md ] && [ -e "${workspace_dir}/HEARTBEAT.md" ]; then
+            rm -f "${workspace_dir}/HEARTBEAT.md" || {
+              echo >&2 "Failed to remove retired HEARTBEAT.md from ${workspace_dir} for agent architect."
+              exit 1
+            }
+          fi
           target_path="${workspace_dir}/AGENTS.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding AGENTS.md for agent architect."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing AGENTS.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-architect-AGENTS.md "${target_path}" || {
-              echo >&2 "Failed to seed AGENTS.md into ${workspace_dir} for agent architect."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-architect-AGENTS.md "${target_path}" || {
+            echo >&2 "Failed to seed AGENTS.md into ${workspace_dir} for agent architect."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/CURRENT.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding CURRENT.md for agent architect."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing CURRENT.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-architect-CURRENT.md "${target_path}" || {
-              echo >&2 "Failed to seed CURRENT.md into ${workspace_dir} for agent architect."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-architect-CURRENT.md "${target_path}" || {
+            echo >&2 "Failed to seed CURRENT.md into ${workspace_dir} for agent architect."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/IDENTITY.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding IDENTITY.md for agent architect."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing IDENTITY.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-architect-IDENTITY.md "${target_path}" || {
-              echo >&2 "Failed to seed IDENTITY.md into ${workspace_dir} for agent architect."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-architect-IDENTITY.md "${target_path}" || {
+            echo >&2 "Failed to seed IDENTITY.md into ${workspace_dir} for agent architect."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/MEMORY.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding MEMORY.md for agent architect."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing MEMORY.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-architect-MEMORY.md "${target_path}" || {
-              echo >&2 "Failed to seed MEMORY.md into ${workspace_dir} for agent architect."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-architect-MEMORY.md "${target_path}" || {
+            echo >&2 "Failed to seed MEMORY.md into ${workspace_dir} for agent architect."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/SOUL.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding SOUL.md for agent architect."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing SOUL.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-architect-SOUL.md "${target_path}" || {
-              echo >&2 "Failed to seed SOUL.md into ${workspace_dir} for agent architect."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-architect-SOUL.md "${target_path}" || {
+            echo >&2 "Failed to seed SOUL.md into ${workspace_dir} for agent architect."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/SURFACES.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding SURFACES.md for agent architect."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing SURFACES.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-architect-SURFACES.md "${target_path}" || {
-              echo >&2 "Failed to seed SURFACES.md into ${workspace_dir} for agent architect."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-architect-SURFACES.md "${target_path}" || {
+            echo >&2 "Failed to seed SURFACES.md into ${workspace_dir} for agent architect."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/TOOLS.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding TOOLS.md for agent architect."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing TOOLS.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-architect-TOOLS.md "${target_path}" || {
-              echo >&2 "Failed to seed TOOLS.md into ${workspace_dir} for agent architect."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-architect-TOOLS.md "${target_path}" || {
+            echo >&2 "Failed to seed TOOLS.md into ${workspace_dir} for agent architect."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/USER.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding USER.md for agent architect."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing USER.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-architect-USER.md "${target_path}" || {
-              echo >&2 "Failed to seed USER.md into ${workspace_dir} for agent architect."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-architect-USER.md "${target_path}" || {
+            echo >&2 "Failed to seed USER.md into ${workspace_dir} for agent architect."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/daily/README.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding daily/README.md for agent architect."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing daily/README.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-architect-daily__README.md "${target_path}" || {
-              echo >&2 "Failed to seed daily/README.md into ${workspace_dir} for agent architect."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-architect-daily__README.md "${target_path}" || {
+            echo >&2 "Failed to seed daily/README.md into ${workspace_dir} for agent architect."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/skills/deliver-design/SKILL.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding skills/deliver-design/SKILL.md for agent architect."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing skills/deliver-design/SKILL.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-architect-skills__deliver-design__SKILL.md "${target_path}" || {
-              echo >&2 "Failed to seed skills/deliver-design/SKILL.md into ${workspace_dir} for agent architect."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-architect-skills__deliver-design__SKILL.md "${target_path}" || {
+            echo >&2 "Failed to seed skills/deliver-design/SKILL.md into ${workspace_dir} for agent architect."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/skills/gitea-browse/SKILL.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding skills/gitea-browse/SKILL.md for agent architect."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing skills/gitea-browse/SKILL.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-architect-skills__gitea-browse__SKILL.md "${target_path}" || {
-              echo >&2 "Failed to seed skills/gitea-browse/SKILL.md into ${workspace_dir} for agent architect."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-architect-skills__gitea-browse__SKILL.md "${target_path}" || {
+            echo >&2 "Failed to seed skills/gitea-browse/SKILL.md into ${workspace_dir} for agent architect."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/skills/package-worker-definitions/SKILL.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding skills/package-worker-definitions/SKILL.md for agent architect."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing skills/package-worker-definitions/SKILL.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-architect-skills__package-worker-definitions__SKILL.md "${target_path}" || {
-              echo >&2 "Failed to seed skills/package-worker-definitions/SKILL.md into ${workspace_dir} for agent architect."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-architect-skills__package-worker-definitions__SKILL.md "${target_path}" || {
+            echo >&2 "Failed to seed skills/package-worker-definitions/SKILL.md into ${workspace_dir} for agent architect."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/skills/plan-projects/SKILL.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding skills/plan-projects/SKILL.md for agent architect."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing skills/plan-projects/SKILL.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-architect-skills__plan-projects__SKILL.md "${target_path}" || {
-              echo >&2 "Failed to seed skills/plan-projects/SKILL.md into ${workspace_dir} for agent architect."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-architect-skills__plan-projects__SKILL.md "${target_path}" || {
+            echo >&2 "Failed to seed skills/plan-projects/SKILL.md into ${workspace_dir} for agent architect."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           workspace_dir="${state_root}/workspace-archivist"
           mkdir -p "${workspace_dir}" || {
             echo >&2 "Failed to create bootstrapped workspace directory ${workspace_dir} for agent archivist."
             exit 1
           }
+          runtime_dir="${workspace_dir}/${sandbox_runtime_rel}"
+          mkdir -p "${runtime_dir}" || {
+            echo >&2 "Failed to create sandbox runtime directory ${runtime_dir} for agent archivist."
+            exit 1
+          }
+          cp -f "${sandbox_ca_source}" "${runtime_dir}/ai-homebase-ca-bundle.crt" || {
+            echo >&2 "Failed to seed sandbox CA bundle into ${runtime_dir} for agent archivist."
+            exit 1
+          }
+          if [ ! -e /config-source/workspace-archivist-HEARTBEAT.md ] && [ -e "${workspace_dir}/HEARTBEAT.md" ]; then
+            rm -f "${workspace_dir}/HEARTBEAT.md" || {
+              echo >&2 "Failed to remove retired HEARTBEAT.md from ${workspace_dir} for agent archivist."
+              exit 1
+            }
+          fi
           target_path="${workspace_dir}/AGENTS.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding AGENTS.md for agent archivist."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing AGENTS.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-archivist-AGENTS.md "${target_path}" || {
-              echo >&2 "Failed to seed AGENTS.md into ${workspace_dir} for agent archivist."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-archivist-AGENTS.md "${target_path}" || {
+            echo >&2 "Failed to seed AGENTS.md into ${workspace_dir} for agent archivist."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/CURRENT.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding CURRENT.md for agent archivist."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing CURRENT.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-archivist-CURRENT.md "${target_path}" || {
-              echo >&2 "Failed to seed CURRENT.md into ${workspace_dir} for agent archivist."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-archivist-CURRENT.md "${target_path}" || {
+            echo >&2 "Failed to seed CURRENT.md into ${workspace_dir} for agent archivist."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/IDENTITY.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding IDENTITY.md for agent archivist."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing IDENTITY.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-archivist-IDENTITY.md "${target_path}" || {
-              echo >&2 "Failed to seed IDENTITY.md into ${workspace_dir} for agent archivist."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-archivist-IDENTITY.md "${target_path}" || {
+            echo >&2 "Failed to seed IDENTITY.md into ${workspace_dir} for agent archivist."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/MEMORY.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding MEMORY.md for agent archivist."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing MEMORY.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-archivist-MEMORY.md "${target_path}" || {
-              echo >&2 "Failed to seed MEMORY.md into ${workspace_dir} for agent archivist."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-archivist-MEMORY.md "${target_path}" || {
+            echo >&2 "Failed to seed MEMORY.md into ${workspace_dir} for agent archivist."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/SOUL.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding SOUL.md for agent archivist."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing SOUL.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-archivist-SOUL.md "${target_path}" || {
-              echo >&2 "Failed to seed SOUL.md into ${workspace_dir} for agent archivist."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-archivist-SOUL.md "${target_path}" || {
+            echo >&2 "Failed to seed SOUL.md into ${workspace_dir} for agent archivist."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/SURFACES.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding SURFACES.md for agent archivist."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing SURFACES.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-archivist-SURFACES.md "${target_path}" || {
-              echo >&2 "Failed to seed SURFACES.md into ${workspace_dir} for agent archivist."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-archivist-SURFACES.md "${target_path}" || {
+            echo >&2 "Failed to seed SURFACES.md into ${workspace_dir} for agent archivist."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/TOOLS.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding TOOLS.md for agent archivist."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing TOOLS.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-archivist-TOOLS.md "${target_path}" || {
-              echo >&2 "Failed to seed TOOLS.md into ${workspace_dir} for agent archivist."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-archivist-TOOLS.md "${target_path}" || {
+            echo >&2 "Failed to seed TOOLS.md into ${workspace_dir} for agent archivist."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/USER.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding USER.md for agent archivist."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing USER.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-archivist-USER.md "${target_path}" || {
-              echo >&2 "Failed to seed USER.md into ${workspace_dir} for agent archivist."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-archivist-USER.md "${target_path}" || {
+            echo >&2 "Failed to seed USER.md into ${workspace_dir} for agent archivist."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/daily/README.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding daily/README.md for agent archivist."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing daily/README.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-archivist-daily__README.md "${target_path}" || {
-              echo >&2 "Failed to seed daily/README.md into ${workspace_dir} for agent archivist."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-archivist-daily__README.md "${target_path}" || {
+            echo >&2 "Failed to seed daily/README.md into ${workspace_dir} for agent archivist."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/grooming/update_checkpoint.py"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding grooming/update_checkpoint.py for agent archivist."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing grooming/update_checkpoint.py in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-archivist-grooming__update_checkpoint.py "${target_path}" || {
-              echo >&2 "Failed to seed grooming/update_checkpoint.py into ${workspace_dir} for agent archivist."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-archivist-grooming__update_checkpoint.py "${target_path}" || {
+            echo >&2 "Failed to seed grooming/update_checkpoint.py into ${workspace_dir} for agent archivist."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/qdrant/README.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding qdrant/README.md for agent archivist."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing qdrant/README.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-archivist-qdrant__README.md "${target_path}" || {
-              echo >&2 "Failed to seed qdrant/README.md into ${workspace_dir} for agent archivist."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-archivist-qdrant__README.md "${target_path}" || {
+            echo >&2 "Failed to seed qdrant/README.md into ${workspace_dir} for agent archivist."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/qdrant/_qdrant_common.py"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding qdrant/_qdrant_common.py for agent archivist."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing qdrant/_qdrant_common.py in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-archivist-qdrant___qdrant_common.py "${target_path}" || {
-              echo >&2 "Failed to seed qdrant/_qdrant_common.py into ${workspace_dir} for agent archivist."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-archivist-qdrant___qdrant_common.py "${target_path}" || {
+            echo >&2 "Failed to seed qdrant/_qdrant_common.py into ${workspace_dir} for agent archivist."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/qdrant/get_memory.py"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding qdrant/get_memory.py for agent archivist."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing qdrant/get_memory.py in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-archivist-qdrant__get_memory.py "${target_path}" || {
-              echo >&2 "Failed to seed qdrant/get_memory.py into ${workspace_dir} for agent archivist."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-archivist-qdrant__get_memory.py "${target_path}" || {
+            echo >&2 "Failed to seed qdrant/get_memory.py into ${workspace_dir} for agent archivist."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/qdrant/scroll_memories.py"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding qdrant/scroll_memories.py for agent archivist."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing qdrant/scroll_memories.py in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-archivist-qdrant__scroll_memories.py "${target_path}" || {
-              echo >&2 "Failed to seed qdrant/scroll_memories.py into ${workspace_dir} for agent archivist."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-archivist-qdrant__scroll_memories.py "${target_path}" || {
+            echo >&2 "Failed to seed qdrant/scroll_memories.py into ${workspace_dir} for agent archivist."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/qdrant/set_graph_link.py"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding qdrant/set_graph_link.py for agent archivist."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing qdrant/set_graph_link.py in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-archivist-qdrant__set_graph_link.py "${target_path}" || {
-              echo >&2 "Failed to seed qdrant/set_graph_link.py into ${workspace_dir} for agent archivist."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-archivist-qdrant__set_graph_link.py "${target_path}" || {
+            echo >&2 "Failed to seed qdrant/set_graph_link.py into ${workspace_dir} for agent archivist."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/queries/README.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding queries/README.md for agent archivist."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing queries/README.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-archivist-queries__README.md "${target_path}" || {
-              echo >&2 "Failed to seed queries/README.md into ${workspace_dir} for agent archivist."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-archivist-queries__README.md "${target_path}" || {
+            echo >&2 "Failed to seed queries/README.md into ${workspace_dir} for agent archivist."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/queries/context-map.cypher"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding queries/context-map.cypher for agent archivist."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing queries/context-map.cypher in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-archivist-queries__context-map.cypher "${target_path}" || {
-              echo >&2 "Failed to seed queries/context-map.cypher into ${workspace_dir} for agent archivist."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-archivist-queries__context-map.cypher "${target_path}" || {
+            echo >&2 "Failed to seed queries/context-map.cypher into ${workspace_dir} for agent archivist."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/queries/entity-by-slug.cypher"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding queries/entity-by-slug.cypher for agent archivist."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing queries/entity-by-slug.cypher in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-archivist-queries__entity-by-slug.cypher "${target_path}" || {
-              echo >&2 "Failed to seed queries/entity-by-slug.cypher into ${workspace_dir} for agent archivist."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-archivist-queries__entity-by-slug.cypher "${target_path}" || {
+            echo >&2 "Failed to seed queries/entity-by-slug.cypher into ${workspace_dir} for agent archivist."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/queries/entity-neighborhood.cypher"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding queries/entity-neighborhood.cypher for agent archivist."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing queries/entity-neighborhood.cypher in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-archivist-queries__entity-neighborhood.cypher "${target_path}" || {
-              echo >&2 "Failed to seed queries/entity-neighborhood.cypher into ${workspace_dir} for agent archivist."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-archivist-queries__entity-neighborhood.cypher "${target_path}" || {
+            echo >&2 "Failed to seed queries/entity-neighborhood.cypher into ${workspace_dir} for agent archivist."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/queries/link-memory-created-by-agent.cypher"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding queries/link-memory-created-by-agent.cypher for agent archivist."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing queries/link-memory-created-by-agent.cypher in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-archivist-queries__link-memory-created-by-agent.cypher "${target_path}" || {
-              echo >&2 "Failed to seed queries/link-memory-created-by-agent.cypher into ${workspace_dir} for agent archivist."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-archivist-queries__link-memory-created-by-agent.cypher "${target_path}" || {
+            echo >&2 "Failed to seed queries/link-memory-created-by-agent.cypher into ${workspace_dir} for agent archivist."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/queries/link-memory-supersedes.cypher"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding queries/link-memory-supersedes.cypher for agent archivist."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing queries/link-memory-supersedes.cypher in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-archivist-queries__link-memory-supersedes.cypher "${target_path}" || {
-              echo >&2 "Failed to seed queries/link-memory-supersedes.cypher into ${workspace_dir} for agent archivist."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-archivist-queries__link-memory-supersedes.cypher "${target_path}" || {
+            echo >&2 "Failed to seed queries/link-memory-supersedes.cypher into ${workspace_dir} for agent archivist."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/queries/link-memory-tag.cypher"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding queries/link-memory-tag.cypher for agent archivist."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing queries/link-memory-tag.cypher in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-archivist-queries__link-memory-tag.cypher "${target_path}" || {
-              echo >&2 "Failed to seed queries/link-memory-tag.cypher into ${workspace_dir} for agent archivist."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-archivist-queries__link-memory-tag.cypher "${target_path}" || {
+            echo >&2 "Failed to seed queries/link-memory-tag.cypher into ${workspace_dir} for agent archivist."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/queries/link-memory-to-entity.cypher"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding queries/link-memory-to-entity.cypher for agent archivist."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing queries/link-memory-to-entity.cypher in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-archivist-queries__link-memory-to-entity.cypher "${target_path}" || {
-              echo >&2 "Failed to seed queries/link-memory-to-entity.cypher into ${workspace_dir} for agent archivist."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-archivist-queries__link-memory-to-entity.cypher "${target_path}" || {
+            echo >&2 "Failed to seed queries/link-memory-to-entity.cypher into ${workspace_dir} for agent archivist."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/queries/link-project-memory.cypher"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding queries/link-project-memory.cypher for agent archivist."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing queries/link-project-memory.cypher in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-archivist-queries__link-project-memory.cypher "${target_path}" || {
-              echo >&2 "Failed to seed queries/link-project-memory.cypher into ${workspace_dir} for agent archivist."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-archivist-queries__link-project-memory.cypher "${target_path}" || {
+            echo >&2 "Failed to seed queries/link-project-memory.cypher into ${workspace_dir} for agent archivist."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/queries/memory-links.cypher"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding queries/memory-links.cypher for agent archivist."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing queries/memory-links.cypher in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-archivist-queries__memory-links.cypher "${target_path}" || {
-              echo >&2 "Failed to seed queries/memory-links.cypher into ${workspace_dir} for agent archivist."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-archivist-queries__memory-links.cypher "${target_path}" || {
+            echo >&2 "Failed to seed queries/memory-links.cypher into ${workspace_dir} for agent archivist."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/queries/project-service-agent-overview.cypher"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding queries/project-service-agent-overview.cypher for agent archivist."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing queries/project-service-agent-overview.cypher in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-archivist-queries__project-service-agent-overview.cypher "${target_path}" || {
-              echo >&2 "Failed to seed queries/project-service-agent-overview.cypher into ${workspace_dir} for agent archivist."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-archivist-queries__project-service-agent-overview.cypher "${target_path}" || {
+            echo >&2 "Failed to seed queries/project-service-agent-overview.cypher into ${workspace_dir} for agent archivist."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/queries/run_query.py"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding queries/run_query.py for agent archivist."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing queries/run_query.py in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-archivist-queries__run_query.py "${target_path}" || {
-              echo >&2 "Failed to seed queries/run_query.py into ${workspace_dir} for agent archivist."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-archivist-queries__run_query.py "${target_path}" || {
+            echo >&2 "Failed to seed queries/run_query.py into ${workspace_dir} for agent archivist."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/queries/unlinked-memory-entries.cypher"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding queries/unlinked-memory-entries.cypher for agent archivist."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing queries/unlinked-memory-entries.cypher in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-archivist-queries__unlinked-memory-entries.cypher "${target_path}" || {
-              echo >&2 "Failed to seed queries/unlinked-memory-entries.cypher into ${workspace_dir} for agent archivist."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-archivist-queries__unlinked-memory-entries.cypher "${target_path}" || {
+            echo >&2 "Failed to seed queries/unlinked-memory-entries.cypher into ${workspace_dir} for agent archivist."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/queries/upsert-entity-and-link.cypher"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding queries/upsert-entity-and-link.cypher for agent archivist."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing queries/upsert-entity-and-link.cypher in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-archivist-queries__upsert-entity-and-link.cypher "${target_path}" || {
-              echo >&2 "Failed to seed queries/upsert-entity-and-link.cypher into ${workspace_dir} for agent archivist."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-archivist-queries__upsert-entity-and-link.cypher "${target_path}" || {
+            echo >&2 "Failed to seed queries/upsert-entity-and-link.cypher into ${workspace_dir} for agent archivist."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/queries/upsert-memory-entry.cypher"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding queries/upsert-memory-entry.cypher for agent archivist."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing queries/upsert-memory-entry.cypher in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-archivist-queries__upsert-memory-entry.cypher "${target_path}" || {
-              echo >&2 "Failed to seed queries/upsert-memory-entry.cypher into ${workspace_dir} for agent archivist."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-archivist-queries__upsert-memory-entry.cypher "${target_path}" || {
+            echo >&2 "Failed to seed queries/upsert-memory-entry.cypher into ${workspace_dir} for agent archivist."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/skills/curate-memgraph/SKILL.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding skills/curate-memgraph/SKILL.md for agent archivist."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing skills/curate-memgraph/SKILL.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-archivist-skills__curate-memgraph__SKILL.md "${target_path}" || {
-              echo >&2 "Failed to seed skills/curate-memgraph/SKILL.md into ${workspace_dir} for agent archivist."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-archivist-skills__curate-memgraph__SKILL.md "${target_path}" || {
+            echo >&2 "Failed to seed skills/curate-memgraph/SKILL.md into ${workspace_dir} for agent archivist."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/skills/groom-knowledge-graph/SKILL.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding skills/groom-knowledge-graph/SKILL.md for agent archivist."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing skills/groom-knowledge-graph/SKILL.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-archivist-skills__groom-knowledge-graph__SKILL.md "${target_path}" || {
-              echo >&2 "Failed to seed skills/groom-knowledge-graph/SKILL.md into ${workspace_dir} for agent archivist."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-archivist-skills__groom-knowledge-graph__SKILL.md "${target_path}" || {
+            echo >&2 "Failed to seed skills/groom-knowledge-graph/SKILL.md into ${workspace_dir} for agent archivist."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/skills/map-context-and-link-evidence/SKILL.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding skills/map-context-and-link-evidence/SKILL.md for agent archivist."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing skills/map-context-and-link-evidence/SKILL.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-archivist-skills__map-context-and-link-evidence__SKILL.md "${target_path}" || {
-              echo >&2 "Failed to seed skills/map-context-and-link-evidence/SKILL.md into ${workspace_dir} for agent archivist."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-archivist-skills__map-context-and-link-evidence__SKILL.md "${target_path}" || {
+            echo >&2 "Failed to seed skills/map-context-and-link-evidence/SKILL.md into ${workspace_dir} for agent archivist."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/skills/use-nextcloud-docs-for-graph-work/SKILL.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding skills/use-nextcloud-docs-for-graph-work/SKILL.md for agent archivist."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing skills/use-nextcloud-docs-for-graph-work/SKILL.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-archivist-skills__use-nextcloud-docs-for-graph-work__SKILL.md "${target_path}" || {
-              echo >&2 "Failed to seed skills/use-nextcloud-docs-for-graph-work/SKILL.md into ${workspace_dir} for agent archivist."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-archivist-skills__use-nextcloud-docs-for-graph-work__SKILL.md "${target_path}" || {
+            echo >&2 "Failed to seed skills/use-nextcloud-docs-for-graph-work/SKILL.md into ${workspace_dir} for agent archivist."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/state/grooming-checkpoint.json"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding state/grooming-checkpoint.json for agent archivist."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing state/grooming-checkpoint.json in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-archivist-state__grooming-checkpoint.json "${target_path}" || {
-              echo >&2 "Failed to seed state/grooming-checkpoint.json into ${workspace_dir} for agent archivist."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-archivist-state__grooming-checkpoint.json "${target_path}" || {
+            echo >&2 "Failed to seed state/grooming-checkpoint.json into ${workspace_dir} for agent archivist."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           workspace_dir="${state_root}/workspace-auditor"
           mkdir -p "${workspace_dir}" || {
             echo >&2 "Failed to create bootstrapped workspace directory ${workspace_dir} for agent auditor."
             exit 1
           }
+          runtime_dir="${workspace_dir}/${sandbox_runtime_rel}"
+          mkdir -p "${runtime_dir}" || {
+            echo >&2 "Failed to create sandbox runtime directory ${runtime_dir} for agent auditor."
+            exit 1
+          }
+          cp -f "${sandbox_ca_source}" "${runtime_dir}/ai-homebase-ca-bundle.crt" || {
+            echo >&2 "Failed to seed sandbox CA bundle into ${runtime_dir} for agent auditor."
+            exit 1
+          }
+          if [ ! -e /config-source/workspace-auditor-HEARTBEAT.md ] && [ -e "${workspace_dir}/HEARTBEAT.md" ]; then
+            rm -f "${workspace_dir}/HEARTBEAT.md" || {
+              echo >&2 "Failed to remove retired HEARTBEAT.md from ${workspace_dir} for agent auditor."
+              exit 1
+            }
+          fi
           target_path="${workspace_dir}/AGENTS.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding AGENTS.md for agent auditor."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing AGENTS.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-auditor-AGENTS.md "${target_path}" || {
-              echo >&2 "Failed to seed AGENTS.md into ${workspace_dir} for agent auditor."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-auditor-AGENTS.md "${target_path}" || {
+            echo >&2 "Failed to seed AGENTS.md into ${workspace_dir} for agent auditor."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/CURRENT.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding CURRENT.md for agent auditor."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing CURRENT.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-auditor-CURRENT.md "${target_path}" || {
-              echo >&2 "Failed to seed CURRENT.md into ${workspace_dir} for agent auditor."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-auditor-CURRENT.md "${target_path}" || {
+            echo >&2 "Failed to seed CURRENT.md into ${workspace_dir} for agent auditor."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/IDENTITY.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding IDENTITY.md for agent auditor."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing IDENTITY.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-auditor-IDENTITY.md "${target_path}" || {
-              echo >&2 "Failed to seed IDENTITY.md into ${workspace_dir} for agent auditor."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-auditor-IDENTITY.md "${target_path}" || {
+            echo >&2 "Failed to seed IDENTITY.md into ${workspace_dir} for agent auditor."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/MEMORY.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding MEMORY.md for agent auditor."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing MEMORY.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-auditor-MEMORY.md "${target_path}" || {
-              echo >&2 "Failed to seed MEMORY.md into ${workspace_dir} for agent auditor."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-auditor-MEMORY.md "${target_path}" || {
+            echo >&2 "Failed to seed MEMORY.md into ${workspace_dir} for agent auditor."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/SOUL.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding SOUL.md for agent auditor."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing SOUL.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-auditor-SOUL.md "${target_path}" || {
-              echo >&2 "Failed to seed SOUL.md into ${workspace_dir} for agent auditor."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-auditor-SOUL.md "${target_path}" || {
+            echo >&2 "Failed to seed SOUL.md into ${workspace_dir} for agent auditor."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/SURFACES.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding SURFACES.md for agent auditor."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing SURFACES.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-auditor-SURFACES.md "${target_path}" || {
-              echo >&2 "Failed to seed SURFACES.md into ${workspace_dir} for agent auditor."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-auditor-SURFACES.md "${target_path}" || {
+            echo >&2 "Failed to seed SURFACES.md into ${workspace_dir} for agent auditor."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/TOOLS.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding TOOLS.md for agent auditor."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing TOOLS.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-auditor-TOOLS.md "${target_path}" || {
-              echo >&2 "Failed to seed TOOLS.md into ${workspace_dir} for agent auditor."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-auditor-TOOLS.md "${target_path}" || {
+            echo >&2 "Failed to seed TOOLS.md into ${workspace_dir} for agent auditor."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/USER.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding USER.md for agent auditor."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing USER.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-auditor-USER.md "${target_path}" || {
-              echo >&2 "Failed to seed USER.md into ${workspace_dir} for agent auditor."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-auditor-USER.md "${target_path}" || {
+            echo >&2 "Failed to seed USER.md into ${workspace_dir} for agent auditor."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/daily/README.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding daily/README.md for agent auditor."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing daily/README.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-auditor-daily__README.md "${target_path}" || {
-              echo >&2 "Failed to seed daily/README.md into ${workspace_dir} for agent auditor."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-auditor-daily__README.md "${target_path}" || {
+            echo >&2 "Failed to seed daily/README.md into ${workspace_dir} for agent auditor."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/skills/classify-review-mode/SKILL.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding skills/classify-review-mode/SKILL.md for agent auditor."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing skills/classify-review-mode/SKILL.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-auditor-skills__classify-review-mode__SKILL.md "${target_path}" || {
-              echo >&2 "Failed to seed skills/classify-review-mode/SKILL.md into ${workspace_dir} for agent auditor."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-auditor-skills__classify-review-mode__SKILL.md "${target_path}" || {
+            echo >&2 "Failed to seed skills/classify-review-mode/SKILL.md into ${workspace_dir} for agent auditor."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/skills/format-verdict/SKILL.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding skills/format-verdict/SKILL.md for agent auditor."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing skills/format-verdict/SKILL.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-auditor-skills__format-verdict__SKILL.md "${target_path}" || {
-              echo >&2 "Failed to seed skills/format-verdict/SKILL.md into ${workspace_dir} for agent auditor."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-auditor-skills__format-verdict__SKILL.md "${target_path}" || {
+            echo >&2 "Failed to seed skills/format-verdict/SKILL.md into ${workspace_dir} for agent auditor."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/skills/gitea-browse/SKILL.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding skills/gitea-browse/SKILL.md for agent auditor."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing skills/gitea-browse/SKILL.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-auditor-skills__gitea-browse__SKILL.md "${target_path}" || {
-              echo >&2 "Failed to seed skills/gitea-browse/SKILL.md into ${workspace_dir} for agent auditor."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-auditor-skills__gitea-browse__SKILL.md "${target_path}" || {
+            echo >&2 "Failed to seed skills/gitea-browse/SKILL.md into ${workspace_dir} for agent auditor."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/skills/manage-review-packets/SKILL.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding skills/manage-review-packets/SKILL.md for agent auditor."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing skills/manage-review-packets/SKILL.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-auditor-skills__manage-review-packets__SKILL.md "${target_path}" || {
-              echo >&2 "Failed to seed skills/manage-review-packets/SKILL.md into ${workspace_dir} for agent auditor."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-auditor-skills__manage-review-packets__SKILL.md "${target_path}" || {
+            echo >&2 "Failed to seed skills/manage-review-packets/SKILL.md into ${workspace_dir} for agent auditor."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           workspace_dir="${state_root}/workspace-coder"
           mkdir -p "${workspace_dir}" || {
             echo >&2 "Failed to create bootstrapped workspace directory ${workspace_dir} for agent coder."
             exit 1
           }
+          runtime_dir="${workspace_dir}/${sandbox_runtime_rel}"
+          mkdir -p "${runtime_dir}" || {
+            echo >&2 "Failed to create sandbox runtime directory ${runtime_dir} for agent coder."
+            exit 1
+          }
+          cp -f "${sandbox_ca_source}" "${runtime_dir}/ai-homebase-ca-bundle.crt" || {
+            echo >&2 "Failed to seed sandbox CA bundle into ${runtime_dir} for agent coder."
+            exit 1
+          }
+          ssh_dir="${workspace_dir}/.home/.ssh"
+          mkdir -p "${ssh_dir}" || {
+            echo >&2 "Failed to create coder SSH directory ${ssh_dir} for remote Docker access."
+            exit 1
+          }
+          if [ ! -s /ssh-source/id_ed25519 ]; then
+            echo >&2 "remoteDocker.ssh.secretName must reference a Secret containing non-empty id_ed25519 and known_hosts keys; id_ed25519 is missing or empty."
+            exit 1
+          fi
+          if [ ! -s /ssh-source/known_hosts ]; then
+            echo >&2 "remoteDocker.ssh.secretName must reference a Secret containing non-empty id_ed25519 and known_hosts keys; known_hosts is missing or empty."
+            exit 1
+          fi
+          cp -f /ssh-source/id_ed25519 "${ssh_dir}/id_ed25519" || {
+            echo >&2 "Failed to seed remote Docker SSH key into ${ssh_dir} for coder."
+            exit 1
+          }
+          cp -f /ssh-source/known_hosts "${ssh_dir}/known_hosts" || {
+            echo >&2 "Failed to seed remote Docker known_hosts into ${ssh_dir} for coder."
+            exit 1
+          }
+          chmod 0700 "${ssh_dir}" || {
+            echo >&2 "Failed to lock down ${ssh_dir} for coder remote Docker access."
+            exit 1
+          }
+          chmod 0600 "${ssh_dir}/id_ed25519" || {
+            echo >&2 "Failed to lock down coder remote Docker SSH key permissions."
+            exit 1
+          }
+          chmod 0644 "${ssh_dir}/known_hosts" || {
+            echo >&2 "Failed to lock down coder remote Docker known_hosts permissions."
+            exit 1
+          }
+          if [ ! -e /config-source/workspace-coder-HEARTBEAT.md ] && [ -e "${workspace_dir}/HEARTBEAT.md" ]; then
+            rm -f "${workspace_dir}/HEARTBEAT.md" || {
+              echo >&2 "Failed to remove retired HEARTBEAT.md from ${workspace_dir} for agent coder."
+              exit 1
+            }
+          fi
           target_path="${workspace_dir}/AGENTS.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding AGENTS.md for agent coder."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing AGENTS.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-coder-AGENTS.md "${target_path}" || {
-              echo >&2 "Failed to seed AGENTS.md into ${workspace_dir} for agent coder."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-coder-AGENTS.md "${target_path}" || {
+            echo >&2 "Failed to seed AGENTS.md into ${workspace_dir} for agent coder."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/IDENTITY.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding IDENTITY.md for agent coder."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing IDENTITY.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-coder-IDENTITY.md "${target_path}" || {
-              echo >&2 "Failed to seed IDENTITY.md into ${workspace_dir} for agent coder."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-coder-IDENTITY.md "${target_path}" || {
+            echo >&2 "Failed to seed IDENTITY.md into ${workspace_dir} for agent coder."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/MEMORY.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding MEMORY.md for agent coder."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing MEMORY.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-coder-MEMORY.md "${target_path}" || {
-              echo >&2 "Failed to seed MEMORY.md into ${workspace_dir} for agent coder."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-coder-MEMORY.md "${target_path}" || {
+            echo >&2 "Failed to seed MEMORY.md into ${workspace_dir} for agent coder."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/SOUL.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding SOUL.md for agent coder."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing SOUL.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-coder-SOUL.md "${target_path}" || {
-              echo >&2 "Failed to seed SOUL.md into ${workspace_dir} for agent coder."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-coder-SOUL.md "${target_path}" || {
+            echo >&2 "Failed to seed SOUL.md into ${workspace_dir} for agent coder."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/TOOLS.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding TOOLS.md for agent coder."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing TOOLS.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-coder-TOOLS.md "${target_path}" || {
-              echo >&2 "Failed to seed TOOLS.md into ${workspace_dir} for agent coder."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-coder-TOOLS.md "${target_path}" || {
+            echo >&2 "Failed to seed TOOLS.md into ${workspace_dir} for agent coder."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/USER.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding USER.md for agent coder."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing USER.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-coder-USER.md "${target_path}" || {
-              echo >&2 "Failed to seed USER.md into ${workspace_dir} for agent coder."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-coder-USER.md "${target_path}" || {
+            echo >&2 "Failed to seed USER.md into ${workspace_dir} for agent coder."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/skills/manage-gitea-gitops-and-registry/SKILL.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding skills/manage-gitea-gitops-and-registry/SKILL.md for agent coder."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing skills/manage-gitea-gitops-and-registry/SKILL.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-coder-skills__manage-gitea-gitops-and-registry__SKILL.md "${target_path}" || {
-              echo >&2 "Failed to seed skills/manage-gitea-gitops-and-registry/SKILL.md into ${workspace_dir} for agent coder."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-coder-skills__manage-gitea-gitops-and-registry__SKILL.md "${target_path}" || {
+            echo >&2 "Failed to seed skills/manage-gitea-gitops-and-registry/SKILL.md into ${workspace_dir} for agent coder."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/skills/run-codex-and-log-usage/SKILL.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding skills/run-codex-and-log-usage/SKILL.md for agent coder."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing skills/run-codex-and-log-usage/SKILL.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-coder-skills__run-codex-and-log-usage__SKILL.md "${target_path}" || {
-              echo >&2 "Failed to seed skills/run-codex-and-log-usage/SKILL.md into ${workspace_dir} for agent coder."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-coder-skills__run-codex-and-log-usage__SKILL.md "${target_path}" || {
+            echo >&2 "Failed to seed skills/run-codex-and-log-usage/SKILL.md into ${workspace_dir} for agent coder."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/skills/update-implementation-notes/SKILL.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding skills/update-implementation-notes/SKILL.md for agent coder."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing skills/update-implementation-notes/SKILL.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-coder-skills__update-implementation-notes__SKILL.md "${target_path}" || {
-              echo >&2 "Failed to seed skills/update-implementation-notes/SKILL.md into ${workspace_dir} for agent coder."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-coder-skills__update-implementation-notes__SKILL.md "${target_path}" || {
+            echo >&2 "Failed to seed skills/update-implementation-notes/SKILL.md into ${workspace_dir} for agent coder."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           workspace_dir="${state_root}/workspace"
           mkdir -p "${workspace_dir}" || {
             echo >&2 "Failed to create bootstrapped workspace directory ${workspace_dir} for agent main."
             exit 1
           }
+          runtime_dir="${workspace_dir}/${sandbox_runtime_rel}"
+          mkdir -p "${runtime_dir}" || {
+            echo >&2 "Failed to create sandbox runtime directory ${runtime_dir} for agent main."
+            exit 1
+          }
+          cp -f "${sandbox_ca_source}" "${runtime_dir}/ai-homebase-ca-bundle.crt" || {
+            echo >&2 "Failed to seed sandbox CA bundle into ${runtime_dir} for agent main."
+            exit 1
+          }
+          if [ ! -e /config-source/workspace-main-HEARTBEAT.md ] && [ -e "${workspace_dir}/HEARTBEAT.md" ]; then
+            rm -f "${workspace_dir}/HEARTBEAT.md" || {
+              echo >&2 "Failed to remove retired HEARTBEAT.md from ${workspace_dir} for agent main."
+              exit 1
+            }
+          fi
           target_path="${workspace_dir}/AGENTS.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding AGENTS.md for agent main."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing AGENTS.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-main-AGENTS.md "${target_path}" || {
-              echo >&2 "Failed to seed AGENTS.md into ${workspace_dir} for agent main."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-main-AGENTS.md "${target_path}" || {
+            echo >&2 "Failed to seed AGENTS.md into ${workspace_dir} for agent main."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/BOOTSTRAP.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding BOOTSTRAP.md for agent main."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing BOOTSTRAP.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-main-BOOTSTRAP.md "${target_path}" || {
-              echo >&2 "Failed to seed BOOTSTRAP.md into ${workspace_dir} for agent main."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-main-BOOTSTRAP.md "${target_path}" || {
+            echo >&2 "Failed to seed BOOTSTRAP.md into ${workspace_dir} for agent main."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/CURRENT.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding CURRENT.md for agent main."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing CURRENT.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-main-CURRENT.md "${target_path}" || {
-              echo >&2 "Failed to seed CURRENT.md into ${workspace_dir} for agent main."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-main-CURRENT.md "${target_path}" || {
+            echo >&2 "Failed to seed CURRENT.md into ${workspace_dir} for agent main."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/IDENTITY.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding IDENTITY.md for agent main."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing IDENTITY.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-main-IDENTITY.md "${target_path}" || {
-              echo >&2 "Failed to seed IDENTITY.md into ${workspace_dir} for agent main."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-main-IDENTITY.md "${target_path}" || {
+            echo >&2 "Failed to seed IDENTITY.md into ${workspace_dir} for agent main."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/MEMORY.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding MEMORY.md for agent main."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing MEMORY.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-main-MEMORY.md "${target_path}" || {
-              echo >&2 "Failed to seed MEMORY.md into ${workspace_dir} for agent main."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-main-MEMORY.md "${target_path}" || {
+            echo >&2 "Failed to seed MEMORY.md into ${workspace_dir} for agent main."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/SOUL.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding SOUL.md for agent main."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing SOUL.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-main-SOUL.md "${target_path}" || {
-              echo >&2 "Failed to seed SOUL.md into ${workspace_dir} for agent main."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-main-SOUL.md "${target_path}" || {
+            echo >&2 "Failed to seed SOUL.md into ${workspace_dir} for agent main."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/SURFACES.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding SURFACES.md for agent main."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing SURFACES.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-main-SURFACES.md "${target_path}" || {
-              echo >&2 "Failed to seed SURFACES.md into ${workspace_dir} for agent main."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-main-SURFACES.md "${target_path}" || {
+            echo >&2 "Failed to seed SURFACES.md into ${workspace_dir} for agent main."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/TOOLS.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding TOOLS.md for agent main."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing TOOLS.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-main-TOOLS.md "${target_path}" || {
-              echo >&2 "Failed to seed TOOLS.md into ${workspace_dir} for agent main."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-main-TOOLS.md "${target_path}" || {
+            echo >&2 "Failed to seed TOOLS.md into ${workspace_dir} for agent main."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/USER.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding USER.md for agent main."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing USER.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-main-USER.md "${target_path}" || {
-              echo >&2 "Failed to seed USER.md into ${workspace_dir} for agent main."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-main-USER.md "${target_path}" || {
+            echo >&2 "Failed to seed USER.md into ${workspace_dir} for agent main."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/daily/README.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding daily/README.md for agent main."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing daily/README.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-main-daily__README.md "${target_path}" || {
-              echo >&2 "Failed to seed daily/README.md into ${workspace_dir} for agent main."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-main-daily__README.md "${target_path}" || {
+            echo >&2 "Failed to seed daily/README.md into ${workspace_dir} for agent main."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/skills/bind-channels/SKILL.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding skills/bind-channels/SKILL.md for agent main."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing skills/bind-channels/SKILL.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-main-skills__bind-channels__SKILL.md "${target_path}" || {
-              echo >&2 "Failed to seed skills/bind-channels/SKILL.md into ${workspace_dir} for agent main."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-main-skills__bind-channels__SKILL.md "${target_path}" || {
+            echo >&2 "Failed to seed skills/bind-channels/SKILL.md into ${workspace_dir} for agent main."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/skills/coordinate-in-nextcloud/SKILL.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding skills/coordinate-in-nextcloud/SKILL.md for agent main."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing skills/coordinate-in-nextcloud/SKILL.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-main-skills__coordinate-in-nextcloud__SKILL.md "${target_path}" || {
-              echo >&2 "Failed to seed skills/coordinate-in-nextcloud/SKILL.md into ${workspace_dir} for agent main."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-main-skills__coordinate-in-nextcloud__SKILL.md "${target_path}" || {
+            echo >&2 "Failed to seed skills/coordinate-in-nextcloud/SKILL.md into ${workspace_dir} for agent main."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/skills/handoff-specialist-work/SKILL.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding skills/handoff-specialist-work/SKILL.md for agent main."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing skills/handoff-specialist-work/SKILL.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-main-skills__handoff-specialist-work__SKILL.md "${target_path}" || {
-              echo >&2 "Failed to seed skills/handoff-specialist-work/SKILL.md into ${workspace_dir} for agent main."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-main-skills__handoff-specialist-work__SKILL.md "${target_path}" || {
+            echo >&2 "Failed to seed skills/handoff-specialist-work/SKILL.md into ${workspace_dir} for agent main."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/skills/manage-worker-lifecycle/SKILL.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding skills/manage-worker-lifecycle/SKILL.md for agent main."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing skills/manage-worker-lifecycle/SKILL.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-main-skills__manage-worker-lifecycle__SKILL.md "${target_path}" || {
-              echo >&2 "Failed to seed skills/manage-worker-lifecycle/SKILL.md into ${workspace_dir} for agent main."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-main-skills__manage-worker-lifecycle__SKILL.md "${target_path}" || {
+            echo >&2 "Failed to seed skills/manage-worker-lifecycle/SKILL.md into ${workspace_dir} for agent main."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/skills/record-memory-and-coordination-status/SKILL.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding skills/record-memory-and-coordination-status/SKILL.md for agent main."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing skills/record-memory-and-coordination-status/SKILL.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-main-skills__record-memory-and-coordination-status__SKILL.md "${target_path}" || {
-              echo >&2 "Failed to seed skills/record-memory-and-coordination-status/SKILL.md into ${workspace_dir} for agent main."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-main-skills__record-memory-and-coordination-status__SKILL.md "${target_path}" || {
+            echo >&2 "Failed to seed skills/record-memory-and-coordination-status/SKILL.md into ${workspace_dir} for agent main."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/skills/track-budget/SKILL.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding skills/track-budget/SKILL.md for agent main."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing skills/track-budget/SKILL.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-main-skills__track-budget__SKILL.md "${target_path}" || {
-              echo >&2 "Failed to seed skills/track-budget/SKILL.md into ${workspace_dir} for agent main."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-main-skills__track-budget__SKILL.md "${target_path}" || {
+            echo >&2 "Failed to seed skills/track-budget/SKILL.md into ${workspace_dir} for agent main."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           workspace_dir="${state_root}/workspace-watchdog"
           mkdir -p "${workspace_dir}" || {
             echo >&2 "Failed to create bootstrapped workspace directory ${workspace_dir} for agent watchdog."
             exit 1
           }
+          runtime_dir="${workspace_dir}/${sandbox_runtime_rel}"
+          mkdir -p "${runtime_dir}" || {
+            echo >&2 "Failed to create sandbox runtime directory ${runtime_dir} for agent watchdog."
+            exit 1
+          }
+          cp -f "${sandbox_ca_source}" "${runtime_dir}/ai-homebase-ca-bundle.crt" || {
+            echo >&2 "Failed to seed sandbox CA bundle into ${runtime_dir} for agent watchdog."
+            exit 1
+          }
+          if [ ! -e /config-source/workspace-watchdog-HEARTBEAT.md ] && [ -e "${workspace_dir}/HEARTBEAT.md" ]; then
+            rm -f "${workspace_dir}/HEARTBEAT.md" || {
+              echo >&2 "Failed to remove retired HEARTBEAT.md from ${workspace_dir} for agent watchdog."
+              exit 1
+            }
+          fi
           target_path="${workspace_dir}/AGENTS.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding AGENTS.md for agent watchdog."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing AGENTS.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-watchdog-AGENTS.md "${target_path}" || {
-              echo >&2 "Failed to seed AGENTS.md into ${workspace_dir} for agent watchdog."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-watchdog-AGENTS.md "${target_path}" || {
+            echo >&2 "Failed to seed AGENTS.md into ${workspace_dir} for agent watchdog."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/CURRENT.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding CURRENT.md for agent watchdog."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing CURRENT.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-watchdog-CURRENT.md "${target_path}" || {
-              echo >&2 "Failed to seed CURRENT.md into ${workspace_dir} for agent watchdog."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-watchdog-CURRENT.md "${target_path}" || {
+            echo >&2 "Failed to seed CURRENT.md into ${workspace_dir} for agent watchdog."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/HEARTBEAT.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding HEARTBEAT.md for agent watchdog."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing HEARTBEAT.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-watchdog-HEARTBEAT.md "${target_path}" || {
-              echo >&2 "Failed to seed HEARTBEAT.md into ${workspace_dir} for agent watchdog."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-watchdog-HEARTBEAT.md "${target_path}" || {
+            echo >&2 "Failed to seed HEARTBEAT.md into ${workspace_dir} for agent watchdog."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/IDENTITY.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding IDENTITY.md for agent watchdog."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing IDENTITY.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-watchdog-IDENTITY.md "${target_path}" || {
-              echo >&2 "Failed to seed IDENTITY.md into ${workspace_dir} for agent watchdog."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-watchdog-IDENTITY.md "${target_path}" || {
+            echo >&2 "Failed to seed IDENTITY.md into ${workspace_dir} for agent watchdog."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/MEMORY.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding MEMORY.md for agent watchdog."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing MEMORY.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-watchdog-MEMORY.md "${target_path}" || {
-              echo >&2 "Failed to seed MEMORY.md into ${workspace_dir} for agent watchdog."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-watchdog-MEMORY.md "${target_path}" || {
+            echo >&2 "Failed to seed MEMORY.md into ${workspace_dir} for agent watchdog."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/SOUL.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding SOUL.md for agent watchdog."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing SOUL.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-watchdog-SOUL.md "${target_path}" || {
-              echo >&2 "Failed to seed SOUL.md into ${workspace_dir} for agent watchdog."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-watchdog-SOUL.md "${target_path}" || {
+            echo >&2 "Failed to seed SOUL.md into ${workspace_dir} for agent watchdog."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/SURFACES.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding SURFACES.md for agent watchdog."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing SURFACES.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-watchdog-SURFACES.md "${target_path}" || {
-              echo >&2 "Failed to seed SURFACES.md into ${workspace_dir} for agent watchdog."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-watchdog-SURFACES.md "${target_path}" || {
+            echo >&2 "Failed to seed SURFACES.md into ${workspace_dir} for agent watchdog."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/TOOLS.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding TOOLS.md for agent watchdog."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing TOOLS.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-watchdog-TOOLS.md "${target_path}" || {
-              echo >&2 "Failed to seed TOOLS.md into ${workspace_dir} for agent watchdog."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-watchdog-TOOLS.md "${target_path}" || {
+            echo >&2 "Failed to seed TOOLS.md into ${workspace_dir} for agent watchdog."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/USER.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding USER.md for agent watchdog."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing USER.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-watchdog-USER.md "${target_path}" || {
-              echo >&2 "Failed to seed USER.md into ${workspace_dir} for agent watchdog."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-watchdog-USER.md "${target_path}" || {
+            echo >&2 "Failed to seed USER.md into ${workspace_dir} for agent watchdog."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/daily/README.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding daily/README.md for agent watchdog."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing daily/README.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-watchdog-daily__README.md "${target_path}" || {
-              echo >&2 "Failed to seed daily/README.md into ${workspace_dir} for agent watchdog."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-watchdog-daily__README.md "${target_path}" || {
+            echo >&2 "Failed to seed daily/README.md into ${workspace_dir} for agent watchdog."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/skills/check-heartbeat-and-budget/SKILL.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding skills/check-heartbeat-and-budget/SKILL.md for agent watchdog."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing skills/check-heartbeat-and-budget/SKILL.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-watchdog-skills__check-heartbeat-and-budget__SKILL.md "${target_path}" || {
-              echo >&2 "Failed to seed skills/check-heartbeat-and-budget/SKILL.md into ${workspace_dir} for agent watchdog."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-watchdog-skills__check-heartbeat-and-budget__SKILL.md "${target_path}" || {
+            echo >&2 "Failed to seed skills/check-heartbeat-and-budget/SKILL.md into ${workspace_dir} for agent watchdog."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/skills/classify-severity-and-escalate/SKILL.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding skills/classify-severity-and-escalate/SKILL.md for agent watchdog."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing skills/classify-severity-and-escalate/SKILL.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-watchdog-skills__classify-severity-and-escalate__SKILL.md "${target_path}" || {
-              echo >&2 "Failed to seed skills/classify-severity-and-escalate/SKILL.md into ${workspace_dir} for agent watchdog."
-              exit 1
-            }
-            normalize_seeded_skill "${target_path}"
-          fi
+          cp -f /config-source/workspace-watchdog-skills__classify-severity-and-escalate__SKILL.md "${target_path}" || {
+            echo >&2 "Failed to seed skills/classify-severity-and-escalate/SKILL.md into ${workspace_dir} for agent watchdog."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
           target_path="${workspace_dir}/skills/manage-nextcloud-incidents/SKILL.md"
           target_parent="$(dirname "${target_path}")"
           mkdir -p "${target_parent}" || {
             echo >&2 "Failed to create ${target_parent} before seeding skills/manage-nextcloud-incidents/SKILL.md for agent watchdog."
             exit 1
           }
-          if [ -e "${target_path}" ]; then
-            echo "Preserving existing skills/manage-nextcloud-incidents/SKILL.md in ${workspace_dir}."
-          else
-            cp -f /config-source/workspace-watchdog-skills__manage-nextcloud-incidents__SKILL.md "${target_path}" || {
-              echo >&2 "Failed to seed skills/manage-nextcloud-incidents/SKILL.md into ${workspace_dir} for agent watchdog."
+          cp -f /config-source/workspace-watchdog-skills__manage-nextcloud-incidents__SKILL.md "${target_path}" || {
+            echo >&2 "Failed to seed skills/manage-nextcloud-incidents/SKILL.md into ${workspace_dir} for agent watchdog."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
+          workspace_dir="${state_root}/worker-template"
+          mkdir -p "${workspace_dir}" || {
+            echo >&2 "Failed to create bootstrapped workspace directory ${workspace_dir} for agent worker-template."
+            exit 1
+          }
+          runtime_dir="${workspace_dir}/${sandbox_runtime_rel}"
+          mkdir -p "${runtime_dir}" || {
+            echo >&2 "Failed to create sandbox runtime directory ${runtime_dir} for agent worker-template."
+            exit 1
+          }
+          cp -f "${sandbox_ca_source}" "${runtime_dir}/ai-homebase-ca-bundle.crt" || {
+            echo >&2 "Failed to seed sandbox CA bundle into ${runtime_dir} for agent worker-template."
+            exit 1
+          }
+          if [ ! -e /config-source/workspace-worker-template-HEARTBEAT.md ] && [ -e "${workspace_dir}/HEARTBEAT.md" ]; then
+            rm -f "${workspace_dir}/HEARTBEAT.md" || {
+              echo >&2 "Failed to remove retired HEARTBEAT.md from ${workspace_dir} for agent worker-template."
               exit 1
             }
-            normalize_seeded_skill "${target_path}"
           fi
+          target_path="${workspace_dir}/AGENTS.md"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding AGENTS.md for agent worker-template."
+            exit 1
+          }
+          cp -f /config-source/workspace-worker-template-AGENTS.md "${target_path}" || {
+            echo >&2 "Failed to seed AGENTS.md into ${workspace_dir} for agent worker-template."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
+          target_path="${workspace_dir}/CURRENT.md"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding CURRENT.md for agent worker-template."
+            exit 1
+          }
+          cp -f /config-source/workspace-worker-template-CURRENT.md "${target_path}" || {
+            echo >&2 "Failed to seed CURRENT.md into ${workspace_dir} for agent worker-template."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
+          target_path="${workspace_dir}/HEARTBEAT.md"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding HEARTBEAT.md for agent worker-template."
+            exit 1
+          }
+          cp -f /config-source/workspace-worker-template-HEARTBEAT.md "${target_path}" || {
+            echo >&2 "Failed to seed HEARTBEAT.md into ${workspace_dir} for agent worker-template."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
+          target_path="${workspace_dir}/IDENTITY.md"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding IDENTITY.md for agent worker-template."
+            exit 1
+          }
+          cp -f /config-source/workspace-worker-template-IDENTITY.md "${target_path}" || {
+            echo >&2 "Failed to seed IDENTITY.md into ${workspace_dir} for agent worker-template."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
+          target_path="${workspace_dir}/MEMORY.md"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding MEMORY.md for agent worker-template."
+            exit 1
+          }
+          cp -f /config-source/workspace-worker-template-MEMORY.md "${target_path}" || {
+            echo >&2 "Failed to seed MEMORY.md into ${workspace_dir} for agent worker-template."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
+          target_path="${workspace_dir}/SOUL.md"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding SOUL.md for agent worker-template."
+            exit 1
+          }
+          cp -f /config-source/workspace-worker-template-SOUL.md "${target_path}" || {
+            echo >&2 "Failed to seed SOUL.md into ${workspace_dir} for agent worker-template."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
+          target_path="${workspace_dir}/SURFACES.md"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding SURFACES.md for agent worker-template."
+            exit 1
+          }
+          cp -f /config-source/workspace-worker-template-SURFACES.md "${target_path}" || {
+            echo >&2 "Failed to seed SURFACES.md into ${workspace_dir} for agent worker-template."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
+          target_path="${workspace_dir}/TOOLS.md"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding TOOLS.md for agent worker-template."
+            exit 1
+          }
+          cp -f /config-source/workspace-worker-template-TOOLS.md "${target_path}" || {
+            echo >&2 "Failed to seed TOOLS.md into ${workspace_dir} for agent worker-template."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
+          target_path="${workspace_dir}/USER.md"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding USER.md for agent worker-template."
+            exit 1
+          }
+          cp -f /config-source/workspace-worker-template-USER.md "${target_path}" || {
+            echo >&2 "Failed to seed USER.md into ${workspace_dir} for agent worker-template."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
+          target_path="${workspace_dir}/daily/README.md"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding daily/README.md for agent worker-template."
+            exit 1
+          }
+          cp -f /config-source/workspace-worker-template-daily__README.md "${target_path}" || {
+            echo >&2 "Failed to seed daily/README.md into ${workspace_dir} for agent worker-template."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
+          target_path="${workspace_dir}/skills/define-worker-workflow/SKILL.md"
+          target_parent="$(dirname "${target_path}")"
+          mkdir -p "${target_parent}" || {
+            echo >&2 "Failed to create ${target_parent} before seeding skills/define-worker-workflow/SKILL.md for agent worker-template."
+            exit 1
+          }
+          cp -f /config-source/workspace-worker-template-skills__define-worker-workflow__SKILL.md "${target_path}" || {
+            echo >&2 "Failed to seed skills/define-worker-workflow/SKILL.md into ${workspace_dir} for agent worker-template."
+            exit 1
+          }
+          normalize_seeded_skill "${target_path}"
         image: ghcr.io/openclaw/openclaw:2026.4.14
         imagePullPolicy: IfNotPresent
         name: config-permissions
@@ -6612,6 +6695,9 @@ spec:
         volumeMounts:
         - mountPath: /config-source
           name: config-source
+          readOnly: true
+        - mountPath: /ssh-source
+          name: remote-docker-ssh-secret
           readOnly: true
         - mountPath: /runtime-target
           name: mcp-runtime
@@ -7648,6 +7734,13 @@ spec:
             chmod 0750 "${parent_dir}"
           }
 
+          ensure_managed_dir() {
+            target="$1"
+            mkdir -p "${target}"
+            chown 33:33 "${target}"
+            chmod 0750 "${target}"
+          }
+
           write_managed_file() {
             target="$1"
             source_file="$2"
@@ -7659,10 +7752,12 @@ spec:
           }
           owner_username="openclaw"
           project_slug="ai-homebase"
-          project_root="/var/www/html/data/${owner_username}/files/Projects/${project_slug}"
-          mkdir -p "${project_root}"
-          chown 33:33 "${project_root}"
-          chmod 0750 "${project_root}"
+          files_root="/var/www/html/data/${owner_username}/files"
+          projects_root="${files_root}/Projects"
+          project_root="${projects_root}/${project_slug}"
+          ensure_managed_dir "${files_root}"
+          ensure_managed_dir "${projects_root}"
+          ensure_managed_dir "${project_root}"
           ensure_parent_dir "${project_root}/overview.md"
           write_managed_file "${project_root}/overview.md" "/bootstrap-content/project-0-file-0"
           ensure_parent_dir "${project_root}/multi-agent-topology.md"

@@ -42,6 +42,13 @@ spec:
                 chmod 0750 "${parent_dir}"
               }
 
+              ensure_managed_dir() {
+                target="$1"
+                mkdir -p "${target}"
+                chown 33:33 "${target}"
+                chmod 0750 "${target}"
+              }
+
               write_managed_file() {
                 target="$1"
                 source_file="$2"
@@ -55,10 +62,12 @@ spec:
               {{- range $projectIndex, $project := .Values.bootstrapProjectContent }}
               owner_username={{ $project.ownerUsername | quote }}
               project_slug={{ $project.slug | quote }}
-              project_root="/var/www/html/data/${owner_username}/files/Projects/${project_slug}"
-              mkdir -p "${project_root}"
-              chown 33:33 "${project_root}"
-              chmod 0750 "${project_root}"
+              files_root="/var/www/html/data/${owner_username}/files"
+              projects_root="${files_root}/Projects"
+              project_root="${projects_root}/${project_slug}"
+              ensure_managed_dir "${files_root}"
+              ensure_managed_dir "${projects_root}"
+              ensure_managed_dir "${project_root}"
               {{- range $fileIndex, $file := ($project.projectsFiles | default (list)) }}
               ensure_parent_dir "${project_root}/{{ $file.path }}"
               write_managed_file "${project_root}/{{ $file.path }}" "/bootstrap-content/project-{{ $projectIndex }}-file-{{ $fileIndex }}"

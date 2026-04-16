@@ -117,7 +117,7 @@ For `k3d`, there is one extra routing path to keep in mind:
 
 1. the OpenClaw MCP bridge now tries the in-cluster Service URL first and falls back to the ingress hostname
 2. Docker sandboxes inside the Incus VM are outside Kubernetes, so they use the fallback ingress hostname
-3. `scripts/incus-vm-up.sh` configures the Incus VM and its Docker daemon so the MCP ingress hostname resolves there to the Incus host listener address from `~/.local/state/ai-homebase/incus/openclaw-sandbox.env`, not to `127.0.0.1`
+3. both bootstrap paths now feed `scripts/incus-vm-up.sh` the same canonical service-host list from `bootstrap.local.toml`, so sandbox-side DNS for Nextcloud MCP and the other configured ingress services resolves there to the Incus host listener address from `~/.local/state/ai-homebase/incus/openclaw-sandbox.env`, not to `127.0.0.1`
 
 If that VM/container-side override is missing or broken, the sandbox path will fail even when the cluster ingress is healthy from the host browser.
 

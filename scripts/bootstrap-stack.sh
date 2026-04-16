@@ -136,6 +136,68 @@ import_image_into_k3d_cluster() {
 
   cluster_name="${current_context#k3d-}"
   k3d image import -c "$cluster_name" "$image"
+  verify_k3d_image_import "$cluster_name" "$image"
+}
+
+k3d_cluster_node_names() {
+  local cluster_name="$1"
+
+  docker ps --format '{{.Names}}' | grep -E "^k3d-${cluster_name}-(server|agent)-"
+}
+
+k3d_node_has_image() {
+  local node_name="$1"
+  local image="$2"
+  local image_repo="${image%%:*}"
+
+  docker exec "$node_name" ctr -n k8s.io images ls -q | grep -F -- "$image_repo" >/dev/null
+}
+
+direct_import_image_into_k3d_nodes() {
+  local cluster_name="$1"
+  local image="$2"
+  local archive_path=""
+  local node_name=""
+
+  archive_path="$(mktemp /tmp/ai-homebase-k3d-image.XXXXXX.tar)"
+  docker image save -o "$archive_path" "$image"
+
+  while IFS= read -r node_name; do
+    [[ -n "$node_name" ]] || continue
+    docker cp "$archive_path" "${node_name}:/tmp/ai-homebase-image-import.tar"
+    docker exec "$node_name" ctr -n k8s.io images import /tmp/ai-homebase-image-import.tar
+    docker exec "$node_name" rm -f /tmp/ai-homebase-image-import.tar
+  done < <(k3d_cluster_node_names "$cluster_name")
+
+  rm -f "$archive_path"
+}
+
+verify_k3d_image_import() {
+  local cluster_name="$1"
+  local image="$2"
+  local missing_nodes=()
+  local node_name=""
+
+  while IFS= read -r node_name; do
+    [[ -n "$node_name" ]] || continue
+    if ! k3d_node_has_image "$node_name" "$image"; then
+      missing_nodes+=("$node_name")
+    fi
+  done < <(k3d_cluster_node_names "$cluster_name")
+
+  if [[ ${#missing_nodes[@]} -eq 0 ]]; then
+    return 0
+  fi
+
+  echo "k3d image import did not make ${image} visible in node containerd; falling back to direct node imports for: ${missing_nodes[*]}"
+  direct_import_image_into_k3d_nodes "$cluster_name" "$image"
+
+  for node_name in "${missing_nodes[@]}"; do
+    if ! k3d_node_has_image "$node_name" "$image"; then
+      echo "Failed to verify ${image} inside k3d node ${node_name} after direct import fallback." >&2
+      exit 1
+    fi
+  done
 }
 
 import_image_into_k3s_containerd() {
@@ -537,7 +599,6 @@ Options:
   --values-file <path>         Extra values file path (repeatable)
   --enable-service <name>      Enable a service (repeatable)
   --disable-service <name>     Disable a service (repeatable)
-  --skip-gitops                Skip the integrated GitOps handoff and Argo CD validation
   --remote-docker-secret <n>   Override SSH secret name for OpenClaw remote Docker bootstrap
   --remote-docker-host <host>  Override OpenClaw remote Docker SSH host
   --remote-docker-port <port>  Override OpenClaw remote Docker SSH port
@@ -572,7 +633,12 @@ while [[ $# -gt 0 ]]; do
       SET_ARGS+=(--set "${service_key}.enabled=false")
       shift 2
       ;;
-    --skip-gitops) SKIP_GITOPS=1; shift ;;
+    --skip-gitops)
+      echo "--skip-gitops is no longer supported. A completed bootstrap must include the GitOps handoff." >&2
+      echo "Use ./scripts/bootstrap-gitops.sh for a standalone GitOps rerun, or the internal pre-GitOps phase flag only from bootstrap-gitops.sh." >&2
+      exit 1
+      ;;
+    --internal-skip-gitops) SKIP_GITOPS=1; shift ;;
     --remote-docker-secret) REMOTE_DOCKER_SECRET_NAME="$2"; shift 2 ;;
     --remote-docker-host) REMOTE_DOCKER_HOST="$2"; shift 2 ;;
     --remote-docker-port) REMOTE_DOCKER_PORT="$2"; shift 2 ;;

@@ -50,7 +50,7 @@ Fill in hostnames, mail settings, provider keys, shared admin details, OpenClaw 
 ./scripts/k3s-homelab-sandbox-up.sh --bootstrap-config bootstrap.local.toml
 ```
 
-This creates or refreshes the Incus-backed remote Docker VM, mounts `/var/lib/ai-homebase/openclaw-state` into the VM at `/home/node/.openclaw`, and configures hostname resolution for services that sandboxed agents call through ingress.
+This creates or refreshes the Incus-backed remote Docker VM, mounts `/var/lib/ai-homebase/openclaw-state` into the VM at `/home/node/.openclaw`, and configures hostname resolution for the canonical set of bootstrap-config service hostnames that sandboxed agents may reach through ingress.
 
 ## 4. Bootstrap The Stack
 

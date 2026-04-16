@@ -127,12 +127,12 @@ probes:
   liveness:
     enabled: true
     path: /api/health/
-    initialDelaySeconds: 30
+    initialDelaySeconds: 120
     periodSeconds: 10
   readiness:
     enabled: true
     path: /api/health/
-    initialDelaySeconds: 10
+    initialDelaySeconds: 30
     periodSeconds: 10
 
 bootstrapWait:

@@ -13,7 +13,7 @@ Baseline means `charts/platform-stack/values.yaml` before applying `values-k3d.y
 | Argo CD | `argoCd.enabled` | Disabled for first apply | enabled by GitOps handoff | enabled by GitOps handoff | upstream defaults | repo Secret created by `scripts/bootstrap-gitops.sh` |
 | Nextcloud | `nextcloud.enabled` | Enabled | `10Gi` local PVC | `1Ti` local-path PVC | primary shared user storage | `nextcloud-config-secrets` with admin, PostgreSQL, Redis values |
 | Nextcloud MCP | `nextcloudMcp.enabled` | Enabled | Enabled | Enabled | none | `openclaw-nextcloud-mcp-secrets` |
-| Qdrant | `qdrant.enabled` | Enabled | `10Gi` local PVC | `150Gi` local-path PVC | vector-memory storage | optional API key through OpenClaw secrets |
+| Qdrant | `qdrant.enabled` | Enabled | `10Gi` local PVC | `150Gi` local-path PVC | vector-memory storage | optional API key through `openclaw.qdrant.apiKeySecret` |
 | Qdrant MCP | `qdrantMcp.enabled` | Enabled | Enabled | Enabled | none | no baseline secret; FastEmbed default |
 | Memgraph | `memgraph.enabled` | Enabled | `10Gi` local PVC | `200Gi` local-path PVC | graph-memory storage | no baseline secret |
 | Memgraph Lab | `memgraphLab.enabled` | Enabled | Enabled | Enabled | none | no baseline secret |
@@ -36,6 +36,7 @@ The first bootstrap apply installs the controller stack with custom resources di
 ### OpenClaw
 
 OpenClaw is the multi-agent gateway and runtime coordinator. The supported posture uses the repo-managed gateway image, remote Docker sandboxing through an Incus VM, shared host-backed OpenClaw state, seeded agents/workspaces, Qdrant MCP for semantic memory, Memgraph for structured graph memory, and Nextcloud MCP for shared project files. See [openclaw-runtime.md](./openclaw-runtime.md).
+Heartbeat is intentionally explicit: `main` has `heartbeat.every=0m` plus `heartbeat.includeSystemPromptSection=false` so the default user-facing agent does not inherit OpenClaw's built-in heartbeat posture or `HEARTBEAT.md` injection, and `watchdog` is the only standing agent with a scheduled heartbeat by default.
 
 ### Argo CD
 

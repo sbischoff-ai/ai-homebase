@@ -661,6 +661,31 @@ verify_openclaw_mcp_bootstrap_config() {
     exit 1
   fi
 
+  if [[ "$openclaw_json" != *'"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt"'* ]]; then
+    fail "OpenClaw bootstrap config in ConfigMap/${configmap_name} is not using the workspace-local sandbox CA bundle path"
+    exit 1
+  fi
+
+  if [[ "$openclaw_json" == *'/home/node/.openclaw/certs/ai-homebase-ca-bundle.crt:/etc/ssl/certs/ai-homebase-ca-bundle.crt:ro'* ]]; then
+    fail "OpenClaw bootstrap config in ConfigMap/${configmap_name} still contains the retired out-of-roots sandbox CA bind mount"
+    exit 1
+  fi
+
+  if [[ "$openclaw_json" == *'/var/run/docker.sock:/var/run/docker.sock'* ]]; then
+    fail "OpenClaw bootstrap config in ConfigMap/${configmap_name} still contains the retired Docker socket bind mount"
+    exit 1
+  fi
+
+  if [[ "$openclaw_json" != *'"DOCKER_HOST":"${DOCKER_HOST}"'* ]]; then
+    fail "OpenClaw bootstrap config in ConfigMap/${configmap_name} is not wiring coder to inherit the remote Docker endpoint from gateway env"
+    exit 1
+  fi
+
+  if [[ "$openclaw_json" != *'"id":"architect"'*'"mode":"non-main"'* ]]; then
+    fail "OpenClaw bootstrap config in ConfigMap/${configmap_name} is not keeping architect main sessions on the gateway"
+    exit 1
+  fi
+
   cron_jobs_json="$(
     kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" exec "deployment/${deployment_name}" -- openclaw cron list --json
   )"
@@ -713,12 +738,16 @@ verify_openclaw_workspace_bootstrap() {
   step "Checking bootstrapped OpenClaw workspace files"
   CURRENT_COMMAND="kubectl exec deployment/${deployment_name} -- sh -ceu 'test workspace bootstrap files'"
   run_checked kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" exec "deployment/${deployment_name}" -- sh -ceu '
+    jq -e '"'"'.agents.list[] | select(.id=="main") | .heartbeat.every == "0m" and .heartbeat.includeSystemPromptSection == false'"'"' /home/node/.openclaw/openclaw.json >/dev/null
+    jq -e '"'"'.agents.list[] | select(.id=="watchdog") | .heartbeat.every == "30m"'"'"' /home/node/.openclaw/openclaw.json >/dev/null
+
     test -f /home/node/.openclaw/workspace/BOOTSTRAP.md
     grep -F "agent:auditor:main" /home/node/.openclaw/workspace/BOOTSTRAP.md >/dev/null
 
     test -f /home/node/.openclaw/workspace/AGENTS.md
-    grep -F "systemic quality judgment -> auditor" /home/node/.openclaw/workspace/AGENTS.md >/dev/null
+    grep -F "systemic quality judgment -> \`auditor\`" /home/node/.openclaw/workspace/AGENTS.md >/dev/null
     test ! -e /home/node/.openclaw/workspace/HEARTBEAT.md
+    test -f /home/node/.openclaw/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt
 
     test -f /home/node/.openclaw/workspace-coder/TOOLS.md
     grep -F "CODER_GITEA_BASE_URL" /home/node/.openclaw/workspace-coder/TOOLS.md >/dev/null
@@ -726,6 +755,9 @@ verify_openclaw_workspace_bootstrap() {
     test -f /home/node/.openclaw/workspace-coder/skills/run-codex-and-log-usage/SKILL.md
     grep -F "default \`gpt-5.4-mini\` for routine work" /home/node/.openclaw/workspace-coder/skills/run-codex-and-log-usage/SKILL.md >/dev/null
     test ! -e /home/node/.openclaw/workspace-coder/HEARTBEAT.md
+    test -f /home/node/.openclaw/workspace-coder/.openclaw-runtime/ai-homebase-ca-bundle.crt
+    test -f /home/node/.openclaw/workspace-coder/.home/.ssh/id_ed25519
+    test -f /home/node/.openclaw/workspace-coder/.home/.ssh/known_hosts
 
     test -f /home/node/.openclaw/workspace-archivist/TOOLS.md
     grep -F "MEMGRAPH_BOLT_URI" /home/node/.openclaw/workspace-archivist/TOOLS.md >/dev/null
@@ -743,21 +775,24 @@ verify_openclaw_workspace_bootstrap() {
     test -f /home/node/.openclaw/workspace-archivist/queries/README.md
     test -f /home/node/.openclaw/workspace-archivist/queries/run_query.py
     grep -F "Use \`queries/run_query.py\` for parameterized helpers" /home/node/.openclaw/workspace-archivist/queries/README.md >/dev/null
-    test -f /home/node/.openclaw/workspace-archivist/skills/update-memgraph/SKILL.md
-    grep -F "slug \`qdrant:<point_id>\`" /home/node/.openclaw/workspace-archivist/skills/update-memgraph/SKILL.md >/dev/null
+    test -f /home/node/.openclaw/workspace-archivist/skills/curate-memgraph/SKILL.md
+    grep -F "slug \`qdrant:<point_id>\`" /home/node/.openclaw/workspace-archivist/skills/curate-memgraph/SKILL.md >/dev/null
     test -f /home/node/.openclaw/workspace-archivist/queries/entity-by-slug.cypher
     test -f /home/node/.openclaw/workspace-archivist/queries/upsert-memory-entry.cypher
     test -f /home/node/.openclaw/workspace-archivist/queries/link-memory-to-entity.cypher
     test ! -e /home/node/.openclaw/workspace-archivist/HEARTBEAT.md
+    test -f /home/node/.openclaw/workspace-archivist/.openclaw-runtime/ai-homebase-ca-bundle.crt
 
     test -f /home/node/.openclaw/workspace-architect/AGENTS.md
     grep -F "verdicts -> auditor" /home/node/.openclaw/workspace-architect/AGENTS.md >/dev/null
     test ! -e /home/node/.openclaw/workspace-architect/HEARTBEAT.md
+    test -f /home/node/.openclaw/workspace-architect/.openclaw-runtime/ai-homebase-ca-bundle.crt
 
     test -f /home/node/.openclaw/workspace-watchdog/AGENTS.md
     grep -F "systemic review -> auditor" /home/node/.openclaw/workspace-watchdog/AGENTS.md >/dev/null
     test -f /home/node/.openclaw/workspace-watchdog/HEARTBEAT.md
     grep -F "## Heartbeat Procedure" /home/node/.openclaw/workspace-watchdog/HEARTBEAT.md >/dev/null
+    test -f /home/node/.openclaw/workspace-watchdog/.openclaw-runtime/ai-homebase-ca-bundle.crt
     test -f /home/node/.openclaw/workspace-watchdog/TOOLS.md
     grep -F "http://127.0.0.1:18789/readyz" /home/node/.openclaw/workspace-watchdog/TOOLS.md >/dev/null
     test -f /home/node/.openclaw/workspace-watchdog/skills/check-heartbeat-and-budget/SKILL.md
@@ -766,6 +801,7 @@ verify_openclaw_workspace_bootstrap() {
     test -f /home/node/.openclaw/workspace-auditor/MEMORY.md
     grep -F "\"agent\":\"auditor\"" /home/node/.openclaw/workspace-auditor/MEMORY.md >/dev/null
     test ! -e /home/node/.openclaw/workspace-auditor/HEARTBEAT.md
+    test -f /home/node/.openclaw/workspace-auditor/.openclaw-runtime/ai-homebase-ca-bundle.crt
   '
 }
 
@@ -777,6 +813,8 @@ verify_nextcloud_bootstrap_content() {
   run_checked kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" exec "statefulset/${statefulset_name}" -- sh -ceu '
     project_root=/var/www/html/data/openclaw/files/Projects/ai-homebase
 
+    [ "$(stat -c "%U:%G" /var/www/html/data/openclaw/files)" = "www-data:www-data" ]
+    [ "$(stat -c "%U:%G" /var/www/html/data/openclaw/files/Projects)" = "www-data:www-data" ]
     test -f "${project_root}/coordination-status.json"
     grep -F "\"agent\": \"bootstrap\"" "${project_root}/coordination-status.json" >/dev/null
     test ! -e "${project_root}/heartbeat.json"
@@ -787,7 +825,7 @@ verify_nextcloud_bootstrap_content() {
     test -f "${project_root}/codex-usage/.gitkeep"
     test ! -e "${project_root}/budget-ledger.json"
 
-    test -f "${notes_root}/planning-backlog.md"
+    test -f "${project_root}/automation-backlog.md"
   '
 }
 

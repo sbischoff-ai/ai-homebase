@@ -74,8 +74,8 @@ if ! gh auth status >/dev/null 2>&1; then
   warn "gh auth status failed with the provided token."
   exit 0
 fi
-if ! openclaw skills setup github; then
-  warn "openclaw skills setup github failed."
+if ! openclaw skills info github >/dev/null; then
+  warn "openclaw github skill is not ready."
 fi
 '
 
@@ -90,10 +90,8 @@ if [ -z "${OPENAI_API_KEY:-}" ] && [ -z "${ANTHROPIC_API_KEY:-}" ] && [ -z "${GE
   warn "no supported summarization provider key is present."
   exit 0
 fi
-mkdir -p "${HOME}/.summarize"
-printf "%s\n" "{\"model\":\"openai/gpt-5.4-mini\"}" > "${HOME}/.summarize/config.json"
-if ! openclaw skills setup summarize; then
-  warn "openclaw skills setup summarize failed."
+if ! openclaw skills info summarize >/dev/null; then
+  warn "openclaw summarize skill is not ready."
 fi
 '
 
@@ -104,8 +102,8 @@ if ! command -v tmux >/dev/null 2>&1; then
   warn "tmux is not installed."
   exit 0
 fi
-if ! openclaw skills setup tmux; then
-  warn "openclaw skills setup tmux failed."
+if ! openclaw skills info tmux >/dev/null; then
+  warn "openclaw tmux skill is not ready."
 fi
 '
 

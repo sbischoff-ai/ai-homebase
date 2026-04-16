@@ -10,7 +10,7 @@ The normal `bootstrap-stack.sh` and `k3d-local-bootstrap.sh` workflows now run t
 ./scripts/bootstrap-gitops.sh --profile <k3d|k3s> --bootstrap-config bootstrap.local.toml
 ```
 
-Use the standalone command when you intentionally want to run just the GitOps handoff against a freshly bootstrapped cluster state.
+Use the standalone command when you intentionally want to refresh or replay the GitOps handoff against a cluster that already has the pre-GitOps shared bootstrap resources in place. `bootstrap-stack.sh` itself is not considered complete until the GitOps handoff succeeds.
 
 ## What It Does
 
@@ -28,7 +28,7 @@ The script performs eight steps:
 
 The generated repo uses an app-of-apps shape, but the child app is the single `platform-stack` application. Argo CD is therefore self-managed through the umbrella chart instead of through a second standalone Argo CD release.
 
-The generated repo is a snapshot of the local `charts/` tree plus cluster-specific values at bootstrap time. A chart fix in this repo does not reach the running cluster until `bootstrap-stack.sh` or `bootstrap-gitops.sh` is rerun and the updated commit is pushed into the in-cluster GitOps repo.
+The generated repo is a snapshot of the local `charts/` tree plus cluster-specific values at bootstrap time. A chart fix in this repo does not reach the running cluster until `bootstrap-stack.sh` or `bootstrap-gitops.sh` is rerun and a new commit is pushed into the in-cluster GitOps repo. Replays update the existing protected branch with a regular commit; they do not replace branch history with a force-push.
 
 ## Bootstrap Config Inputs
 

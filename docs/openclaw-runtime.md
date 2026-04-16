@@ -27,7 +27,7 @@ The repo-managed image adds the runtime tools the seeded agents expect, includin
 
 ## Remote Docker
 
-`openclaw.remoteDocker.*` wires the gateway pod to the Incus VM over Docker's `ssh://` transport. The Secret named by `openclaw.remoteDocker.ssh.secretName` must contain non-empty `id_ed25519` and `known_hosts` keys.
+`openclaw.remoteDocker.*` wires the gateway pod to the Incus VM over Docker's `ssh://` transport. The Secret named by `openclaw.remoteDocker.ssh.secretName` must contain non-empty `id_ed25519` and `known_hosts` keys. Bootstrap also seeds those same SSH materials into coder's workspace-local `~/.ssh` so the coder sandbox can talk to the remote Docker endpoint through `DOCKER_HOST=ssh://...` without binding `/var/run/docker.sock`.
 
 The standard sandbox VM helpers are:
 
@@ -53,6 +53,8 @@ The combined bundle includes the host system trust bundle plus the platform inte
 - `GIT_SSL_CAINFO`
 - `CURL_CA_BUNDLE`
 
+The gateway reads the bundle directly from `/home/node/.openclaw/certs/ai-homebase-ca-bundle.crt`. During workspace seeding, bootstrap also copies it into each sandbox workspace at `/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt` so sandbox trust stays inside the workspace root instead of relying on an out-of-roots bind mount.
+
 On `k3s`, bootstrap also imports the CA into the Incus VM's Docker registry trust path for the rendered registry hostname and refreshes the VM trust store when the VM is reachable.
 
 ## Seeded Agents
@@ -60,13 +62,14 @@ On `k3s`, bootstrap also imports the CA into the Incus VM's Docker registry trus
 Bootstrap seeds explicit agents:
 
 - `main`: user-facing coordinator
-- `architect`: planning, design, specs, and durable project structure, with sandboxed reviewer access to Gitea
+- `architect`: planning, design, specs, and durable project structure, with gateway-side main sessions and sandboxed non-main reviewer access to Gitea
 - `coder`: code, repos, images, GitOps, and execution
 - `archivist`: Qdrant/Memgraph memory stewardship
 - `watchdog`: low-cost monitoring and scheduled triage
 - `auditor`: sparse high-judgment review, with gateway reviewer access to Gitea
 
 Agent model selections come from `bootstrap.local.toml` under `[openclaw.agents.<id>]`. `coder` also accepts `codex_model` for the Codex CLI runtime inside its sandbox.
+Heartbeat is configured explicitly rather than relying on OpenClaw's built-in default cadence: `main` is disabled with `heartbeat.every=0m` plus `heartbeat.includeSystemPromptSection=false`, while `watchdog` is the standing heartbeat agent at `30m`.
 
 Workspace seed files live under `charts/openclaw/files/workspaces/`. Keep those files written from the bootstrapped agent's in-cluster perspective; avoid maintainer-only rationale there.
 

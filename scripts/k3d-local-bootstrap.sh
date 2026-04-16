@@ -2,6 +2,7 @@
 set -Eeuo pipefail
 
 source "$(dirname "$0")/lib/logging.sh"
+source "$(dirname "$0")/lib/bootstrap-hosts.sh"
 
 CLUSTER_NAME="${CLUSTER_NAME:-ai-homebase-dev}"
 NAMESPACE="${NAMESPACE:-ai-homebase}"
@@ -123,19 +124,14 @@ run_quiet "${K3D_UP_CMD[@]}"
 ok "Cluster is ready"
 
 step "Bootstrapping Incus sandbox VM"
-run_quiet ./scripts/incus-vm-up.sh \
+INCUS_VM_CMD=(
+  ./scripts/incus-vm-up.sh
   --vm-name "$INCUS_VM_NAME" \
   --shared-openclaw-state-source "$SHARED_OPENCLAW_STATE_SOURCE" \
   --shared-openclaw-state-target "$SHARED_OPENCLAW_STATE_VM_PATH" \
-  --resolve-host "$OPENCLAW_HOST_VALUE" \
-  --resolve-host "$NEXTCLOUD_HOST_VALUE" \
-  --resolve-host "$NEXTCLOUD_MCP_HOST_VALUE" \
-  --resolve-host "$QDRANT_HOST_VALUE" \
-  --resolve-host "$QDRANT_MCP_HOST_VALUE" \
-  --resolve-host "$MEMGRAPH_HOST_VALUE" \
-  --resolve-host "$MEMGRAPH_LAB_HOST_VALUE" \
-  --resolve-host "$GITEA_HOST_VALUE" \
-  --resolve-host "$REGISTRY_HOST_VALUE"
+)
+append_bootstrap_resolve_hosts INCUS_VM_CMD
+run_quiet "${INCUS_VM_CMD[@]}"
 ok "Incus sandbox VM is ready"
 
 if [[ -f "$INCUS_CONNECTION_INFO_PATH" ]]; then

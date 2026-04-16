@@ -1,4 +1,16 @@
 {{- if .Values.config.enabled }}
+{{- $agentDefaults := deepCopy .Values.openclaw.agents.defaults }}
+{{- $agentList := deepCopy .Values.openclaw.agents.list }}
+{{- if not .Values.qdrant.apiKeySecret.name }}
+  {{- if and (hasKey $agentDefaults "sandbox") (hasKey $agentDefaults.sandbox "docker") (hasKey $agentDefaults.sandbox.docker "env") }}
+    {{- $_ := unset $agentDefaults.sandbox.docker.env "QDRANT_API_KEY" }}
+  {{- end }}
+  {{- range $agent := $agentList }}
+    {{- if and (hasKey $agent "sandbox") (hasKey $agent.sandbox "docker") (hasKey $agent.sandbox.docker "env") }}
+      {{- $_ := unset $agent.sandbox.docker.env "QDRANT_API_KEY" }}
+    {{- end }}
+  {{- end }}
+{{- end }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -26,8 +38,8 @@ data:
         "trustedProxies": {{ toJson (.Values.openclaw.gateway.trustedProxies | default (list)) }}
       },
       "agents": {
-        "defaults": {{ toJson .Values.openclaw.agents.defaults }},
-        "list": {{ toJson .Values.openclaw.agents.list }}
+        "defaults": {{ toJson $agentDefaults }},
+        "list": {{ toJson $agentList }}
       },
       "skills": {{ toJson (.Values.openclaw.skills | default (dict)) }},
       "mcp": {{ toJson (.Values.openclaw.mcp | default (dict)) }},

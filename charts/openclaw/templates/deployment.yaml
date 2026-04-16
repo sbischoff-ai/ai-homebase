@@ -74,8 +74,11 @@ spec:
         {{- with .Values.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
-      {{- if or .Values.global.podAnnotations .Values.podAnnotations }}
+      {{- if or .Values.config.enabled .Values.global.podAnnotations .Values.podAnnotations }}
       annotations:
+        {{- if .Values.config.enabled }}
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- end }}
         {{- with .Values.global.podAnnotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -132,22 +135,74 @@ spec:
                 echo >&2 "Rendered ConfigMap file /config-source/openclaw.json is missing or empty; verify the openclaw ConfigMap rendered correctly before deployment."
                 exit 1
               fi
-              if [ -s "${target_file}" ]; then
-                echo "Preserving existing OpenClaw config at ${target_file}."
-              else
-                cp -f /config-source/openclaw.json "${target_file}" || {
-                  echo >&2 "Failed to bootstrap ${target_file} from /config-source/openclaw.json; verify the writable config target volume is mounted and accessible to the init container."
-                  exit 1
-                }
-              fi
+              cp -f /config-source/openclaw.json "${target_file}" || {
+                echo >&2 "Failed to bootstrap ${target_file} from /config-source/openclaw.json; verify the writable config target volume is mounted and accessible to the init container."
+                exit 1
+              }
               {{- if and $persistentConfigEnabled .Values.workspaceBootstrap.enabled }}
               state_root=/config-target-root
+              sandbox_runtime_rel=.openclaw-runtime
+              sandbox_ca_source="${state_root}/certs/ai-homebase-ca-bundle.crt"
+              if [ ! -s "${sandbox_ca_source}" ]; then
+                echo >&2 "Missing shared CA bundle at ${sandbox_ca_source}; bootstrap must export the internal CA before OpenClaw sandboxes start."
+                exit 1
+              fi
               {{- range $agentId, $agentConfig := .Values.workspaceBootstrap.agents }}
               workspace_dir="${state_root}/{{ trimPrefix "/" (trimPrefix $persistentMountPath $agentConfig.workspace) }}"
               mkdir -p "${workspace_dir}" || {
                 echo >&2 "Failed to create bootstrapped workspace directory ${workspace_dir} for agent {{ $agentId }}."
                 exit 1
               }
+              runtime_dir="${workspace_dir}/${sandbox_runtime_rel}"
+              mkdir -p "${runtime_dir}" || {
+                echo >&2 "Failed to create sandbox runtime directory ${runtime_dir} for agent {{ $agentId }}."
+                exit 1
+              }
+              cp -f "${sandbox_ca_source}" "${runtime_dir}/ai-homebase-ca-bundle.crt" || {
+                echo >&2 "Failed to seed sandbox CA bundle into ${runtime_dir} for agent {{ $agentId }}."
+                exit 1
+              }
+              {{- if and $remoteDockerEnabled (eq $agentId "coder") }}
+              ssh_dir="${workspace_dir}/.home/.ssh"
+              mkdir -p "${ssh_dir}" || {
+                echo >&2 "Failed to create coder SSH directory ${ssh_dir} for remote Docker access."
+                exit 1
+              }
+              if [ ! -s /ssh-source/id_ed25519 ]; then
+                echo >&2 "remoteDocker.ssh.secretName must reference a Secret containing non-empty id_ed25519 and known_hosts keys; id_ed25519 is missing or empty."
+                exit 1
+              fi
+              if [ ! -s /ssh-source/known_hosts ]; then
+                echo >&2 "remoteDocker.ssh.secretName must reference a Secret containing non-empty id_ed25519 and known_hosts keys; known_hosts is missing or empty."
+                exit 1
+              fi
+              cp -f /ssh-source/id_ed25519 "${ssh_dir}/id_ed25519" || {
+                echo >&2 "Failed to seed remote Docker SSH key into ${ssh_dir} for coder."
+                exit 1
+              }
+              cp -f /ssh-source/known_hosts "${ssh_dir}/known_hosts" || {
+                echo >&2 "Failed to seed remote Docker known_hosts into ${ssh_dir} for coder."
+                exit 1
+              }
+              chmod 0700 "${ssh_dir}" || {
+                echo >&2 "Failed to lock down ${ssh_dir} for coder remote Docker access."
+                exit 1
+              }
+              chmod 0600 "${ssh_dir}/id_ed25519" || {
+                echo >&2 "Failed to lock down coder remote Docker SSH key permissions."
+                exit 1
+              }
+              chmod 0644 "${ssh_dir}/known_hosts" || {
+                echo >&2 "Failed to lock down coder remote Docker known_hosts permissions."
+                exit 1
+              }
+              {{- end }}
+              if [ ! -e /config-source/{{ printf "workspace-%s-HEARTBEAT.md" $agentId }} ] && [ -e "${workspace_dir}/HEARTBEAT.md" ]; then
+                rm -f "${workspace_dir}/HEARTBEAT.md" || {
+                  echo >&2 "Failed to remove retired HEARTBEAT.md from ${workspace_dir} for agent {{ $agentId }}."
+                  exit 1
+                }
+              fi
               {{- $filesDir := $agentConfig.filesDir | default "" }}
               {{- range $path, $_ := $.Files.Glob (printf "files/%s/**" $filesDir) }}
               {{- $filePath := trimPrefix (printf "files/%s/" $filesDir) $path }}
@@ -157,15 +212,11 @@ spec:
                 echo >&2 "Failed to create ${target_parent} before seeding {{ $filePath }} for agent {{ $agentId }}."
                 exit 1
               }
-              if [ -e "${target_path}" ]; then
-                echo "Preserving existing {{ $filePath }} in ${workspace_dir}."
-              else
-                cp -f /config-source/{{ printf "workspace-%s-%s" $agentId (replace "/" "__" $filePath) }} "${target_path}" || {
-                  echo >&2 "Failed to seed {{ $filePath }} into ${workspace_dir} for agent {{ $agentId }}."
-                  exit 1
-                }
-                normalize_seeded_skill "${target_path}"
-              fi
+              cp -f /config-source/{{ printf "workspace-%s-%s" $agentId (replace "/" "__" $filePath) }} "${target_path}" || {
+                echo >&2 "Failed to seed {{ $filePath }} into ${workspace_dir} for agent {{ $agentId }}."
+                exit 1
+              }
+              normalize_seeded_skill "${target_path}"
               {{- end }}
               {{- end }}
               {{- end }}
@@ -182,6 +233,11 @@ spec:
             - name: config-source
               mountPath: /config-source
               readOnly: true
+            {{- if $remoteDockerEnabled }}
+            - name: remote-docker-ssh-secret
+              mountPath: /ssh-source
+              readOnly: true
+            {{- end }}
             {{- if .Values.config.launcher.enabled | default true }}
             - name: mcp-runtime
               mountPath: /runtime-target
@@ -457,13 +513,15 @@ spec:
               value: {{ (.Values.qdrant.url | default $qdrantInternalUrl) | quote }}
             - name: QDRANT_COLLECTION
               value: {{ (.Values.qdrant.collectionName | default "openclaw-memory") | quote }}
-            {{- with .Values.qdrant.apiKeySecret.name }}
             - name: QDRANT_API_KEY
+              {{- with .Values.qdrant.apiKeySecret.name }}
               valueFrom:
                 secretKeyRef:
                   name: {{ . }}
                   key: {{ $.Values.qdrant.apiKeySecret.key | default "QDRANT_API_KEY" }}
-            {{- end }}
+              {{- else }}
+              value: ""
+              {{- end }}
             {{- if $remoteDockerEnabled }}
             - name: DOCKER_HOST
               value: {{ .Values.remoteDocker.dockerHost | quote }}

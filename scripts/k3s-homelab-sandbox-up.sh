@@ -2,6 +2,7 @@
 set -Eeuo pipefail
 
 source "$(dirname "$0")/lib/logging.sh"
+source "$(dirname "$0")/lib/bootstrap-hosts.sh"
 
 BOOTSTRAP_CONFIG_PATH="${BOOTSTRAP_CONFIG_PATH:-bootstrap.local.toml}"
 VM_NAME="${VM_NAME:-openclaw-sandbox}"
@@ -52,6 +53,7 @@ bootstrap_init_logging
 
 NEXTCLOUD_MCP_HOST=""
 NEXTCLOUD_HOST=""
+NEXTCLOUD_PUBLIC_HOST=""
 QDRANT_HOST=""
 QDRANT_MCP_HOST=""
 GITEA_HOST=""
@@ -59,6 +61,9 @@ REGISTRY_HOST=""
 OPENCLAW_HOST=""
 MEMGRAPH_HOST=""
 MEMGRAPH_LAB_HOST=""
+ARGOCD_HOST=""
+VAULTWARDEN_HOST=""
+PAPERLESS_HOST=""
 if [[ -f "$BOOTSTRAP_CONFIG_PATH" ]]; then
   BOOTSTRAP_SHELL_VARS="$(python3 ./scripts/bootstrap-config.py shell-vars --config "$BOOTSTRAP_CONFIG_PATH")" || exit 1
   eval "$BOOTSTRAP_SHELL_VARS"
@@ -71,6 +76,10 @@ if [[ -f "$BOOTSTRAP_CONFIG_PATH" ]]; then
   OPENCLAW_HOST="${OPENCLAW_HOST:-}"
   MEMGRAPH_HOST="${MEMGRAPH_HOST:-}"
   MEMGRAPH_LAB_HOST="${MEMGRAPH_LAB_HOST:-}"
+  NEXTCLOUD_PUBLIC_HOST="${NEXTCLOUD_PUBLIC_HOST:-}"
+  ARGOCD_HOST="${ARGOCD_HOST:-}"
+  VAULTWARDEN_HOST="${VAULTWARDEN_HOST:-}"
+  PAPERLESS_HOST="${PAPERLESS_HOST:-}"
 fi
 
 INCUS_VM_CMD=(
@@ -81,33 +90,7 @@ INCUS_VM_CMD=(
   --shared-openclaw-state-target "$SHARED_OPENCLAW_STATE_TARGET"
 )
 
-if [[ -n "$NEXTCLOUD_HOST" ]]; then
-  INCUS_VM_CMD+=(--resolve-host "$NEXTCLOUD_HOST")
-fi
-if [[ -n "$NEXTCLOUD_MCP_HOST" ]]; then
-  INCUS_VM_CMD+=(--resolve-host "$NEXTCLOUD_MCP_HOST")
-fi
-if [[ -n "$QDRANT_HOST" ]]; then
-  INCUS_VM_CMD+=(--resolve-host "$QDRANT_HOST")
-fi
-if [[ -n "$QDRANT_MCP_HOST" ]]; then
-  INCUS_VM_CMD+=(--resolve-host "$QDRANT_MCP_HOST")
-fi
-if [[ -n "$GITEA_HOST" ]]; then
-  INCUS_VM_CMD+=(--resolve-host "$GITEA_HOST")
-fi
-if [[ -n "$REGISTRY_HOST" ]]; then
-  INCUS_VM_CMD+=(--resolve-host "$REGISTRY_HOST")
-fi
-if [[ -n "$OPENCLAW_HOST" ]]; then
-  INCUS_VM_CMD+=(--resolve-host "$OPENCLAW_HOST")
-fi
-if [[ -n "$MEMGRAPH_HOST" ]]; then
-  INCUS_VM_CMD+=(--resolve-host "$MEMGRAPH_HOST")
-fi
-if [[ -n "$MEMGRAPH_LAB_HOST" ]]; then
-  INCUS_VM_CMD+=(--resolve-host "$MEMGRAPH_LAB_HOST")
-fi
+append_bootstrap_resolve_hosts INCUS_VM_CMD
 
 for resolve_host in "${EXTRA_RESOLVE_HOSTS[@]}"; do
   INCUS_VM_CMD+=(--resolve-host "$resolve_host")

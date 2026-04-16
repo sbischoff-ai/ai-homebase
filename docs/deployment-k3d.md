@@ -43,7 +43,7 @@ This does four things in order:
 3. runs the shared bootstrap/apply flow, including the GitOps handoff, initial Argo sync, and Argo application validation
 4. runs local smoke checks
 
-If you keep the standard Nextcloud MCP service enabled, `scripts/incus-vm-up.sh` now configures the Incus VM and its Docker containers to resolve that MCP ingress hostname to the Incus host listener address automatically. You should only need extra host-side work when the k3d ingress listener itself is not reachable on the Incus bridge address.
+The local sandbox bootstrap now feeds the Incus VM the same canonical bootstrap-config service host list that the homelab path uses. That keeps sandbox-side ingress resolution aligned across `k3d` and `k3s`, including the standard Nextcloud MCP, Gitea, registry, and other configured service hostnames. You should only need extra host-side work when the k3d ingress listener itself is not reachable on the Incus bridge address.
 
 If you need a different k3s image for `k3d`, export `K3S_IMAGE` before running the script.
 

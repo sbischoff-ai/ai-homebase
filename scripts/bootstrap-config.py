@@ -37,11 +37,7 @@ DEFAULT_WATCHDOG_FALLBACK_MODELS = ["anthropic/claude-haiku-4-5"]
 DEFAULT_AUDITOR_MODEL = "anthropic/claude-opus-4-6"
 DEFAULT_AUDITOR_FALLBACK_MODELS = ["openai/gpt-5.4"]
 SHARED_MCP_BRIDGE_PATH = "/opt/openclaw-runtime/mcp/mcp-http-bridge.mjs"
-SANDBOX_CA_BUNDLE_PATH = "/etc/ssl/certs/ai-homebase-ca-bundle.crt"
-SANDBOX_CA_BUNDLE_BIND = (
-    "/home/node/.openclaw/certs/ai-homebase-ca-bundle.crt:"
-    f"{SANDBOX_CA_BUNDLE_PATH}:ro"
-)
+SANDBOX_CA_BUNDLE_PATH = "/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt"
 NEXTCLOUD_MCP_USERNAME = "openclaw"
 DEFAULT_CODER_GITEA_USERNAME = "coder"
 DEFAULT_REVIEWER_GITEA_USERNAME = "reviewer"
@@ -637,7 +633,6 @@ def command_render_values(args: argparse.Namespace) -> int:
                     "workspaceAccess": "rw",
                     "docker": {
                         "image": values["OPENCLAW_DEFAULT_SANDBOX_IMAGE"],
-                        "binds": [SANDBOX_CA_BUNDLE_BIND],
                         "env": {
                             "SSL_CERT_FILE": SANDBOX_CA_BUNDLE_PATH,
                             "REQUESTS_CA_BUNDLE": SANDBOX_CA_BUNDLE_PATH,
@@ -666,6 +661,10 @@ def command_render_values(args: argparse.Namespace) -> int:
                     "default": True,
                     "name": "OpenClaw Assistant",
                     "workspace": "/home/node/.openclaw/workspace",
+                    "heartbeat": {
+                        "every": "0m",
+                        "includeSystemPromptSection": False,
+                    },
                     "model": {
                         "primary": require_string(agent_models["main"]["primary"], "openclaw.agents.main.model"),
                         **(
@@ -696,10 +695,6 @@ def command_render_values(args: argparse.Namespace) -> int:
                         "workspaceAccess": "rw",
                         "docker": {
                             "image": values["OPENCLAW_CODER_SANDBOX_IMAGE"],
-                            "binds": [
-                                SANDBOX_CA_BUNDLE_BIND,
-                                "/var/run/docker.sock:/var/run/docker.sock",
-                            ],
                             "env": {
                                 "HOME": "/workspace/.home",
                                 "CODEX_HOME": "/workspace/.home/.codex",
@@ -731,6 +726,7 @@ def command_render_values(args: argparse.Namespace) -> int:
                                 "CODER_REGISTRY_NAMESPACE": values["CODER_GITEA_USERNAME"],
                                 "CODEX_DEFAULT_MODEL": values["CODEX_DEFAULT_MODEL"],
                                 "CODEX_MODEL": values["CODEX_MODEL"],
+                                "DOCKER_HOST": "${DOCKER_HOST}",
                                 "OPENAI_API_KEY": "${OPENAI_API_KEY}",
                                 "GITHUB_TOKEN": "${GITHUB_TOKEN}",
                             },
@@ -752,7 +748,7 @@ def command_render_values(args: argparse.Namespace) -> int:
                         ),
                     },
                     "sandbox": {
-                        "mode": "all",
+                        "mode": "non-main",
                         "workspaceAccess": "rw",
                         "docker": {
                             "image": values["OPENCLAW_DEFAULT_SANDBOX_IMAGE"],
@@ -785,7 +781,6 @@ def command_render_values(args: argparse.Namespace) -> int:
                                 "REVIEWER_GITEA_TEA_LOGIN_NAME": "reviewer",
                                 "REVIEWER_GITEA_TEA_TOKEN_NAME": "openclaw-reviewer",
                             },
-                            "binds": [SANDBOX_CA_BUNDLE_BIND],
                             "user": "1000:1000",
                             "capDrop": ["ALL"],
                             "pidsLimit": 256,
@@ -819,6 +814,9 @@ def command_render_values(args: argparse.Namespace) -> int:
                     "id": "watchdog",
                     "name": "Watchdog",
                     "workspace": "/home/node/.openclaw/workspace-watchdog",
+                    "heartbeat": {
+                        "every": "30m",
+                    },
                     "model": {
                         "primary": require_string(agent_models["watchdog"]["primary"], "openclaw.agents.watchdog.model"),
                         **(

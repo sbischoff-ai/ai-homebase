@@ -71,8 +71,9 @@ trap cleanup EXIT
 start_gitea_port_forward() {
   GITEA_PORT_FORWARD_LOG="$(mktemp /tmp/ai-homebase-coder-gitea-port-forward.XXXXXX.log)"
   kubectl "${KUBECTL_ARGS[@]}" -n "$NAMESPACE" port-forward \
+    --address 127.0.0.1 \
     "service/${RELEASE_NAME}-gitea-http" \
-    "127.0.0.1:${GITEA_BOOTSTRAP_LOCAL_PORT}:3000" \
+    "${GITEA_BOOTSTRAP_LOCAL_PORT}:3000" \
     >"$GITEA_PORT_FORWARD_LOG" 2>&1 &
   GITEA_PORT_FORWARD_PID=$!
 
@@ -155,8 +156,7 @@ PY
     python3 - <<PY
 import json
 print(json.dumps({
-    "source_id": 0,
-    "login_name": "",
+    "login_name": ${username@Q},
     "email": ${email@Q},
     "password": ${password@Q},
     "must_change_password": False,

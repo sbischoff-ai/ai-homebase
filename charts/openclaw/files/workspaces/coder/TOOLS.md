@@ -7,6 +7,7 @@ This file records how this OpenClaw setup expects you to use your available tool
 - `/workspace` is the repo working tree.
 - Persistent tool state lives under `/workspace/.home`.
 - `HOME`, `CODEX_HOME`, and XDG directories are already pointed into `/workspace/.home`.
+- Remote Docker access is prewired through `DOCKER_HOST`; the SSH key material lives under `/workspace/.home/.ssh`.
 - Use `CODER_GITEA_BASE_URL` / `CODER_GITEA_HOST` for the in-cluster Gitea service.
 - Use `CODER_REGISTRY_BASE_URL` / `CODER_REGISTRY_HOST` for the in-cluster registry.
 - Canonical repo names in this stack:

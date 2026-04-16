@@ -144,10 +144,10 @@ ensure_job "Watchdog daily digest" \
 ensure_job "Archivist weekly graph grooming" \
   --name "Archivist weekly graph grooming" \
   --cron "0 1 * * 0" \
-  --session main \
-  --wake now \
+  --session isolated \
   --agent archivist \
-  --system-event "$(read_message "archivist-weekly-graph-grooming.md")"
+  --no-deliver \
+  --message "$(read_message "archivist-weekly-graph-grooming.md")"
 
 ensure_job "Auditor weekly review" \
   --name "Auditor weekly review" \
@@ -161,37 +161,37 @@ ensure_job "Watchdog daily wrap-up" \
   --name "Watchdog daily wrap-up" \
   --cron "50 23 * * *" \
   --tz "$OPENCLAW_USER_TIMEZONE" \
-  --session main \
-  --wake now \
+  --session isolated \
   --agent watchdog \
-  --system-event "$(read_message "watchdog-daily-wrap-up.md")"
+  --no-deliver \
+  --message "$(read_message "watchdog-daily-wrap-up.md")"
 
 ensure_job "Architect daily wrap-up" \
   --name "Architect daily wrap-up" \
   --cron "52 23 * * *" \
   --tz "$OPENCLAW_USER_TIMEZONE" \
-  --session main \
-  --wake now \
+  --session isolated \
   --agent architect \
-  --system-event "$(read_message "architect-daily-wrap-up.md")"
+  --no-deliver \
+  --message "$(read_message "architect-daily-wrap-up.md")"
 
 ensure_job "Archivist daily wrap-up" \
   --name "Archivist daily wrap-up" \
   --cron "54 23 * * *" \
   --tz "$OPENCLAW_USER_TIMEZONE" \
-  --session main \
-  --wake now \
+  --session isolated \
   --agent archivist \
-  --system-event "$(read_message "archivist-daily-wrap-up.md")"
+  --no-deliver \
+  --message "$(read_message "archivist-daily-wrap-up.md")"
 
 ensure_job "Auditor daily wrap-up" \
   --name "Auditor daily wrap-up" \
   --cron "56 23 * * *" \
   --tz "$OPENCLAW_USER_TIMEZONE" \
-  --session main \
-  --wake now \
+  --session isolated \
   --agent auditor \
-  --system-event "$(read_message "auditor-daily-wrap-up.md")"
+  --no-deliver \
+  --message "$(read_message "auditor-daily-wrap-up.md")"
 
 ensure_job "Main daily wrap-up" \
   --name "Main daily wrap-up" \

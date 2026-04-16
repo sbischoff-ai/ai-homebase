@@ -117,7 +117,7 @@ sudo ./scripts/install-k3s-ubuntu-2404.sh
 ./scripts/bootstrap-stack.sh --profile k3s --bootstrap-config bootstrap.local.toml
 ```
 
-`bootstrap-stack.sh` now includes the GitOps handoff, initial Argo sync, and Argo application validation by default. Re-run `bootstrap-gitops.sh` only when you want to refresh the in-cluster GitOps repo snapshot separately from the main bootstrap flow.
+`bootstrap-stack.sh` now includes the GitOps handoff, initial Argo sync, and Argo application validation by default, and it no longer has a supported public mode that returns success before GitOps is finished. Re-run `bootstrap-gitops.sh` only when you want to refresh the in-cluster GitOps repo snapshot separately from the main bootstrap flow.
 
 ## Local bootstrap and Incus sandbox helpers
 

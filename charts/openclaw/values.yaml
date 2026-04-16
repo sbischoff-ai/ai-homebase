@@ -165,11 +165,11 @@ openclaw:
             - /var/tmp
             - /run
           env:
-            SSL_CERT_FILE: /etc/ssl/certs/ai-homebase-ca-bundle.crt
-            REQUESTS_CA_BUNDLE: /etc/ssl/certs/ai-homebase-ca-bundle.crt
-            NODE_EXTRA_CA_CERTS: /etc/ssl/certs/ai-homebase-ca-bundle.crt
-            GIT_SSL_CAINFO: /etc/ssl/certs/ai-homebase-ca-bundle.crt
-            CURL_CA_BUNDLE: /etc/ssl/certs/ai-homebase-ca-bundle.crt
+            SSL_CERT_FILE: /workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt
+            REQUESTS_CA_BUNDLE: /workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt
+            NODE_EXTRA_CA_CERTS: /workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt
+            GIT_SSL_CAINFO: /workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt
+            CURL_CA_BUNDLE: /workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt
             MEMGRAPH_HOST: memgraph.example.com
             MEMGRAPH_PORT: "7687"
             MEMGRAPH_BOLT_URI: bolt://memgraph.example.com:7687
@@ -180,8 +180,6 @@ openclaw:
             OPENAI_API_KEY: ${OPENAI_API_KEY}
             ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
             GEMINI_API_KEY: ${GEMINI_API_KEY}
-          binds:
-            - /home/node/.openclaw/certs/ai-homebase-ca-bundle.crt:/etc/ssl/certs/ai-homebase-ca-bundle.crt:ro
           user: 1000:1000
           capDrop:
             - ALL
@@ -205,6 +203,9 @@ openclaw:
         default: true
         name: OpenClaw Assistant
         workspace: /home/node/.openclaw/workspace
+        heartbeat:
+          every: 0m
+          includeSystemPromptSection: false
         model:
           primary: openai/gpt-5.4
           fallbacks:
@@ -246,9 +247,6 @@ openclaw:
           workspaceAccess: rw
           docker:
             image: registry.example.com/coder/openclaw-sandbox-coder:trixie-slim
-            binds:
-              - /home/node/.openclaw/certs/ai-homebase-ca-bundle.crt:/etc/ssl/certs/ai-homebase-ca-bundle.crt:ro
-              - /var/run/docker.sock:/var/run/docker.sock
             tmpfs:
               - /tmp
               - /var/tmp
@@ -259,11 +257,11 @@ openclaw:
               XDG_CONFIG_HOME: /workspace/.home/.config
               XDG_CACHE_HOME: /workspace/.home/.cache
               XDG_STATE_HOME: /workspace/.home/.local/state
-              SSL_CERT_FILE: /etc/ssl/certs/ai-homebase-ca-bundle.crt
-              REQUESTS_CA_BUNDLE: /etc/ssl/certs/ai-homebase-ca-bundle.crt
-              NODE_EXTRA_CA_CERTS: /etc/ssl/certs/ai-homebase-ca-bundle.crt
-              GIT_SSL_CAINFO: /etc/ssl/certs/ai-homebase-ca-bundle.crt
-              CURL_CA_BUNDLE: /etc/ssl/certs/ai-homebase-ca-bundle.crt
+              SSL_CERT_FILE: /workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt
+              REQUESTS_CA_BUNDLE: /workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt
+              NODE_EXTRA_CA_CERTS: /workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt
+              GIT_SSL_CAINFO: /workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt
+              CURL_CA_BUNDLE: /workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt
               CODER_GITEA_BASE_URL: https://gitea.example.com
               CODER_GITEA_HOST: gitea.example.com
               CODER_GITEA_USERNAME: coder
@@ -282,6 +280,7 @@ openclaw:
               CODER_REGISTRY_NAMESPACE: coder
               CODEX_DEFAULT_MODEL: gpt-5.4-mini
               CODEX_MODEL: openai/gpt-5.3-codex
+              DOCKER_HOST: ${DOCKER_HOST}
               OPENAI_API_KEY: ${OPENAI_API_KEY}
               GITHUB_TOKEN: ${GITHUB_TOKEN}
             setupCommand: /usr/local/bin/coder-init.sh
@@ -293,7 +292,7 @@ openclaw:
           fallbacks:
             - openai/gpt-5.4
         sandbox:
-          mode: all
+          mode: non-main
           workspaceAccess: rw
           docker:
             image: registry.example.com/coder/openclaw-sandbox:trixie-slim
@@ -304,11 +303,11 @@ openclaw:
               - /var/tmp
               - /run
             env:
-              SSL_CERT_FILE: /etc/ssl/certs/ai-homebase-ca-bundle.crt
-              REQUESTS_CA_BUNDLE: /etc/ssl/certs/ai-homebase-ca-bundle.crt
-              NODE_EXTRA_CA_CERTS: /etc/ssl/certs/ai-homebase-ca-bundle.crt
-              GIT_SSL_CAINFO: /etc/ssl/certs/ai-homebase-ca-bundle.crt
-              CURL_CA_BUNDLE: /etc/ssl/certs/ai-homebase-ca-bundle.crt
+              SSL_CERT_FILE: /workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt
+              REQUESTS_CA_BUNDLE: /workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt
+              NODE_EXTRA_CA_CERTS: /workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt
+              GIT_SSL_CAINFO: /workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt
+              CURL_CA_BUNDLE: /workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt
               MEMGRAPH_HOST: memgraph.example.com
               MEMGRAPH_PORT: "7687"
               MEMGRAPH_BOLT_URI: bolt://memgraph.example.com:7687
@@ -326,8 +325,6 @@ openclaw:
               REVIEWER_GITEA_PASSWORD: ${REVIEWER_GITEA_PASSWORD}
               REVIEWER_GITEA_TEA_LOGIN_NAME: reviewer
               REVIEWER_GITEA_TEA_TOKEN_NAME: openclaw-reviewer
-            binds:
-              - /home/node/.openclaw/certs/ai-homebase-ca-bundle.crt:/etc/ssl/certs/ai-homebase-ca-bundle.crt:ro
             user: 1000:1000
             capDrop:
               - ALL
@@ -376,6 +373,8 @@ openclaw:
       - id: watchdog
         name: Watchdog
         workspace: /home/node/.openclaw/workspace-watchdog
+        heartbeat:
+          every: 30m
         model:
           primary: openai/gpt-5.4-nano
           fallbacks:
