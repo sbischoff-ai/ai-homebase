@@ -31,6 +31,7 @@ RUN --mount=type=cache,id=openclaw-sandbox-bookworm-apt-cache,target=/var/cache/
   && rm -rf /var/lib/apt/lists/*
 
 COPY --from=memgraph-tools /usr/bin/mgconsole /usr/local/bin/mgconsole
+COPY reviewer-gitea-init.sh /usr/local/bin/reviewer-gitea-init.sh
 
 RUN GOBIN=/usr/local/bin go install code.gitea.io/tea@latest \
   && npm install -g @steipete/summarize \
@@ -41,6 +42,8 @@ RUN GOBIN=/usr/local/bin go install code.gitea.io/tea@latest \
   && summarize --version
 
 RUN useradd --create-home --shell /bin/bash sandbox
+RUN chmod 0755 /usr/local/bin/reviewer-gitea-init.sh
+
 USER sandbox
 WORKDIR /home/sandbox
 

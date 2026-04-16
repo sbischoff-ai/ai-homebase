@@ -9,7 +9,7 @@ Baseline means `charts/platform-stack/values.yaml` before applying `values-k3d.y
 | Service | Toggle | Baseline | `k3d` | `k3s` | Persistence | Secret contract |
 | --- | --- | --- | --- | --- | --- | --- |
 | cert-manager | `certManager.enabled` | Enabled | Enabled | Enabled | none | internal root CA Secret from `certManager.internalCA.rootCertificate.secretName`; export `ca.crt` only |
-| OpenClaw | `openclaw.enabled` | Enabled | Enabled, local hostPath shared state | Enabled, `/var/lib/ai-homebase/openclaw-state` hostPath | `10Gi` baseline, `100Gi` hostPath budget on `k3s` | `openclaw-secrets`, `coder-credentials`, `openclaw-remote-docker-ssh` |
+| OpenClaw | `openclaw.enabled` | Enabled | Enabled, local hostPath shared state | Enabled, `/var/lib/ai-homebase/openclaw-state` hostPath | `10Gi` baseline, `100Gi` hostPath budget on `k3s` | `openclaw-secrets`, `coder-credentials`, `reviewer-credentials`, `openclaw-remote-docker-ssh` |
 | Argo CD | `argoCd.enabled` | Disabled for first apply | enabled by GitOps handoff | enabled by GitOps handoff | upstream defaults | repo Secret created by `scripts/bootstrap-gitops.sh` |
 | Nextcloud | `nextcloud.enabled` | Enabled | `10Gi` local PVC | `1Ti` local-path PVC | primary shared user storage | `nextcloud-config-secrets` with admin, PostgreSQL, Redis values |
 | Nextcloud MCP | `nextcloudMcp.enabled` | Enabled | Enabled | Enabled | none | `openclaw-nextcloud-mcp-secrets` |
@@ -39,7 +39,7 @@ OpenClaw is the multi-agent gateway and runtime coordinator. The supported postu
 
 ### Argo CD
 
-Argo CD is disabled in the initial shared values apply, then enabled by the integrated GitOps handoff. Bootstrap creates coder-owned in-cluster Gitea repositories, pushes a self-contained chart snapshot, registers the repo with Argo CD, triggers the initial sync, and waits for applications to become `Synced` and `Healthy`.
+Argo CD is disabled in the initial shared values apply, then enabled by the integrated GitOps handoff. Bootstrap creates coder-owned in-cluster Gitea repositories, grants the shared reviewer account collaborator access, protects the default branch for the standard internal review flow, pushes a self-contained chart snapshot, registers the repo with Argo CD, triggers the initial sync, and waits for applications to become `Synced` and `Healthy`.
 
 ### Nextcloud And Nextcloud MCP
 

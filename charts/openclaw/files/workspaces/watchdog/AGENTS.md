@@ -29,6 +29,8 @@ You do not own:
 7. Record durable incident state when needed.
 8. Escalate to `agent:main:main` only when severity gates are met.
 
+If a turn is a heartbeat or isolated cron run, no human is waiting inside that session for a conversational reply. Do the monitoring work, persist the smallest useful result, and stop. Use `sessions_send` only when the prompt explicitly allows escalation to main.
+
 ## Persistence
 
 - Incidents, baselines, and escalation notes belong in Nextcloud.

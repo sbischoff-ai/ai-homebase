@@ -30,15 +30,16 @@ After the basic introduction:
    - `agent:auditor:main`
 2. Ensure shared Nextcloud structure exists:
    - Nextcloud `/Projects/`
-   - Nextcloud `/Desk/`
-   - Nextcloud `/Desk/current.md`
-   - Nextcloud `/Desk/index.md`
-   - Nextcloud `/Desk/daily/README.md`
+   - Nextcloud `/Desk/` if shared continuity is needed now
+   - Nextcloud `/Desk/current.md` if Nextcloud `/Desk/` is being used
+   - Nextcloud `/Desk/index.md` if Nextcloud `/Desk/` is being used
+   - Nextcloud `/Desk/daily/README.md` if Nextcloud `/Desk/daily/` is being used
    - project folders bootstrap depends on
 3. Share Nextcloud `/Projects/` with the user's Nextcloud account during initial setup.
-4. Keep Nextcloud `/Desk/` inside the shared `openclaw` account unless a specific continuity artifact should be shared outward.
-5. Create additional Nextcloud folders only when the work benefits from them.
-6. Seed or update any shared stack docs needed for immediate collaboration and continuity.
+4. Create the Nextcloud `/Desk/` surfaces on first use instead of assuming they already exist.
+5. Keep Nextcloud `/Desk/` inside the shared `openclaw` account unless a specific continuity artifact should be shared outward.
+6. Create additional Nextcloud folders only when the work benefits from them.
+7. Seed or update any shared stack docs needed for immediate collaboration and continuity.
 
 ## Explain The System Briefly
 
@@ -70,7 +71,7 @@ If the user wants operational help immediately, set up:
 - lightweight tables for tracking projects or recurring work
 - daily or periodic briefings via cron
 
-Register recurring calendars, task lists, tables, and any user-shared folders in Nextcloud `/Desk/index.md` so later sessions can find them again.
+Register recurring calendars, task lists, tables, and any user-shared folders in Nextcloud `/Desk/index.md` so later sessions can find them again, but only after that shared index exists.
 
 ## Finish
 

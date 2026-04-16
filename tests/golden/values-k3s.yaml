@@ -24,7 +24,7 @@ data:
     Working rule:
     - keep long-lived project documentation in `/Projects/ai-homebase/`;
     - keep private rough work and short-term desk notes in local workspace files, not in shared Nextcloud scratchpads;
-    - use `/Desk/` for shared current state, recent briefings, and live indexing that should survive a restart without turning into long-term project documentation;
+    - use `/Desk/` for shared current state, recent briefings, and live indexing when `main` has created it for shared continuity;
     - store shared quick recall, decisions, and note-like context in Qdrant, with graph promotion through `archivist` when structure matters;
     - use Nextcloud for curated shared artifacts, user collaboration, calendars, tasks, tables, and outputs that should stay visible over time;
     - create additional Nextcloud folders only when the work benefits from them, and do not assume they exist by default.
@@ -48,7 +48,7 @@ data:
 
     Middle layer: coordination, state, and integration.
 
-    - `main` (GPT-4.1), `archivist` (GPT-5.4 Mini), and `coder` (Claude Sonnet 4.6 plus Codex CLI on GPT-5.4 Mini) handle variability, integration, shared state, and complex implementation.
+    - `main` (OpenAI GPT-5.4 by default), `archivist` (GPT-5.4 Mini), and `coder` (Claude Sonnet 4.6 plus Codex CLI on GPT-5.4 Mini) handle variability, integration, shared state, and complex implementation.
     - These agents have meaningful reasoning capacity.
     - They do not replace top-layer reasoning, but they are not purely mechanical either.
 
@@ -65,7 +65,7 @@ data:
 
     ## Agent Roster
 
-    - `main` | middle | GPT-4.1 | user-facing coordinator, task router, budget manager
+    - `main` | middle | OpenAI GPT-5.4 by default | user-facing coordinator, task router, budget manager
     - `architect` | top | Claude Sonnet 4.6 | general-purpose planner, designer, specification author, worker agent designer
     - `coder` | middle | Claude Sonnet 4.6 + Codex CLI with GPT-5.4 Mini | implementation executor, GitOps, Codex delegation
     - `archivist` | middle | GPT-5.4 Mini | knowledge graph curator, cross-agent memory steward, structured recall service
@@ -119,6 +119,40 @@ data:
     - The deployment gate stays outside the agents: cluster-state mutation is prepared by agents but applied through reviewed GitOps and manual Argo CD sync.
   project-0-file-10: |2
 
+    # Automation Backlog
+
+    Capture recurring work that should become cheaper, more reliable, or more deterministic.
+
+    Use this file for:
+    - workflow automation candidates discovered by `auditor`;
+    - repeated LLM tasks that should become worker agents;
+    - mature worker flows that should become Kubernetes `CronJob`s, services, or controller-style helpers implemented by `coder`.
+
+    | Date | Candidate | Type | Why it matters | Next owner |
+    | --- | --- | --- | --- | --- |
+  project-0-file-11: |2
+
+    # Archivist Grooming Log
+
+    Archivist grooming summaries are appended here. Each run records its trigger, effective delta window, checkpoint movement, and any issue that prevented checkpoint advancement.
+
+    | Completed At | Run ID | Trigger | Window | Reason Codes | Qdrant Memories | Nextcloud Surfaces | Memgraph Changes | Checkpoint | Issues |
+    | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+  project-0-file-12: |2
+
+    # Watchdog Status Log
+
+    Append compact monitoring summaries here.
+
+    Use this file for:
+    - heartbeat results that are still worth preserving
+    - platform-sweep notes
+    - activity-check decisions
+    - daily digest summaries
+
+    Keep entries short and timestamped. Trim older material so the log stays focused on recent operational state rather than becoming a long archive.
+  project-0-file-13: |2
+
     # Incident Reports
 
     Watchdog stores durable incident reports in this directory.
@@ -132,11 +166,22 @@ data:
     - suspected or confirmed cause
     - resolution
     - follow-up actions
-  project-0-file-11: |2
+  project-0-file-14: |2
+
+    # Audit Reports
+
+    Store durable audit reports in this directory.
+
+    Recommended naming:
+    - `weekly-YYYY-MM-DD.md`
+    - `review-<slug>-YYYY-MM-DD.md`
+
+    Keep `audit-log.md` as the short index and summary surface. Put full report bodies here.
+  project-0-file-15: |2
 
     {"lastActivity": "1970-01-01T00:00:00Z", "agent": "bootstrap", "status": "initial"}
-  project-0-file-12: ''
-  project-0-file-13: |2
+  project-0-file-16: ''
+  project-0-file-17: |2
 
     # Audit Log
 
@@ -144,7 +189,7 @@ data:
 
     | Date | Scope | Verdict | Report |
     | --- | --- | --- | --- |
-  project-0-file-14: |2
+  project-0-file-18: |2
 
     # Monitoring Baselines
 
@@ -166,7 +211,7 @@ data:
     - First coordination-status marker after deploy may show a stale timestamp (expected - main has not run yet)
 
     Watchdog should update this document as new baselines are established.
-  project-0-file-15: |2
+  project-0-file-19: |2
 
     # Escalation Rules
 
@@ -196,7 +241,7 @@ data:
     1. the user states a requirement;
     2. `main` routes it;
     3. `architect` defines the plan, design direction, and task decomposition when the work is non-trivial;
-    4. `coder` applies cluster and application changes in the relevant repository;
+    4. `coder` applies cluster and application changes in the relevant repository after any needed planning or review gates are satisfied;
     5. `coder` maintains the OpenClaw sandbox image source repo and publishes resulting images to the in-cluster registry;
     6. `coder` validates changes with the documented lint and render commands;
     7. cluster-definition changes are pushed to the GitOps repo;
@@ -215,7 +260,8 @@ data:
 
     Important constraint:
     - `coder` executes changes;
-    - `architect` should shape the work when a project needs planning or design first.
+    - `architect` should shape the work when a project needs planning or design first;
+    - the user remains the deployment gate even when agents prepared the change set end to end.
   project-0-file-3: |2
 
     # Cluster Architecture
@@ -273,9 +319,99 @@ data:
     Use `/Desk/` for short-term shared continuity and indexing that should survive a restart but stay smaller and less curated than project docs.
     Drafts may also live in `/Projects/` when they are part of the project's shared working record or the user should be able to collaborate on them there.
 
-    `/Desk/` is created by `main` at bootstrap or first use. It is not part of the chart-managed `/Projects/` bootstrap content and must stay bounded rather than turning into a generic catch-all bucket.
+    `/Desk/` is created by `main` on first use when shared continuity is needed. It is not part of the chart-managed `/Projects/` bootstrap content and must stay bounded rather than turning into a generic catch-all bucket.
     If agents create additional Nextcloud folders later, they should do so intentionally, document the purpose, and avoid recreating a generic catch-all notes bucket.
-  project-0-file-5: "\n# Worker Agent Design Guide\n\n## What Is a Worker Agent\n\nA worker agent is a bottom-layer execution unit in the layered agent architecture. Workers run cheap models (GPT-5.4 Nano or Mini), follow strict predefined workflows, and escalate when they encounter ambiguity. They are designed to amortize the intelligence of top-layer agents across many cheap, repeated executions.\n\n## Who Designs Workers\n\nThe architect is the sole author of worker agent definitions. Main requests a worker design when the user identifies a recurring need. The auditor reviews worker definitions before instantiation when the worker handles sensitive data, financial operations, or external communications.\n\n## Promotion Principle\n\nRepeated LLM work should move down the cost and determinism ladder over time:\n\n- first, a high-judgment agent does the work manually;\n- then, if the pattern repeats, architect defines a worker agent;\n- later, if the workflow is stable and highly structured, it should be promoted again into deterministic software such as a Kubernetes `CronJob`, service, or controller implemented by `coder`.\n\nWorkers are therefore not the end state for mature repetitive workflows. They are often the transition stage between frontier-agent reasoning and ordinary software.\n\n## Worker Definition Package\n\nEvery worker must be fully specified before instantiation. The architect produces a definition package containing:\n\n### 1. Execution Plan\n- Step-by-step workflow with explicit inputs, outputs, and tool calls\n- Decision rules with no ambiguous branches\n- Error conditions and escalation triggers\n- What to do when input is missing or malformed\n\n### 2. Reference Documentation\n- Templates, schemas, formatting rules\n- Domain-specific constraints and examples\n- Validation criteria\n\n### 3. Schedule\n- Cron expression for recurring tasks, or heartbeat interval only when the workflow has a concrete reactive trigger that truly needs frequent polling\n- Whether the worker responds to user triggers or runs autonomously\n\n### 4. Model Selection\n- Nano: purely procedural tasks with no variance, especially heartbeat-driven trigger watching\n- Mini: light conditional logic or tool chaining\n\nHeartbeat-driven workers should lean strongly toward Nano. Use Mini only when the trigger-handling logic genuinely needs it.\n\n### 5. Escalation Rules\n- Workers always escalate to main\n- Standard triggers: rule gaps, unexpected input, tool failures\n- Domain-specific triggers defined per worker\n\n## How Workers Are Instantiated\n\n1. Architect produces the definition package and writes it to `/Projects/<project-slug>/workers/<worker-id>/` in Nextcloud.\n2. If risk-triggered review is warranted, main routes the definition to auditor.\n3. Main instantiates the worker at runtime:\n   a. Create the workspace directory (e.g., `~/.openclaw/workspace-<worker-id>`).\n   b. Write the workspace files (AGENTS.md, SOUL.md, IDENTITY.md, MEMORY.md, TOOLS.md, USER.md, plus `HEARTBEAT.md` only when the definition explicitly uses heartbeat) by filling in the worker template placeholders with values from the architect's definition package.\n   c. Run `openclaw agents add <worker-id> --workspace ~/.openclaw/workspace-<worker-id> --model <model-id>` to register the agent.\n   d. Update `/Projects/ai-homebase/budget-policy.md` if the new worker changes the expected ongoing LLM spend posture.\n   e. If the worker needs a cron schedule, configure it with `openclaw cron add`.\n4. Main confirms to the user that the worker is active.\n\nTo decommission a worker:\n1. Remove its cron schedule with `openclaw cron remove` (if any).\n2. Run `openclaw agents delete <worker-id>`.\n3. Update `/Projects/ai-homebase/budget-policy.md` if the removal changes expected ongoing spend.\n4. Announce to the user.\n\n## Worker Behavior Invariants\n\nWorkers must:\n- Follow instructions deterministically\n- Avoid interpretation or creativity\n- Request missing inputs via escalation to main\n- Escalate to main for complex decisions, design changes, and ambiguity\n\nWorkers must NOT:\n- Redesign their own workflows\n- Generate strategy or make creative decisions\n- Improvise structure or output formats\n- Store memories unless their execution plan explicitly requires it\n- Contact agents other than main\n\nStanding frontier agents should not receive default heartbeat files for recurring work. Cheap workers and watchdog own that posture unless the user explicitly accepts a higher-cost exception.\n\n## Template Location\n\nThe worker workspace template is at `charts/openclaw/files/workspaces/worker-template/` in the ai-homebase repo. Main uses this as a reference when creating workspace files for new workers \u2014 it is not deployed as a live agent workspace.\n"
+  project-0-file-5: |2
+
+    # Worker Agent Design Guide
+
+    ## What Is a Worker Agent
+
+    A worker agent is a bottom-layer execution unit in the layered agent architecture. Workers run cheap models (GPT-5.4 Nano or Mini), follow strict predefined workflows, and escalate when they encounter ambiguity. They are designed to amortize the intelligence of top-layer agents across many cheap, repeated executions.
+
+    ## Who Designs Workers
+
+    The architect is the sole author of worker agent definitions. Main requests a worker design when the user identifies a recurring need. The auditor reviews worker definitions before instantiation when the worker handles sensitive data, financial operations, or external communications.
+
+    ## Promotion Principle
+
+    Repeated LLM work should move down the cost and determinism ladder over time:
+
+    - first, a high-judgment agent does the work manually;
+    - then, if the pattern repeats, architect defines a worker agent;
+    - later, if the workflow is stable and highly structured, it should be promoted again into deterministic software such as a Kubernetes `CronJob`, service, or controller implemented by `coder`.
+
+    Workers are therefore not the end state for mature repetitive workflows. They are often the transition stage between frontier-agent reasoning and ordinary software.
+
+    ## Worker Definition Package
+
+    Every worker must be fully specified before instantiation. The architect produces a definition package containing:
+
+    ### 1. Execution Plan
+    - Step-by-step workflow with explicit inputs, outputs, and tool calls
+    - Decision rules with no ambiguous branches
+    - Error conditions and escalation triggers
+    - What to do when input is missing or malformed
+
+    ### 2. Reference Documentation
+    - Templates, schemas, formatting rules
+    - Domain-specific constraints and examples
+    - Validation criteria
+
+    ### 3. Schedule
+    - Cron expression for recurring tasks, or heartbeat interval only when the workflow has a concrete reactive trigger that truly needs frequent polling
+    - Whether the worker responds to user triggers or runs autonomously
+
+    ### 4. Model Selection
+    - Nano: purely procedural tasks with no variance, especially heartbeat-driven trigger watching
+    - Mini: light conditional logic or tool chaining
+
+    Heartbeat-driven workers should lean strongly toward Nano. Use Mini only when the trigger-handling logic genuinely needs it.
+
+    ### 5. Escalation Rules
+    - Workers always escalate to main
+    - Standard triggers: rule gaps, unexpected input, tool failures
+    - Domain-specific triggers defined per worker
+
+    ## How Workers Are Instantiated
+
+    1. Architect produces the definition package and writes it to `/Projects/<project-slug>/workers/<worker-id>/` in Nextcloud.
+    2. If risk-triggered review is warranted, main routes the definition to auditor.
+    3. Main instantiates the worker at runtime:
+       a. Create the workspace directory (e.g., `~/.openclaw/workspace-<worker-id>`).
+       b. Read the worker template from the gateway-accessible repo path `charts/openclaw/files/workspaces/worker-template/`.
+       c. Write the workspace files (AGENTS.md, SOUL.md, IDENTITY.md, MEMORY.md, TOOLS.md, USER.md, plus `HEARTBEAT.md` only when the definition explicitly uses heartbeat) by filling in the worker template placeholders with values from the architect's definition package.
+       d. Run `openclaw agents add <worker-id> --workspace ~/.openclaw/workspace-<worker-id> --model <model-id>` to register the agent.
+       e. Update `/Projects/ai-homebase/budget-policy.md` if the new worker changes the expected ongoing LLM spend posture.
+       f. If the worker needs a cron schedule, configure it with `openclaw cron add`.
+    4. Main confirms to the user that the worker is active.
+
+    To decommission a worker:
+    1. Remove its cron schedule with `openclaw cron remove` (if any).
+    2. Run `openclaw agents delete <worker-id>`.
+    3. Update `/Projects/ai-homebase/budget-policy.md` if the removal changes expected ongoing spend.
+    4. Announce to the user.
+
+    ## Worker Behavior Invariants
+
+    Workers must:
+    - Follow instructions deterministically
+    - Avoid interpretation or creativity
+    - Request missing inputs via escalation to main
+    - Escalate to main for complex decisions, design changes, and ambiguity
+
+    Workers must NOT:
+    - Redesign their own workflows
+    - Generate strategy or make creative decisions
+    - Improvise structure or output formats
+    - Store memories unless their execution plan explicitly requires it
+    - Contact agents other than main
+
+    Standing frontier agents should not receive default heartbeat files for recurring work. Cheap workers and watchdog own that posture unless the user explicitly accepts a higher-cost exception.
+
+    ## Runtime Note
+
+    `CURRENT.md`, `SURFACES.md`, and `daily/` are prompt-injected continuity surfaces inside an agent workspace, not the full boundary of what gateway sessions can read. When a worker definition tells `main` to use a repo path such as `charts/openclaw/files/workspaces/worker-template/`, that is an explicit runtime fetch step, not preloaded context.
   project-0-file-6: |2
 
     # Qdrant Semantic Memory Schema
@@ -450,12 +586,12 @@ data:
     This document should reflect the current live topology, not only the original bootstrap defaults.
   project-0-file-9: |2
 
-    # Archivist Grooming Log
+    # Decisions
 
-    Archivist grooming summaries are appended here. Each run records its trigger, effective delta window, checkpoint movement, and any issue that prevented checkpoint advancement.
+    Append durable operating and architecture decisions here.
 
-    | Completed At | Run ID | Trigger | Window | Reason Codes | Qdrant Memories | Nextcloud Surfaces | Memgraph Changes | Checkpoint | Issues |
-    | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+    | Date | Area | Decision | Owner | Notes |
+    | --- | --- | --- | --- | --- |
 kind: ConfigMap
 metadata:
   labels:
@@ -753,7 +889,7 @@ data:
       },
       "agents": {
         "defaults": {"models":{"anthropic/claude-opus-4-6":{"alias":"Auditor"},"anthropic/claude-sonnet-4-6":{"alias":"Main / Architect"},"openai/gpt-5.4":{"alias":"Main / Coder / Architect / Archivist / Auditor"},"openai/gpt-5.4-nano":{"alias":"Watchdog"}},"sandbox":{"backend":"docker","browser":{"cdpPort":9222,"cdpSourceRange":"","enableNoVnc":true,"enabled":true,"headless":false,"image":"openclaw-sandbox-browser:bookworm-slim","network":"bridge","noVncPort":6080,"vncPort":5900},"docker":{"binds":["/home/node/.openclaw/certs/ai-homebase-ca-bundle.crt:/etc/ssl/certs/ai-homebase-ca-bundle.crt:ro"],"capDrop":["ALL"],"cpus":1,"env":{"ANTHROPIC_API_KEY":"${ANTHROPIC_API_KEY}","CURL_CA_BUNDLE":"/etc/ssl/certs/ai-homebase-ca-bundle.crt","GEMINI_API_KEY":"${GEMINI_API_KEY}","GITHUB_TOKEN":"${GITHUB_TOKEN}","GIT_SSL_CAINFO":"/etc/ssl/certs/ai-homebase-ca-bundle.crt","MEMGRAPH_BOLT_URI":"bolt://memgraph.vpn.homebase.internal:7687","MEMGRAPH_HOST":"memgraph.vpn.homebase.internal","MEMGRAPH_PORT":"7687","NODE_EXTRA_CA_CERTS":"/etc/ssl/certs/ai-homebase-ca-bundle.crt","OPENAI_API_KEY":"${OPENAI_API_KEY}","QDRANT_API_KEY":"${QDRANT_API_KEY}","QDRANT_COLLECTION":"openclaw-memory","QDRANT_URL":"https://qdrant.vpn.homebase.internal","REQUESTS_CA_BUNDLE":"/etc/ssl/certs/ai-homebase-ca-bundle.crt","SSL_CERT_FILE":"/etc/ssl/certs/ai-homebase-ca-bundle.crt"},"image":"registry.homebase.local/coder/openclaw-sandbox:trixie-slim","memory":"1g","memorySwap":"2g","network":"bridge","pidsLimit":256,"readOnlyRoot":true,"tmpfs":["/tmp","/var/tmp","/run"],"user":"1000:1000","workdir":"/workspace"},"mode":"non-main","scope":"agent","sessionToolsVisibility":"all","workspaceAccess":"rw"},"workspace":"/home/node/.openclaw/workspace"},
-        "list": [{"default":true,"id":"main","model":{"fallbacks":["anthropic/claude-sonnet-4-6"],"primary":"openai/gpt-5.4"},"name":"OpenClaw Assistant","skills":["handoff-specialist-work","manage-worker-lifecycle","bind-channels","coordinate-in-nextcloud","record-memory-and-coordination-status","track-budget","healthcheck","node-connect","skill-creator","session-logs","weather","summarize"],"subagents":{"allowAgents":["coder","architect","archivist","auditor"]},"workspace":"/home/node/.openclaw/workspace"},{"id":"coder","model":{"fallbacks":["openai/gpt-5.4"],"primary":"anthropic/claude-sonnet-4-6"},"name":"Coder","sandbox":{"docker":{"binds":["/home/node/.openclaw/certs/ai-homebase-ca-bundle.crt:/etc/ssl/certs/ai-homebase-ca-bundle.crt:ro"],"env":{"CODER_GITEA_BASE_URL":"https://gitea.homebase.local","CODER_GITEA_EMAIL":"coder@example.invalid","CODER_GITEA_HOST":"gitea.homebase.local","CODER_GITEA_PASSWORD":"${CODER_GITEA_PASSWORD}","CODER_GITEA_TEA_LOGIN_NAME":"coder","CODER_GITEA_TEA_TOKEN_NAME":"openclaw-coder-sandbox","CODER_GITEA_USERNAME":"coder","CODER_GITOPS_PROJECT":"platform-stack","CODER_GITOPS_REPO_BRANCH":"main","CODER_GITOPS_REPO_NAME":"cluster-gitops","CODER_REGISTRY_BASE_URL":"https://registry.homebase.local","CODER_REGISTRY_HOST":"registry.homebase.local","CODER_REGISTRY_NAMESPACE":"coder","CODER_REGISTRY_PASSWORD":"${CODER_REGISTRY_PASSWORD}","CODER_REGISTRY_USERNAME":"coder","CODER_SANDBOX_IMAGES_REPO_NAME":"openclaw-sandbox-images","CODEX_DEFAULT_MODEL":"gpt-5.4-mini","CODEX_HOME":"/workspace/.home/.codex","CODEX_MODEL":"openai/gpt-5.3-codex","CURL_CA_BUNDLE":"/etc/ssl/certs/ai-homebase-ca-bundle.crt","GITHUB_TOKEN":"${GITHUB_TOKEN}","GIT_SSL_CAINFO":"/etc/ssl/certs/ai-homebase-ca-bundle.crt","HOME":"/workspace/.home","NODE_EXTRA_CA_CERTS":"/etc/ssl/certs/ai-homebase-ca-bundle.crt","OPENAI_API_KEY":"${OPENAI_API_KEY}","REQUESTS_CA_BUNDLE":"/etc/ssl/certs/ai-homebase-ca-bundle.crt","SSL_CERT_FILE":"/etc/ssl/certs/ai-homebase-ca-bundle.crt","XDG_CACHE_HOME":"/workspace/.home/.cache","XDG_CONFIG_HOME":"/workspace/.home/.config","XDG_STATE_HOME":"/workspace/.home/.local/state"},"image":"registry.homebase.local/coder/openclaw-sandbox-coder:trixie-slim","setupCommand":"/usr/local/bin/coder-init.sh","tmpfs":["/tmp","/var/tmp","/run"]},"mode":"all","workspaceAccess":"rw"},"skills":["manage-gitea-gitops-and-registry","run-codex-and-log-usage","update-implementation-notes","github","tmux"],"workspace":"/home/node/.openclaw/workspace-coder"},{"id":"architect","model":{"fallbacks":["openai/gpt-5.4"],"primary":"anthropic/claude-sonnet-4-6"},"name":"Architect","skills":["plan-projects","package-worker-definitions","deliver-design","gitea-browse","skill-creator","session-logs","summarize","github"],"tools":{"deny":["tts","image_generate","canvas"]},"workspace":"/home/node/.openclaw/workspace-architect"},{"id":"archivist","model":{"fallbacks":["anthropic/claude-sonnet-4-6"],"primary":"openai/gpt-5.4-mini"},"name":"Archivist","sandbox":{"mode":"non-main"},"skills":["curate-memgraph","groom-knowledge-graph","map-context-and-link-evidence","use-nextcloud-docs-for-graph-work","session-logs","summarize"],"tools":{"deny":["tts","image_generate","canvas","browser"]},"workspace":"/home/node/.openclaw/workspace-archivist"},{"id":"watchdog","model":{"fallbacks":["anthropic/claude-haiku-4-5"],"primary":"openai/gpt-5.4-nano"},"name":"Watchdog","sandbox":{"mode":"off"},"skills":["classify-severity-and-escalate","manage-nextcloud-incidents","check-heartbeat-and-budget","healthcheck","node-connect","session-logs"],"tools":{"deny":["image_generate","canvas","tts","image","browser","sessions_spawn","agents_list","subagents"]},"workspace":"/home/node/.openclaw/workspace-watchdog"},{"id":"auditor","model":{"fallbacks":["openai/gpt-5.4"],"primary":"anthropic/claude-opus-4-6"},"name":"Auditor","sandbox":{"mode":"off"},"skills":["classify-review-mode","manage-review-packets","format-verdict","gitea-browse","session-logs","summarize","github"],"tools":{"deny":["tts","image_generate","canvas"]},"workspace":"/home/node/.openclaw/workspace-auditor"}]
+        "list": [{"default":true,"id":"main","model":{"fallbacks":["anthropic/claude-sonnet-4-6"],"primary":"openai/gpt-5.4"},"name":"OpenClaw Assistant","skills":["handoff-specialist-work","manage-worker-lifecycle","bind-channels","coordinate-in-nextcloud","record-memory-and-coordination-status","track-budget","healthcheck","node-connect","skill-creator","session-logs","weather","summarize"],"subagents":{"allowAgents":["coder","architect","archivist","auditor"]},"workspace":"/home/node/.openclaw/workspace"},{"id":"coder","model":{"fallbacks":["openai/gpt-5.4"],"primary":"anthropic/claude-sonnet-4-6"},"name":"Coder","sandbox":{"docker":{"binds":["/home/node/.openclaw/certs/ai-homebase-ca-bundle.crt:/etc/ssl/certs/ai-homebase-ca-bundle.crt:ro"],"env":{"CODER_GITEA_BASE_URL":"https://gitea.homebase.local","CODER_GITEA_EMAIL":"coder@example.invalid","CODER_GITEA_HOST":"gitea.homebase.local","CODER_GITEA_PASSWORD":"${CODER_GITEA_PASSWORD}","CODER_GITEA_TEA_LOGIN_NAME":"coder","CODER_GITEA_TEA_TOKEN_NAME":"openclaw-coder-sandbox","CODER_GITEA_USERNAME":"coder","CODER_GITOPS_PROJECT":"platform-stack","CODER_GITOPS_REPO_BRANCH":"main","CODER_GITOPS_REPO_NAME":"cluster-gitops","CODER_REGISTRY_BASE_URL":"https://registry.homebase.local","CODER_REGISTRY_HOST":"registry.homebase.local","CODER_REGISTRY_NAMESPACE":"coder","CODER_REGISTRY_PASSWORD":"${CODER_REGISTRY_PASSWORD}","CODER_REGISTRY_USERNAME":"coder","CODER_SANDBOX_IMAGES_REPO_NAME":"openclaw-sandbox-images","CODEX_DEFAULT_MODEL":"gpt-5.4-mini","CODEX_HOME":"/workspace/.home/.codex","CODEX_MODEL":"openai/gpt-5.3-codex","CURL_CA_BUNDLE":"/etc/ssl/certs/ai-homebase-ca-bundle.crt","GITHUB_TOKEN":"${GITHUB_TOKEN}","GIT_SSL_CAINFO":"/etc/ssl/certs/ai-homebase-ca-bundle.crt","HOME":"/workspace/.home","NODE_EXTRA_CA_CERTS":"/etc/ssl/certs/ai-homebase-ca-bundle.crt","OPENAI_API_KEY":"${OPENAI_API_KEY}","REQUESTS_CA_BUNDLE":"/etc/ssl/certs/ai-homebase-ca-bundle.crt","SSL_CERT_FILE":"/etc/ssl/certs/ai-homebase-ca-bundle.crt","XDG_CACHE_HOME":"/workspace/.home/.cache","XDG_CONFIG_HOME":"/workspace/.home/.config","XDG_STATE_HOME":"/workspace/.home/.local/state"},"image":"registry.homebase.local/coder/openclaw-sandbox-coder:trixie-slim","setupCommand":"/usr/local/bin/coder-init.sh","tmpfs":["/tmp","/var/tmp","/run"]},"mode":"all","workspaceAccess":"rw"},"skills":["manage-gitea-gitops-and-registry","run-codex-and-log-usage","update-implementation-notes","github","tmux"],"workspace":"/home/node/.openclaw/workspace-coder"},{"id":"architect","model":{"fallbacks":["openai/gpt-5.4"],"primary":"anthropic/claude-sonnet-4-6"},"name":"Architect","sandbox":{"docker":{"binds":["/home/node/.openclaw/certs/ai-homebase-ca-bundle.crt:/etc/ssl/certs/ai-homebase-ca-bundle.crt:ro"],"capDrop":["ALL"],"cpus":1,"env":{"ANTHROPIC_API_KEY":"${ANTHROPIC_API_KEY}","CURL_CA_BUNDLE":"/etc/ssl/certs/ai-homebase-ca-bundle.crt","GEMINI_API_KEY":"${GEMINI_API_KEY}","GITHUB_TOKEN":"${GITHUB_TOKEN}","GIT_SSL_CAINFO":"/etc/ssl/certs/ai-homebase-ca-bundle.crt","MEMGRAPH_BOLT_URI":"bolt://memgraph.homebase.local:7687","MEMGRAPH_HOST":"memgraph.homebase.local","MEMGRAPH_PORT":"7687","NODE_EXTRA_CA_CERTS":"/etc/ssl/certs/ai-homebase-ca-bundle.crt","OPENAI_API_KEY":"${OPENAI_API_KEY}","QDRANT_API_KEY":"${QDRANT_API_KEY}","QDRANT_COLLECTION":"openclaw-memory","QDRANT_URL":"https://qdrant.homebase.local","REQUESTS_CA_BUNDLE":"/etc/ssl/certs/ai-homebase-ca-bundle.crt","REVIEWER_GITEA_BASE_URL":"https://gitea.homebase.local","REVIEWER_GITEA_EMAIL":"reviewer@example.invalid","REVIEWER_GITEA_HOST":"gitea.homebase.local","REVIEWER_GITEA_PASSWORD":"${REVIEWER_GITEA_PASSWORD}","REVIEWER_GITEA_TEA_LOGIN_NAME":"reviewer","REVIEWER_GITEA_TEA_TOKEN_NAME":"openclaw-reviewer","REVIEWER_GITEA_USERNAME":"reviewer","SSL_CERT_FILE":"/etc/ssl/certs/ai-homebase-ca-bundle.crt"},"image":"registry.homebase.local/coder/openclaw-sandbox:trixie-slim","memory":"1g","memorySwap":"2g","network":"bridge","pidsLimit":256,"readOnlyRoot":true,"setupCommand":"/usr/local/bin/reviewer-gitea-init.sh","tmpfs":["/tmp","/var/tmp","/run"],"user":"1000:1000","workdir":"/workspace"},"mode":"all","workspaceAccess":"rw"},"skills":["plan-projects","package-worker-definitions","deliver-design","gitea-browse","skill-creator","session-logs","summarize","github"],"tools":{"deny":["tts","image_generate","canvas"]},"workspace":"/home/node/.openclaw/workspace-architect"},{"id":"archivist","model":{"fallbacks":["anthropic/claude-sonnet-4-6"],"primary":"openai/gpt-5.4-mini"},"name":"Archivist","sandbox":{"mode":"non-main"},"skills":["curate-memgraph","groom-knowledge-graph","map-context-and-link-evidence","use-nextcloud-docs-for-graph-work","session-logs","summarize"],"tools":{"deny":["tts","image_generate","canvas","browser"]},"workspace":"/home/node/.openclaw/workspace-archivist"},{"id":"watchdog","model":{"fallbacks":["anthropic/claude-haiku-4-5"],"primary":"openai/gpt-5.4-nano"},"name":"Watchdog","sandbox":{"mode":"off"},"skills":["classify-severity-and-escalate","manage-nextcloud-incidents","check-heartbeat-and-budget","healthcheck","node-connect","session-logs"],"tools":{"deny":["image_generate","canvas","tts","image","browser","sessions_spawn","agents_list","subagents"]},"workspace":"/home/node/.openclaw/workspace-watchdog"},{"id":"auditor","model":{"fallbacks":["openai/gpt-5.4"],"primary":"anthropic/claude-opus-4-6"},"name":"Auditor","sandbox":{"mode":"off"},"skills":["classify-review-mode","manage-review-packets","format-verdict","gitea-browse","session-logs","summarize","github"],"tools":{"deny":["tts","image_generate","canvas"]},"workspace":"/home/node/.openclaw/workspace-auditor"}]
       },
       "skills": {"allowBundled":["weather","healthcheck","node-connect","skill-creator","session-logs","tmux","summarize","github"]},
       "mcp": {"servers":{"nextcloud":{"args":["/opt/openclaw-runtime/mcp/mcp-http-bridge.mjs","--url","${OPENCLAW_NEXTCLOUD_MCP_INTERNAL_URL}","--url","${OPENCLAW_NEXTCLOUD_MCP_EXTERNAL_URL}","--header","Authorization=${OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER}"],"command":"node"},"qdrant":{"args":["/opt/openclaw-runtime/mcp/mcp-http-bridge.mjs","--url","${OPENCLAW_QDRANT_MCP_INTERNAL_URL}","--url","${OPENCLAW_QDRANT_MCP_EXTERNAL_URL}"],"command":"node"}}},
@@ -1022,12 +1158,13 @@ data:
   workspace-architect-skills__gitea-browse__SKILL.md: |
     ---
     name: gitea-browse
-    description: Browse in-cluster Gitea repos, issues, pull requests, commits, chart values, GitOps definitions, and sandbox image sources for read-only design context.
+    description: Browse in-cluster Gitea repos, issues, pull requests, commits, chart values, GitOps definitions, and sandbox image sources for read-only design context with the shared reviewer identity.
     ---
 
     # Gitea Browse
 
     Use this skill to inspect in-cluster source control before design work.
+    Your sandbox is expected to arrive with the shared reviewer identity already configured for `git` and `tea`.
 
     ## Default Repos
 
@@ -1036,7 +1173,7 @@ data:
 
     ## Read-Only Commands
 
-    Use `git` and `tea` with the architect identity.
+    Use `git` and `tea` with the shared reviewer identity that is already configured in your sandbox.
 
     ```bash
     tea repo list
@@ -1066,7 +1203,7 @@ data:
     - Do not stage or commit changes.
     - Cite concrete repo paths, commits, issues, or PRs when they shape a design.
     - Tell main when a design depends on absent, ambiguous, or inconsistent Gitea state.
-    - If `tea` auth fails or a critical repo is missing, stop and ask main for operator help.
+    - If `tea` auth fails or a critical repo is missing, stop and tell main exactly what failed.
   workspace-architect-skills__package-worker-definitions__SKILL.md: |
     ---
     name: package-worker-definitions
@@ -2812,12 +2949,13 @@ data:
   workspace-auditor-skills__gitea-browse__SKILL.md: |
     ---
     name: gitea-browse
-    description: Review in-cluster Gitea repos and pull requests by reading files, inspecting diffs, checking comments, posting review feedback, approving, or merging only with explicit instruction.
+    description: Review in-cluster Gitea repos and pull requests by reading files, inspecting diffs, checking comments, posting review feedback, and approving with the shared reviewer identity; merge only with explicit instruction.
     ---
 
     # Gitea Review Browse
 
     Use this skill to inspect in-cluster source control and conduct PR-level audit review.
+    Your gateway runtime is expected to have the shared reviewer identity already configured for `git` and `tea`.
 
     ## Default Repos
 
@@ -2826,7 +2964,7 @@ data:
 
     ## Review Commands
 
-    Use `git` and `tea` with the auditor identity.
+    Use `git` and `tea` with the shared reviewer identity that is already configured in your runtime.
 
     ```bash
     tea repo list
@@ -2865,7 +3003,7 @@ data:
     - Do not push branches, create commits, or modify repo file content directly.
     - Ground audit reports in specific commits, file paths, diff hunks, issues, or PR comments.
     - Flag discrepancies between Gitea state and approved designs to main.
-    - If `tea` auth fails, a PR is out of scope, or a merge conflicts, stop and ask main for operator help.
+    - If `tea` auth fails, a PR is out of scope, or a merge conflicts, stop and tell main exactly what failed.
   workspace-auditor-skills__manage-review-packets__SKILL.md: |
     ---
     name: manage-review-packets
@@ -3075,6 +3213,8 @@ data:
     - Treat GitOps as deployment definition, not a planning scratchpad.
     - Prefer branches and pull requests on shared repos.
     - When you create a new repo for a user project, invite the user once their Gitea username is known.
+    - When you create a new internal repo, add the shared reviewer account as a collaborator so architect and auditor can review through that identity.
+    - Keep the default internal posture review-first: protected `main`, pull requests, and reviewer approval before merge unless main explicitly says a repo should differ.
     - Tell main when the user needs to review and merge.
     - Tell main when manual Argo CD sync is required after GitOps changes.
 
@@ -3199,7 +3339,7 @@ data:
 
     1. Read `CURRENT.md` and `SURFACES.md`.
     2. Read the latest local daily note in `daily/` when unfinished work or recent developments may matter.
-    3. Read Nextcloud `/Desk/current.md`, Nextcloud `/Desk/index.md`, and the latest shared daily note in Nextcloud `/Desk/daily/` when shared continuity is relevant.
+    3. Read Nextcloud `/Desk/current.md`, Nextcloud `/Desk/index.md`, and the latest shared daily note in Nextcloud `/Desk/daily/` only when shared continuity is relevant and those surfaces already exist. Create them with `coordinate-in-nextcloud` when shared continuity is needed but missing.
     4. Use the active cues in `CURRENT.md` and `SURFACES.md` to run a small recency-scoped Qdrant search before non-trivial coordination.
     5. Review only the calendars, tasks, and tables registered for orientation review or the active coordination task.
     6. Load the `bind-channels` skill only when channel setup, routing, or bindings are involved.
@@ -3362,15 +3502,16 @@ data:
        - `agent:auditor:main`
     2. Ensure shared Nextcloud structure exists:
        - Nextcloud `/Projects/`
-       - Nextcloud `/Desk/`
-       - Nextcloud `/Desk/current.md`
-       - Nextcloud `/Desk/index.md`
-       - Nextcloud `/Desk/daily/README.md`
+       - Nextcloud `/Desk/` if shared continuity is needed now
+       - Nextcloud `/Desk/current.md` if Nextcloud `/Desk/` is being used
+       - Nextcloud `/Desk/index.md` if Nextcloud `/Desk/` is being used
+       - Nextcloud `/Desk/daily/README.md` if Nextcloud `/Desk/daily/` is being used
        - project folders bootstrap depends on
     3. Share Nextcloud `/Projects/` with the user's Nextcloud account during initial setup.
-    4. Keep Nextcloud `/Desk/` inside the shared `openclaw` account unless a specific continuity artifact should be shared outward.
-    5. Create additional Nextcloud folders only when the work benefits from them.
-    6. Seed or update any shared stack docs needed for immediate collaboration and continuity.
+    4. Create the Nextcloud `/Desk/` surfaces on first use instead of assuming they already exist.
+    5. Keep Nextcloud `/Desk/` inside the shared `openclaw` account unless a specific continuity artifact should be shared outward.
+    6. Create additional Nextcloud folders only when the work benefits from them.
+    7. Seed or update any shared stack docs needed for immediate collaboration and continuity.
 
     ## Explain The System Briefly
 
@@ -3402,7 +3543,7 @@ data:
     - lightweight tables for tracking projects or recurring work
     - daily or periodic briefings via cron
 
-    Register recurring calendars, task lists, tables, and any user-shared folders in Nextcloud `/Desk/index.md` so later sessions can find them again.
+    Register recurring calendars, task lists, tables, and any user-shared folders in Nextcloud `/Desk/index.md` so later sessions can find them again, but only after that shared index exists.
 
     ## Finish
 
@@ -3732,7 +3873,7 @@ data:
     ## Procedure
 
     1. Treat all Nextcloud paths as remote paths.
-    2. On first use, ensure Nextcloud `/Desk/`, Nextcloud `/Desk/current.md`, Nextcloud `/Desk/index.md`, and Nextcloud `/Desk/daily/README.md` exist.
+    2. On first use, create Nextcloud `/Desk/`, Nextcloud `/Desk/current.md`, Nextcloud `/Desk/index.md`, and Nextcloud `/Desk/daily/README.md` if shared continuity is needed and they do not exist yet.
     3. Create missing parent directories before writing.
     4. Before major coordination, read Nextcloud `/Desk/current.md`, Nextcloud `/Desk/index.md`, and the latest shared daily note when they exist.
     5. Review only the calendars, tasks, and tables registered for orientation, active coordination, or another explicitly scheduled review.
@@ -3827,6 +3968,7 @@ data:
 
     - Do not describe a delegation without actually sending it when routing is required.
     - Prefer durable Nextcloud artifacts over long message threads.
+    - Do not assume the specialist already knows your local desk state, shared `/Desk/` state, or retrieved project artifacts unless you put them in the handoff.
   workspace-main-skills__manage-worker-lifecycle__SKILL.md: |
     ---
     name: manage-worker-lifecycle
@@ -4008,6 +4150,8 @@ data:
     7. Record durable incident state when needed.
     8. Escalate to `agent:main:main` only when severity gates are met.
 
+    If a turn is a heartbeat or isolated cron run, no human is waiting inside that session for a conversational reply. Do the monitoring work, persist the smallest useful result, and stop. Use `sessions_send` only when the prompt explicitly allows escalation to main.
+
     ## Persistence
 
     - Incidents, baselines, and escalation notes belong in Nextcloud.
@@ -4062,6 +4206,7 @@ data:
     ## Boundaries
 
     - Keep the run fast and cheap.
+    - No human is reading a normal reply to this heartbeat turn. Do the work and stop instead of answering conversationally.
     - Do not drift into unrelated planning, implementation, or review work.
     - Do not create new incident documents for routine all-clear checks.
     - Do not escalate a warning until it persists across repeated checks.
@@ -4231,6 +4376,7 @@ data:
     6. Compare spend posture against Nextcloud `/Projects/ai-homebase/budget-policy.md` and treat "approaching a ceiling" as a warning signal, not an automatic emergency.
     7. Write only compact durable status updates; routine all-clear heartbeat runs should stay in the status log, not expand into new documents.
     8. From cron, do not depend on session visibility or session messaging unless the cron prompt explicitly requires it.
+    9. In heartbeat or cron runs, do the check, persist the result, and stop. Do not spend tokens on a conversational reply that no one will read.
 
     ## Boundaries
 
@@ -4769,6 +4915,18 @@ spec:
           value: '7687'
         - name: MEMGRAPH_BOLT_URI
           value: bolt://platform-stack-memgraph:7687
+        - name: REVIEWER_GITEA_BASE_URL
+          value: https://gitea.homebase.local
+        - name: REVIEWER_GITEA_HOST
+          value: gitea.homebase.local
+        - name: REVIEWER_GITEA_USERNAME
+          value: reviewer
+        - name: REVIEWER_GITEA_EMAIL
+          value: reviewer@example.invalid
+        - name: REVIEWER_GITEA_TEA_LOGIN_NAME
+          value: reviewer
+        - name: REVIEWER_GITEA_TEA_TOKEN_NAME
+          value: openclaw-reviewer
         - name: OPENCLAW_GATEWAY_TOKEN
           valueFrom:
             secretKeyRef:
@@ -4829,6 +4987,11 @@ spec:
             secretKeyRef:
               key: CODER_REGISTRY_PASSWORD
               name: coder-credentials
+        - name: REVIEWER_GITEA_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: REVIEWER_GITEA_PASSWORD
+              name: reviewer-credentials
         image: openclaw-remote-docker:trixie-slim
         imagePullPolicy: IfNotPresent
         livenessProbe:
@@ -8212,20 +8375,28 @@ spec:
           write_managed_file "${project_root}/knowledge-graph-schema.md" "/bootstrap-content/project-0-file-7"
           ensure_parent_dir "${project_root}/budget-policy.md"
           write_managed_file "${project_root}/budget-policy.md" "/bootstrap-content/project-0-file-8"
+          ensure_parent_dir "${project_root}/decisions.md"
+          write_managed_file "${project_root}/decisions.md" "/bootstrap-content/project-0-file-9"
+          ensure_parent_dir "${project_root}/automation-backlog.md"
+          write_managed_file "${project_root}/automation-backlog.md" "/bootstrap-content/project-0-file-10"
           ensure_parent_dir "${project_root}/archivist-grooming-log.md"
-          write_managed_file "${project_root}/archivist-grooming-log.md" "/bootstrap-content/project-0-file-9"
+          write_managed_file "${project_root}/archivist-grooming-log.md" "/bootstrap-content/project-0-file-11"
+          ensure_parent_dir "${project_root}/watchdog-status-log.md"
+          write_managed_file "${project_root}/watchdog-status-log.md" "/bootstrap-content/project-0-file-12"
           ensure_parent_dir "${project_root}/incidents/README.md"
-          write_managed_file "${project_root}/incidents/README.md" "/bootstrap-content/project-0-file-10"
+          write_managed_file "${project_root}/incidents/README.md" "/bootstrap-content/project-0-file-13"
+          ensure_parent_dir "${project_root}/audit-reports/README.md"
+          write_managed_file "${project_root}/audit-reports/README.md" "/bootstrap-content/project-0-file-14"
           ensure_parent_dir "${project_root}/coordination-status.json"
-          write_managed_file "${project_root}/coordination-status.json" "/bootstrap-content/project-0-file-11"
+          write_managed_file "${project_root}/coordination-status.json" "/bootstrap-content/project-0-file-15"
           ensure_parent_dir "${project_root}/codex-usage/.gitkeep"
-          write_managed_file "${project_root}/codex-usage/.gitkeep" "/bootstrap-content/project-0-file-12"
+          write_managed_file "${project_root}/codex-usage/.gitkeep" "/bootstrap-content/project-0-file-16"
           ensure_parent_dir "${project_root}/audit-log.md"
-          write_managed_file "${project_root}/audit-log.md" "/bootstrap-content/project-0-file-13"
+          write_managed_file "${project_root}/audit-log.md" "/bootstrap-content/project-0-file-17"
           ensure_parent_dir "${project_root}/baselines.md"
-          write_managed_file "${project_root}/baselines.md" "/bootstrap-content/project-0-file-14"
+          write_managed_file "${project_root}/baselines.md" "/bootstrap-content/project-0-file-18"
           ensure_parent_dir "${project_root}/escalation-rules.md"
-          write_managed_file "${project_root}/escalation-rules.md" "/bootstrap-content/project-0-file-15"
+          write_managed_file "${project_root}/escalation-rules.md" "/bootstrap-content/project-0-file-19"
           su -s /bin/sh www-data -c "cd /var/www/html && php occ files:scan --path='${owner_username}/files/Projects/${project_slug}'"
         env:
         - name: POSTGRES_HOST

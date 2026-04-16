@@ -1,6 +1,6 @@
 Run weekly graph grooming.
 
-Use the `groom-recent-memories` skill. This is a scheduled weekly run, not an OpenClaw heartbeat. Read `state/grooming-checkpoint.json`, construct the Qdrant and Nextcloud deltas from that checkpoint, and keep the pass bounded.
+Use the `groom-knowledge-graph` skill. This is a scheduled weekly run, not an OpenClaw heartbeat. No human reads a normal reply in this cron session. Read `state/grooming-checkpoint.json`, construct the Qdrant and Nextcloud deltas from that checkpoint, keep the pass bounded, write the durable outputs, and stop.
 
 Grooming contract:
 - trigger: `weekly`

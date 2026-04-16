@@ -54,10 +54,11 @@ Heartbeat-driven workers should lean strongly toward Nano. Use Mini only when th
 2. If risk-triggered review is warranted, main routes the definition to auditor.
 3. Main instantiates the worker at runtime:
    a. Create the workspace directory (e.g., `~/.openclaw/workspace-<worker-id>`).
-   b. Write the workspace files (AGENTS.md, SOUL.md, IDENTITY.md, MEMORY.md, TOOLS.md, USER.md, plus `HEARTBEAT.md` only when the definition explicitly uses heartbeat) by filling in the worker template placeholders with values from the architect's definition package.
-   c. Run `openclaw agents add <worker-id> --workspace ~/.openclaw/workspace-<worker-id> --model <model-id>` to register the agent.
-   d. Update `/Projects/ai-homebase/budget-policy.md` if the new worker changes the expected ongoing LLM spend posture.
-   e. If the worker needs a cron schedule, configure it with `openclaw cron add`.
+   b. Read the worker template from `/home/node/.openclaw/worker-template/` on the gateway.
+   c. Write the workspace files (AGENTS.md, SOUL.md, IDENTITY.md, MEMORY.md, TOOLS.md, USER.md, plus `HEARTBEAT.md` only when the definition explicitly uses heartbeat) by filling in the worker template placeholders with values from the architect's definition package.
+   d. Run `openclaw agents add <worker-id> --workspace ~/.openclaw/workspace-<worker-id> --model <model-id>` to register the agent.
+   e. Update `/Projects/ai-homebase/budget-policy.md` if the new worker changes the expected ongoing LLM spend posture.
+   f. If the worker needs a cron schedule, configure it with `openclaw cron add`.
 4. Main confirms to the user that the worker is active.
 
 To decommission a worker:
@@ -83,6 +84,6 @@ Workers must NOT:
 
 Standing frontier agents should not receive default heartbeat files for recurring work. Cheap workers and watchdog own that posture unless the user explicitly accepts a higher-cost exception.
 
-## Template Location
+## Runtime Note
 
-The worker workspace template is at `charts/openclaw/files/workspaces/worker-template/` in the ai-homebase repo. Main uses this as a reference when creating workspace files for new workers — it is not deployed as a live agent workspace.
+`CURRENT.md`, `SURFACES.md`, and `daily/` are local continuity files inside an agent workspace. They are not automatically loaded into a session; an agent reads them explicitly when orientation or continuity requires it.

@@ -108,3 +108,19 @@ if ! openclaw skills setup tmux; then
   warn "openclaw skills setup tmux failed."
 fi
 '
+
+run_gateway_setup "reviewer-gitea" '
+set -eu
+warn() { echo "Warning: reviewer Gitea setup skipped: $*" >&2; }
+if ! command -v reviewer-gitea-init.sh >/dev/null 2>&1; then
+  warn "reviewer-gitea-init.sh is not installed."
+  exit 0
+fi
+if [ -z "${REVIEWER_GITEA_BASE_URL:-}" ] || [ -z "${REVIEWER_GITEA_USERNAME:-}" ] || [ -z "${REVIEWER_GITEA_PASSWORD:-}" ]; then
+  warn "reviewer Gitea env vars are incomplete."
+  exit 0
+fi
+if ! reviewer-gitea-init.sh; then
+  warn "reviewer-gitea-init.sh failed."
+fi
+'

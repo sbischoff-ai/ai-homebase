@@ -6,6 +6,7 @@ Execution rules:
 - Treat every `Nextcloud /Projects/...` path below as a Nextcloud remote path, not a local filesystem path.
 - Use only `nc_webdav_*` tools for those Nextcloud paths.
 - Do not use shell commands, local file APIs, or workspace file tools on those Nextcloud paths.
+- No human reads a normal reply in this cron session. Use your review skills, store the report, send an escalation to main only when this prompt says to, and then stop.
 
 1. Watchdog status log at Nextcloud `/Projects/ai-homebase/watchdog-status-log.md` -- read only the last 20 lines and look for recurring issues, escalations, false positives, and recurring toil.
 2. Audit log at Nextcloud `/Projects/ai-homebase/audit-log.md` -- read only the recent entries so you can compare this week's findings against prior audits.
@@ -14,7 +15,7 @@ Execution rules:
 5. Automation backlog at Nextcloud `/Projects/ai-homebase/automation-backlog.md` -- read the last 20 lines to avoid repeating stale proposals.
 6. Search Qdrant for memories stored in the past 7 days -- limit to 10 results per query and look for conflicting information, low-confidence entries, repeated friction, and patterns worth turning into deterministic workflows.
 
-Produce a structured weekly audit verdict per your AGENTS.md output format.
+Use `manage-review-packets` to keep the evidence packet compact and use `format-verdict` to produce the final structured weekly audit verdict.
 
 Your `Improvement Opportunities` section is mandatory. It must include concrete proposals in these categories when evidence exists:
 - prompt/workspace/documentation refinement

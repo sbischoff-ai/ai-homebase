@@ -41,11 +41,13 @@ RUN GOBIN=/usr/local/bin go install code.gitea.io/tea@latest && \
 COPY --from=openclaw-runtime /usr/local /usr/local
 COPY --from=openclaw-runtime /app /app
 COPY --from=memgraph-tools /usr/bin/mgconsole /usr/local/bin/mgconsole
+COPY reviewer-gitea-init.sh /usr/local/bin/reviewer-gitea-init.sh
 
 RUN useradd --create-home --uid 1000 --shell /bin/bash node && \
     chown -R node:node /app /home/node && \
     npm install -g tokscale && \
-    tokscale --version
+    tokscale --version && \
+    chmod 0755 /usr/local/bin/reviewer-gitea-init.sh
 
 USER node
 WORKDIR /app

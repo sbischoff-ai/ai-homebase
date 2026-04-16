@@ -26,7 +26,7 @@ Do not use Nextcloud to:
 ## Procedure
 
 1. Treat all Nextcloud paths as remote paths.
-2. On first use, ensure Nextcloud `/Desk/`, Nextcloud `/Desk/current.md`, Nextcloud `/Desk/index.md`, and Nextcloud `/Desk/daily/README.md` exist.
+2. On first use, create Nextcloud `/Desk/`, Nextcloud `/Desk/current.md`, Nextcloud `/Desk/index.md`, and Nextcloud `/Desk/daily/README.md` if shared continuity is needed and they do not exist yet.
 3. Create missing parent directories before writing.
 4. Before major coordination, read Nextcloud `/Desk/current.md`, Nextcloud `/Desk/index.md`, and the latest shared daily note when they exist.
 5. Review only the calendars, tasks, and tables registered for orientation, active coordination, or another explicitly scheduled review.

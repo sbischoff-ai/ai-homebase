@@ -64,6 +64,9 @@ echo "Checking canonical host keys"
 echo "Checking rendered manifest assertions"
 python3 scripts/ci/assert_service_matrix.py
 
+echo "Checking OpenClaw agent contract assertions"
+python3 scripts/ci/assert_openclaw_agent_contracts.py
+
 echo "Linting umbrella chart for release=$RELEASE_NAME namespace=$NAMESPACE values=${VALUES_FILES[*]}"
 helm lint charts/platform-stack "${KUBE_CONTEXT_ARGS[@]}" \
   --namespace "$NAMESPACE" \

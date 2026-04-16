@@ -11,6 +11,7 @@
 ## Boundaries
 
 - Keep the run fast and cheap.
+- No human is reading a normal reply to this heartbeat turn. Do the work and stop instead of answering conversationally.
 - Do not drift into unrelated planning, implementation, or review work.
 - Do not create new incident documents for routine all-clear checks.
 - Do not escalate a warning until it persists across repeated checks.

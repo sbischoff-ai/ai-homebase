@@ -57,3 +57,4 @@ Do not escalate to archivist when a focused Qdrant search already returns a clea
 
 - Do not describe a delegation without actually sending it when routing is required.
 - Prefer durable Nextcloud artifacts over long message threads.
+- Do not assume the specialist already knows your local desk state, shared `/Desk/` state, or retrieved project artifacts unless you put them in the handoff.

@@ -44,6 +44,7 @@ SANDBOX_CA_BUNDLE_BIND = (
 )
 NEXTCLOUD_MCP_USERNAME = "openclaw"
 DEFAULT_CODER_GITEA_USERNAME = "coder"
+DEFAULT_REVIEWER_GITEA_USERNAME = "reviewer"
 DEFAULT_REGISTRY_USERNAME = "coder"
 DEFAULT_SANDBOX_IMAGES_REPO_NAME = "openclaw-sandbox-images"
 BUNDLED_SKILLS = [
@@ -243,8 +244,12 @@ NEXTCLOUD_PROJECT_BOOTSTRAP_FILES = [
     "qdrant-memory-schema.md",
     "knowledge-graph-schema.md",
     "budget-policy.md",
+    "decisions.md",
+    "automation-backlog.md",
     "archivist-grooming-log.md",
+    "watchdog-status-log.md",
     "incidents/README.md",
+    "audit-reports/README.md",
     "coordination-status.json",
     "codex-usage/.gitkeep",
     "audit-log.md",
@@ -291,6 +296,10 @@ def workspace_bootstrap_values() -> dict[str, object]:
             "auditor": {
                 "workspace": "/home/node/.openclaw/workspace-auditor",
                 "filesDir": "workspaces/auditor",
+            },
+            "worker-template": {
+                "workspace": "/home/node/.openclaw/worker-template",
+                "filesDir": "workspaces/worker-template",
             },
         },
     }
@@ -427,6 +436,17 @@ def resolved_values(data: dict[str, object]) -> dict[str, str]:
     coder_gitea_password = nested_string(data, ("openclaw", "agents", "coder", "gitea", "password"))
     if not coder_gitea_password:
         coder_gitea_password = nested_string(data, ("gitops", "robot_password"))
+    reviewer_gitea_username = nested_nonempty_string(
+        data,
+        ("openclaw", "agents", "reviewer", "gitea", "username"),
+        DEFAULT_REVIEWER_GITEA_USERNAME,
+    )
+    reviewer_gitea_email = nested_nonempty_string(
+        data,
+        ("openclaw", "agents", "reviewer", "gitea", "email"),
+        "",
+    )
+    reviewer_gitea_password = nested_string(data, ("openclaw", "agents", "reviewer", "gitea", "password"))
     registry_username = nested_nonempty_string(
         data,
         ("services", "registry", "auth", "username"),
@@ -505,6 +525,9 @@ def resolved_values(data: dict[str, object]) -> dict[str, str]:
         "CODER_GITEA_USERNAME": coder_gitea_username,
         "CODER_GITEA_EMAIL": coder_gitea_email,
         "CODER_GITEA_PASSWORD": coder_gitea_password,
+        "REVIEWER_GITEA_USERNAME": reviewer_gitea_username,
+        "REVIEWER_GITEA_EMAIL": reviewer_gitea_email,
+        "REVIEWER_GITEA_PASSWORD": reviewer_gitea_password,
         "REGISTRY_USERNAME": registry_username,
         "REGISTRY_PASSWORD": registry_password,
         "CODEX_MODEL": codex_model,
@@ -523,6 +546,8 @@ def resolved_values(data: dict[str, object]) -> dict[str, str]:
         values["GITOPS_REPO_PRIVATE"] = "true" if gitops_table["repo_private"] else "false"
     if not values["CODER_GITEA_EMAIL"]:
         values["CODER_GITEA_EMAIL"] = f"{values['CODER_GITEA_USERNAME']}@example.invalid"
+    if not values["REVIEWER_GITEA_EMAIL"]:
+        values["REVIEWER_GITEA_EMAIL"] = f"{values['REVIEWER_GITEA_USERNAME']}@example.invalid"
     values["OPENCLAW_DEFAULT_SANDBOX_IMAGE"] = registry_image_ref(
         values["REGISTRY_HOST"], values["CODER_GITEA_USERNAME"], "openclaw-sandbox"
     )
@@ -726,6 +751,51 @@ def command_render_values(args: argparse.Namespace) -> int:
                             else {}
                         ),
                     },
+                    "sandbox": {
+                        "mode": "all",
+                        "workspaceAccess": "rw",
+                        "docker": {
+                            "image": values["OPENCLAW_DEFAULT_SANDBOX_IMAGE"],
+                            "workdir": "/workspace",
+                            "readOnlyRoot": True,
+                            "tmpfs": ["/tmp", "/var/tmp", "/run"],
+                            "env": {
+                                "SSL_CERT_FILE": SANDBOX_CA_BUNDLE_PATH,
+                                "REQUESTS_CA_BUNDLE": SANDBOX_CA_BUNDLE_PATH,
+                                "NODE_EXTRA_CA_CERTS": SANDBOX_CA_BUNDLE_PATH,
+                                "GIT_SSL_CAINFO": SANDBOX_CA_BUNDLE_PATH,
+                                "CURL_CA_BUNDLE": SANDBOX_CA_BUNDLE_PATH,
+                                "MEMGRAPH_HOST": values["MEMGRAPH_HOST"],
+                                "MEMGRAPH_PORT": "7687",
+                                "MEMGRAPH_BOLT_URI": (
+                                    f"bolt://{values['MEMGRAPH_HOST']}:7687" if values["MEMGRAPH_HOST"] else ""
+                                ),
+                                "QDRANT_URL": f"https://{values['QDRANT_HOST']}" if values["QDRANT_HOST"] else "",
+                                "QDRANT_COLLECTION": "openclaw-memory",
+                                "QDRANT_API_KEY": "${QDRANT_API_KEY}",
+                                "GITHUB_TOKEN": "${GITHUB_TOKEN}",
+                                "OPENAI_API_KEY": "${OPENAI_API_KEY}",
+                                "ANTHROPIC_API_KEY": "${ANTHROPIC_API_KEY}",
+                                "GEMINI_API_KEY": "${GEMINI_API_KEY}",
+                                "REVIEWER_GITEA_BASE_URL": gitea_base_url,
+                                "REVIEWER_GITEA_HOST": values["GITEA_HOST"],
+                                "REVIEWER_GITEA_USERNAME": values["REVIEWER_GITEA_USERNAME"],
+                                "REVIEWER_GITEA_EMAIL": values["REVIEWER_GITEA_EMAIL"],
+                                "REVIEWER_GITEA_PASSWORD": values["REVIEWER_GITEA_PASSWORD"],
+                                "REVIEWER_GITEA_TEA_LOGIN_NAME": "reviewer",
+                                "REVIEWER_GITEA_TEA_TOKEN_NAME": "openclaw-reviewer",
+                            },
+                            "binds": [SANDBOX_CA_BUNDLE_BIND],
+                            "user": "1000:1000",
+                            "capDrop": ["ALL"],
+                            "pidsLimit": 256,
+                            "memory": "1g",
+                            "memorySwap": "2g",
+                            "cpus": 1,
+                            "network": "bridge",
+                            "setupCommand": "/usr/local/bin/reviewer-gitea-init.sh",
+                        },
+                    },
                     "skills": AGENT_SKILLS["architect"],
                     "tools": {"deny": AGENT_TOOL_DENY["architect"]},
                 },
@@ -810,6 +880,12 @@ def command_render_values(args: argparse.Namespace) -> int:
             "name": "MEMGRAPH_BOLT_URI",
             "value": 'bolt://{{ printf "%s-memgraph" .Release.Name | trunc 63 | trimSuffix "-" }}:7687',
         },
+        {"name": "REVIEWER_GITEA_BASE_URL", "value": gitea_base_url},
+        {"name": "REVIEWER_GITEA_HOST", "value": values["GITEA_HOST"]},
+        {"name": "REVIEWER_GITEA_USERNAME", "value": values["REVIEWER_GITEA_USERNAME"]},
+        {"name": "REVIEWER_GITEA_EMAIL", "value": values["REVIEWER_GITEA_EMAIL"]},
+        {"name": "REVIEWER_GITEA_TEA_LOGIN_NAME", "value": "reviewer"},
+        {"name": "REVIEWER_GITEA_TEA_TOKEN_NAME", "value": "openclaw-reviewer"},
     ]
     openclaw.setdefault("openclaw", {}).setdefault("commands", {})["mcp"] = True
     mcp_servers: dict[str, object] = {}

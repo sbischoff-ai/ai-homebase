@@ -14,7 +14,7 @@ usage() {
   cat <<USAGE
 Usage: $0 [options]
 
-Create or update the dedicated coder Gitea user so sandboxed coder sessions can use git and tea immediately.
+Create or update the dedicated coder and reviewer Gitea users so the implementation and review agents can use git and tea immediately.
 
 Options:
   --bootstrap-config <path>  Bootstrap config file (default: ${BOOTSTRAP_CONFIG_PATH})
@@ -64,7 +64,7 @@ cleanup() {
     kill "$GITEA_PORT_FORWARD_PID" >/dev/null 2>&1 || true
     wait "$GITEA_PORT_FORWARD_PID" >/dev/null 2>&1 || true
   fi
-  rm -f "${GITEA_PORT_FORWARD_LOG:-}" /tmp/coder-gitea-user.json
+  rm -f "${GITEA_PORT_FORWARD_LOG:-}" /tmp/coder-gitea-user.json /tmp/reviewer-gitea-user.json
 }
 trap cleanup EXIT
 
@@ -95,8 +95,15 @@ start_gitea_port_forward() {
 
 eval "$(python3 ./scripts/bootstrap-config.py shell-vars --config "$BOOTSTRAP_CONFIG_PATH")"
 
-if [[ -z "${GITEA_HOST:-}" || -z "${CODER_GITEA_USERNAME:-}" || -z "${CODER_GITEA_PASSWORD:-}" ]]; then
-  echo "Skipping coder Gitea bootstrap because host or credentials are missing."
+if [[ -z "${CODER_GITEA_PASSWORD:-}" ]]; then
+  CODER_GITEA_PASSWORD="$(kubectl "${KUBECTL_ARGS[@]}" -n "$NAMESPACE" get secret coder-credentials -o jsonpath='{.data.CODER_GITEA_PASSWORD}' 2>/dev/null | base64 -d || true)"
+fi
+if [[ -z "${REVIEWER_GITEA_PASSWORD:-}" ]]; then
+  REVIEWER_GITEA_PASSWORD="$(kubectl "${KUBECTL_ARGS[@]}" -n "$NAMESPACE" get secret reviewer-credentials -o jsonpath='{.data.REVIEWER_GITEA_PASSWORD}' 2>/dev/null | base64 -d || true)"
+fi
+
+if [[ -z "${GITEA_HOST:-}" || -z "${CODER_GITEA_USERNAME:-}" || -z "${CODER_GITEA_PASSWORD:-}" || -z "${REVIEWER_GITEA_USERNAME:-}" || -z "${REVIEWER_GITEA_PASSWORD:-}" ]]; then
+  echo "Skipping Gitea agent-user bootstrap because host or credentials are missing."
   exit 0
 fi
 
@@ -113,65 +120,79 @@ for _ in {1..300}; do
 done
 curl -fsS "${gitea_api_url}/version" >/dev/null
 
-user_status="$(
-  curl -sS -o /tmp/coder-gitea-user.json -w '%{http_code}' \
-    -u "${admin_user}:${admin_password}" \
-    "${gitea_api_url}/users/${CODER_GITEA_USERNAME}"
-)"
+ensure_gitea_user() {
+  local username="$1"
+  local email="$2"
+  local password="$3"
+  local full_name="$4"
+  local body_file="$5"
+  local status
+  local create_payload
+  local edit_payload
 
-create_payload="$(
-  python3 - <<PY
+  status="$(
+    curl -sS -o "$body_file" -w '%{http_code}' \
+      -u "${admin_user}:${admin_password}" \
+      "${gitea_api_url}/users/${username}"
+  )"
+
+  create_payload="$(
+    python3 - <<PY
 import json
 print(json.dumps({
-    "username": ${CODER_GITEA_USERNAME@Q},
-    "email": ${CODER_GITEA_EMAIL@Q},
-    "password": ${CODER_GITEA_PASSWORD@Q},
+    "username": ${username@Q},
+    "email": ${email@Q},
+    "password": ${password@Q},
     "must_change_password": False,
     "send_notify": False,
     "visibility": "private",
-    "full_name": "OpenClaw",
+    "full_name": ${full_name@Q},
 }))
 PY
-)"
+  )"
 
-edit_payload="$(
-  python3 - <<PY
+  edit_payload="$(
+    python3 - <<PY
 import json
 print(json.dumps({
     "source_id": 0,
     "login_name": "",
-    "email": ${CODER_GITEA_EMAIL@Q},
-    "password": ${CODER_GITEA_PASSWORD@Q},
+    "email": ${email@Q},
+    "password": ${password@Q},
     "must_change_password": False,
     "prohibit_login": False,
     "active": True,
     "visibility": "private",
-    "full_name": "OpenClaw",
+    "full_name": ${full_name@Q},
 }))
 PY
-)"
+  )"
 
-case "$user_status" in
-  200)
-    curl -sS -X PATCH \
-      -u "${admin_user}:${admin_password}" \
-      -H 'Content-Type: application/json' \
-      -d "$edit_payload" \
-      "${gitea_api_url}/admin/users/${CODER_GITEA_USERNAME}" >/dev/null
-    ;;
-  404)
-    curl -sS -X POST \
-      -u "${admin_user}:${admin_password}" \
-      -H 'Content-Type: application/json' \
-      -d "$create_payload" \
-      "${gitea_api_url}/admin/users" >/dev/null
-    ;;
-  *)
-    echo "Unexpected coder Gitea user lookup status: ${user_status}" >&2
-    cat /tmp/coder-gitea-user.json >&2 || true
-    rm -f /tmp/coder-gitea-user.json
-    exit 1
-    ;;
-esac
+  case "$status" in
+    200)
+      curl -sS -X PATCH \
+        -u "${admin_user}:${admin_password}" \
+        -H 'Content-Type: application/json' \
+        -d "$edit_payload" \
+        "${gitea_api_url}/admin/users/${username}" >/dev/null
+      ;;
+    404)
+      curl -sS -X POST \
+        -u "${admin_user}:${admin_password}" \
+        -H 'Content-Type: application/json' \
+        -d "$create_payload" \
+        "${gitea_api_url}/admin/users" >/dev/null
+      ;;
+    *)
+      echo "Unexpected Gitea user lookup status for ${username}: ${status}" >&2
+      cat "$body_file" >&2 || true
+      exit 1
+      ;;
+  esac
+}
+
+ensure_gitea_user "$CODER_GITEA_USERNAME" "$CODER_GITEA_EMAIL" "$CODER_GITEA_PASSWORD" "OpenClaw Coder" /tmp/coder-gitea-user.json
+ensure_gitea_user "$REVIEWER_GITEA_USERNAME" "$REVIEWER_GITEA_EMAIL" "$REVIEWER_GITEA_PASSWORD" "OpenClaw Reviewer" /tmp/reviewer-gitea-user.json
 
 echo "Coder Gitea user ${CODER_GITEA_USERNAME} is ready at http://${GITEA_HOST}."
+echo "Reviewer Gitea user ${REVIEWER_GITEA_USERNAME} is ready at http://${GITEA_HOST}."

@@ -15,6 +15,8 @@ Use for repo and deployment-definition workflow.
 - Treat GitOps as deployment definition, not a planning scratchpad.
 - Prefer branches and pull requests on shared repos.
 - When you create a new repo for a user project, invite the user once their Gitea username is known.
+- When you create a new internal repo, add the shared reviewer account as a collaborator so architect and auditor can review through that identity.
+- Keep the default internal posture review-first: protected `main`, pull requests, and reviewer approval before merge unless main explicitly says a repo should differ.
 - Tell main when the user needs to review and merge.
 - Tell main when manual Argo CD sync is required after GitOps changes.
 

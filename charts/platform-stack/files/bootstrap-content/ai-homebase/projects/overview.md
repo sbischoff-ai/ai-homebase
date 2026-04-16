@@ -20,7 +20,7 @@ Core loop:
 Working rule:
 - keep long-lived project documentation in `/Projects/ai-homebase/`;
 - keep private rough work and short-term desk notes in local workspace files, not in shared Nextcloud scratchpads;
-- use `/Desk/` for shared current state, recent briefings, and live indexing that should survive a restart without turning into long-term project documentation;
+- use `/Desk/` for shared current state, recent briefings, and live indexing when `main` has created it for shared continuity;
 - store shared quick recall, decisions, and note-like context in Qdrant, with graph promotion through `archivist` when structure matters;
 - use Nextcloud for curated shared artifacts, user collaboration, calendars, tasks, tables, and outputs that should stay visible over time;
 - create additional Nextcloud folders only when the work benefits from them, and do not assume they exist by default.

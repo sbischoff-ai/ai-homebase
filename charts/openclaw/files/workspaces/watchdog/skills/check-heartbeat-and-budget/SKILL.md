@@ -23,6 +23,7 @@ Use for lightweight recurring checks.
 6. Compare spend posture against Nextcloud `/Projects/ai-homebase/budget-policy.md` and treat "approaching a ceiling" as a warning signal, not an automatic emergency.
 7. Write only compact durable status updates; routine all-clear heartbeat runs should stay in the status log, not expand into new documents.
 8. From cron, do not depend on session visibility or session messaging unless the cron prompt explicitly requires it.
+9. In heartbeat or cron runs, do the check, persist the result, and stop. Do not spend tokens on a conversational reply that no one will read.
 
 ## Boundaries
 

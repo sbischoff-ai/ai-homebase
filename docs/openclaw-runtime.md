@@ -60,11 +60,11 @@ On `k3s`, bootstrap also imports the CA into the Incus VM's Docker registry trus
 Bootstrap seeds explicit agents:
 
 - `main`: user-facing coordinator
-- `architect`: planning, design, specs, and durable project structure
+- `architect`: planning, design, specs, and durable project structure, with sandboxed reviewer access to Gitea
 - `coder`: code, repos, images, GitOps, and execution
 - `archivist`: Qdrant/Memgraph memory stewardship
 - `watchdog`: low-cost monitoring and scheduled triage
-- `auditor`: sparse high-judgment review
+- `auditor`: sparse high-judgment review, with gateway reviewer access to Gitea
 
 Agent model selections come from `bootstrap.local.toml` under `[openclaw.agents.<id>]`. `coder` also accepts `codex_model` for the Codex CLI runtime inside its sandbox.
 

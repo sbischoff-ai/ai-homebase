@@ -4,6 +4,7 @@ Execution rules:
 - Treat Nextcloud `/Projects/ai-homebase/watchdog-status-log.md` as a Nextcloud remote path, not a local filesystem path.
 - Use only `nc_webdav_*` tools for that Nextcloud path.
 - Do not use shell commands, local file APIs, or workspace file tools on that Nextcloud path.
+- No human reads a normal reply in this cron session. Do the sweep, persist the result, and stop.
 - Do not use `sessions_send` or `sessions_list` from this cron context; they are unreliable here and must not be used as the escalation path.
 
 Steps:

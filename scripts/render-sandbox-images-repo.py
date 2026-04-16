@@ -10,8 +10,11 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 INCLUDED_PATHS = (
     Path("images/openclaw-sandbox-base/Dockerfile"),
+    Path("images/openclaw-sandbox-base/reviewer-gitea-init.sh"),
     Path("images/openclaw-sandbox-coder/Dockerfile"),
+    Path("images/openclaw-sandbox-coder/coder-init.sh"),
     Path("images/openclaw-remote-docker/Dockerfile"),
+    Path("images/openclaw-remote-docker/reviewer-gitea-init.sh"),
     Path("scripts/build-openclaw-sandbox-images.sh"),
     Path("scripts/openclaw-remote-docker-load-images.sh"),
     Path("scripts/openclaw-remote-docker-publish-images.sh"),

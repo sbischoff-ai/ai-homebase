@@ -1,11 +1,12 @@
 ---
 name: gitea-browse
-description: Review in-cluster Gitea repos and pull requests by reading files, inspecting diffs, checking comments, posting review feedback, approving, or merging only with explicit instruction.
+description: Review in-cluster Gitea repos and pull requests by reading files, inspecting diffs, checking comments, posting review feedback, and approving with the shared reviewer identity; merge only with explicit instruction.
 ---
 
 # Gitea Review Browse
 
 Use this skill to inspect in-cluster source control and conduct PR-level audit review.
+Your gateway runtime is expected to have the shared reviewer identity already configured for `git` and `tea`.
 
 ## Default Repos
 
@@ -14,7 +15,7 @@ Use this skill to inspect in-cluster source control and conduct PR-level audit r
 
 ## Review Commands
 
-Use `git` and `tea` with the auditor identity.
+Use `git` and `tea` with the shared reviewer identity that is already configured in your runtime.
 
 ```bash
 tea repo list
@@ -53,4 +54,4 @@ tea pr merge <number> --repo <owner>/<repo>
 - Do not push branches, create commits, or modify repo file content directly.
 - Ground audit reports in specific commits, file paths, diff hunks, issues, or PR comments.
 - Flag discrepancies between Gitea state and approved designs to main.
-- If `tea` auth fails, a PR is out of scope, or a merge conflicts, stop and ask main for operator help.
+- If `tea` auth fails, a PR is out of scope, or a merge conflicts, stop and tell main exactly what failed.

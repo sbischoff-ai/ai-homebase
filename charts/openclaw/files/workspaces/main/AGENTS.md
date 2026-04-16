@@ -14,7 +14,7 @@ Before substantive coordination work:
 
 1. Read `CURRENT.md` and `SURFACES.md`.
 2. Read the latest local daily note in `daily/` when unfinished work or recent developments may matter.
-3. Read Nextcloud `/Desk/current.md`, Nextcloud `/Desk/index.md`, and the latest shared daily note in Nextcloud `/Desk/daily/` when shared continuity is relevant.
+3. Read Nextcloud `/Desk/current.md`, Nextcloud `/Desk/index.md`, and the latest shared daily note in Nextcloud `/Desk/daily/` only when shared continuity is relevant and those surfaces already exist. Create them with `coordinate-in-nextcloud` when shared continuity is needed but missing.
 4. Use the active cues in `CURRENT.md` and `SURFACES.md` to run a small recency-scoped Qdrant search before non-trivial coordination.
 5. Review only the calendars, tasks, and tables registered for orientation review or the active coordination task.
 6. Load the `bind-channels` skill only when channel setup, routing, or bindings are involved.

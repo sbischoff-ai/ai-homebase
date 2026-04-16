@@ -457,6 +457,26 @@ print(json.dumps({
 PY
 }
 
+build_admin_user_edit_payload() {
+  python3 - "$@" <<'PY'
+import json
+import sys
+
+email, password, full_name = sys.argv[1:4]
+print(json.dumps({
+    "source_id": 0,
+    "login_name": "",
+    "email": email,
+    "password": password,
+    "must_change_password": False,
+    "prohibit_login": False,
+    "active": True,
+    "visibility": "private",
+    "full_name": full_name,
+}))
+PY
+}
+
 build_repo_payload() {
   python3 - "$@" <<'PY'
 import json
@@ -468,6 +488,43 @@ print(json.dumps({
     "private": private == "true",
     "default_branch": branch,
     "auto_init": False,
+}))
+PY
+}
+
+build_collaborator_payload() {
+  python3 - "$@" <<'PY'
+import json
+import sys
+
+permission = sys.argv[1]
+print(json.dumps({"permission": permission}))
+PY
+}
+
+build_branch_protection_payload() {
+  python3 - "$@" <<'PY'
+import json
+import sys
+
+branch, owner, reviewer = sys.argv[1:4]
+print(json.dumps({
+    "branch_name": branch,
+    "rule_name": branch,
+    "enable_push": True,
+    "enable_push_whitelist": True,
+    "push_whitelist_usernames": [owner],
+    "enable_merge_whitelist": True,
+    "merge_whitelist_usernames": [owner],
+    "enable_approvals_whitelist": True,
+    "approvals_whitelist_username": [reviewer],
+    "required_approvals": 1,
+    "block_on_official_review_requests": True,
+    "block_on_rejected_reviews": True,
+    "block_on_outdated_branch": True,
+    "dismiss_stale_approvals": True,
+    "ignore_stale_approvals": False,
+    "block_admin_merge_override": True,
 }))
 PY
 }
@@ -492,6 +549,87 @@ stringData:
   insecure: "true"
 """)
 PY
+}
+
+ensure_gitea_user() {
+  local username="$1"
+  local email="$2"
+  local password="$3"
+  local full_name="$4"
+  local create_payload
+  local edit_payload
+  local user_status
+
+  create_payload="$(build_admin_user_payload "$username" "$email" "$password")"
+  edit_payload="$(build_admin_user_edit_payload "$email" "$password" "$full_name")"
+  user_status="$(
+    curl -sS -u "${GITEA_ADMIN_USERNAME}:${GITEA_ADMIN_PASSWORD}" \
+      -o /dev/null -w '%{http_code}' \
+      "${GITEA_API_URL}/users/${username}"
+  )"
+  case "$user_status" in
+    200)
+      gitea_api_json PATCH "${GITEA_API_URL}/admin/users/${username}" "$GITEA_ADMIN_USERNAME" "$GITEA_ADMIN_PASSWORD" "$edit_payload" >/dev/null
+      ;;
+    404)
+      gitea_api_json POST "${GITEA_API_URL}/admin/users" "$GITEA_ADMIN_USERNAME" "$GITEA_ADMIN_PASSWORD" "$create_payload" >/dev/null
+      ;;
+    *)
+      echo "Unexpected Gitea user lookup status for ${username}: ${user_status}" >&2
+      exit 1
+      ;;
+  esac
+}
+
+ensure_repo_collaborator() {
+  local repo_owner="$1"
+  local repo_name="$2"
+  local collaborator="$3"
+  local permission="$4"
+  local payload
+
+  payload="$(build_collaborator_payload "$permission")"
+  gitea_api_json PUT \
+    "${GITEA_API_URL}/repos/${repo_owner}/${repo_name}/collaborators/${collaborator}" \
+    "$repo_owner" \
+    "$CODER_GITEA_PASSWORD" \
+    "$payload" >/dev/null
+}
+
+ensure_branch_protection() {
+  local repo_owner="$1"
+  local repo_name="$2"
+  local branch="$3"
+  local reviewer="$4"
+  local protection_payload
+  local protection_status
+
+  protection_payload="$(build_branch_protection_payload "$branch" "$repo_owner" "$reviewer")"
+  protection_status="$(
+    curl -sS -u "${repo_owner}:${CODER_GITEA_PASSWORD}" \
+      -o /dev/null -w '%{http_code}' \
+      "${GITEA_API_URL}/repos/${repo_owner}/${repo_name}/branch_protections/${branch}"
+  )"
+  case "$protection_status" in
+    200)
+      gitea_api_json PATCH \
+        "${GITEA_API_URL}/repos/${repo_owner}/${repo_name}/branch_protections/${branch}" \
+        "$repo_owner" \
+        "$CODER_GITEA_PASSWORD" \
+        "$protection_payload" >/dev/null
+      ;;
+    404)
+      gitea_api_json POST \
+        "${GITEA_API_URL}/repos/${repo_owner}/${repo_name}/branch_protections" \
+        "$repo_owner" \
+        "$CODER_GITEA_PASSWORD" \
+        "$protection_payload" >/dev/null
+      ;;
+    *)
+      echo "Unexpected branch protection lookup status for ${repo_owner}/${repo_name}:${branch}: ${protection_status}" >&2
+      exit 1
+      ;;
+  esac
 }
 
 push_bootstrap_repo() {
@@ -564,6 +702,16 @@ elif [[ -n "${CONFIG_CODER_GITEA_PASSWORD}" ]]; then
 else
   CODER_GITEA_PASSWORD="$(generate_password)"
 fi
+CONFIG_REVIEWER_GITEA_PASSWORD="${REVIEWER_GITEA_PASSWORD:-}"
+if REVIEWER_GITEA_PASSWORD="$(read_secret_value "$GITOPS_SECRET_NAME" '{.data.REVIEWER_GITEA_PASSWORD}')"; then
+  :
+elif REVIEWER_GITEA_PASSWORD="$(read_secret_value "reviewer-credentials" '{.data.REVIEWER_GITEA_PASSWORD}')"; then
+  :
+elif [[ -n "${CONFIG_REVIEWER_GITEA_PASSWORD}" ]]; then
+  REVIEWER_GITEA_PASSWORD="${CONFIG_REVIEWER_GITEA_PASSWORD}"
+else
+  REVIEWER_GITEA_PASSWORD="$(generate_password)"
+fi
 
 step "Applying bootstrap secrets before the GitOps handoff"
 BOOTSTRAP_SECRETS_CMD=(
@@ -628,25 +776,9 @@ wait_for_gitea
 wait_for_argocd
 configure_argocd_admin_account "${ARGOCD_ADMIN_USER:-admin}" "${ARGOCD_ADMIN_PASSWORD:-}"
 
-step "Creating or updating the coder GitOps user in Gitea"
-ROBOT_USER_PAYLOAD="$(build_admin_user_payload "$CODER_GITEA_USERNAME" "$CODER_GITEA_EMAIL" "$CODER_GITEA_PASSWORD")"
-ROBOT_USER_STATUS="$(
-  curl -sS -u "${GITEA_ADMIN_USERNAME}:${GITEA_ADMIN_PASSWORD}" \
-    -o /dev/null -w '%{http_code}' \
-    "${GITEA_API_URL}/users/${CODER_GITEA_USERNAME}"
-)"
-case "$ROBOT_USER_STATUS" in
-  200)
-    step "Coder Gitea user ${CODER_GITEA_USERNAME} already exists; preserving existing credentials"
-    ;;
-  404)
-    gitea_api_json POST "${GITEA_API_URL}/admin/users" "$GITEA_ADMIN_USERNAME" "$GITEA_ADMIN_PASSWORD" "$ROBOT_USER_PAYLOAD" >/dev/null
-    ;;
-  *)
-    echo "Unexpected Gitea user lookup status: ${ROBOT_USER_STATUS}" >&2
-    exit 1
-    ;;
-esac
+step "Creating or updating the coder and reviewer Gitea users"
+ensure_gitea_user "$CODER_GITEA_USERNAME" "$CODER_GITEA_EMAIL" "$CODER_GITEA_PASSWORD" "OpenClaw Coder"
+ensure_gitea_user "$REVIEWER_GITEA_USERNAME" "$REVIEWER_GITEA_EMAIL" "$REVIEWER_GITEA_PASSWORD" "OpenClaw Reviewer"
  
 step "Creating or updating the GitOps repo in Gitea"
 REPO_STATUS="$(
@@ -726,11 +858,22 @@ python3 ./scripts/render-sandbox-images-repo.py \
 push_bootstrap_repo "$REPO_WORK_DIR" "$EXTERNAL_REPO_URL" "$ASKPASS_SCRIPT" "$GITOPS_REPO_BRANCH" "Bootstrap GitOps repo"
 push_bootstrap_repo "$SANDBOX_IMAGES_REPO_WORK_DIR" "$SANDBOX_IMAGES_EXTERNAL_REPO_URL" "$ASKPASS_SCRIPT" "$GITOPS_REPO_BRANCH" "Bootstrap sandbox images repo"
 
+step "Granting reviewer access to the bootstrapped repos"
+ensure_repo_collaborator "$CODER_GITEA_USERNAME" "$GITOPS_REPO_NAME" "$REVIEWER_GITEA_USERNAME" "write"
+ensure_repo_collaborator "$CODER_GITEA_USERNAME" "$SANDBOX_IMAGES_REPO_NAME" "$REVIEWER_GITEA_USERNAME" "write"
+
+step "Protecting the default branch in the bootstrapped repos"
+ensure_branch_protection "$CODER_GITEA_USERNAME" "$GITOPS_REPO_NAME" "$GITOPS_REPO_BRANCH" "$REVIEWER_GITEA_USERNAME"
+ensure_branch_protection "$CODER_GITEA_USERNAME" "$SANDBOX_IMAGES_REPO_NAME" "$GITOPS_REPO_BRANCH" "$REVIEWER_GITEA_USERNAME"
+
 step "Persisting GitOps bootstrap credentials"
 create_and_apply_secret "$GITOPS_SECRET_NAME" \
   --from-literal=CODER_GITEA_USERNAME="$CODER_GITEA_USERNAME" \
   --from-literal=CODER_GITEA_EMAIL="$CODER_GITEA_EMAIL" \
   --from-literal=CODER_GITEA_PASSWORD="$CODER_GITEA_PASSWORD" \
+  --from-literal=REVIEWER_GITEA_USERNAME="$REVIEWER_GITEA_USERNAME" \
+  --from-literal=REVIEWER_GITEA_EMAIL="$REVIEWER_GITEA_EMAIL" \
+  --from-literal=REVIEWER_GITEA_PASSWORD="$REVIEWER_GITEA_PASSWORD" \
   --from-literal=GITOPS_REPO_NAME="$GITOPS_REPO_NAME" \
   --from-literal=SANDBOX_IMAGES_REPO_NAME="$SANDBOX_IMAGES_REPO_NAME" \
   --from-literal=GITOPS_REPO_BRANCH="$GITOPS_REPO_BRANCH" \

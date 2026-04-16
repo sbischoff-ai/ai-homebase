@@ -24,5 +24,5 @@ Store shared quick notes in Qdrant when they should shape later work but do not 
 Use `/Desk/` for short-term shared continuity and indexing that should survive a restart but stay smaller and less curated than project docs.
 Drafts may also live in `/Projects/` when they are part of the project's shared working record or the user should be able to collaborate on them there.
 
-`/Desk/` is created by `main` at bootstrap or first use. It is not part of the chart-managed `/Projects/` bootstrap content and must stay bounded rather than turning into a generic catch-all bucket.
+`/Desk/` is created by `main` on first use when shared continuity is needed. It is not part of the chart-managed `/Projects/` bootstrap content and must stay bounded rather than turning into a generic catch-all bucket.
 If agents create additional Nextcloud folders later, they should do so intentionally, document the purpose, and avoid recreating a generic catch-all notes bucket.

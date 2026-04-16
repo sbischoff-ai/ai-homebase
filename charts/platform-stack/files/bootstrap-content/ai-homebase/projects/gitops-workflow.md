@@ -6,7 +6,7 @@ Canonical mutation chain:
 1. the user states a requirement;
 2. `main` routes it;
 3. `architect` defines the plan, design direction, and task decomposition when the work is non-trivial;
-4. `coder` applies cluster and application changes in the relevant repository;
+4. `coder` applies cluster and application changes in the relevant repository after any needed planning or review gates are satisfied;
 5. `coder` maintains the OpenClaw sandbox image source repo and publishes resulting images to the in-cluster registry;
 6. `coder` validates changes with the documented lint and render commands;
 7. cluster-definition changes are pushed to the GitOps repo;
@@ -25,4 +25,5 @@ Self-mutation rule:
 
 Important constraint:
 - `coder` executes changes;
-- `architect` should shape the work when a project needs planning or design first.
+- `architect` should shape the work when a project needs planning or design first;
+- the user remains the deployment gate even when agents prepared the change set end to end.

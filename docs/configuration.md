@@ -42,7 +42,7 @@ python3 scripts/bootstrap-config.py validate --config bootstrap.local.toml
 - provider/search API keys
 - shared admin identity and service-specific admin overrides
 - OpenClaw gateway token and agent model selections
-- registry credentials and GitOps/coder Gitea defaults
+- registry credentials, coder Gitea defaults, and the shared reviewer Gitea identity for architect and auditor
 - first-run application secrets when the operator wants explicit values
 
 `scripts/bootstrap-config.py render-values` turns that file into a generated Helm values layer during bootstrap. Treat the generated layer as a bridge from operator input into Helm, not as the long-term source of truth.
@@ -65,6 +65,7 @@ Common stable Secret names include:
 
 - `openclaw-secrets`
 - `coder-credentials`
+- `reviewer-credentials`
 - `openclaw-remote-docker-ssh`
 - `nextcloud-config-secrets`
 - `openclaw-nextcloud-mcp-secrets`
