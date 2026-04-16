@@ -167,11 +167,11 @@ assert rendered_values["openclaw"]["openclaw"]["skills"]["allowBundled"] == [
     "node-connect",
     "skill-creator",
     "session-logs",
-    "coding-agent",
     "tmux",
     "summarize",
     "github",
 ]
+assert "coding-agent" not in rendered_values["openclaw"]["openclaw"]["skills"]["allowBundled"]
 assert rendered_values["openclaw"]["openclaw"]["agents"]["defaults"]["models"] == {
     "openai/gpt-5.4": {"alias": "Main / Coder / Architect / Auditor"},
     "anthropic/claude-sonnet-4-6": {"alias": "Main / Coder / Archivist"},
@@ -184,8 +184,27 @@ assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][0]["id"] == "ma
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][0]["default"] is True
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][0]["model"]["primary"] == "openai/gpt-5.4"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][0]["model"]["fallbacks"] == ["anthropic/claude-sonnet-4-6"]
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][0]["skills"] == [
+    "handoff-specialist-work",
+    "manage-worker-lifecycle",
+    "bind-channels",
+    "coordinate-in-nextcloud",
+    "record-memory-and-coordination-status",
+    "track-budget",
+    "healthcheck",
+    "node-connect",
+    "skill-creator",
+    "session-logs",
+    "weather",
+    "summarize",
+]
+assert "github" not in rendered_values["openclaw"]["openclaw"]["agents"]["list"][0]["skills"]
 assert rendered_values["openclaw"]["openclaw"]["agents"]["defaults"]["sandbox"]["workspaceAccess"] == "rw"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["defaults"]["sandbox"]["docker"]["env"]["QDRANT_API_KEY"] == "${QDRANT_API_KEY}"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["defaults"]["sandbox"]["docker"]["env"]["GITHUB_TOKEN"] == "${GITHUB_TOKEN}"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["defaults"]["sandbox"]["docker"]["env"]["OPENAI_API_KEY"] == "${OPENAI_API_KEY}"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["defaults"]["sandbox"]["docker"]["env"]["ANTHROPIC_API_KEY"] == "${ANTHROPIC_API_KEY}"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["defaults"]["sandbox"]["docker"]["env"]["GEMINI_API_KEY"] == "${GEMINI_API_KEY}"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["id"] == "coder"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["workspace"] == "/home/node/.openclaw/workspace-coder"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["model"]["primary"] == "anthropic/claude-sonnet-4-6"
@@ -211,22 +230,79 @@ assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["GITHUB_TOKEN"] == "${GITHUB_TOKEN}"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["setupCommand"] == "/usr/local/bin/coder-init.sh"
 assert "/workspace" not in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"].get("tmpfs", [])
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["skills"] == [
+    "manage-gitea-gitops-and-registry",
+    "run-codex-and-log-usage",
+    "update-implementation-notes",
+    "github",
+    "tmux",
+]
+assert "coding-agent" not in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["skills"]
+assert "session-logs" not in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["skills"]
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["id"] == "architect"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["workspace"] == "/home/node/.openclaw/workspace-architect"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["model"]["primary"] == "anthropic/claude-opus-4-6"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["model"]["fallbacks"] == ["openai/gpt-5.4"]
 assert "sandbox" not in rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]
-assert "tools" not in rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["skills"] == [
+    "plan-projects",
+    "package-worker-definitions",
+    "deliver-design",
+    "gitea-browse",
+    "skill-creator",
+    "session-logs",
+    "summarize",
+    "github",
+]
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["tools"]["deny"] == ["tts", "image_generate", "canvas"]
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][3]["id"] == "archivist"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][3]["workspace"] == "/home/node/.openclaw/workspace-archivist"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][3]["model"]["primary"] == "anthropic/claude-sonnet-4-6"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][3]["model"]["fallbacks"] == ["openai/gpt-5.4-mini"]
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][3]["sandbox"] == {"mode": "non-main"}
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][3]["skills"] == [
+    "curate-memgraph",
+    "groom-knowledge-graph",
+    "map-context-and-link-evidence",
+    "use-nextcloud-docs-for-graph-work",
+    "session-logs",
+    "summarize",
+]
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][3]["tools"]["deny"] == ["tts", "image_generate", "canvas", "browser"]
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][4]["id"] == "watchdog"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][4]["workspace"] == "/home/node/.openclaw/workspace-watchdog"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][4]["model"]["primary"] == "openai/gpt-5.4-nano"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][4]["model"]["fallbacks"] == ["anthropic/claude-haiku-4-5"]
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][4]["sandbox"]["mode"] == "off"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][4]["skills"] == [
+    "classify-severity-and-escalate",
+    "manage-nextcloud-incidents",
+    "check-heartbeat-and-budget",
+    "healthcheck",
+    "node-connect",
+    "session-logs",
+]
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][4]["tools"]["deny"] == [
+    "image_generate",
+    "canvas",
+    "tts",
+    "image",
+    "browser",
+    "sessions_spawn",
+    "agents_list",
+    "subagents",
+]
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][5]["id"] == "auditor"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][5]["skills"] == [
+    "classify-review-mode",
+    "manage-review-packets",
+    "format-verdict",
+    "gitea-browse",
+    "session-logs",
+    "summarize",
+    "github",
+]
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][5]["tools"]["deny"] == ["tts", "image_generate", "canvas"]
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][0]["subagents"]["allowAgents"] == ["coder", "architect", "archivist", "auditor"]
 assert rendered_values["openclaw"]["openclaw"]["tools"]["agentToAgent"]["enabled"] is True
 assert rendered_values["openclaw"]["openclaw"]["tools"]["agentToAgent"]["allow"] == ["main", "coder", "architect", "archivist", "watchdog", "auditor"]
@@ -259,7 +335,7 @@ assert rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["auditor"] ==
 }
 
 main_tools = (REPO_ROOT / "charts" / "openclaw" / "files" / "workspaces" / "main" / "TOOLS.md").read_text()
-assert "Local notes for this setup." in main_tools
+assert "Files in this workspace are local workspace files." in main_tools
 assert "`agent:architect:main`" in main_tools
 assert "shared `openclaw` Nextcloud account" in main_tools
 assert "Prefer files for durable narrative artifacts" in main_tools
@@ -300,7 +376,7 @@ assert "/Desk/index.md" in watchdog_tools
 
 auditor_tools = (REPO_ROOT / "charts" / "openclaw" / "files" / "workspaces" / "auditor" / "TOOLS.md").read_text()
 assert "/Projects/ai-homebase/audit-log.md" in auditor_tools
-assert "Local notes for this setup." in auditor_tools
+assert "Files in this workspace are local workspace files." in auditor_tools
 assert "/Desk/index.md" in auditor_tools
 
 worker_tools = (REPO_ROOT / "charts" / "openclaw" / "files" / "workspaces" / "worker-template" / "TOOLS.md").read_text()
@@ -379,6 +455,10 @@ assert rendered_values["openclaw"]["openclaw"]["agents"]["defaults"]["sandbox"][
     "QDRANT_URL": "https://qdrant.test.internal",
     "QDRANT_COLLECTION": "openclaw-memory",
     "QDRANT_API_KEY": "${QDRANT_API_KEY}",
+    "GITHUB_TOKEN": "${GITHUB_TOKEN}",
+    "OPENAI_API_KEY": "${OPENAI_API_KEY}",
+    "ANTHROPIC_API_KEY": "${ANTHROPIC_API_KEY}",
+    "GEMINI_API_KEY": "${GEMINI_API_KEY}",
 }
 
 coder_dockerfile = (REPO_ROOT / "images" / "openclaw-sandbox-coder" / "Dockerfile").read_text(encoding="utf-8")
@@ -394,9 +474,17 @@ assert "tmux" in coder_dockerfile
 assert "@openai/codex" in coder_dockerfile
 assert "debian:trixie-slim" in base_dockerfile
 assert "COPY --from=memgraph-tools /usr/bin/mgconsole /usr/local/bin/mgconsole" in base_dockerfile
+assert "https://deb.nodesource.com/node_22.x" in base_dockerfile
+assert "go install code.gitea.io/tea@latest" in base_dockerfile
+assert "npm install -g @steipete/summarize" in base_dockerfile
+assert "gh --version" in base_dockerfile
 assert "debian:trixie-slim" in gateway_dockerfile
 assert "COPY --from=openclaw-runtime /app /app" in gateway_dockerfile
 assert "COPY --from=memgraph-tools /usr/bin/mgconsole /usr/local/bin/mgconsole" in gateway_dockerfile
+assert "https://deb.nodesource.com/node_22.x" in gateway_dockerfile
+assert "go install code.gitea.io/tea@latest" in gateway_dockerfile
+assert "npm install -g @steipete/summarize" in gateway_dockerfile
+assert "tmux -V" in gateway_dockerfile
 assert "toolDescriptions:" in qdrant_mcp_values
 assert "Store a memory for cross-agent recall." in qdrant_mcp_values
 assert "Search shared semantic memory across all agents." in qdrant_mcp_values

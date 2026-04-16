@@ -47,11 +47,85 @@ BUNDLED_SKILLS = [
     "node-connect",
     "skill-creator",
     "session-logs",
-    "coding-agent",
     "tmux",
     "summarize",
     "github",
 ]
+
+AGENT_SKILLS = {
+    "main": [
+        "handoff-specialist-work",
+        "manage-worker-lifecycle",
+        "bind-channels",
+        "coordinate-in-nextcloud",
+        "record-memory-and-coordination-status",
+        "track-budget",
+        "healthcheck",
+        "node-connect",
+        "skill-creator",
+        "session-logs",
+        "weather",
+        "summarize",
+    ],
+    "coder": [
+        "manage-gitea-gitops-and-registry",
+        "run-codex-and-log-usage",
+        "update-implementation-notes",
+        "github",
+        "tmux",
+    ],
+    "architect": [
+        "plan-projects",
+        "package-worker-definitions",
+        "deliver-design",
+        "gitea-browse",
+        "skill-creator",
+        "session-logs",
+        "summarize",
+        "github",
+    ],
+    "archivist": [
+        "curate-memgraph",
+        "groom-knowledge-graph",
+        "map-context-and-link-evidence",
+        "use-nextcloud-docs-for-graph-work",
+        "session-logs",
+        "summarize",
+    ],
+    "watchdog": [
+        "classify-severity-and-escalate",
+        "manage-nextcloud-incidents",
+        "check-heartbeat-and-budget",
+        "healthcheck",
+        "node-connect",
+        "session-logs",
+    ],
+    "auditor": [
+        "classify-review-mode",
+        "manage-review-packets",
+        "format-verdict",
+        "gitea-browse",
+        "session-logs",
+        "summarize",
+        "github",
+    ],
+}
+
+AGENT_TOOL_DENY = {
+    "architect": ["tts", "image_generate", "canvas"],
+    "archivist": ["tts", "image_generate", "canvas", "browser"],
+    "watchdog": [
+        "image_generate",
+        "canvas",
+        "tts",
+        "image",
+        "browser",
+        "sessions_spawn",
+        "agents_list",
+        "subagents",
+    ],
+    "auditor": ["tts", "image_generate", "canvas"],
+}
 
 SECRET_KEY_VALUE_NAMES = {
     "OPENAI_API_KEY": "openaiApiKey",
@@ -542,6 +616,10 @@ def command_render_values(args: argparse.Namespace) -> int:
                             "QDRANT_URL": qdrant_sandbox_url,
                             "QDRANT_COLLECTION": "openclaw-memory",
                             "QDRANT_API_KEY": "${QDRANT_API_KEY}",
+                            "GITHUB_TOKEN": "${GITHUB_TOKEN}",
+                            "OPENAI_API_KEY": "${OPENAI_API_KEY}",
+                            "ANTHROPIC_API_KEY": "${ANTHROPIC_API_KEY}",
+                            "GEMINI_API_KEY": "${GEMINI_API_KEY}",
                         },
                     },
                 },
@@ -563,6 +641,7 @@ def command_render_values(args: argparse.Namespace) -> int:
                     "subagents": {
                         "allowAgents": ["coder", "architect", "archivist", "auditor"],
                     },
+                    "skills": AGENT_SKILLS["main"],
                 },
                 {
                     "id": "coder",
@@ -608,10 +687,12 @@ def command_render_values(args: argparse.Namespace) -> int:
                                 "CODEX_DEFAULT_MODEL": values["CODEX_DEFAULT_MODEL"],
                                 "CODEX_MODEL": values["CODEX_MODEL"],
                                 "OPENAI_API_KEY": "${OPENAI_API_KEY}",
+                                "GITHUB_TOKEN": "${GITHUB_TOKEN}",
                             },
                             "setupCommand": "/usr/local/bin/coder-init.sh",
                         },
                     },
+                    "skills": AGENT_SKILLS["coder"],
                 },
                 {
                     "id": "architect",
@@ -625,6 +706,8 @@ def command_render_values(args: argparse.Namespace) -> int:
                             else {}
                         ),
                     },
+                    "skills": AGENT_SKILLS["architect"],
+                    "tools": {"deny": AGENT_TOOL_DENY["architect"]},
                 },
                 {
                     "id": "archivist",
@@ -639,6 +722,8 @@ def command_render_values(args: argparse.Namespace) -> int:
                         ),
                     },
                     "sandbox": {"mode": "non-main"},
+                    "skills": AGENT_SKILLS["archivist"],
+                    "tools": {"deny": AGENT_TOOL_DENY["archivist"]},
                 },
                 {
                     "id": "watchdog",
@@ -655,6 +740,8 @@ def command_render_values(args: argparse.Namespace) -> int:
                     "sandbox": {
                         "mode": "off",
                     },
+                    "skills": AGENT_SKILLS["watchdog"],
+                    "tools": {"deny": AGENT_TOOL_DENY["watchdog"]},
                 },
                 {
                     "id": "auditor",
@@ -671,6 +758,8 @@ def command_render_values(args: argparse.Namespace) -> int:
                     "sandbox": {
                         "mode": "off",
                     },
+                    "skills": AGENT_SKILLS["auditor"],
+                    "tools": {"deny": AGENT_TOOL_DENY["auditor"]},
                 },
             ],
         },
@@ -702,8 +791,6 @@ def command_render_values(args: argparse.Namespace) -> int:
             "value": 'bolt://{{ printf "%s-memgraph" .Release.Name | trunc 63 | trimSuffix "-" }}:7687',
         },
     ]
-    if values["GITHUB_TOKEN"]:
-        openclaw["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["GITHUB_TOKEN"] = "${GITHUB_TOKEN}"
     openclaw.setdefault("openclaw", {}).setdefault("commands", {})["mcp"] = True
     mcp_servers: dict[str, object] = {}
     if values["NEXTCLOUD_MCP_HOST"]:

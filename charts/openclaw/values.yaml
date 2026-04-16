@@ -168,6 +168,10 @@ openclaw:
             QDRANT_URL: https://qdrant.example.com
             QDRANT_COLLECTION: openclaw-memory
             QDRANT_API_KEY: ${QDRANT_API_KEY}
+            GITHUB_TOKEN: ${GITHUB_TOKEN}
+            OPENAI_API_KEY: ${OPENAI_API_KEY}
+            ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+            GEMINI_API_KEY: ${GEMINI_API_KEY}
           user: 1000:1000
           capDrop:
             - ALL
@@ -202,6 +206,12 @@ openclaw:
           - coordinate-in-nextcloud
           - record-memory-and-coordination-status
           - track-budget
+          - healthcheck
+          - node-connect
+          - skill-creator
+          - session-logs
+          - weather
+          - summarize
         subagents:
           allowAgents:
             - coder
@@ -219,7 +229,6 @@ openclaw:
           - manage-gitea-gitops-and-registry
           - run-codex-and-log-usage
           - update-implementation-notes
-          - coding-agent
           - github
           - tmux
         sandbox:
@@ -271,6 +280,16 @@ openclaw:
           - plan-projects
           - package-worker-definitions
           - deliver-design
+          - gitea-browse
+          - skill-creator
+          - session-logs
+          - summarize
+          - github
+        tools:
+          deny:
+            - tts
+            - image_generate
+            - canvas
       - id: archivist
         name: Archivist
         workspace: /home/node/.openclaw/workspace-archivist
@@ -279,12 +298,20 @@ openclaw:
           fallbacks:
             - anthropic/claude-sonnet-4-6
         skills:
-          - update-memgraph
-          - groom-recent-memories
-          - map-context-and-link-memories
-          - consult-nextcloud-knowledge
+          - curate-memgraph
+          - groom-knowledge-graph
+          - map-context-and-link-evidence
+          - use-nextcloud-docs-for-graph-work
+          - session-logs
+          - summarize
         sandbox:
           mode: non-main
+        tools:
+          deny:
+            - tts
+            - image_generate
+            - canvas
+            - browser
       - id: watchdog
         name: Watchdog
         workspace: /home/node/.openclaw/workspace-watchdog
@@ -297,9 +324,20 @@ openclaw:
           - manage-nextcloud-incidents
           - check-heartbeat-and-budget
           - healthcheck
+          - node-connect
           - session-logs
         sandbox:
           mode: "off"
+        tools:
+          deny:
+            - image_generate
+            - canvas
+            - tts
+            - image
+            - browser
+            - sessions_spawn
+            - agents_list
+            - subagents
       - id: auditor
         name: Auditor
         workspace: /home/node/.openclaw/workspace-auditor
@@ -311,9 +349,17 @@ openclaw:
           - classify-review-mode
           - manage-review-packets
           - format-verdict
+          - gitea-browse
+          - session-logs
           - summarize
+          - github
         sandbox:
           mode: "off"
+        tools:
+          deny:
+            - tts
+            - image_generate
+            - canvas
     tools:
       sessions:
         visibility: all
@@ -333,7 +379,6 @@ openclaw:
       - node-connect
       - skill-creator
       - session-logs
-      - coding-agent
       - tmux
       - summarize
       - github

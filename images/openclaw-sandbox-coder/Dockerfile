@@ -16,12 +16,9 @@ RUN apt-get update && \
       curl \
       file \
       git \
-      golang-go \
       jq \
       less \
       make \
-      nodejs \
-      npm \
       openssh-client \
       pkg-config \
       procps \
@@ -40,9 +37,6 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="${UV_INSTAL
 
 RUN curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal && \
     rustc --version && cargo --version
-
-RUN GOBIN=/usr/local/bin go install code.gitea.io/tea@latest && \
-    tea --version
 
 RUN npm install -g @openai/codex@0.118.0 && \
     codex --version

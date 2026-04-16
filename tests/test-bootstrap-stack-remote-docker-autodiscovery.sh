@@ -118,6 +118,13 @@ printf 'bootstrap-openclaw-cron.sh %s\n' "$*" >>"${FAKE_COMMAND_LOG:?}"
 SH
 chmod +x "${repo_dir}/scripts/bootstrap-openclaw-cron.sh"
 
+cat >"${repo_dir}/scripts/bootstrap-openclaw-skills.sh" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'bootstrap-openclaw-skills.sh %s\n' "$*" >>"${FAKE_COMMAND_LOG:?}"
+SH
+chmod +x "${repo_dir}/scripts/bootstrap-openclaw-skills.sh"
+
 cat >"${repo_dir}/scripts/bootstrap-memgraph.sh" <<'SH'
 #!/usr/bin/env bash
 set -euo pipefail

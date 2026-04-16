@@ -15,11 +15,30 @@ RUN --mount=type=cache,id=openclaw-sandbox-bookworm-apt-cache,target=/var/cache/
     ca-certificates \
     curl \
     git \
+    gh \
+    gnupg \
+    golang-go \
     jq \
     python3 \
-    ripgrep
+    ripgrep \
+  && mkdir -p /etc/apt/keyrings \
+  && curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key \
+    | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg \
+  && echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_22.x nodistro main" \
+    > /etc/apt/sources.list.d/nodesource.list \
+  && apt-get update \
+  && apt-get install -y --no-install-recommends nodejs \
+  && rm -rf /var/lib/apt/lists/*
 
 COPY --from=memgraph-tools /usr/bin/mgconsole /usr/local/bin/mgconsole
+
+RUN GOBIN=/usr/local/bin go install code.gitea.io/tea@latest \
+  && npm install -g @steipete/summarize \
+  && gh --version \
+  && tea --version \
+  && node --version \
+  && npm --version \
+  && summarize --version
 
 RUN useradd --create-home --shell /bin/bash sandbox
 USER sandbox

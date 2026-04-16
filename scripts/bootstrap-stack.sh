@@ -286,6 +286,21 @@ seed_openclaw_cron_jobs() {
   "${seed_cmd[@]}"
 }
 
+seed_openclaw_skills() {
+  local seed_cmd=(
+    ./scripts/bootstrap-openclaw-skills.sh
+    --release-name "$RELEASE_NAME"
+    --namespace "$NAMESPACE"
+  )
+  if [[ -n "$KUBECONFIG_PATH" ]]; then
+    seed_cmd+=(--kubeconfig "$KUBECONFIG_PATH")
+  fi
+  if [[ -n "$KUBE_CONTEXT" ]]; then
+    seed_cmd+=(--kube-context "$KUBE_CONTEXT")
+  fi
+  "${seed_cmd[@]}"
+}
+
 seed_memgraph() {
   local seed_cmd=(
     ./scripts/bootstrap-memgraph.sh
@@ -517,6 +532,7 @@ else
 fi
 
 publish_runtime_images_to_registry
+seed_openclaw_skills
 seed_openclaw_cron_jobs
 seed_memgraph
 
