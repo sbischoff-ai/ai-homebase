@@ -2,14 +2,12 @@
 set -Eeuo pipefail
 
 source "$(dirname "$0")/lib/logging.sh"
+source "$(dirname "$0")/lib/ingress-nginx.sh"
 
 CLUSTER_NAME="${CLUSTER_NAME:-ai-homebase-dev}"
 HTTP_PORT="${HTTP_PORT:-80}"
 HTTPS_PORT="${HTTPS_PORT:-443}"
 ENABLE_HTTPS="${ENABLE_HTTPS:-true}"
-INGRESS_NAMESPACE="${INGRESS_NAMESPACE:-ingress-nginx}"
-INGRESS_RELEASE_NAME="${INGRESS_RELEASE_NAME:-ingress-nginx}"
-INGRESS_CHART_REF="${INGRESS_CHART_REF:-ingress-nginx/ingress-nginx}"
 KUBECONFIG_PATH="${KUBECONFIG_PATH:-${HOME}/.kube/k3d-${CLUSTER_NAME}.yaml}"
 K3S_IMAGE="${K3S_IMAGE:-rancher/k3s:v1.32.11-k3s1}"
 SHARED_OPENCLAW_STATE_SOURCE="${SHARED_OPENCLAW_STATE_SOURCE:-${HOME}/.local/state/ai-homebase/openclaw-state}"
@@ -242,37 +240,7 @@ if run_quiet kubectl "${KUBECTL_ARGS[@]}" get apiservice v1beta1.metrics.k8s.io;
   fi
 fi
 
-step "Ensuring ingress-nginx Helm repo"
-run_quiet helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx || true
-if [[ "${BOOTSTRAP_VERBOSE:-0}" == "1" ]]; then
-  run_verbose helm repo update ingress-nginx
-else
-  run_quiet helm repo update ingress-nginx
-fi
-
-step "Installing/upgrading ingress-nginx controller"
-run_quiet helm upgrade --install "$INGRESS_RELEASE_NAME" "$INGRESS_CHART_REF" \
-  "${HELM_ARGS[@]}" \
-  --namespace "$INGRESS_NAMESPACE" \
-  --create-namespace \
-  --hide-notes \
-  --set controller.ingressClassResource.name=nginx \
-  --set controller.ingressClass=nginx \
-  --set controller.watchIngressWithoutClass=false
-
-step "Waiting for ingress-nginx controller readiness"
-run_quiet kubectl "${KUBECTL_ARGS[@]}" wait --namespace "$INGRESS_NAMESPACE" \
-  --for=condition=Available \
-  deployment/${INGRESS_RELEASE_NAME}-controller \
-  --timeout=180s
-
-run_quiet kubectl "${KUBECTL_ARGS[@]}" wait --namespace "$INGRESS_NAMESPACE" \
-  --for=condition=Ready \
-  pods \
-  -l app.kubernetes.io/component=controller,app.kubernetes.io/instance=${INGRESS_RELEASE_NAME} \
-  --timeout=180s
-
-ok "Ingress controller is ready"
+ensure_ingress_nginx
 echo "k3d cluster ${CLUSTER_NAME} is ready with ingress-nginx"
 echo "k3s image: ${K3S_IMAGE}"
 echo "Kubeconfig written to: ${KUBECONFIG_PATH}"

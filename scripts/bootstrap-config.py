@@ -37,6 +37,11 @@ DEFAULT_WATCHDOG_FALLBACK_MODELS = ["anthropic/claude-haiku-4-5"]
 DEFAULT_AUDITOR_MODEL = "anthropic/claude-opus-4-6"
 DEFAULT_AUDITOR_FALLBACK_MODELS = ["openai/gpt-5.4"]
 SHARED_MCP_BRIDGE_PATH = "/opt/openclaw-runtime/mcp/mcp-http-bridge.mjs"
+SANDBOX_CA_BUNDLE_PATH = "/etc/ssl/certs/ai-homebase-ca-bundle.crt"
+SANDBOX_CA_BUNDLE_BIND = (
+    "/home/node/.openclaw/certs/ai-homebase-ca-bundle.crt:"
+    f"{SANDBOX_CA_BUNDLE_PATH}:ro"
+)
 NEXTCLOUD_MCP_USERNAME = "openclaw"
 DEFAULT_CODER_GITEA_USERNAME = "coder"
 DEFAULT_REGISTRY_USERNAME = "coder"
@@ -607,7 +612,13 @@ def command_render_values(args: argparse.Namespace) -> int:
                     "workspaceAccess": "rw",
                     "docker": {
                         "image": values["OPENCLAW_DEFAULT_SANDBOX_IMAGE"],
+                        "binds": [SANDBOX_CA_BUNDLE_BIND],
                         "env": {
+                            "SSL_CERT_FILE": SANDBOX_CA_BUNDLE_PATH,
+                            "REQUESTS_CA_BUNDLE": SANDBOX_CA_BUNDLE_PATH,
+                            "NODE_EXTRA_CA_CERTS": SANDBOX_CA_BUNDLE_PATH,
+                            "GIT_SSL_CAINFO": SANDBOX_CA_BUNDLE_PATH,
+                            "CURL_CA_BUNDLE": SANDBOX_CA_BUNDLE_PATH,
                             "MEMGRAPH_HOST": values["MEMGRAPH_HOST"],
                             "MEMGRAPH_PORT": "7687",
                             "MEMGRAPH_BOLT_URI": (
@@ -660,12 +671,21 @@ def command_render_values(args: argparse.Namespace) -> int:
                         "workspaceAccess": "rw",
                         "docker": {
                             "image": values["OPENCLAW_CODER_SANDBOX_IMAGE"],
+                            "binds": [
+                                SANDBOX_CA_BUNDLE_BIND,
+                                "/var/run/docker.sock:/var/run/docker.sock",
+                            ],
                             "env": {
                                 "HOME": "/workspace/.home",
                                 "CODEX_HOME": "/workspace/.home/.codex",
                                 "XDG_CONFIG_HOME": "/workspace/.home/.config",
                                 "XDG_CACHE_HOME": "/workspace/.home/.cache",
                                 "XDG_STATE_HOME": "/workspace/.home/.local/state",
+                                "SSL_CERT_FILE": SANDBOX_CA_BUNDLE_PATH,
+                                "REQUESTS_CA_BUNDLE": SANDBOX_CA_BUNDLE_PATH,
+                                "NODE_EXTRA_CA_CERTS": SANDBOX_CA_BUNDLE_PATH,
+                                "GIT_SSL_CAINFO": SANDBOX_CA_BUNDLE_PATH,
+                                "CURL_CA_BUNDLE": SANDBOX_CA_BUNDLE_PATH,
                                 "CODER_GITEA_BASE_URL": gitea_base_url,
                                 "CODER_GITEA_HOST": values["GITEA_HOST"],
                                 "CODER_GITEA_USERNAME": values["CODER_GITEA_USERNAME"],

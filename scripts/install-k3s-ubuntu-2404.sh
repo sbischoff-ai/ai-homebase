@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "${SCRIPT_DIR}/lib/logging.sh"
+source "${SCRIPT_DIR}/lib/ingress-nginx.sh"
+
 TARGET_USER="${TARGET_USER:-${SUDO_USER:-${USER}}}"
 K3S_CHANNEL="${K3S_CHANNEL:-stable}"
-K3S_INSTALL_ARGS="${K3S_INSTALL_ARGS:---write-kubeconfig-mode 644}"
+K3S_INSTALL_ARGS="${K3S_INSTALL_ARGS:---write-kubeconfig-mode 644 --disable=traefik}"
 INCUS_BRIDGE_NAME="${INCUS_BRIDGE_NAME:-incusbr0}"
 INCUS_BRIDGE_IPV4="${INCUS_BRIDGE_IPV4:-10.10.10.1/24}"
 INCUS_STORAGE_POOL="${INCUS_STORAGE_POOL:-default}"
@@ -15,6 +19,7 @@ KUBECTL_APT_KEY_URL="${KUBECTL_APT_KEY_URL:-https://pkgs.k8s.io/core:/stable:/v1
 KUBECTL_APT_REPO_URL="${KUBECTL_APT_REPO_URL:-https://pkgs.k8s.io/core:/stable:/v1.34/deb/}"
 KUBECTL_APT_REPO="/etc/apt/keyrings/kubernetes-apt-keyring.gpg"
 OPENCLAW_SHARED_STATE_DIR="${OPENCLAW_SHARED_STATE_DIR:-/var/lib/ai-homebase/openclaw-state}"
+K3S_KUBECONFIG="${K3S_KUBECONFIG:-/etc/rancher/k3s/k3s.yaml}"
 POLICY_RC_D_PATH="/usr/sbin/policy-rc.d"
 POLICY_RC_D_BACKUP=""
 POLICY_RC_D_WAS_PRESENT=0
@@ -95,6 +100,8 @@ if [[ "${EUID}" -ne 0 ]]; then
   exit 1
 fi
 
+bootstrap_init_logging
+
 if ! id "${TARGET_USER}" >/dev/null 2>&1; then
   echo "Target user '${TARGET_USER}' does not exist on this host." >&2
   exit 1
@@ -158,12 +165,26 @@ apt-get install -y --no-install-recommends helm kubectl incus
 restore_package_service_autostart
 trap - EXIT
 
+# Docker Engine and git are intentionally not installed here. The Hetzner
+# target host is expected to provide both before bootstrap so image builds,
+# image publishing, and GitOps repo pushes use the operator-managed host tools.
 if ! command -v k3s >/dev/null 2>&1; then
   curl -fsSL https://get.k3s.io | INSTALL_K3S_CHANNEL="${K3S_CHANNEL}" INSTALL_K3S_EXEC="${K3S_INSTALL_ARGS}" sh -
 fi
 
 systemctl enable --now k3s
 systemctl enable --now incus
+
+KUBECTL_ARGS=(--kubeconfig "$K3S_KUBECONFIG")
+HELM_ARGS=(--kubeconfig "$K3S_KUBECONFIG")
+
+kubectl "${KUBECTL_ARGS[@]}" wait --for=condition=Ready node --all --timeout=180s
+if kubectl "${KUBECTL_ARGS[@]}" -n kube-system get deployment traefik >/dev/null 2>&1; then
+  echo "This bootstrap expects k3s without the bundled Traefik add-on. Reinstall k3s with --disable=traefik before continuing." >&2
+  exit 1
+fi
+
+ensure_ingress_nginx
 
 if ! incus profile show default >/dev/null 2>&1; then
   incus admin init --auto
@@ -196,7 +217,8 @@ usermod -aG k3s "${TARGET_USER}" 2>/dev/null || true
 echo "Host preparation complete."
 echo "Next steps:"
 echo "  1. Log out and back in so ${TARGET_USER} picks up new group membership."
-echo "  2. Copy bootstrap.example.toml to bootstrap.local.toml and edit hosts, API keys, and secrets."
-echo "  3. Run ./scripts/k3s-homelab-sandbox-up.sh --bootstrap-config bootstrap.local.toml"
-echo "  4. Run ./scripts/bootstrap-stack.sh --profile k3s --bootstrap-config bootstrap.local.toml"
+echo "  2. Confirm Docker Engine and git are already installed and usable by ${TARGET_USER}."
+echo "  3. Copy bootstrap.example.toml to bootstrap.local.toml and edit hosts, API keys, and secrets."
+echo "  4. Run ./scripts/k3s-homelab-sandbox-up.sh --bootstrap-config bootstrap.local.toml"
+echo "  5. Run ./scripts/bootstrap-stack.sh --profile k3s --bootstrap-config bootstrap.local.toml"
 echo "  Shared OpenClaw state dir: ${OPENCLAW_SHARED_STATE_DIR}"

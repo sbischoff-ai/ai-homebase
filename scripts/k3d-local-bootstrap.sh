@@ -160,6 +160,7 @@ BOOTSTRAP_STACK_CMD=(
   --incus-vm-name "$INCUS_VM_NAME" \
   --incus-connection-info "$INCUS_CONNECTION_INFO_PATH" \
   --remote-docker-key "$REMOTE_DOCKER_KEY_PATH"
+  --shared-openclaw-state-source "$SHARED_OPENCLAW_STATE_SOURCE"
 )
 if [[ -n "$REMOTE_DOCKER_HOST" ]]; then
   BOOTSTRAP_STACK_CMD+=(--remote-docker-host "$REMOTE_DOCKER_HOST")

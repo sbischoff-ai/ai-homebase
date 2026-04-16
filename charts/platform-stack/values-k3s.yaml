@@ -33,6 +33,10 @@ global:
 
 openclaw:
   enabled: true
+  image:
+    repository: openclaw-remote-docker
+    tag: "trixie-slim"
+    pullPolicy: IfNotPresent
   ingress:
     enabled: true
     className: nginx

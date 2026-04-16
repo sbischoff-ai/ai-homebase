@@ -16,6 +16,7 @@ REMOTE_DOCKER_PORT="${REMOTE_DOCKER_PORT:-}"
 REMOTE_DOCKER_KEY_PATH="${REMOTE_DOCKER_KEY_PATH:-}"
 INCUS_VM_NAME="${INCUS_VM_NAME:-openclaw-sandbox}"
 INCUS_CONNECTION_INFO_PATH="${INCUS_CONNECTION_INFO_PATH:-}"
+SHARED_OPENCLAW_STATE_SOURCE="${SHARED_OPENCLAW_STATE_SOURCE:-}"
 BOOTSTRAP_VALUES_FILE=""
 REMOTE_DOCKER_OVERRIDE_VALUES_FILE=""
 SKIP_GITOPS=0
@@ -30,11 +31,12 @@ CERT_MANAGER_CRDS=(
   issuers.cert-manager.io
   orders.acme.cert-manager.io
 )
-CERT_MANAGER_DEPLOYMENTS=(
-  cert-manager
-  cert-manager-cainjector
-  cert-manager-webhook
-)
+cert_manager_deployments() {
+  printf '%s\n' \
+    "${RELEASE_NAME}-cert-manager" \
+    "${RELEASE_NAME}-cert-manager-cainjector" \
+    "${RELEASE_NAME}-cert-manager-webhook"
+}
 CODER_SANDBOX_IMAGE_TAG="${CODER_SANDBOX_IMAGE_TAG:-openclaw-sandbox-coder:trixie-slim}"
 DEFAULT_SANDBOX_IMAGE_TAG="${DEFAULT_SANDBOX_IMAGE_TAG:-openclaw-sandbox:trixie-slim}"
 GATEWAY_IMAGE_TAG="${GATEWAY_IMAGE_TAG:-openclaw-remote-docker:trixie-slim}"
@@ -136,6 +138,36 @@ import_image_into_k3d_cluster() {
   k3d image import -c "$cluster_name" "$image"
 }
 
+import_image_into_k3s_containerd() {
+  local image="$1"
+  local archive_path=""
+  local import_status=0
+
+  if ! command -v k3s >/dev/null 2>&1; then
+    echo "k3s is required to import ${image} into the local k3s containerd image store." >&2
+    exit 1
+  fi
+
+  docker image inspect "$image" >/dev/null
+  archive_path="$(mktemp /tmp/ai-homebase-k3s-image.XXXXXX.tar)"
+  docker image save -o "$archive_path" "$image"
+
+  if k3s ctr -n k8s.io images import "$archive_path"; then
+    rm -f "$archive_path"
+    return 0
+  fi
+  import_status=$?
+
+  if command -v sudo >/dev/null 2>&1 && sudo -n k3s ctr -n k8s.io images import "$archive_path"; then
+    rm -f "$archive_path"
+    return 0
+  fi
+
+  rm -f "$archive_path"
+  echo "Failed to import ${image} into k3s containerd. Last status: ${import_status}. Ensure the bootstrap user can run 'k3s ctr -n k8s.io images import' directly or through passwordless sudo." >&2
+  exit 1
+}
+
 prepare_openclaw_runtime_images() {
   local docker_host=""
   local build_args=()
@@ -164,6 +196,9 @@ prepare_openclaw_runtime_images() {
 
   if [[ "$PROFILE" == "k3d" && "$gateway_image_needed" -eq 1 ]]; then
     import_image_into_k3d_cluster "$GATEWAY_IMAGE_TAG"
+  fi
+  if [[ "$PROFILE" == "k3s" && "$gateway_image_needed" -eq 1 ]]; then
+    import_image_into_k3s_containerd "$GATEWAY_IMAGE_TAG"
   fi
 
   if [[ ( "$default_image_needed" -eq 1 || "$coder_image_needed" -eq 1 ) && -n "$REMOTE_DOCKER_HOST" && -n "$REMOTE_DOCKER_PORT" ]]; then
@@ -205,6 +240,150 @@ prepare_openclaw_runtime_images() {
       "${publish_cmd[@]}"
     fi
   fi
+}
+
+effective_shared_openclaw_state_source() {
+  if [[ -n "$SHARED_OPENCLAW_STATE_SOURCE" ]]; then
+    printf '%s\n' "$SHARED_OPENCLAW_STATE_SOURCE"
+    return 0
+  fi
+
+  case "$PROFILE" in
+    k3d) printf '%s\n' "${HOME}/.local/state/ai-homebase/openclaw-state" ;;
+    k3s) printf '%s\n' "/var/lib/ai-homebase/openclaw-state" ;;
+    *) return 1 ;;
+  esac
+}
+
+host_system_ca_bundle() {
+  local candidate=""
+  for candidate in \
+    /etc/ssl/certs/ca-certificates.crt \
+    /etc/pki/tls/certs/ca-bundle.crt \
+    /etc/ssl/ca-bundle.pem \
+    /etc/ca-certificates/extracted/tls-ca-bundle.pem
+  do
+    if [[ -s "$candidate" ]]; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+  return 1
+}
+
+ensure_shared_ca_bundle_placeholder() {
+  local state_source=""
+  local cert_dir=""
+  local root_ca_path=""
+  local bundle_path=""
+  local system_bundle=""
+
+  state_source="$(effective_shared_openclaw_state_source)"
+  cert_dir="${state_source}/certs"
+  root_ca_path="${cert_dir}/platform-stack-root-ca.crt"
+  bundle_path="${cert_dir}/ai-homebase-ca-bundle.crt"
+
+  mkdir -p "$cert_dir"
+  if [[ -s "$bundle_path" ]]; then
+    return 0
+  fi
+
+  system_bundle="$(host_system_ca_bundle || true)"
+  if [[ -n "$system_bundle" ]]; then
+    cp "$system_bundle" "$bundle_path"
+  else
+    : >"$bundle_path"
+  fi
+  : >"$root_ca_path"
+  chmod 0644 "$root_ca_path" "$bundle_path"
+}
+
+export_internal_ca_to_shared_state() {
+  local secret_name="platform-stack-root-ca"
+  local state_source=""
+  local cert_dir=""
+  local root_ca_path=""
+  local bundle_path=""
+  local system_bundle=""
+
+  state_source="$(effective_shared_openclaw_state_source)"
+  cert_dir="${state_source}/certs"
+  root_ca_path="${cert_dir}/platform-stack-root-ca.crt"
+  bundle_path="${cert_dir}/ai-homebase-ca-bundle.crt"
+
+  if ! kubectl "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" get secret "$secret_name" >/dev/null 2>&1; then
+    echo "Internal CA Secret ${secret_name} is not present yet; skipping shared CA export."
+    return 0
+  fi
+
+  mkdir -p "$cert_dir"
+  kubectl "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" get secret "$secret_name" \
+    -o jsonpath='{.data.ca\.crt}' | base64 -d >"$root_ca_path"
+
+  system_bundle="$(host_system_ca_bundle || true)"
+
+  if [[ -n "$system_bundle" ]]; then
+    cat "$system_bundle" "$root_ca_path" >"$bundle_path"
+  else
+    cp "$root_ca_path" "$bundle_path"
+  fi
+
+  chmod 0644 "$root_ca_path" "$bundle_path"
+  echo "Exported internal CA to ${root_ca_path} and ${bundle_path}"
+}
+
+wait_for_internal_ca_secret() {
+  local secret_name="platform-stack-root-ca"
+  local timeout_seconds="${INTERNAL_CA_WAIT_TIMEOUT_SECONDS:-180}"
+  local deadline=$((SECONDS + timeout_seconds))
+  local ca_data=""
+
+  echo "Waiting for internal CA Secret ${secret_name}"
+  while (( SECONDS < deadline )); do
+    ca_data="$(kubectl "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" get secret "$secret_name" -o jsonpath='{.data.ca\.crt}' 2>/dev/null || true)"
+    if [[ -n "$ca_data" ]]; then
+      return 0
+    fi
+    sleep 5
+  done
+
+  echo "Timed out waiting for internal CA Secret ${secret_name}" >&2
+  return 1
+}
+
+configure_incus_internal_ca_trust() {
+  local registry_host="${REGISTRY_HOST_VALUE:-}"
+  local state_source=""
+  local root_ca_host_path=""
+  local root_ca_guest_path="/home/node/.openclaw/certs/platform-stack-root-ca.crt"
+
+  if [[ -z "$registry_host" ]]; then
+    return 0
+  fi
+  state_source="$(effective_shared_openclaw_state_source)"
+  root_ca_host_path="${state_source}/certs/platform-stack-root-ca.crt"
+  if [[ ! -s "$root_ca_host_path" ]]; then
+    echo "Internal CA file ${root_ca_host_path} is not present; skipping sandbox VM CA trust configuration."
+    return 0
+  fi
+  if ! command -v incus >/dev/null 2>&1; then
+    echo "Incus CLI not found; skipping sandbox VM CA trust configuration."
+    return 0
+  fi
+  if ! incus info "$INCUS_VM_NAME" >/dev/null 2>&1; then
+    echo "Incus VM ${INCUS_VM_NAME} not found; skipping sandbox VM CA trust configuration."
+    return 0
+  fi
+
+  echo "Configuring internal CA trust inside Incus VM ${INCUS_VM_NAME}"
+  incus exec "$INCUS_VM_NAME" -- sh -ceu "
+    test -s '${root_ca_guest_path}'
+    install -d -m 0755 '/etc/docker/certs.d/${registry_host}' /usr/local/share/ca-certificates
+    cp '${root_ca_guest_path}' '/etc/docker/certs.d/${registry_host}/ca.crt'
+    cp '${root_ca_guest_path}' /usr/local/share/ca-certificates/ai-homebase-root-ca.crt
+    update-ca-certificates >/dev/null 2>&1 || true
+    systemctl restart docker.service
+  "
 }
 
 publish_runtime_images_to_registry() {
@@ -317,12 +496,13 @@ seed_memgraph() {
 }
 
 cert_manager_install_enabled() {
-  helm template "$RELEASE_NAME" charts/platform-stack \
+  local rendered=""
+  rendered="$(helm template "$RELEASE_NAME" charts/platform-stack \
     "${HELM_CONTEXT_ARGS[@]}" \
     --namespace "$NAMESPACE" \
     "${VALUES_ARGS[@]}" \
-    "${SET_ARGS[@]}" \
-    | grep -q 'helm.sh/chart: cert-manager'
+    "${SET_ARGS[@]}")"
+  grep -q 'helm.sh/chart: cert-manager' <<<"$rendered"
 }
 
 wait_for_cert_manager_crds() {
@@ -335,10 +515,10 @@ wait_for_cert_manager_crds() {
 
 wait_for_cert_manager_deployments() {
   local deployment
-  for deployment in "${CERT_MANAGER_DEPLOYMENTS[@]}"; do
+  while IFS= read -r deployment; do
     echo "Waiting for cert-manager deployment ${deployment} in namespace ${NAMESPACE}"
     kubectl "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" rollout status "deployment/${deployment}" --timeout "${CERT_MANAGER_DEPLOYMENT_WAIT_TIMEOUT}"
-  done
+  done < <(cert_manager_deployments)
 }
 
 usage() {
@@ -364,6 +544,8 @@ Options:
   --remote-docker-key <path>   Override OpenClaw remote Docker SSH private key path
   --incus-vm-name <name>       Incus VM name for k3d remote Docker auto-discovery (default: ${INCUS_VM_NAME})
   --incus-connection-info <p>  Incus VM env file for k3d remote Docker auto-discovery
+  --shared-openclaw-state-source <p>
+                                Host path shared with OpenClaw and the sandbox VM for first-run CA export
   --verbose                    Stream full command output
   -h, --help                   Show this help message
 
@@ -397,6 +579,7 @@ while [[ $# -gt 0 ]]; do
     --remote-docker-key) REMOTE_DOCKER_KEY_PATH="$2"; shift 2 ;;
     --incus-vm-name) INCUS_VM_NAME="$2"; shift 2 ;;
     --incus-connection-info) INCUS_CONNECTION_INFO_PATH="$2"; shift 2 ;;
+    --shared-openclaw-state-source) SHARED_OPENCLAW_STATE_SOURCE="$2"; shift 2 ;;
     --verbose) VERBOSE=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
@@ -475,6 +658,8 @@ if [[ -f "$INCUS_CONNECTION_INFO_PATH" ]]; then
   fi
 fi
 
+ensure_shared_ca_bundle_placeholder
+
 if [[ -n "$REMOTE_DOCKER_HOST" && -n "$REMOTE_DOCKER_PORT" ]]; then
   REMOTE_DOCKER_OVERRIDE_VALUES_FILE="$(mktemp /tmp/ai-homebase-bootstrap-remote-docker.XXXXXX.yaml)"
   cat >"$REMOTE_DOCKER_OVERRIDE_VALUES_FILE" <<EOF
@@ -527,10 +712,13 @@ if cert_manager_install_enabled; then
   wait_for_cert_manager_deployments
   echo "Re-running install with cert-manager custom resources enabled"
   helm_upgrade_install --set certManager.resourcesEnabled=true
+  wait_for_internal_ca_secret
 else
   helm_upgrade_install
 fi
 
+export_internal_ca_to_shared_state
+configure_incus_internal_ca_trust
 publish_runtime_images_to_registry
 seed_openclaw_skills
 seed_openclaw_cron_jobs
@@ -574,6 +762,9 @@ if [[ -n "$BOOTSTRAP_CONFIG_PATH" && "$SKIP_GITOPS" -eq 0 ]]; then
   fi
   if [[ -n "$INCUS_CONNECTION_INFO_PATH" ]]; then
     GITOPS_CMD+=(--incus-connection-info "$INCUS_CONNECTION_INFO_PATH")
+  fi
+  if [[ -n "$SHARED_OPENCLAW_STATE_SOURCE" ]]; then
+    GITOPS_CMD+=(--shared-openclaw-state-source "$SHARED_OPENCLAW_STATE_SOURCE")
   fi
   "${GITOPS_CMD[@]}"
 fi

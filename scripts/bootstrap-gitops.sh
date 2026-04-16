@@ -14,6 +14,7 @@ REMOTE_DOCKER_PORT="${REMOTE_DOCKER_PORT:-}"
 REMOTE_DOCKER_KEY_PATH="${REMOTE_DOCKER_KEY_PATH:-}"
 INCUS_VM_NAME="${INCUS_VM_NAME:-openclaw-sandbox}"
 INCUS_CONNECTION_INFO_PATH="${INCUS_CONNECTION_INFO_PATH:-}"
+SHARED_OPENCLAW_STATE_SOURCE="${SHARED_OPENCLAW_STATE_SOURCE:-}"
 GITOPS_SECRET_NAME="${GITOPS_SECRET_NAME:-gitops-config-secrets}"
 ARGOCD_REPO_SECRET_NAME="${ARGOCD_REPO_SECRET_NAME:-argocd-repo-gitea-gitops}"
 GITEA_WAIT_TIMEOUT="${GITEA_WAIT_TIMEOUT:-300s}"
@@ -21,7 +22,14 @@ ARGOCD_WAIT_TIMEOUT="${ARGOCD_WAIT_TIMEOUT:-300s}"
 ARGOCD_APP_SYNC_TIMEOUT="${ARGOCD_APP_SYNC_TIMEOUT:-300}"
 ARGOCD_APP_WAIT_TIMEOUT="${ARGOCD_APP_WAIT_TIMEOUT:-300}"
 ARGOCD_SERVER_DEPLOYMENT="${ARGOCD_SERVER_DEPLOYMENT:-${RELEASE_NAME}-argocd-server}"
+GITEA_BOOTSTRAP_LOCAL_PORT="${GITEA_BOOTSTRAP_LOCAL_PORT:-13000}"
 SKIP_INSTALL=0
+GITEA_PORT_FORWARD_PID=""
+GITEA_PORT_FORWARD_LOG=""
+REPO_WORK_DIR=""
+SANDBOX_IMAGES_REPO_WORK_DIR=""
+ASKPASS_SCRIPT=""
+ARGOCD_REPO_SECRET_MANIFEST=""
 
 usage() {
   cat <<USAGE
@@ -42,6 +50,8 @@ Options:
   --remote-docker-key <path> Optional SSH private key for the remote Docker image sync step
   --incus-vm-name <name>     Incus VM name for k3d remote Docker auto-discovery (default: ${INCUS_VM_NAME})
   --incus-connection-info <p> Incus VM env file for k3d remote Docker auto-discovery
+  --shared-openclaw-state-source <p>
+                              Host path shared with OpenClaw and the sandbox VM for first-run CA export
   --skip-install             Skip the internal Argo CD enable/install step and run only the GitOps handoff
   -h, --help                 Show this help message
 USAGE
@@ -75,6 +85,7 @@ while [[ $# -gt 0 ]]; do
     --remote-docker-key) REMOTE_DOCKER_KEY_PATH="$2"; shift 2 ;;
     --incus-vm-name) INCUS_VM_NAME="$2"; shift 2 ;;
     --incus-connection-info) INCUS_CONNECTION_INFO_PATH="$2"; shift 2 ;;
+    --shared-openclaw-state-source) SHARED_OPENCLAW_STATE_SOURCE="$2"; shift 2 ;;
     --skip-install) SKIP_INSTALL=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
@@ -138,6 +149,16 @@ fi
 step() {
   printf '==> %s\n' "$*"
 }
+
+cleanup() {
+  if [[ -n "${GITEA_PORT_FORWARD_PID:-}" ]] && kill -0 "$GITEA_PORT_FORWARD_PID" >/dev/null 2>&1; then
+    kill "$GITEA_PORT_FORWARD_PID" >/dev/null 2>&1 || true
+    wait "$GITEA_PORT_FORWARD_PID" >/dev/null 2>&1 || true
+  fi
+  rm -f "${GITEA_PORT_FORWARD_LOG:-}" "${ASKPASS_SCRIPT:-}" "${ARGOCD_REPO_SECRET_MANIFEST:-}"
+  rm -rf "${REPO_WORK_DIR:-}" "${SANDBOX_IMAGES_REPO_WORK_DIR:-}"
+}
+trap cleanup EXIT
 
 generate_password() {
   python3 - <<'PY'
@@ -210,6 +231,34 @@ wait_for_gitea() {
   }
   kubectl "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" rollout status "$workload" --timeout "$GITEA_WAIT_TIMEOUT"
   curl -fsS "${GITEA_BASE_URL}/api/v1/version" >/dev/null
+}
+
+start_gitea_port_forward() {
+  GITEA_PORT_FORWARD_LOG="$(mktemp /tmp/ai-homebase-gitea-port-forward.XXXXXX.log)"
+  kubectl "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" port-forward \
+    "service/${RELEASE_NAME}-gitea-http" \
+    "127.0.0.1:${GITEA_BOOTSTRAP_LOCAL_PORT}:3000" \
+    >"$GITEA_PORT_FORWARD_LOG" 2>&1 &
+  GITEA_PORT_FORWARD_PID=$!
+
+  GITEA_BASE_URL="http://127.0.0.1:${GITEA_BOOTSTRAP_LOCAL_PORT}"
+  GITEA_API_URL="${GITEA_BASE_URL}/api/v1"
+
+  for _ in {1..30}; do
+    if ! kill -0 "$GITEA_PORT_FORWARD_PID" >/dev/null 2>&1; then
+      echo "Gitea port-forward exited early. Log:" >&2
+      cat "$GITEA_PORT_FORWARD_LOG" >&2 || true
+      exit 1
+    fi
+    if grep -q "Forwarding from 127.0.0.1:${GITEA_BOOTSTRAP_LOCAL_PORT}" "$GITEA_PORT_FORWARD_LOG"; then
+      return 0
+    fi
+    sleep 1
+  done
+
+  echo "Gitea port-forward did not become ready. Log:" >&2
+  cat "$GITEA_PORT_FORWARD_LOG" >&2 || true
+  exit 1
 }
 
 wait_for_argocd() {
@@ -499,7 +548,8 @@ if [[ -z "${GITEA_ADMIN_USERNAME}" || -z "${GITEA_ADMIN_PASSWORD}" ]]; then
   echo "Unable to resolve Gitea admin credentials from gitea-admin-secret or bootstrap config." >&2
   exit 1
 fi
-GITEA_BASE_URL="http://${GITEA_HOST}"
+GITEA_EXTERNAL_BASE_URL="http://${GITEA_HOST}"
+GITEA_BASE_URL="${GITEA_EXTERNAL_BASE_URL}"
 GITEA_API_URL="${GITEA_BASE_URL}/api/v1"
 
 CONFIG_CODER_GITEA_PASSWORD="${CODER_GITEA_PASSWORD:-}"
@@ -566,10 +616,14 @@ if [[ "$SKIP_INSTALL" -eq 0 ]]; then
   if [[ -n "$INCUS_CONNECTION_INFO_PATH" ]]; then
     INSTALL_CMD+=(--incus-connection-info "$INCUS_CONNECTION_INFO_PATH")
   fi
+  if [[ -n "$SHARED_OPENCLAW_STATE_SOURCE" ]]; then
+    INSTALL_CMD+=(--shared-openclaw-state-source "$SHARED_OPENCLAW_STATE_SOURCE")
+  fi
   "${INSTALL_CMD[@]}"
 fi
 
 step "Waiting for Gitea and Argo CD"
+start_gitea_port_forward
 wait_for_gitea
 wait_for_argocd
 configure_argocd_admin_account "${ARGOCD_ADMIN_USER:-admin}" "${ARGOCD_ADMIN_PASSWORD:-}"
@@ -623,15 +677,16 @@ elif [[ "$SANDBOX_REPO_STATUS" != "200" ]]; then
 fi
 
 EXTERNAL_REPO_URL="${GITEA_BASE_URL}/${CODER_GITEA_USERNAME}/${GITOPS_REPO_NAME}.git"
+DISPLAY_REPO_URL="${GITEA_EXTERNAL_BASE_URL}/${CODER_GITEA_USERNAME}/${GITOPS_REPO_NAME}.git"
 INTERNAL_REPO_URL="http://${RELEASE_NAME}-gitea-http.${NAMESPACE}.svc.cluster.local:3000/${CODER_GITEA_USERNAME}/${GITOPS_REPO_NAME}.git"
 SANDBOX_IMAGES_EXTERNAL_REPO_URL="${GITEA_BASE_URL}/${CODER_GITEA_USERNAME}/${SANDBOX_IMAGES_REPO_NAME}.git"
+SANDBOX_IMAGES_DISPLAY_REPO_URL="${GITEA_EXTERNAL_BASE_URL}/${CODER_GITEA_USERNAME}/${SANDBOX_IMAGES_REPO_NAME}.git"
 
 step "Rendering and pushing the GitOps repo snapshot"
 REPO_WORK_DIR="$(mktemp -d /tmp/ai-homebase-gitops-repo.XXXXXX)"
 SANDBOX_IMAGES_REPO_WORK_DIR="$(mktemp -d /tmp/ai-homebase-sandbox-images-repo.XXXXXX)"
 ASKPASS_SCRIPT="$(mktemp /tmp/ai-homebase-gitops-askpass.XXXXXX)"
 ARGOCD_REPO_SECRET_MANIFEST="$(mktemp /tmp/ai-homebase-argocd-repo-secret.XXXXXX.yaml)"
-trap 'rm -rf "$REPO_WORK_DIR" "$SANDBOX_IMAGES_REPO_WORK_DIR" "$ASKPASS_SCRIPT" "$ARGOCD_REPO_SECRET_MANIFEST"' EXIT
 
 cat >"$ASKPASS_SCRIPT" <<'SH'
 #!/usr/bin/env bash
@@ -696,7 +751,7 @@ seed_memgraph
 
 printf 'GitOps bootstrap complete.\n'
 printf '  Argo CD URL: http://%s\n' "$ARGOCD_HOST"
-printf '  Gitea GitOps repo: %s\n' "$EXTERNAL_REPO_URL"
-printf '  Gitea sandbox images repo: %s\n' "$SANDBOX_IMAGES_EXTERNAL_REPO_URL"
+printf '  Gitea GitOps repo: %s\n' "$DISPLAY_REPO_URL"
+printf '  Gitea sandbox images repo: %s\n' "$SANDBOX_IMAGES_DISPLAY_REPO_URL"
 printf '  Argo CD repository URL: %s\n' "$INTERNAL_REPO_URL"
 printf '  Argo CD project: %s\n' "$GITOPS_PROJECT"

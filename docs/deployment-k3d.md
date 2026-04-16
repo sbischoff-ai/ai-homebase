@@ -28,6 +28,8 @@ This local bootstrap now creates a shared OpenClaw state directory on the host, 
 
 That means local OpenClaw state is host-backed rather than cluster-owned. Recreating the cluster alone does not reset it.
 
+The k3d helper also installs or upgrades `ingress-nginx` with the `nginx` ingress class. This mirrors the k3s target so local validation catches ingress assumptions before the server install.
+
 If you reuse an older k3d cluster that was created before this shared-state bind mount existed, the bootstrap now fails fast with a clear message. In that case, recreate the cluster with:
 
 ```bash
@@ -97,3 +99,4 @@ Re-run `./scripts/bootstrap-gitops.sh --profile k3d --bootstrap-config bootstrap
 - GitOps flow: [gitops.md](./gitops.md)
 - Deep troubleshooting: [k3d-troubleshooting.md](./k3d-troubleshooting.md)
 - Configuration details: [configuration.md](./configuration.md)
+- OpenClaw runtime contract: [openclaw-runtime.md](./openclaw-runtime.md)

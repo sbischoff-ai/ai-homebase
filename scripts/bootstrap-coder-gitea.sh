@@ -6,6 +6,9 @@ RELEASE_NAME="${RELEASE_NAME:-platform-stack}"
 NAMESPACE="${NAMESPACE:-ai-homebase}"
 KUBECONFIG_PATH="${KUBECONFIG_PATH:-}"
 RAW_KUBECONFIG="${KUBECONFIG:-}"
+GITEA_BOOTSTRAP_LOCAL_PORT="${GITEA_BOOTSTRAP_LOCAL_PORT:-13001}"
+GITEA_PORT_FORWARD_PID=""
+GITEA_PORT_FORWARD_LOG=""
 
 usage() {
   cat <<USAGE
@@ -56,6 +59,40 @@ if [[ -n "$KUBECONFIG_PATH" ]]; then
   KUBECTL_ARGS=(--kubeconfig "$KUBECONFIG_PATH")
 fi
 
+cleanup() {
+  if [[ -n "${GITEA_PORT_FORWARD_PID:-}" ]] && kill -0 "$GITEA_PORT_FORWARD_PID" >/dev/null 2>&1; then
+    kill "$GITEA_PORT_FORWARD_PID" >/dev/null 2>&1 || true
+    wait "$GITEA_PORT_FORWARD_PID" >/dev/null 2>&1 || true
+  fi
+  rm -f "${GITEA_PORT_FORWARD_LOG:-}" /tmp/coder-gitea-user.json
+}
+trap cleanup EXIT
+
+start_gitea_port_forward() {
+  GITEA_PORT_FORWARD_LOG="$(mktemp /tmp/ai-homebase-coder-gitea-port-forward.XXXXXX.log)"
+  kubectl "${KUBECTL_ARGS[@]}" -n "$NAMESPACE" port-forward \
+    "service/${RELEASE_NAME}-gitea-http" \
+    "127.0.0.1:${GITEA_BOOTSTRAP_LOCAL_PORT}:3000" \
+    >"$GITEA_PORT_FORWARD_LOG" 2>&1 &
+  GITEA_PORT_FORWARD_PID=$!
+
+  for _ in {1..30}; do
+    if ! kill -0 "$GITEA_PORT_FORWARD_PID" >/dev/null 2>&1; then
+      echo "Gitea port-forward exited early. Log:" >&2
+      cat "$GITEA_PORT_FORWARD_LOG" >&2 || true
+      exit 1
+    fi
+    if grep -q "Forwarding from 127.0.0.1:${GITEA_BOOTSTRAP_LOCAL_PORT}" "$GITEA_PORT_FORWARD_LOG"; then
+      return 0
+    fi
+    sleep 1
+  done
+
+  echo "Gitea port-forward did not become ready. Log:" >&2
+  cat "$GITEA_PORT_FORWARD_LOG" >&2 || true
+  exit 1
+}
+
 eval "$(python3 ./scripts/bootstrap-config.py shell-vars --config "$BOOTSTRAP_CONFIG_PATH")"
 
 if [[ -z "${GITEA_HOST:-}" || -z "${CODER_GITEA_USERNAME:-}" || -z "${CODER_GITEA_PASSWORD:-}" ]]; then
@@ -66,11 +103,15 @@ fi
 admin_user="$(kubectl "${KUBECTL_ARGS[@]}" -n "$NAMESPACE" get secret gitea-admin-secret -o jsonpath='{.data.username}' | base64 -d)"
 admin_password="$(kubectl "${KUBECTL_ARGS[@]}" -n "$NAMESPACE" get secret gitea-admin-secret -o jsonpath='{.data.password}' | base64 -d)"
 
-gitea_scheme="https"
-if [[ "$GITEA_HOST" == *.localtest.me ]]; then
-  gitea_scheme="http"
-fi
-gitea_api_url="${gitea_scheme}://${GITEA_HOST}/api/v1"
+start_gitea_port_forward
+gitea_api_url="http://127.0.0.1:${GITEA_BOOTSTRAP_LOCAL_PORT}/api/v1"
+for _ in {1..300}; do
+  if curl -fsS "${gitea_api_url}/version" >/dev/null 2>&1; then
+    break
+  fi
+  sleep 1
+done
+curl -fsS "${gitea_api_url}/version" >/dev/null
 
 user_status="$(
   curl -sS -o /tmp/coder-gitea-user.json -w '%{http_code}' \
@@ -133,5 +174,4 @@ case "$user_status" in
     ;;
 esac
 
-rm -f /tmp/coder-gitea-user.json
-echo "Coder Gitea user ${CODER_GITEA_USERNAME} is ready at ${gitea_scheme}://${GITEA_HOST}."
+echo "Coder Gitea user ${CODER_GITEA_USERNAME} is ready at http://${GITEA_HOST}."

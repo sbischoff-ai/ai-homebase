@@ -32,12 +32,15 @@ cp bootstrap.example.toml bootstrap.local.toml
 ./scripts/bootstrap-stack.sh --profile k3s --bootstrap-config bootstrap.local.toml
 ```
 
+The k3s prep path expects Docker Engine and git to already be working on the host. It installs k3s with Traefik disabled and installs `ingress-nginx` for the `nginx` ingress class used by rendered manifests.
+
 Continue with [runbook-homelab.md](./runbook-homelab.md).
 
 ## Shared Assumptions
 
 - `bootstrap.local.toml` is the operator input for both targets
 - `k3d` and `k3s` share the same `bootstrap-stack.sh` secret/bootstrap/apply path after cluster setup
+- `k3d` and `k3s` both use `ingress-nginx`; Traefik is not part of the supported target posture
 - the normal bootstrap path now includes the GitOps handoff, initial Argo sync, and application-state validation before it returns
 - the current `k3s` target is a deliberately single-node system; it is intended to use one stronger server well before any future multi-node expansion
 - detailed command catalogs and troubleshooting live outside this page

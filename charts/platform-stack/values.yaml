@@ -96,6 +96,16 @@ openclaw:
   autoscaling:
     enabled: false
   env:
+    - name: SSL_CERT_FILE
+      value: /home/node/.openclaw/certs/ai-homebase-ca-bundle.crt
+    - name: REQUESTS_CA_BUNDLE
+      value: /home/node/.openclaw/certs/ai-homebase-ca-bundle.crt
+    - name: NODE_EXTRA_CA_CERTS
+      value: /home/node/.openclaw/certs/ai-homebase-ca-bundle.crt
+    - name: GIT_SSL_CAINFO
+      value: /home/node/.openclaw/certs/ai-homebase-ca-bundle.crt
+    - name: CURL_CA_BUNDLE
+      value: /home/node/.openclaw/certs/ai-homebase-ca-bundle.crt
     - name: MEMGRAPH_HOST
       value: '{{ printf "%s-memgraph" .Release.Name | trunc 63 | trimSuffix "-" }}'
     - name: MEMGRAPH_PORT
@@ -184,6 +194,11 @@ openclaw:
               - /var/tmp
               - /run
             env:
+              SSL_CERT_FILE: /etc/ssl/certs/ai-homebase-ca-bundle.crt
+              REQUESTS_CA_BUNDLE: /etc/ssl/certs/ai-homebase-ca-bundle.crt
+              NODE_EXTRA_CA_CERTS: /etc/ssl/certs/ai-homebase-ca-bundle.crt
+              GIT_SSL_CAINFO: /etc/ssl/certs/ai-homebase-ca-bundle.crt
+              CURL_CA_BUNDLE: /etc/ssl/certs/ai-homebase-ca-bundle.crt
               MEMGRAPH_HOST: memgraph.homebase.local
               MEMGRAPH_PORT: "7687"
               MEMGRAPH_BOLT_URI: bolt://memgraph.homebase.local:7687
@@ -194,6 +209,8 @@ openclaw:
               OPENAI_API_KEY: ${OPENAI_API_KEY}
               ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
               GEMINI_API_KEY: ${GEMINI_API_KEY}
+            binds:
+              - /home/node/.openclaw/certs/ai-homebase-ca-bundle.crt:/etc/ssl/certs/ai-homebase-ca-bundle.crt:ro
             user: 1000:1000
             capDrop:
               - ALL
@@ -264,12 +281,19 @@ openclaw:
                 - /tmp
                 - /var/tmp
                 - /run
+              binds:
+                - /home/node/.openclaw/certs/ai-homebase-ca-bundle.crt:/etc/ssl/certs/ai-homebase-ca-bundle.crt:ro
               env:
                 HOME: /workspace/.home
                 CODEX_HOME: /workspace/.home/.codex
                 XDG_CONFIG_HOME: /workspace/.home/.config
                 XDG_CACHE_HOME: /workspace/.home/.cache
                 XDG_STATE_HOME: /workspace/.home/.local/state
+                SSL_CERT_FILE: /etc/ssl/certs/ai-homebase-ca-bundle.crt
+                REQUESTS_CA_BUNDLE: /etc/ssl/certs/ai-homebase-ca-bundle.crt
+                NODE_EXTRA_CA_CERTS: /etc/ssl/certs/ai-homebase-ca-bundle.crt
+                GIT_SSL_CAINFO: /etc/ssl/certs/ai-homebase-ca-bundle.crt
+                CURL_CA_BUNDLE: /etc/ssl/certs/ai-homebase-ca-bundle.crt
                 CODER_GITEA_BASE_URL: https://gitea.homebase.local
                 CODER_GITEA_HOST: gitea.homebase.local
                 CODER_GITEA_USERNAME: coder

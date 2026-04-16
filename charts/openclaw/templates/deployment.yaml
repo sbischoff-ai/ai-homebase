@@ -107,10 +107,13 @@ spec:
               set -eu
               normalize_seeded_skill() {
                 target_path="$1"
+                target_parent=""
+                tmp_path=""
                 if [ "$(basename "${target_path}")" != "SKILL.md" ]; then
                   return 0
                 fi
-                tmp_path="$(mktemp)"
+                target_parent="$(dirname "${target_path}")"
+                tmp_path="${target_parent}/.skill-normalize.$$"
                 sed '1{/^$/d;}' "${target_path}" >"${tmp_path}" || {
                   rm -f "${tmp_path}"
                   echo >&2 "Failed to normalize leading blank lines in ${target_path}."

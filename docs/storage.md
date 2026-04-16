@@ -1,37 +1,72 @@
-# Storage strategy
+# Storage And Resource Strategy
 
-This document covers storage-class selection, persistence toggles, and sizing for the supported k3d and k3s targets.
+This page summarizes storage-class selection, production sizing, and host headroom for the supported targets.
 
-## Storage resolution order
+## Storage Resolution
 
 PVC templates resolve storage class in this order:
 
-1. Service-specific class override.
-2. `global.storageClass` fallback.
-3. Cluster default StorageClass.
+1. service-specific storage class
+2. `global.storageClass`
+3. cluster default StorageClass
 
-## Core plane storage
+The `k3s` overlay sets `global.storageClass=local-path` and gives stateful services explicit `local-path` persistence.
 
-### OpenClaw
+## Rendered `k3s` Storage
 
-- The productive `k3s` overlay now reserves `100Gi` for the shared OpenClaw state tree so agent workspaces, logs, session state, and sandbox metadata have room to grow.
-- Persisted by default for `k3s`-style deployments.
+| Service | Rendered `k3s` storage |
+| --- | ---: |
+| Nextcloud | `1Ti` |
+| Qdrant | `150Gi` |
+| Memgraph | `200Gi` |
+| Gitea | `150Gi` |
+| Registry | `100Gi` |
+| Vaultwarden | `20Gi` |
+| Paperless data | `50Gi` |
+| Paperless media | `300Gi` |
+| Paperless consume | `20Gi` |
+| Paperless export | `20Gi` |
+| Shared PostgreSQL | `150Gi` |
+| Shared Redis | `30Gi` |
+| OpenClaw shared hostPath budget | `100Gi` |
 
-## Optional service storage characteristics
+The rendered PVC requests total about `2.2TiB`; including the OpenClaw hostPath state budget, the planned state footprint is about `2.3TiB`. That is appropriate for the current roughly `3TiB` Hetzner A42U-class target while leaving useful free space for filesystem overhead, snapshots, logs, temporary image layers, and future services.
 
-- **Nextcloud**: heavy long-term data growth. The productive `k3s` overlay now reserves `1Ti` because this is the primary shared user storage surface.
-- **Qdrant**: durable vector memory. The productive `k3s` overlay reserves `150Gi`.
-- **Memgraph**: durable graph memory. The productive `k3s` overlay reserves `200Gi`.
-- **Gitea**: repositories and attachments accumulate over time. The productive `k3s` overlay reserves `150Gi`.
-- **Registry**: canonical image storage for OpenClaw sandboxes and future coder-built applications. The productive `k3s` overlay reserves `100Gi`.
-- **Paperless-ngx**: size `data`, `media`, `consume`, and `export` independently. The productive `k3s` overlay reserves `50Gi` for metadata and `300Gi` for media.
-- **Shared PostgreSQL**: the productive `k3s` overlay reserves `150Gi` for the consolidated relational data tier.
-- **Shared Redis**: the productive `k3s` overlay keeps a persistent `30Gi` volume for the services in this stack that expect durable Redis state.
+## Rendered `k3s` Resource Posture
 
-## Backup and restore expectations
+The current `k3s` values request roughly `17Gi` steady Kubernetes memory before workload spikes and optional future apps. Limits remain below the `64Gi` host capacity while leaving room for:
 
-Minimum production expectations:
+- the 6 GiB Incus OpenClaw sandbox VM,
+- node and k3s system overhead,
+- image builds and registry pushes,
+- backups, compaction, and service maintenance jobs,
+- additional services deployed later through coder/GitOps.
 
-- documented snapshot/backup policy,
-- restore rehearsals,
-- retention aligned to service criticality.
+Key steady requests in `values-k3s.yaml`:
+
+| Workload | CPU request | Memory request | Memory limit |
+| --- | ---: | ---: | ---: |
+| OpenClaw gateway | `1` | `2Gi` | `6Gi` |
+| Nextcloud | `1` | `3Gi` | `8Gi` |
+| Qdrant | `750m` | `2Gi` | `6Gi` |
+| Memgraph | `750m` | `2Gi` | `6Gi` |
+| Gitea | `750m` | `1Gi` | `3Gi` |
+| Paperless-ngx | `750m` | `1536Mi` | `6Gi` |
+| Shared PostgreSQL | `1500m` | `3Gi` | `8Gi` |
+| Shared Redis | `500m` | `1Gi` | `3Gi` |
+
+This sizing is intentionally not packed to the machine's edge. The goal is a responsive single-node homelab with room for agent-driven work, not maximum theoretical utilization.
+
+## Backup Expectations
+
+Before production use, define and rehearse backups for:
+
+- Nextcloud data and app config,
+- Gitea repositories and database state,
+- PostgreSQL and Redis,
+- Qdrant and Memgraph,
+- registry storage,
+- OpenClaw shared state,
+- bootstrap config and encrypted Secrets.
+
+Snapshots are not a backup policy by themselves. Keep restore steps documented and test at least one restore path before treating the server as durable.

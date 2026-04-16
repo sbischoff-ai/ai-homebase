@@ -81,6 +81,19 @@ if rg -n "certManager[A-Z]|cert[-]manager[A-Z]" /tmp/platform-stack-with-cert-ma
   echo "Found legacy or mixed-case cert-manager naming" >&2
   exit 1
 fi
+
+# k3s ingress and gateway-image checks
+./scripts/template.sh \
+  --release-name platform-stack \
+  --namespace ai-homebase \
+  --values-file charts/platform-stack/values.yaml \
+  --values-file charts/platform-stack/values-k3s.yaml \
+  > /tmp/platform-stack-k3s.yaml
+if rg -n "ingressClassName: traefik|kubernetes.io/ingress.class: traefik" /tmp/platform-stack-k3s.yaml; then
+  echo "k3s render still depends on Traefik" >&2
+  exit 1
+fi
+rg -n 'image: "openclaw-remote-docker:trixie-slim"' /tmp/platform-stack-k3s.yaml
 ```
 
 ## CI-equivalent checks
@@ -113,10 +126,6 @@ cp bootstrap.example.toml bootstrap.local.toml
 python3 scripts/bootstrap-config.py validate --config bootstrap.local.toml
 ./scripts/k3d-local-bootstrap.sh --cluster-name ai-homebase-dev --bootstrap-config bootstrap.local.toml
 ./scripts/incus-vm-up.sh --vm-name openclaw-sandbox
-# First boot may take several minutes while cloud-init installs Docker Engine and SSH.
-# The helper seeds explicit NoCloud user-data + network-config before the VM starts,
-# including a default IPv4 route rendered as to: 0.0.0.0/0 for cloud-init/netplan compatibility.
-# Override the default 600-second readiness deadline if your host is slower:
 SSH_READY_TIMEOUT_SECONDS=1800 ./scripts/incus-vm-up.sh --vm-name openclaw-sandbox
 source ~/.local/state/ai-homebase/incus/openclaw-sandbox.env
 ./scripts/bootstrap-stack.sh \
@@ -141,7 +150,7 @@ source ~/.local/state/ai-homebase/incus/openclaw-sandbox.env
 ./scripts/build-openclaw-sandbox-images.sh
 ```
 
-`bootstrap-stack.sh` now auto-builds the repo-managed OpenClaw gateway image for local `k3d`, rebuilds the regular and coder sandbox images, remote-loads those sandbox images onto the Incus-backed Docker host, and publishes the regular/coder images to the in-cluster registry under their canonical runtime tags when the rendered OpenClaw config references them. The manual commands above remain useful for debugging or preloading images explicitly.
+`bootstrap-stack.sh` auto-builds the repo-managed OpenClaw gateway image, makes it available to the active node runtime, rebuilds the regular and coder sandbox images, remote-loads those images onto the Incus-backed Docker host, and publishes runtime images to the in-cluster registry when the rendered OpenClaw config references them. The manual commands above are mainly for debugging or preloading.
 
 ## Fresh Ubuntu 24.04 `k3s` host prep
 
@@ -149,3 +158,5 @@ source ~/.local/state/ai-homebase/incus/openclaw-sandbox.env
 sudo ./scripts/install-k3s-ubuntu-2404.sh
 ./scripts/k3s-homelab-sandbox-up.sh --bootstrap-config bootstrap.local.toml
 ```
+
+The k3s prep path expects Docker Engine and git to already exist on the host. It installs k3s with Traefik disabled and installs `ingress-nginx` for the `nginx` ingress class used by both supported target overlays.

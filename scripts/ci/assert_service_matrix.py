@@ -289,6 +289,14 @@ def find_document(rendered: str, *, kind: str, name: str) -> str | None:
     return None
 
 
+def find_document_with_label(rendered: str, *, kind: str, name: str, label_key: str, label_value: str) -> str | None:
+    for doc, labels in docs_with_labels(rendered, kind=kind):
+        _, doc_name = document_kind_name(doc)
+        if doc_name == name and labels.get(label_key) == label_value:
+            return doc
+    return None
+
+
 def ingress_hosts(doc: str) -> list[str]:
     return [host.strip('"') for host in re.findall(r"^\s*(?:-\s+)?host:\s*([^\s]+)\s*$", doc, flags=re.MULTILINE)]
 
@@ -299,12 +307,16 @@ def ingress_class_name(doc: str) -> str | None:
 
 
 def has_local_path_5gi_persistence(doc: str) -> bool:
+    return has_local_path_storage(doc, "5Gi")
+
+
+def has_local_path_storage(doc: str, size: str) -> bool:
     storage_class_patterns = (
         r"^\s*storageClassName:\s*['\"]?local-path['\"]?\s*$",
         r"^\s*storageClass:\s*['\"]?local-path['\"]?\s*$",
     )
     has_storage_class = any(re.search(pattern, doc, flags=re.MULTILINE) for pattern in storage_class_patterns)
-    has_storage_request = re.search(r"^\s*storage:\s*['\"]?5Gi['\"]?\s*$", doc, flags=re.MULTILINE) is not None
+    has_storage_request = re.search(rf"^\s*storage:\s*['\"]?{re.escape(size)}['\"]?\s*$", doc, flags=re.MULTILINE) is not None
     return has_storage_class and has_storage_request
 
 
@@ -458,6 +470,71 @@ def assert_k3d_registry_overlay_resources() -> None:
         raise SystemExit("k3d overlay rendered registry without 5Gi local-path persistence")
 
 
+def assert_k3s_runtime_and_sizing() -> None:
+    rendered = render_template(BASE_VALUES, K3S_VALUES)
+
+    if "ingressClassName: traefik" in rendered or "kubernetes.io/ingress.class: traefik" in rendered:
+        raise SystemExit("k3s overlay rendered a Traefik ingress class; expected standardized ingress-nginx")
+
+    openclaw = find_document(rendered, kind="Deployment", name="platform-stack-openclaw")
+    if openclaw is None:
+        raise SystemExit("k3s overlay did not render the OpenClaw Deployment")
+    if 'image: "openclaw-remote-docker:trixie-slim"' not in openclaw:
+        raise SystemExit("k3s overlay does not use the repo-managed OpenClaw gateway image")
+
+    expected_storage = {
+        "gitea-shared-storage": "150Gi",
+        "platform-stack-memgraph-data": "200Gi",
+        "platform-stack-paperless-ngx-data": "50Gi",
+        "platform-stack-paperless-ngx-media": "300Gi",
+        "platform-stack-paperless-ngx-consume": "20Gi",
+        "platform-stack-paperless-ngx-export": "20Gi",
+        "platform-stack-qdrant-data": "150Gi",
+        "platform-stack-registry-data": "100Gi",
+        "platform-stack-vaultwarden-data": "20Gi",
+    }
+    for pvc_name, size in expected_storage.items():
+        pvc = find_document(rendered, kind="PersistentVolumeClaim", name=pvc_name)
+        if pvc is None or not has_local_path_storage(pvc, size):
+            raise SystemExit(f"k3s overlay rendered PVC {pvc_name} without expected {size} local-path storage")
+
+    nextcloud_pvc = find_document_with_label(
+        rendered,
+        kind="PersistentVolumeClaim",
+        name="data",
+        label_key="app.kubernetes.io/name",
+        label_value="nextcloud",
+    )
+    shared_postgresql = find_document(rendered, kind="StatefulSet", name="platform-stack-shared-postgresql")
+    shared_redis = find_document(rendered, kind="StatefulSet", name="platform-stack-shared-redis")
+    if nextcloud_pvc is None or not has_local_path_storage(nextcloud_pvc, "1Ti"):
+        raise SystemExit("k3s overlay rendered Nextcloud without expected 1Ti local-path storage")
+    if shared_postgresql is None or not has_local_path_storage(shared_postgresql, "150Gi"):
+        raise SystemExit("k3s overlay rendered shared PostgreSQL without expected 150Gi local-path storage")
+    if shared_redis is None or not has_local_path_storage(shared_redis, "30Gi"):
+        raise SystemExit("k3s overlay rendered shared Redis without expected 30Gi local-path storage")
+
+    expected_request_snippets = {
+        "platform-stack-openclaw": ['cpu: "1"', "memory: 2Gi"],
+        "platform-stack-nextcloud": ['cpu: "1"', "memory: 3Gi"],
+        "platform-stack-qdrant": ["cpu: 750m", "memory: 2Gi"],
+        "platform-stack-memgraph": ["cpu: 750m", "memory: 2Gi"],
+        "platform-stack-paperless-ngx": ["cpu: 750m", "memory: 1536Mi"],
+        "platform-stack-shared-postgresql": ["cpu: 1500m", "memory: 3Gi"],
+        "platform-stack-shared-redis": ["cpu: 500m", "memory: 1Gi"],
+    }
+    for workload_name, snippets in expected_request_snippets.items():
+        workload = (
+            find_document(rendered, kind="Deployment", name=workload_name)
+            or find_document(rendered, kind="StatefulSet", name=workload_name)
+        )
+        if workload is None:
+            raise SystemExit(f"k3s overlay did not render workload {workload_name}")
+        for snippet in snippets:
+            if snippet not in workload:
+                raise SystemExit(f"k3s overlay workload {workload_name} missing resource snippet {snippet!r}")
+
+
 def assert_nextcloud_restart_safety(profile_name: str, rendered: str) -> None:
     nextcloud = find_document(rendered, kind="StatefulSet", name="platform-stack-nextcloud")
     if nextcloud is None:
@@ -503,6 +580,9 @@ def main() -> None:
 
     assert_k3d_registry_overlay_resources()
     print("k3d overlay: asserted rendered registry workload/service/ingress + persistence")
+
+    assert_k3s_runtime_and_sizing()
+    print("k3s overlay: asserted ingress-nginx posture, gateway image, and production sizing")
 
 
 if __name__ == "__main__":
