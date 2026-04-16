@@ -13,7 +13,8 @@ Use when routing real specialist work.
 2. Read the relevant shared Nextcloud `/Desk/current.md`, Nextcloud `/Desk/index.md`, and the latest shared daily note when they exist.
 3. Search Qdrant for relevant prior context.
 4. Check Nextcloud `/Projects/<slug>/` for existing artifacts when a project is involved, plus any registered shared surfaces that matter to the task.
-5. Include those findings in the handoff.
+5. If the task needs both design and implementation, choose the execution mode before sending any specialist work.
+6. Include those findings in the handoff.
 
 ## Archivist Escalation
 
@@ -33,6 +34,8 @@ Do not escalate to archivist when a focused Qdrant search already returns a clea
 **From:** main
 **Project:** <slug or none>
 **Task type:** <coordination | design | implementation | recall | monitoring | review>
+**Execution mode:** <spec-first | direct-build | post-implementation-follow-up>
+**Governing artifact:** <path | none>
 
 ### Request
 <1-3 sentences>
@@ -58,3 +61,4 @@ Do not escalate to archivist when a focused Qdrant search already returns a clea
 - Do not describe a delegation without actually sending it when routing is required.
 - Prefer durable Nextcloud artifacts over long message threads.
 - Do not assume the specialist already knows your local desk state, shared `/Desk/` state, or retrieved project artifacts unless you put them in the handoff.
+- Do not request an architect spec and coder implementation in parallel for the same change.

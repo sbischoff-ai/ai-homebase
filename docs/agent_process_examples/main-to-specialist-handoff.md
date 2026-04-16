@@ -21,20 +21,28 @@
 ```mermaid
 flowchart TD
     M0[main classifies task] --> M1[Fetch minimum needed context]
-    M1 --> M2[Write crisp handoff packet]
-    M2 --> S0[Specialist receives handoff]
-    S0 --> S1[Read own local desk and relevant shared surfaces]
-    S1 --> S2[Fetch missing task-specific context]
-    S2 --> S3[Produce deliverable]
-    S3 --> S4[Persist durable artifact if needed]
-    S4 --> S5[Return result to main]
+    M1 --> M2[Choose execution mode]
+    M2 -->|spec-first| A0[Write architect handoff packet]
+    A0 --> A1[Architect receives handoff]
+    A1 --> A2[Produce durable design artifact]
+    A2 --> M3[main hands coder the governing artifact if implementation remains]
+    M2 -->|direct-build| C0[Write coder handoff packet]
+    M3 --> C1[Coder receives handoff]
+    C0 --> C1
+    C1 --> C2[Read own local desk and relevant shared surfaces]
+    C2 --> C3[Fetch missing task-specific context]
+    C3 --> C4[Produce deliverable]
+    C4 --> C5[Persist durable artifact if needed]
+    C5 --> C6[Return result to main]
 ```
 
 ## Step Notes
 
 1. `main` should not assume the specialist already knows local desk state, `/Desk/` state, or prior project docs.
-2. The handoff packet must include the facts the specialist would otherwise have to rediscover expensively.
-3. The specialist still fetches its own supporting context after receiving the handoff.
+2. `main` chooses the execution mode before sending specialist work when the task spans design and implementation.
+3. In `spec-first`, coder receives the architect artifact as the governing artifact for implementation.
+4. The handoff packet must include the facts the specialist would otherwise have to rediscover expensively.
+5. The specialist still fetches its own supporting context after receiving the handoff.
 
 ## Escalation And Output
 

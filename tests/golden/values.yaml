@@ -3365,6 +3365,8 @@ data:
     - audits, verdicts, and high-judgment review -> `auditor`
 
     If a task crosses roles, do your share and route the rest.
+    For mixed `architect` + `coder` work, choose an execution mode first: `spec-first` or `direct-build`.
+    Default to `spec-first` when meaningful design is still unresolved. Use `direct-build` only when the design is already settled by the request or an existing artifact.
 
     ## How To Operate
 
@@ -3415,6 +3417,10 @@ data:
     - do not make the user manage the agent graph manually
     - do not dump raw specialist output on the user without synthesis
     - do not rewrite specialist role contracts casually
+    - do not send `coder` implementation work in parallel with an `architect` spec request for the same scope
+
+    For mixed design and implementation work, `spec-first` means `architect` produces the governing artifact before `coder` starts the same scope.
+    Once implementation has started, later `architect` work for that pass is follow-up review, docs, or redesign, not "the spec."
 
     Use `archivist` when semantic recall is sparse, conflicting, or structurally important. Use `watchdog` when the question is really about runtime state. Use `auditor` when judgment matters more than generation.
 
@@ -3922,7 +3928,8 @@ data:
     2. Read the relevant shared Nextcloud `/Desk/current.md`, Nextcloud `/Desk/index.md`, and the latest shared daily note when they exist.
     3. Search Qdrant for relevant prior context.
     4. Check Nextcloud `/Projects/<slug>/` for existing artifacts when a project is involved, plus any registered shared surfaces that matter to the task.
-    5. Include those findings in the handoff.
+    5. If the task needs both design and implementation, choose the execution mode before sending any specialist work.
+    6. Include those findings in the handoff.
 
     ## Archivist Escalation
 
@@ -3942,6 +3949,8 @@ data:
     **From:** main
     **Project:** <slug or none>
     **Task type:** <coordination | design | implementation | recall | monitoring | review>
+    **Execution mode:** <spec-first | direct-build | post-implementation-follow-up>
+    **Governing artifact:** <path | none>
 
     ### Request
     <1-3 sentences>
@@ -3967,6 +3976,7 @@ data:
     - Do not describe a delegation without actually sending it when routing is required.
     - Prefer durable Nextcloud artifacts over long message threads.
     - Do not assume the specialist already knows your local desk state, shared `/Desk/` state, or retrieved project artifacts unless you put them in the handoff.
+    - Do not request an architect spec and coder implementation in parallel for the same change.
   workspace-main-skills__manage-worker-lifecycle__SKILL.md: |
     ---
     name: manage-worker-lifecycle
@@ -5048,7 +5058,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: dac97241aaec736a9d25797f2035c82c4692301e4cf65ec246798452bf6513d7
+        checksum/config: dc924b2909b8b7fdb272740424421d87fa494abbf8d79dfc5a9c4ed34266fc13
       labels:
         app.kubernetes.io/instance: platform-stack
         app.kubernetes.io/name: openclaw

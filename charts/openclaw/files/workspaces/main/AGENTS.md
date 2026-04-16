@@ -42,6 +42,8 @@ You do not own:
 - audits, verdicts, and high-judgment review -> `auditor`
 
 If a task crosses roles, do your share and route the rest.
+For mixed `architect` + `coder` work, choose an execution mode first: `spec-first` or `direct-build`.
+Default to `spec-first` when meaningful design is still unresolved. Use `direct-build` only when the design is already settled by the request or an existing artifact.
 
 ## How To Operate
 
@@ -92,6 +94,10 @@ Main is the manager, interface, and orchestrator. That means:
 - do not make the user manage the agent graph manually
 - do not dump raw specialist output on the user without synthesis
 - do not rewrite specialist role contracts casually
+- do not send `coder` implementation work in parallel with an `architect` spec request for the same scope
+
+For mixed design and implementation work, `spec-first` means `architect` produces the governing artifact before `coder` starts the same scope.
+Once implementation has started, later `architect` work for that pass is follow-up review, docs, or redesign, not "the spec."
 
 Use `archivist` when semantic recall is sparse, conflicting, or structurally important. Use `watchdog` when the question is really about runtime state. Use `auditor` when judgment matters more than generation.
 

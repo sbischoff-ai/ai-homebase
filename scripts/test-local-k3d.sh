@@ -746,6 +746,7 @@ verify_openclaw_workspace_bootstrap() {
 
     test -f /home/node/.openclaw/workspace/AGENTS.md
     grep -F "systemic quality judgment -> \`auditor\`" /home/node/.openclaw/workspace/AGENTS.md >/dev/null
+    grep -F "choose an execution mode first: \`spec-first\` or \`direct-build\`" /home/node/.openclaw/workspace/AGENTS.md >/dev/null
     test ! -e /home/node/.openclaw/workspace/HEARTBEAT.md
     test -f /home/node/.openclaw/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt
 
@@ -754,6 +755,8 @@ verify_openclaw_workspace_bootstrap() {
     grep -F "/Projects/ai-homebase/codex-usage/" /home/node/.openclaw/workspace-coder/TOOLS.md >/dev/null
     test -f /home/node/.openclaw/workspace-coder/skills/run-codex-and-log-usage/SKILL.md
     grep -F "default \`gpt-5.4-mini\` for routine work" /home/node/.openclaw/workspace-coder/skills/run-codex-and-log-usage/SKILL.md >/dev/null
+    test -f /home/node/.openclaw/workspace/skills/handoff-specialist-work/SKILL.md
+    grep -F "Do not request an architect spec and coder implementation in parallel for the same change." /home/node/.openclaw/workspace/skills/handoff-specialist-work/SKILL.md >/dev/null
     test ! -e /home/node/.openclaw/workspace-coder/HEARTBEAT.md
     test -f /home/node/.openclaw/workspace-coder/.openclaw-runtime/ai-homebase-ca-bundle.crt
     test -f /home/node/.openclaw/workspace-coder/.home/.ssh/id_ed25519

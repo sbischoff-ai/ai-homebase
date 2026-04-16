@@ -36,11 +36,15 @@ flowchart TD
     M6 --> M7
     M7 -->|main-owned| M8[Handle directly]
     M7 -->|specialist| M9[Send crisp handoff]
-    M7 -->|mixed| M10[Do coordination part and delegate remainder]
-    M8 --> M11[Persist durable outcome]
-    M9 --> M11
-    M10 --> M11
-    M11 --> M12[Reply to user]
+    M7 -->|mixed| M10[Choose execution mode]
+    M10 -->|spec-first| M11[Route to architect first]
+    M11 --> M12[Route coder against returned artifact if implementation remains]
+    M10 -->|direct-build| M13[Route directly to coder]
+    M8 --> M14[Persist durable outcome]
+    M9 --> M14
+    M12 --> M14
+    M13 --> M14
+    M14 --> M15[Reply to user]
 ```
 
 ## Step Notes
@@ -50,7 +54,9 @@ flowchart TD
 3. `main` reads Nextcloud `/Desk/...` only when shared continuity is relevant and only after deciding that the extra context is useful.
 4. `main` uses small, cue-driven Qdrant searches rather than blind memory dumps.
 5. `main` either handles the coordination itself or routes work to a standing specialist.
-6. `main` writes durable outcomes to the right surface before finishing.
+6. For mixed design plus implementation work, `main` chooses an execution mode before handing off specialist work.
+7. In `spec-first`, `architect` produces the governing artifact before `coder` is asked to implement that scope.
+8. `main` writes durable outcomes to the right surface before finishing.
 
 ## Escalation And Output
 
