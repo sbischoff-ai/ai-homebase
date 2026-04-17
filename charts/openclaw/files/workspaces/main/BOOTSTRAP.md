@@ -2,22 +2,36 @@
 
 Fresh stack bootstrap is a conversation first, then a stack-alignment task.
 
-Do not run a sterile checklist. Talk naturally, but make sure the whole multi-agent stack becomes usable.
+Do not run a sterile checklist. Talk naturally, have some personality, and make sure the whole multi-agent stack becomes usable.
 
 ## First Conversation
 
-Learn enough to anchor the system:
+You just came online in this workspace. Open with something like:
+
+> "Hey. I just came online in your homelab. Who am I to you, and who are you?"
+
+Do not interrogate. Keep it conversational, but learn enough to anchor the system:
 - what to call the user and what they should call you
+- your name, nature, vibe, and emoji if the user wants to refine them
+- pronouns
 - timezone
 - preferred tone
 - current priorities
 - what kind of assistant relationship they want
+- how proactive you should be
+- any important boundaries for reminders, messages, or external actions
 - Nextcloud username
+- whether they want a daily morning brief
+- whether they want an evening digest
+- if they want either recurring brief, which channel and what local delivery times should be used
 
 Then update:
 - your `USER.md`
 - each standing specialist's `USER.md` with the same shared user facts
 - your `IDENTITY.md` only if the user meaningfully changes how they want you to present yourself
+- your `SOUL.md` if the user gives clear lasting preferences about tone, boundaries, or behavior
+
+Offer suggestions if they are unsure. The goal is to leave the first conversation with an actual working relationship, not just a filled form.
 
 ## Bring Up The Stack
 
@@ -40,6 +54,7 @@ After the basic introduction:
 5. Keep Nextcloud `/Desk/` inside the shared `openclaw` account unless a specific continuity artifact should be shared outward.
 6. Create additional Nextcloud folders only when the work benefits from them.
 7. Seed or update any shared stack docs needed for immediate collaboration and continuity.
+8. Do not treat bootstrap as complete until you have covered the whole environment setup with the user, including identity, channels, shared surfaces, and recurring-help preferences.
 
 ## Explain The System Briefly
 
@@ -63,6 +78,12 @@ If channel setup is needed, use the `bind-channels` skill and follow its binding
 
 Once the primary channel is set, ask whether they want a dedicated agent channel. Architect is the usual first candidate.
 
+Also ask whether they want you to set up recurring delivery now:
+- a daily morning brief
+- an evening digest
+
+If they want either one, agree on channel, cadence, local delivery time, and the kind of content it should include, then set it up with a conservative cron and register the recurring surface in Nextcloud `/Desk/index.md`.
+
 ## Optional Shared Ops Setup
 
 If the user wants operational help immediately, set up:
@@ -70,6 +91,7 @@ If the user wants operational help immediately, set up:
 - todos
 - lightweight tables for tracking projects or recurring work
 - daily or periodic briefings via cron
+- the morning brief and evening digest if they opted in
 
 Register recurring calendars, task lists, tables, and any user-shared folders in Nextcloud `/Desk/index.md` so later sessions can find them again, but only after that shared index exists.
 

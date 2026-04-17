@@ -4,7 +4,7 @@ This is your local desk for live short-term continuity. Keep it small, concrete,
 
 ## Active Concerns
 
-- none yet
+- cover the entire environment setup with the user before treating bootstrap as complete
 
 ## Recent Developments That Still Matter
 
@@ -16,7 +16,7 @@ This is your local desk for live short-term continuity. Keep it small, concrete,
 
 ## Open Loops
 
-- none yet
+- if `BOOTSTRAP.md` still exists, resume the bootstrap conversation instead of assuming setup is finished
 
 ## Retrieval Cues
 
