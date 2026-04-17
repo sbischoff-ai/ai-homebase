@@ -7,6 +7,8 @@ NAMESPACE="${NAMESPACE:-ai-homebase}"
 KUBECONFIG_PATH="${KUBECONFIG_PATH:-}"
 RAW_KUBECONFIG="${KUBECONFIG:-}"
 GITEA_BOOTSTRAP_LOCAL_PORT="${GITEA_BOOTSTRAP_LOCAL_PORT:-13001}"
+CODER_GITEA_TEA_TOKEN_NAME="${CODER_GITEA_TEA_TOKEN_NAME:-openclaw-coder-sandbox}"
+REVIEWER_GITEA_TEA_TOKEN_NAME="${REVIEWER_GITEA_TEA_TOKEN_NAME:-openclaw-reviewer}"
 GITEA_PORT_FORWARD_PID=""
 GITEA_PORT_FORWARD_LOG=""
 
@@ -59,6 +61,16 @@ if [[ -n "$KUBECONFIG_PATH" ]]; then
   KUBECTL_ARGS=(--kubeconfig "$KUBECONFIG_PATH")
 fi
 
+create_and_apply_secret() {
+  local secret_name="$1"
+  shift
+  local tmp_file
+  tmp_file="$(mktemp)"
+  kubectl "${KUBECTL_ARGS[@]}" -n "$NAMESPACE" create secret generic "$secret_name" "$@" --dry-run=client -o yaml >"$tmp_file"
+  kubectl "${KUBECTL_ARGS[@]}" apply -f "$tmp_file" >/dev/null
+  rm -f "$tmp_file"
+}
+
 cleanup() {
   if [[ -n "${GITEA_PORT_FORWARD_PID:-}" ]] && kill -0 "$GITEA_PORT_FORWARD_PID" >/dev/null 2>&1; then
     kill "$GITEA_PORT_FORWARD_PID" >/dev/null 2>&1 || true
@@ -101,6 +113,9 @@ if [[ -z "${CODER_GITEA_PASSWORD:-}" ]]; then
 fi
 if [[ -z "${REVIEWER_GITEA_PASSWORD:-}" ]]; then
   REVIEWER_GITEA_PASSWORD="$(kubectl "${KUBECTL_ARGS[@]}" -n "$NAMESPACE" get secret reviewer-credentials -o jsonpath='{.data.REVIEWER_GITEA_PASSWORD}' 2>/dev/null | base64 -d || true)"
+fi
+if [[ -z "${REGISTRY_PASSWORD:-}" ]]; then
+  REGISTRY_PASSWORD="$(kubectl "${KUBECTL_ARGS[@]}" -n "$NAMESPACE" get secret coder-credentials -o jsonpath='{.data.CODER_REGISTRY_PASSWORD}' 2>/dev/null | base64 -d || true)"
 fi
 
 if [[ -z "${GITEA_HOST:-}" || -z "${CODER_GITEA_USERNAME:-}" || -z "${CODER_GITEA_PASSWORD:-}" || -z "${REVIEWER_GITEA_USERNAME:-}" || -z "${REVIEWER_GITEA_PASSWORD:-}" ]]; then
@@ -191,8 +206,91 @@ PY
   esac
 }
 
+extract_gitea_token_ids() {
+  local token_name="$1"
+  python3 - "$token_name" <<'PY'
+import json
+import sys
+
+token_name = sys.argv[1]
+payload = json.load(sys.stdin)
+for item in payload:
+    if item.get("name") == token_name and item.get("id") is not None:
+        print(item["id"])
+PY
+}
+
+extract_gitea_token_sha1() {
+  python3 - <<'PY'
+import json
+import sys
+
+payload = json.load(sys.stdin)
+token = payload.get("sha1")
+if token:
+    print(token)
+PY
+}
+
+build_token_payload() {
+  local token_name="$1"
+  python3 - "$token_name" <<'PY'
+import json
+import sys
+
+print(json.dumps({"name": sys.argv[1], "scopes": ["all"]}))
+PY
+}
+
+ensure_gitea_api_token() {
+  local username="$1"
+  local password="$2"
+  local token_name="$3"
+  local tokens_url="${gitea_api_url}/users/${username}/tokens"
+  local existing_token_ids
+  local token_payload
+  local token
+
+  existing_token_ids="$(
+    curl -fsS -u "${username}:${password}" "${tokens_url}" | extract_gitea_token_ids "${token_name}" || true
+  )"
+  if [[ -n "${existing_token_ids}" ]]; then
+    while IFS= read -r token_id; do
+      [[ -n "${token_id}" ]] || continue
+      curl -fsS -X DELETE -u "${username}:${password}" "${tokens_url}/${token_id}" >/dev/null
+    done <<<"${existing_token_ids}"
+  fi
+
+  token_payload="$(build_token_payload "${token_name}")"
+  token="$(
+    curl -fsS -u "${username}:${password}" \
+      -H 'Content-Type: application/json' \
+      -d "${token_payload}" \
+      "${tokens_url}" \
+      | extract_gitea_token_sha1
+  )"
+
+  if [[ -z "${token}" ]]; then
+    echo "Failed to create Gitea API token ${token_name} for ${username}." >&2
+    exit 1
+  fi
+
+  printf '%s' "${token}"
+}
+
 ensure_gitea_user "$CODER_GITEA_USERNAME" "$CODER_GITEA_EMAIL" "$CODER_GITEA_PASSWORD" "OpenClaw Coder" /tmp/coder-gitea-user.json
 ensure_gitea_user "$REVIEWER_GITEA_USERNAME" "$REVIEWER_GITEA_EMAIL" "$REVIEWER_GITEA_PASSWORD" "OpenClaw Reviewer" /tmp/reviewer-gitea-user.json
+
+coder_gitea_token="$(ensure_gitea_api_token "$CODER_GITEA_USERNAME" "$CODER_GITEA_PASSWORD" "$CODER_GITEA_TEA_TOKEN_NAME")"
+reviewer_gitea_token="$(ensure_gitea_api_token "$REVIEWER_GITEA_USERNAME" "$REVIEWER_GITEA_PASSWORD" "$REVIEWER_GITEA_TEA_TOKEN_NAME")"
+
+create_and_apply_secret coder-credentials \
+  --from-literal=CODER_GITEA_PASSWORD="${CODER_GITEA_PASSWORD}" \
+  --from-literal=CODER_GITEA_TOKEN="${coder_gitea_token}" \
+  --from-literal=CODER_REGISTRY_PASSWORD="${REGISTRY_PASSWORD:-}"
+create_and_apply_secret reviewer-credentials \
+  --from-literal=REVIEWER_GITEA_PASSWORD="${REVIEWER_GITEA_PASSWORD}" \
+  --from-literal=REVIEWER_GITEA_TOKEN="${reviewer_gitea_token}"
 
 echo "Coder Gitea user ${CODER_GITEA_USERNAME} is ready at http://${GITEA_HOST}."
 echo "Reviewer Gitea user ${REVIEWER_GITEA_USERNAME} is ready at http://${GITEA_HOST}."

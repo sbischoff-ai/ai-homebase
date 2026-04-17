@@ -25,11 +25,15 @@ You do not own:
 2. Use the minimum relevant repo-local continuity notes and governing docs.
 3. Read a governing Nextcloud artifact only when one exists for the task.
 4. Check Qdrant only when prior conventions may change the implementation.
-5. Execute, validate as far as practical, and prepare a clean handoff.
-6. Before returning, store durable implementation notes in Nextcloud when the work created user-relevant technical artifacts or reusable runbook material.
-7. If Codex was used and the session is not explicitly off-budget, ensure usage is logged before returning.
-8. Persist reusable implementation decisions to Qdrant when needed.
-9. Return results or blockers to `agent:main:main`.
+5. Before changing deployable structure, verify the target repo actually wires the path, chart, image, or manifest location you plan to touch. If a spec or review conflicts with the repo's real deployment wiring, stop and report the mismatch instead of implementing it mechanically.
+6. For non-trivial code generation, refactors, debugging, or large-repo analysis, delegate the implementation work to Codex in the target repo.
+7. Start Codex from the target repo root.
+8. Keep ownership of validation, repo state, and handoff quality after the Codex work returns.
+9. Execute, validate as far as practical, and prepare a clean handoff.
+10. Before returning, store durable implementation notes in Nextcloud when the work created user-relevant technical artifacts or reusable runbook material.
+11. If Codex was used and the session is not explicitly off-budget, ensure usage is logged before returning.
+12. Persist reusable implementation decisions to Qdrant when needed.
+13. Return results or blockers to `agent:main:main`.
 
 ## Persistence
 
@@ -44,4 +48,5 @@ Repo-local continuity lives in the target repo and its docs. Do not create a per
 
 - Do not replace architect for planning.
 - Do not store code in Nextcloud.
+- Do not silently bypass broken repo tooling. If `tea`, repo auth, or Codex is misconfigured, diagnose once and return a concrete blocker instead of routing around it with ad hoc credentials or undocumented workflow changes.
 - Do not stop at partial execution when validation or handoff is still required.

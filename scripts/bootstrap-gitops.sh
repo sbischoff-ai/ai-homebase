@@ -23,6 +23,8 @@ ARGOCD_APP_SYNC_TIMEOUT="${ARGOCD_APP_SYNC_TIMEOUT:-300}"
 ARGOCD_APP_WAIT_TIMEOUT="${ARGOCD_APP_WAIT_TIMEOUT:-300}"
 ARGOCD_SERVER_DEPLOYMENT="${ARGOCD_SERVER_DEPLOYMENT:-${RELEASE_NAME}-argocd-server}"
 GITEA_BOOTSTRAP_LOCAL_PORT="${GITEA_BOOTSTRAP_LOCAL_PORT:-13000}"
+CODER_GITEA_TEA_TOKEN_NAME="${CODER_GITEA_TEA_TOKEN_NAME:-openclaw-coder-sandbox}"
+REVIEWER_GITEA_TEA_TOKEN_NAME="${REVIEWER_GITEA_TEA_TOKEN_NAME:-openclaw-reviewer}"
 SKIP_INSTALL=0
 GITEA_PORT_FORWARD_PID=""
 GITEA_PORT_FORWARD_LOG=""
@@ -581,6 +583,78 @@ ensure_gitea_user() {
   esac
 }
 
+extract_gitea_token_ids() {
+  local token_name="$1"
+  python3 - "$token_name" <<'PY'
+import json
+import sys
+
+token_name = sys.argv[1]
+payload = json.load(sys.stdin)
+for item in payload:
+    if item.get("name") == token_name and item.get("id") is not None:
+        print(item["id"])
+PY
+}
+
+extract_gitea_token_sha1() {
+  python3 - <<'PY'
+import json
+import sys
+
+payload = json.load(sys.stdin)
+token = payload.get("sha1")
+if token:
+    print(token)
+PY
+}
+
+build_token_payload() {
+  local token_name="$1"
+  python3 - "$token_name" <<'PY'
+import json
+import sys
+
+print(json.dumps({"name": sys.argv[1], "scopes": ["all"]}))
+PY
+}
+
+ensure_gitea_api_token() {
+  local username="$1"
+  local password="$2"
+  local token_name="$3"
+  local tokens_url="${GITEA_API_URL}/users/${username}/tokens"
+  local existing_token_ids
+  local token_payload
+  local token
+
+  existing_token_ids="$(
+    curl -fsS -u "${username}:${password}" "${tokens_url}" | extract_gitea_token_ids "${token_name}" || true
+  )"
+  if [[ -n "${existing_token_ids}" ]]; then
+    while IFS= read -r token_id; do
+      [[ -n "${token_id}" ]] || continue
+      curl -fsS -X DELETE -u "${username}:${password}" "${tokens_url}/${token_id}" >/dev/null
+    done <<<"${existing_token_ids}"
+  fi
+
+  token_payload="$(build_token_payload "${token_name}")"
+  token="$(
+    curl -fsS -u "${username}:${password}" \
+      -H 'Content-Type: application/json' \
+      -d "${token_payload}" \
+      "${tokens_url}" \
+      | extract_gitea_token_sha1
+  )"
+
+  if [[ -z "${token}" ]]; then
+    echo "Failed to create Gitea API token ${token_name} for ${username}." >&2
+    exit 1
+  fi
+
+  printf '%s' "${token}"
+}
+
 ensure_repo_collaborator() {
   local repo_owner="$1"
   local repo_name="$2"
@@ -731,6 +805,14 @@ elif [[ -n "${CONFIG_REVIEWER_GITEA_PASSWORD}" ]]; then
 else
   REVIEWER_GITEA_PASSWORD="$(generate_password)"
 fi
+CONFIG_REGISTRY_PASSWORD="${REGISTRY_PASSWORD:-}"
+if REGISTRY_PASSWORD="$(read_secret_value "coder-credentials" '{.data.CODER_REGISTRY_PASSWORD}')"; then
+  :
+elif [[ -n "${CONFIG_REGISTRY_PASSWORD}" ]]; then
+  REGISTRY_PASSWORD="${CONFIG_REGISTRY_PASSWORD}"
+else
+  REGISTRY_PASSWORD="$(generate_password)"
+fi
 
 step "Applying bootstrap secrets before the GitOps handoff"
 BOOTSTRAP_SECRETS_CMD=(
@@ -798,6 +880,10 @@ configure_argocd_admin_account "${ARGOCD_ADMIN_USER:-admin}" "${ARGOCD_ADMIN_PAS
 step "Creating or updating the coder and reviewer Gitea users"
 ensure_gitea_user "$CODER_GITEA_USERNAME" "$CODER_GITEA_EMAIL" "$CODER_GITEA_PASSWORD" "OpenClaw Coder"
 ensure_gitea_user "$REVIEWER_GITEA_USERNAME" "$REVIEWER_GITEA_EMAIL" "$REVIEWER_GITEA_PASSWORD" "OpenClaw Reviewer"
+
+step "Minting bootstrap-managed Gitea API tokens for coder and reviewer"
+CODER_GITEA_TOKEN="$(ensure_gitea_api_token "$CODER_GITEA_USERNAME" "$CODER_GITEA_PASSWORD" "$CODER_GITEA_TEA_TOKEN_NAME")"
+REVIEWER_GITEA_TOKEN="$(ensure_gitea_api_token "$REVIEWER_GITEA_USERNAME" "$REVIEWER_GITEA_PASSWORD" "$REVIEWER_GITEA_TEA_TOKEN_NAME")"
  
 step "Creating or updating the GitOps repo in Gitea"
 REPO_STATUS="$(
@@ -890,13 +976,24 @@ create_and_apply_secret "$GITOPS_SECRET_NAME" \
   --from-literal=CODER_GITEA_USERNAME="$CODER_GITEA_USERNAME" \
   --from-literal=CODER_GITEA_EMAIL="$CODER_GITEA_EMAIL" \
   --from-literal=CODER_GITEA_PASSWORD="$CODER_GITEA_PASSWORD" \
+  --from-literal=CODER_GITEA_TOKEN="$CODER_GITEA_TOKEN" \
   --from-literal=REVIEWER_GITEA_USERNAME="$REVIEWER_GITEA_USERNAME" \
   --from-literal=REVIEWER_GITEA_EMAIL="$REVIEWER_GITEA_EMAIL" \
   --from-literal=REVIEWER_GITEA_PASSWORD="$REVIEWER_GITEA_PASSWORD" \
+  --from-literal=REVIEWER_GITEA_TOKEN="$REVIEWER_GITEA_TOKEN" \
   --from-literal=GITOPS_REPO_NAME="$GITOPS_REPO_NAME" \
   --from-literal=SANDBOX_IMAGES_REPO_NAME="$SANDBOX_IMAGES_REPO_NAME" \
   --from-literal=GITOPS_REPO_BRANCH="$GITOPS_REPO_BRANCH" \
   --from-literal=GITOPS_PROJECT="$GITOPS_PROJECT"
+
+step "Refreshing runtime coder and reviewer credential Secrets with tea tokens"
+create_and_apply_secret coder-credentials \
+  --from-literal=CODER_GITEA_PASSWORD="$CODER_GITEA_PASSWORD" \
+  --from-literal=CODER_GITEA_TOKEN="$CODER_GITEA_TOKEN" \
+  --from-literal=CODER_REGISTRY_PASSWORD="$REGISTRY_PASSWORD"
+create_and_apply_secret reviewer-credentials \
+  --from-literal=REVIEWER_GITEA_PASSWORD="$REVIEWER_GITEA_PASSWORD" \
+  --from-literal=REVIEWER_GITEA_TOKEN="$REVIEWER_GITEA_TOKEN"
 
 step "Registering the GitOps repo in Argo CD"
 build_repo_secret_manifest "$NAMESPACE" "$ARGOCD_REPO_SECRET_NAME" "$INTERNAL_REPO_URL" "$CODER_GITEA_USERNAME" "$CODER_GITEA_PASSWORD" \

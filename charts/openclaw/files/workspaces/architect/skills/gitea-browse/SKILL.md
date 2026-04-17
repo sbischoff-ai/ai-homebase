@@ -25,11 +25,11 @@ tea pr list --repo <owner>/<repo> --state open
 tea pr view <number> --repo <owner>/<repo>
 ```
 
-Clone only for inspection, then discard the clone.
+Clone only for inspection, keep the clone under `/workspace`, then discard it.
 
 ```bash
-git clone <gitea-url>/<owner>/<repo> /tmp/<repo>
-cd /tmp/<repo>
+git clone <gitea-url>/<owner>/<repo> /workspace/<repo>
+cd /workspace/<repo>
 git ls-tree -r HEAD --name-only
 git show HEAD:path/to/file.yaml
 git show <sha>:path/to/file.yaml
@@ -45,4 +45,5 @@ git show <sha> --stat
 - The Gitea admin account `__GITEA_ADMIN_USERNAME__` remains the final authority for approvals and merges on protected `main`.
 - Cite concrete repo paths, commits, issues, or PRs when they shape a design.
 - Tell main when a design depends on absent, ambiguous, or inconsistent Gitea state.
+- If plain `tea` fails, one retry with `--login "$REVIEWER_GITEA_TEA_LOGIN_NAME"` is acceptable to confirm a login-selection problem before you report the blocker.
 - If `tea` auth fails or a critical repo is missing, stop and tell main exactly what failed.

@@ -60,6 +60,32 @@ Canonical image names:
 """
 
 
+def render_agents_md(registry_host: str, repo_owner: str, gitops_repo_name: str) -> str:
+    return f"""# AGENTS.md
+
+This repository is the source of truth for OpenClaw runtime image source.
+
+## First Steps
+
+- Read this file first.
+- Keep work inside this repo and follow the committed Dockerfiles, helper scripts, and README.
+- Keep the normal shared-repo posture: branch first, then open a pull request against protected `main`.
+
+## Validation And Build
+
+- Use `scripts/build-openclaw-sandbox-images.sh` for standard validation and build work in this repo.
+- Treat changes to Dockerfiles and init scripts as image-affecting.
+- Build the affected images before changing image references elsewhere.
+- Keep canonical image naming aligned with the README and the expected registry namespace `{registry_host}/{repo_owner}`.
+
+## Publish And Coordination
+
+- Publish canonical tags only when the task explicitly includes release or coordinated rollout work.
+- When publish work is required, follow the repo scripts and README, including `scripts/openclaw-remote-docker-publish-images.sh` for the remote Docker publish path.
+- Do not mutate `{gitops_repo_name}` from inside this repo. Cross-repo coordination happens through coder, with GitOps reference updates handled in the separate repo.
+"""
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Render a slim sandbox-images repo snapshot")
     parser.add_argument("--output-dir", type=Path, required=True)
@@ -74,6 +100,10 @@ def main() -> int:
     for path in INCLUDED_PATHS:
         copy_path(path, args.output_dir)
 
+    write_text(
+        args.output_dir / "AGENTS.md",
+        render_agents_md(args.registry_host, args.repo_owner, args.gitops_repo_name),
+    )
     write_text(
         args.output_dir / "README.md",
         render_readme(args.registry_host, args.repo_owner, args.gitops_repo_name),

@@ -4,11 +4,14 @@ This file records how this OpenClaw setup expects you to use your available tool
 
 ## Runtime
 
-- `/workspace` is the repo working tree.
+- `/workspace` is the writable repo root for implementation work.
+- Clone repos, create worktrees, and run Codex only under `/workspace`.
+- Use `/tmp` only for disposable artifacts such as rendered manifests, logs, or one-shot scratch output that does not need workspace file tools.
 - Persistent tool state lives under `/workspace/.home`.
 - `HOME`, `CODEX_HOME`, and XDG directories are already pointed into `/workspace/.home`.
 - Remote Docker access is prewired through `DOCKER_HOST`; the SSH key material lives under `/workspace/.home/.ssh`.
 - Use `CODER_GITEA_BASE_URL` / `CODER_GITEA_HOST` for the in-cluster Gitea service.
+- `CODER_GITEA_TOKEN` and `CODER_GITEA_TEA_LOGIN_NAME` are the preferred tea login inputs. `CODER_GITEA_PASSWORD` remains available for git/basic-auth and bootstrap fallback only.
 - Use `CODER_REGISTRY_BASE_URL` / `CODER_REGISTRY_HOST` for the in-cluster registry.
 - Canonical repo names in this stack:
   - GitOps: `cluster-gitops`
@@ -35,7 +38,9 @@ This file records how this OpenClaw setup expects you to use your available tool
 
 ## Notes
 
-- Keep Codex runs inside the target repo.
+- Keep Codex runs inside the target repo under `/workspace`.
+- Start Codex from the target repo root.
+- If `tea` fails, diagnose the configured login before falling back to any lower-level API access. A temporary `tea --login "$CODER_GITEA_TEA_LOGIN_NAME" ...` check is acceptable for diagnosis.
 - Use repo-local worktrees when you need parallel isolation.
 - Do not create a persistent local OpenClaw `CURRENT.md` or `SURFACES.md` in this sandbox. Keep short-term continuity repo-local and mirror outward only when another agent or the user needs it.
 - Keep this file current when sandbox paths, runtime env vars, or canonical repo names change.

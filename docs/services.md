@@ -37,6 +37,7 @@ The first bootstrap apply installs the controller stack with custom resources di
 
 OpenClaw is the multi-agent gateway and runtime coordinator. The supported posture uses the repo-managed gateway image, remote Docker sandboxing through an Incus VM, shared host-backed OpenClaw state, seeded agents/workspaces, Qdrant MCP for semantic memory, Memgraph for structured graph memory, and Nextcloud MCP for shared project files. See [openclaw-runtime.md](./openclaw-runtime.md).
 Heartbeat is intentionally explicit: `main` has `heartbeat.every=0m` plus `heartbeat.includeSystemPromptSection=false` so the default user-facing agent does not inherit OpenClaw's built-in heartbeat posture or `HEARTBEAT.md` injection, and `watchdog` is the only standing agent with a scheduled heartbeat by default.
+`coder-credentials` and `reviewer-credentials` now carry both the long-lived Gitea password and a bootstrap-managed tea API token for their agent identity. The password remains available for git/basic-auth and first-session fallback, while tea should authenticate from the seeded token by default.
 
 ### Argo CD
 

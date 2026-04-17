@@ -365,10 +365,12 @@ create_and_apply_secret registry-auth-secret \
 
 create_and_apply_secret coder-credentials \
   --from-literal=CODER_GITEA_PASSWORD="${CODER_GITEA_PASSWORD}" \
+  --from-literal=CODER_GITEA_TOKEN="" \
   --from-literal=CODER_REGISTRY_PASSWORD="${REGISTRY_PASSWORD}"
 
 create_and_apply_secret reviewer-credentials \
-  --from-literal=REVIEWER_GITEA_PASSWORD="${REVIEWER_GITEA_PASSWORD}"
+  --from-literal=REVIEWER_GITEA_PASSWORD="${REVIEWER_GITEA_PASSWORD}" \
+  --from-literal=REVIEWER_GITEA_TOKEN=""
 
 OPENCLAW_SECRET_ARGS=(
   --from-literal=OPENCLAW_GATEWAY_TOKEN="$OPENCLAW_GATEWAY_TOKEN"

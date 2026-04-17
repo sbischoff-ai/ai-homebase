@@ -87,8 +87,17 @@ openclaw:
       key: CODER_GITEA_PASSWORD
       envVar: CODER_GITEA_PASSWORD
     - name: coder-credentials
+      key: CODER_GITEA_TOKEN
+      envVar: CODER_GITEA_TOKEN
+    - name: coder-credentials
       key: CODER_REGISTRY_PASSWORD
       envVar: CODER_REGISTRY_PASSWORD
+    - name: reviewer-credentials
+      key: REVIEWER_GITEA_PASSWORD
+      envVar: REVIEWER_GITEA_PASSWORD
+    - name: reviewer-credentials
+      key: REVIEWER_GITEA_TOKEN
+      envVar: REVIEWER_GITEA_TOKEN
   openclaw:
     gateway:
       controlUi:

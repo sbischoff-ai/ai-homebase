@@ -697,6 +697,16 @@ verify_openclaw_mcp_bootstrap_config() {
     exit 1
   fi
 
+  if [[ "$openclaw_json" != *'"CODER_GITEA_TOKEN":"${CODER_GITEA_TOKEN}"'* ]]; then
+    fail "OpenClaw bootstrap config in ConfigMap/${configmap_name} is not wiring coder tea token interpolation from gateway env"
+    exit 1
+  fi
+
+  if [[ "$openclaw_json" != *'"REVIEWER_GITEA_TOKEN":"${REVIEWER_GITEA_TOKEN}"'* ]]; then
+    fail "OpenClaw bootstrap config in ConfigMap/${configmap_name} is not wiring reviewer tea token interpolation from gateway env"
+    exit 1
+  fi
+
   if [[ "$openclaw_json" != *'"id":"architect"'*'"mode":"non-main"'* ]]; then
     fail "OpenClaw bootstrap config in ConfigMap/${configmap_name} is not keeping architect main sessions on the gateway"
     exit 1
@@ -784,6 +794,9 @@ verify_openclaw_workspace_bootstrap() {
     test -f /home/node/.openclaw/workspace-coder/TOOLS.md
     grep -F "CODER_GITEA_BASE_URL" /home/node/.openclaw/workspace-coder/TOOLS.md >/dev/null
     grep -F "/Projects/ai-homebase/codex-usage/" /home/node/.openclaw/workspace-coder/TOOLS.md >/dev/null
+    grep -F "start Codex from the target repo root under \`/workspace\`" /home/node/.openclaw/workspace-coder/skills/manage-gitea-gitops-and-registry/SKILL.md >/dev/null
+    ! grep -F "AGENTS.md" /home/node/.openclaw/workspace-coder/skills/manage-gitea-gitops-and-registry/SKILL.md >/dev/null
+    ! grep -F "./scripts/lint.sh" /home/node/.openclaw/workspace-coder/skills/manage-gitea-gitops-and-registry/SKILL.md >/dev/null
     test -f /home/node/.openclaw/workspace-coder/skills/run-codex-and-log-usage/SKILL.md
     grep -F "default \`gpt-5.4-mini\` for routine work" /home/node/.openclaw/workspace-coder/skills/run-codex-and-log-usage/SKILL.md >/dev/null
     test -f /home/node/.openclaw/workspace/skills/handoff-specialist-work/SKILL.md
@@ -927,6 +940,8 @@ verify_coder_sandbox_runtime() {
       -e XDG_CONFIG_HOME=/workspace/.home/.config \
       -e XDG_CACHE_HOME=/workspace/.home/.cache \
       -e XDG_STATE_HOME=/workspace/.home/.local/state \
+      -e CODER_GITEA_BASE_URL=https://gitea.example.invalid \
+      -e CODER_GITEA_TOKEN=test-coder-token \
       -e CODEX_DEFAULT_MODEL=gpt-5.4-mini \
       -e OPENAI_API_KEY=test-openai-key \
       openclaw-sandbox-coder:trixie-slim -ceu '
@@ -935,6 +950,7 @@ verify_coder_sandbox_runtime() {
         command -v codex >/dev/null
         codex --version | grep -F codex-cli >/dev/null
         command -v tea >/dev/null
+        ! tea --version | grep -F -- -dev >/dev/null
         command -v tokscale >/dev/null
         /usr/local/bin/coder-init.sh >/tmp/coder-init.log
         test -f /workspace/.home/.codex/config.toml
@@ -961,12 +977,15 @@ verify_reviewer_sandbox_runtime() {
       -e XDG_CONFIG_HOME=/workspace/.home/.config \
       -e XDG_CACHE_HOME=/workspace/.home/.cache \
       -e XDG_STATE_HOME=/workspace/.home/.local/state \
+      -e REVIEWER_GITEA_BASE_URL=https://gitea.example.invalid \
+      -e REVIEWER_GITEA_TOKEN=test-reviewer-token \
       -e REVIEWER_GITEA_USERNAME=reviewer \
       -e REVIEWER_GITEA_EMAIL=reviewer@example.invalid \
       openclaw-sandbox:trixie-slim -ceu '
         getent passwd sandbox | cut -d: -f6 | grep -Fx /workspace/.home >/dev/null
         test -w /workspace/.home
         command -v tea >/dev/null
+        ! tea --version | grep -F -- -dev >/dev/null
         /usr/local/bin/reviewer-gitea-init.sh >/tmp/reviewer-gitea-init.log
         test -d /workspace/.home/.tea
         test -d /workspace/.home/.config/tea

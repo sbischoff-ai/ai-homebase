@@ -8,7 +8,7 @@ Canonical mutation chain:
 3. `architect` defines the plan, design direction, and task decomposition when the work is non-trivial;
 4. `coder` applies cluster and application changes in the relevant repository after any needed planning or review gates are satisfied;
 5. `coder` maintains the OpenClaw sandbox image source repo and publishes resulting images to the in-cluster registry;
-6. `coder` validates changes with the documented lint and render commands;
+6. `coder` validates changes with the target repo's local `AGENTS.md` guidance and repo-native commands;
 7. cluster-definition changes are pushed to the GitOps repo;
 8. sandbox runtime changes are pushed to the sandbox-images repo and published to the registry before those tags are referenced from cluster config;
 9. the user reviews the diff and syncs Argo CD manually;

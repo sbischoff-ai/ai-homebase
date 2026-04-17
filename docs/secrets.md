@@ -28,6 +28,7 @@ The repo now ships plaintext templates for the currently migrated Secrets:
 
 - `secrets/openclaw-secrets.yaml`
 - `secrets/coder-credentials.yaml`
+- `secrets/reviewer-credentials.yaml`
 - `secrets/nextcloud-config-secrets.yaml`
 
 Recommended workflow:
@@ -35,6 +36,7 @@ Recommended workflow:
 ```bash
 cp secrets/openclaw-secrets.yaml secrets/openclaw-secrets.enc.yaml
 cp secrets/coder-credentials.yaml secrets/coder-credentials.enc.yaml
+cp secrets/reviewer-credentials.yaml secrets/reviewer-credentials.enc.yaml
 cp secrets/nextcloud-config-secrets.yaml secrets/nextcloud-config-secrets.enc.yaml
 ```
 
@@ -46,6 +48,7 @@ Then encrypt them in place:
 export SOPS_AGE_KEY_FILE=~/.config/sops/age/keys.txt
 sops --encrypt --in-place secrets/openclaw-secrets.enc.yaml
 sops --encrypt --in-place secrets/coder-credentials.enc.yaml
+sops --encrypt --in-place secrets/reviewer-credentials.enc.yaml
 sops --encrypt --in-place secrets/nextcloud-config-secrets.enc.yaml
 ```
 
@@ -89,6 +92,7 @@ The repo currently ships plaintext templates for:
 
 - `openclaw-secrets`
 - `coder-credentials`
+- `reviewer-credentials`
 - `nextcloud-config-secrets`
 
 Use `scripts/bootstrap-secrets.sh` for the first install, and use encrypted manifests from `secrets/` when you want those long-lived secrets committed and synced through GitOps afterward.

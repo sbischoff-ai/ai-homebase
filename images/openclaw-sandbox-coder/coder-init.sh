@@ -13,6 +13,7 @@ CODER_GITEA_EMAIL="${CODER_GITEA_EMAIL:-coder@example.invalid}"
 CODER_GITEA_HOST="${CODER_GITEA_HOST:-}"
 CODER_GITEA_BASE_URL="${CODER_GITEA_BASE_URL:-}"
 CODER_GITEA_PASSWORD="${CODER_GITEA_PASSWORD:-}"
+CODER_GITEA_TOKEN="${CODER_GITEA_TOKEN:-}"
 CODER_GITEA_TEA_LOGIN_NAME="${CODER_GITEA_TEA_LOGIN_NAME:-coder}"
 CODER_GITEA_TEA_TOKEN_NAME="${CODER_GITEA_TEA_TOKEN_NAME:-openclaw-coder-sandbox}"
 
@@ -76,7 +77,7 @@ if [ -z "${CODER_GITEA_BASE_URL}" ] && [ -n "${CODER_GITEA_HOST}" ]; then
   esac
 fi
 
-if [ -n "${CODER_GITEA_BASE_URL}" ] && [ -n "${CODER_GITEA_USERNAME}" ] && [ -n "${CODER_GITEA_PASSWORD}" ]; then
+if [ -z "${CODER_GITEA_TOKEN}" ] && [ -n "${CODER_GITEA_BASE_URL}" ] && [ -n "${CODER_GITEA_USERNAME}" ] && [ -n "${CODER_GITEA_PASSWORD}" ]; then
   tokens_url="${CODER_GITEA_BASE_URL}/api/v1/users/${CODER_GITEA_USERNAME}/tokens"
   auth="${CODER_GITEA_USERNAME}:${CODER_GITEA_PASSWORD}"
 
@@ -91,7 +92,7 @@ if [ -n "${CODER_GITEA_BASE_URL}" ] && [ -n "${CODER_GITEA_USERNAME}" ] && [ -n 
     done
   fi
 
-  token="$(
+  CODER_GITEA_TOKEN="$(
     curl -fsS -u "${auth}" \
       -H 'Content-Type: application/json' \
       -d "{\"name\":\"${CODER_GITEA_TEA_TOKEN_NAME}\",\"scopes\":[\"all\"]}" \
@@ -99,9 +100,10 @@ if [ -n "${CODER_GITEA_BASE_URL}" ] && [ -n "${CODER_GITEA_USERNAME}" ] && [ -n 
       | jq -r '.sha1 // empty' \
       || true
   )"
-  if [ -n "${token}" ]; then
-    tea login add --name "${CODER_GITEA_TEA_LOGIN_NAME}" --url "${CODER_GITEA_BASE_URL}" --token "${token}" >/dev/null 2>&1 || true
-  fi
+fi
+
+if [ -n "${CODER_GITEA_BASE_URL}" ] && [ -n "${CODER_GITEA_TOKEN}" ]; then
+  tea login add --name "${CODER_GITEA_TEA_LOGIN_NAME}" --url "${CODER_GITEA_BASE_URL}" --token "${CODER_GITEA_TOKEN}" >/dev/null 2>&1 || true
 fi
 
 if [ -n "${CODER_REGISTRY_HOST}" ] && [ -n "${CODER_REGISTRY_USERNAME}" ] && [ -n "${CODER_REGISTRY_PASSWORD}" ]; then

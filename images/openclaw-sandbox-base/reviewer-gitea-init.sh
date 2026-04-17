@@ -11,6 +11,7 @@ REVIEWER_GITEA_EMAIL="${REVIEWER_GITEA_EMAIL:-reviewer@example.invalid}"
 REVIEWER_GITEA_HOST="${REVIEWER_GITEA_HOST:-}"
 REVIEWER_GITEA_BASE_URL="${REVIEWER_GITEA_BASE_URL:-}"
 REVIEWER_GITEA_PASSWORD="${REVIEWER_GITEA_PASSWORD:-}"
+REVIEWER_GITEA_TOKEN="${REVIEWER_GITEA_TOKEN:-}"
 REVIEWER_GITEA_TEA_LOGIN_NAME="${REVIEWER_GITEA_TEA_LOGIN_NAME:-reviewer}"
 REVIEWER_GITEA_TEA_TOKEN_NAME="${REVIEWER_GITEA_TEA_TOKEN_NAME:-openclaw-reviewer}"
 
@@ -44,16 +45,16 @@ if [ -z "${REVIEWER_GITEA_BASE_URL}" ] && [ -n "${REVIEWER_GITEA_HOST}" ]; then
   esac
 fi
 
-if [ -n "${REVIEWER_GITEA_BASE_URL}" ] && [ -n "${REVIEWER_GITEA_USERNAME}" ] && [ -n "${REVIEWER_GITEA_PASSWORD}" ]; then
+if [ -z "${REVIEWER_GITEA_TOKEN}" ] && [ -n "${REVIEWER_GITEA_BASE_URL}" ] && [ -n "${REVIEWER_GITEA_USERNAME}" ] && [ -n "${REVIEWER_GITEA_PASSWORD}" ]; then
   tokens_url="${REVIEWER_GITEA_BASE_URL}/api/v1/users/${REVIEWER_GITEA_USERNAME}/tokens"
   auth="${REVIEWER_GITEA_USERNAME}:${REVIEWER_GITEA_PASSWORD}"
-  token="$(
+  REVIEWER_GITEA_TOKEN="$(
     curl -fsS -u "${auth}" "${tokens_url}" 2>/dev/null \
       | jq -r --arg name "${REVIEWER_GITEA_TEA_TOKEN_NAME}" '.[] | select(.name == $name) | .sha1' \
       | head -n1
   )"
-  if [ -z "${token}" ] || [ "${token}" = "null" ]; then
-    token="$(
+  if [ -z "${REVIEWER_GITEA_TOKEN}" ] || [ "${REVIEWER_GITEA_TOKEN}" = "null" ]; then
+    REVIEWER_GITEA_TOKEN="$(
       curl -fsS -u "${auth}" \
         -H 'Content-Type: application/json' \
         -d "{\"name\":\"${REVIEWER_GITEA_TEA_TOKEN_NAME}\",\"scopes\":[\"all\"]}" \
@@ -61,7 +62,8 @@ if [ -n "${REVIEWER_GITEA_BASE_URL}" ] && [ -n "${REVIEWER_GITEA_USERNAME}" ] &&
         | jq -r '.sha1'
     )"
   fi
-  if [ -n "${token}" ] && [ "${token}" != "null" ]; then
-    tea login add --name "${REVIEWER_GITEA_TEA_LOGIN_NAME}" --url "${REVIEWER_GITEA_BASE_URL}" --token "${token}" >/dev/null 2>&1 || true
-  fi
+fi
+
+if [ -n "${REVIEWER_GITEA_BASE_URL}" ] && [ -n "${REVIEWER_GITEA_TOKEN}" ] && [ "${REVIEWER_GITEA_TOKEN}" != "null" ]; then
+  tea login add --name "${REVIEWER_GITEA_TEA_LOGIN_NAME}" --url "${REVIEWER_GITEA_BASE_URL}" --token "${REVIEWER_GITEA_TOKEN}" >/dev/null 2>&1 || true
 fi

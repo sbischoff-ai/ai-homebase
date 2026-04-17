@@ -25,6 +25,7 @@ Do not make `/workspace` a tmpfs in sandbox images. That masks the writable bind
 Both `k3d` and `k3s` use the repo-managed gateway image `openclaw-remote-docker:trixie-slim`. Bootstrap builds it locally and makes it available to the active node runtime before Helm expects the Deployment to start. The image keeps `pullPolicy: IfNotPresent` because this is a bootstrap-owned local image path.
 
 The repo-managed image adds the runtime tools the seeded agents expect, including Docker CLI, SSH, Git, `gh`, `tea`, `tmux`, Node, `npm`, `summarize`, `jq`, Python, `rg`, `tokscale`, and OpenClaw runtime bridge assets.
+The gateway and sandbox image builds pin `tea` to a stable tagged release instead of building an unreleased development head so the seeded login config behaves predictably.
 
 ## Remote Docker
 
@@ -75,6 +76,7 @@ Reviewer Gitea routing is runtime-specific:
 - Docker sandbox reviewer sessions use the configured ingress hostname resolved through the Incus VM host overrides
 
 Do not expect cluster-internal DNS names to resolve inside Docker sandbox containers.
+Bootstrap also mints dedicated tea API tokens for coder and reviewer, stores them in `coder-credentials` and `reviewer-credentials`, and passes them into the runtime. The password remains in those Secrets for git/basic-auth and for first-session fallback if a running OpenClaw pod has not yet been restarted onto the refreshed token values.
 
 Agent model selections come from `bootstrap.local.toml` under `[openclaw.agents.<id>]`. `coder` also accepts `codex_model` for the Codex CLI runtime inside its sandbox.
 Heartbeat is configured explicitly rather than relying on OpenClaw's built-in default cadence: `main` is disabled with `heartbeat.every=0m` plus `heartbeat.includeSystemPromptSection=false`, while `watchdog` is the standing heartbeat agent at `30m`.

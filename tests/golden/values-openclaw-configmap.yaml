@@ -204,7 +204,7 @@ data:
       },
       "agents": {
         "defaults": {"models":{"anthropic/claude-opus-4-6":{"alias":"Auditor"},"anthropic/claude-sonnet-4-6":{"alias":"Main / Architect"},"openai/gpt-5.4":{"alias":"Main / Coder / Architect / Archivist / Auditor"},"openai/gpt-5.4-nano":{"alias":"Watchdog"}},"sandbox":{"backend":"docker","browser":{"cdpPort":9222,"cdpSourceRange":"","enableNoVnc":true,"enabled":true,"headless":false,"image":"openclaw-sandbox-browser:bookworm-slim","network":"bridge","noVncPort":6080,"vncPort":5900},"docker":{"capDrop":["ALL"],"cpus":1,"env":{"ANTHROPIC_API_KEY":"${ANTHROPIC_API_KEY}","CURL_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","GEMINI_API_KEY":"${GEMINI_API_KEY}","GITHUB_TOKEN":"${GITHUB_TOKEN}","GIT_SSL_CAINFO":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","HOME":"/workspace/.home","MEMGRAPH_BOLT_URI":"bolt://memgraph.homebase.local:7687","MEMGRAPH_HOST":"memgraph.homebase.local","MEMGRAPH_PORT":"7687","NODE_EXTRA_CA_CERTS":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","OPENAI_API_KEY":"${OPENAI_API_KEY}","QDRANT_COLLECTION":"openclaw-memory","QDRANT_URL":"https://qdrant.homebase.local","REQUESTS_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","SSL_CERT_FILE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","XDG_CACHE_HOME":"/workspace/.home/.cache","XDG_CONFIG_HOME":"/workspace/.home/.config","XDG_STATE_HOME":"/workspace/.home/.local/state"},"image":"registry.homebase.local/coder/openclaw-sandbox:trixie-slim","memory":"1g","memorySwap":"2g","network":"bridge","pidsLimit":256,"readOnlyRoot":true,"tmpfs":["/tmp","/var/tmp","/run"],"user":"1000:1000","workdir":"/workspace"},"mode":"non-main","scope":"agent","sessionToolsVisibility":"all","workspaceAccess":"rw"},"workspace":"/home/node/.openclaw/workspace"},
-        "list": [{"default":true,"heartbeat":{"every":"0m","includeSystemPromptSection":false},"id":"main","model":{"fallbacks":["anthropic/claude-sonnet-4-6"],"primary":"openai/gpt-5.4"},"name":"OpenClaw Assistant","skills":["handoff-specialist-work","manage-worker-lifecycle","bind-channels","coordinate-in-nextcloud","record-memory-and-coordination-status","track-budget","healthcheck","node-connect","skill-creator","session-logs","weather","summarize"],"subagents":{"allowAgents":["coder","architect","archivist","auditor"]},"workspace":"/home/node/.openclaw/workspace"},{"id":"coder","model":{"fallbacks":["openai/gpt-5.4"],"primary":"anthropic/claude-sonnet-4-6"},"name":"Coder","sandbox":{"docker":{"env":{"CODER_GITEA_BASE_URL":"https://gitea.homebase.local","CODER_GITEA_EMAIL":"coder@example.invalid","CODER_GITEA_HOST":"gitea.homebase.local","CODER_GITEA_PASSWORD":"${CODER_GITEA_PASSWORD}","CODER_GITEA_TEA_LOGIN_NAME":"coder","CODER_GITEA_TEA_TOKEN_NAME":"openclaw-coder-sandbox","CODER_GITEA_USERNAME":"coder","CODER_GITOPS_PROJECT":"platform-stack","CODER_GITOPS_REPO_BRANCH":"main","CODER_GITOPS_REPO_NAME":"cluster-gitops","CODER_REGISTRY_BASE_URL":"https://registry.homebase.local","CODER_REGISTRY_HOST":"registry.homebase.local","CODER_REGISTRY_NAMESPACE":"coder","CODER_REGISTRY_PASSWORD":"${CODER_REGISTRY_PASSWORD}","CODER_REGISTRY_USERNAME":"coder","CODER_SANDBOX_IMAGES_REPO_NAME":"openclaw-sandbox-images","CODEX_DEFAULT_MODEL":"gpt-5.4-mini","CODEX_HOME":"/workspace/.home/.codex","CODEX_MODEL":"openai/gpt-5.3-codex","CURL_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","DOCKER_HOST":"${DOCKER_HOST}","GITHUB_TOKEN":"${GITHUB_TOKEN}","GIT_SSL_CAINFO":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","HOME":"/workspace/.home","NODE_EXTRA_CA_CERTS":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","OPENAI_API_KEY":"${OPENAI_API_KEY}","REQUESTS_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","SSL_CERT_FILE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","XDG_CACHE_HOME":"/workspace/.home/.cache","XDG_CONFIG_HOME":"/workspace/.home/.config","XDG_STATE_HOME":"/workspace/.home/.local/state"},"image":"registry.homebase.local/coder/openclaw-sandbox-coder:trixie-slim","setupCommand":"/usr/local/bin/coder-init.sh","tmpfs":["/tmp","/var/tmp","/run"]},"mode":"all","workspaceAccess":"rw"},"skills":["manage-gitea-gitops-and-registry","run-codex-and-log-usage","update-implementation-notes","github","tmux"],"workspace":"/home/node/.openclaw/workspace-coder"},{"id":"architect","model":{"fallbacks":["openai/gpt-5.4"],"primary":"anthropic/claude-sonnet-4-6"},"name":"Architect","sandbox":{"docker":{"capDrop":["ALL"],"cpus":1,"env":{"ANTHROPIC_API_KEY":"${ANTHROPIC_API_KEY}","CURL_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","GEMINI_API_KEY":"${GEMINI_API_KEY}","GITHUB_TOKEN":"${GITHUB_TOKEN}","GIT_SSL_CAINFO":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","HOME":"/workspace/.home","MEMGRAPH_BOLT_URI":"bolt://memgraph.homebase.local:7687","MEMGRAPH_HOST":"memgraph.homebase.local","MEMGRAPH_PORT":"7687","NODE_EXTRA_CA_CERTS":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","OPENAI_API_KEY":"${OPENAI_API_KEY}","QDRANT_COLLECTION":"openclaw-memory","QDRANT_URL":"https://qdrant.homebase.local","REQUESTS_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","REVIEWER_GITEA_BASE_URL":"https://gitea.homebase.local","REVIEWER_GITEA_EMAIL":"reviewer@example.invalid","REVIEWER_GITEA_HOST":"gitea.homebase.local","REVIEWER_GITEA_PASSWORD":"${REVIEWER_GITEA_PASSWORD}","REVIEWER_GITEA_TEA_LOGIN_NAME":"reviewer","REVIEWER_GITEA_TEA_TOKEN_NAME":"openclaw-reviewer","REVIEWER_GITEA_USERNAME":"reviewer","SSL_CERT_FILE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","XDG_CACHE_HOME":"/workspace/.home/.cache","XDG_CONFIG_HOME":"/workspace/.home/.config","XDG_STATE_HOME":"/workspace/.home/.local/state"},"image":"registry.homebase.local/coder/openclaw-sandbox:trixie-slim","memory":"1g","memorySwap":"2g","network":"bridge","pidsLimit":256,"readOnlyRoot":true,"setupCommand":"/usr/local/bin/reviewer-gitea-init.sh","tmpfs":["/tmp","/var/tmp","/run"],"user":"1000:1000","workdir":"/workspace"},"mode":"non-main","workspaceAccess":"rw"},"skills":["plan-projects","package-worker-definitions","deliver-design","gitea-browse","skill-creator","session-logs","summarize","github"],"tools":{"deny":["tts","image_generate","canvas"]},"workspace":"/home/node/.openclaw/workspace-architect"},{"id":"archivist","model":{"fallbacks":["anthropic/claude-sonnet-4-6"],"primary":"openai/gpt-5.4-mini"},"name":"Archivist","sandbox":{"mode":"non-main"},"skills":["curate-memgraph","groom-knowledge-graph","map-context-and-link-evidence","use-nextcloud-docs-for-graph-work","session-logs","summarize"],"tools":{"deny":["tts","image_generate","canvas","browser"]},"workspace":"/home/node/.openclaw/workspace-archivist"},{"heartbeat":{"every":"30m"},"id":"watchdog","model":{"fallbacks":["anthropic/claude-haiku-4-5"],"primary":"openai/gpt-5.4-nano"},"name":"Watchdog","sandbox":{"mode":"off"},"skills":["classify-severity-and-escalate","manage-nextcloud-incidents","check-heartbeat-and-budget","healthcheck","node-connect","session-logs"],"tools":{"deny":["image_generate","canvas","tts","image","browser","sessions_spawn","agents_list","subagents"]},"workspace":"/home/node/.openclaw/workspace-watchdog"},{"id":"auditor","model":{"fallbacks":["openai/gpt-5.4"],"primary":"anthropic/claude-opus-4-6"},"name":"Auditor","sandbox":{"mode":"off"},"skills":["classify-review-mode","manage-review-packets","format-verdict","gitea-browse","session-logs","summarize","github"],"tools":{"deny":["tts","image_generate","canvas"]},"workspace":"/home/node/.openclaw/workspace-auditor"}]
+        "list": [{"default":true,"heartbeat":{"every":"0m","includeSystemPromptSection":false},"id":"main","model":{"fallbacks":["anthropic/claude-sonnet-4-6"],"primary":"openai/gpt-5.4"},"name":"OpenClaw Assistant","skills":["handoff-specialist-work","manage-worker-lifecycle","bind-channels","coordinate-in-nextcloud","record-memory-and-coordination-status","track-budget","healthcheck","node-connect","skill-creator","session-logs","weather","summarize"],"subagents":{"allowAgents":["coder","architect","archivist","auditor"]},"workspace":"/home/node/.openclaw/workspace"},{"id":"coder","model":{"fallbacks":["openai/gpt-5.4"],"primary":"anthropic/claude-sonnet-4-6"},"name":"Coder","sandbox":{"docker":{"env":{"CODER_GITEA_BASE_URL":"https://gitea.homebase.local","CODER_GITEA_EMAIL":"coder@example.invalid","CODER_GITEA_HOST":"gitea.homebase.local","CODER_GITEA_PASSWORD":"${CODER_GITEA_PASSWORD}","CODER_GITEA_TEA_LOGIN_NAME":"coder","CODER_GITEA_TEA_TOKEN_NAME":"openclaw-coder-sandbox","CODER_GITEA_TOKEN":"${CODER_GITEA_TOKEN}","CODER_GITEA_USERNAME":"coder","CODER_GITOPS_PROJECT":"platform-stack","CODER_GITOPS_REPO_BRANCH":"main","CODER_GITOPS_REPO_NAME":"cluster-gitops","CODER_REGISTRY_BASE_URL":"https://registry.homebase.local","CODER_REGISTRY_HOST":"registry.homebase.local","CODER_REGISTRY_NAMESPACE":"coder","CODER_REGISTRY_PASSWORD":"${CODER_REGISTRY_PASSWORD}","CODER_REGISTRY_USERNAME":"coder","CODER_SANDBOX_IMAGES_REPO_NAME":"openclaw-sandbox-images","CODEX_DEFAULT_MODEL":"gpt-5.4-mini","CODEX_HOME":"/workspace/.home/.codex","CODEX_MODEL":"openai/gpt-5.3-codex","CURL_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","DOCKER_HOST":"${DOCKER_HOST}","GITHUB_TOKEN":"${GITHUB_TOKEN}","GIT_SSL_CAINFO":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","HOME":"/workspace/.home","NODE_EXTRA_CA_CERTS":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","OPENAI_API_KEY":"${OPENAI_API_KEY}","REQUESTS_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","SSL_CERT_FILE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","XDG_CACHE_HOME":"/workspace/.home/.cache","XDG_CONFIG_HOME":"/workspace/.home/.config","XDG_STATE_HOME":"/workspace/.home/.local/state"},"image":"registry.homebase.local/coder/openclaw-sandbox-coder:trixie-slim","setupCommand":"/usr/local/bin/coder-init.sh","tmpfs":["/tmp","/var/tmp","/run"]},"mode":"all","workspaceAccess":"rw"},"skills":["manage-gitea-gitops-and-registry","run-codex-and-log-usage","update-implementation-notes","github","tmux"],"workspace":"/home/node/.openclaw/workspace-coder"},{"id":"architect","model":{"fallbacks":["openai/gpt-5.4"],"primary":"anthropic/claude-sonnet-4-6"},"name":"Architect","sandbox":{"docker":{"capDrop":["ALL"],"cpus":1,"env":{"ANTHROPIC_API_KEY":"${ANTHROPIC_API_KEY}","CURL_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","GEMINI_API_KEY":"${GEMINI_API_KEY}","GITHUB_TOKEN":"${GITHUB_TOKEN}","GIT_SSL_CAINFO":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","HOME":"/workspace/.home","MEMGRAPH_BOLT_URI":"bolt://memgraph.homebase.local:7687","MEMGRAPH_HOST":"memgraph.homebase.local","MEMGRAPH_PORT":"7687","NODE_EXTRA_CA_CERTS":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","OPENAI_API_KEY":"${OPENAI_API_KEY}","QDRANT_COLLECTION":"openclaw-memory","QDRANT_URL":"https://qdrant.homebase.local","REQUESTS_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","REVIEWER_GITEA_BASE_URL":"https://gitea.homebase.local","REVIEWER_GITEA_EMAIL":"reviewer@example.invalid","REVIEWER_GITEA_HOST":"gitea.homebase.local","REVIEWER_GITEA_PASSWORD":"${REVIEWER_GITEA_PASSWORD}","REVIEWER_GITEA_TEA_LOGIN_NAME":"reviewer","REVIEWER_GITEA_TEA_TOKEN_NAME":"openclaw-reviewer","REVIEWER_GITEA_TOKEN":"${REVIEWER_GITEA_TOKEN}","REVIEWER_GITEA_USERNAME":"reviewer","SSL_CERT_FILE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","XDG_CACHE_HOME":"/workspace/.home/.cache","XDG_CONFIG_HOME":"/workspace/.home/.config","XDG_STATE_HOME":"/workspace/.home/.local/state"},"image":"registry.homebase.local/coder/openclaw-sandbox:trixie-slim","memory":"1g","memorySwap":"2g","network":"bridge","pidsLimit":256,"readOnlyRoot":true,"setupCommand":"/usr/local/bin/reviewer-gitea-init.sh","tmpfs":["/tmp","/var/tmp","/run"],"user":"1000:1000","workdir":"/workspace"},"mode":"non-main","workspaceAccess":"rw"},"skills":["plan-projects","package-worker-definitions","deliver-design","gitea-browse","skill-creator","session-logs","summarize","github"],"tools":{"deny":["tts","image_generate","canvas"]},"workspace":"/home/node/.openclaw/workspace-architect"},{"id":"archivist","model":{"fallbacks":["anthropic/claude-sonnet-4-6"],"primary":"openai/gpt-5.4-mini"},"name":"Archivist","sandbox":{"mode":"non-main"},"skills":["curate-memgraph","groom-knowledge-graph","map-context-and-link-evidence","use-nextcloud-docs-for-graph-work","session-logs","summarize"],"tools":{"deny":["tts","image_generate","canvas","browser"]},"workspace":"/home/node/.openclaw/workspace-archivist"},{"heartbeat":{"every":"30m"},"id":"watchdog","model":{"fallbacks":["anthropic/claude-haiku-4-5"],"primary":"openai/gpt-5.4-nano"},"name":"Watchdog","sandbox":{"mode":"off"},"skills":["classify-severity-and-escalate","manage-nextcloud-incidents","check-heartbeat-and-budget","healthcheck","node-connect","session-logs"],"tools":{"deny":["image_generate","canvas","tts","image","browser","sessions_spawn","agents_list","subagents"]},"workspace":"/home/node/.openclaw/workspace-watchdog"},{"id":"auditor","model":{"fallbacks":["openai/gpt-5.4"],"primary":"anthropic/claude-opus-4-6"},"name":"Auditor","sandbox":{"mode":"off"},"skills":["classify-review-mode","manage-review-packets","format-verdict","gitea-browse","session-logs","summarize","github"],"tools":{"deny":["tts","image_generate","canvas"]},"workspace":"/home/node/.openclaw/workspace-auditor"}]
       },
       "skills": {"allowBundled":["weather","healthcheck","node-connect","skill-creator","session-logs","tmux","summarize","github"]},
       "mcp": {"servers":{"nextcloud":{"args":["/opt/openclaw-runtime/mcp/mcp-http-bridge.mjs","--url","${OPENCLAW_NEXTCLOUD_MCP_INTERNAL_URL}","--url","${OPENCLAW_NEXTCLOUD_MCP_EXTERNAL_URL}","--header","Authorization=${OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER}"],"command":"node"},"qdrant":{"args":["/opt/openclaw-runtime/mcp/mcp-http-bridge.mjs","--url","${OPENCLAW_QDRANT_MCP_INTERNAL_URL}","--url","${OPENCLAW_QDRANT_MCP_EXTERNAL_URL}"],"command":"node"}}},
@@ -498,11 +498,11 @@ data:
     tea pr view <number> --repo <owner>/<repo>
     ```
 
-    Clone only for inspection, then discard the clone.
+    Clone only for inspection, keep the clone under `/workspace`, then discard it.
 
     ```bash
-    git clone <gitea-url>/<owner>/<repo> /tmp/<repo>
-    cd /tmp/<repo>
+    git clone <gitea-url>/<owner>/<repo> /workspace/<repo>
+    cd /workspace/<repo>
     git ls-tree -r HEAD --name-only
     git show HEAD:path/to/file.yaml
     git show <sha>:path/to/file.yaml
@@ -518,6 +518,7 @@ data:
     - The Gitea admin account `git-admin` remains the final authority for approvals and merges on protected `main`.
     - Cite concrete repo paths, commits, issues, or PRs when they shape a design.
     - Tell main when a design depends on absent, ambiguous, or inconsistent Gitea state.
+    - If plain `tea` fails, one retry with `--login "$REVIEWER_GITEA_TEA_LOGIN_NAME"` is acceptable to confirm a login-selection problem before you report the blocker.
     - If `tea` auth fails or a critical repo is missing, stop and tell main exactly what failed.
   workspace-architect-skills__package-worker-definitions__SKILL.md: |
     ---
@@ -2290,11 +2291,11 @@ data:
     tea pr reviews <number> --repo <owner>/<repo>
     ```
 
-    Clone only for review inspection, then discard the clone.
+    Clone only for review inspection, keep the clone under `/workspace`, then discard it.
 
     ```bash
-    git clone <gitea-url>/<owner>/<repo> /tmp/<repo>
-    cd /tmp/<repo>
+    git clone <gitea-url>/<owner>/<repo> /workspace/<repo>
+    cd /workspace/<repo>
     git show <sha>:path/to/file.yaml
     git show <sha>
     git diff <expected-sha>..<actual-sha> -- path/to/file
@@ -2318,6 +2319,7 @@ data:
     - Do not push branches, create commits, or modify repo file content directly.
     - Ground audit reports in specific commits, file paths, diff hunks, issues, or PR comments.
     - Flag discrepancies between Gitea state and approved designs to main.
+    - If plain `tea` fails, one retry with `--login "$REVIEWER_GITEA_TEA_LOGIN_NAME"` is acceptable to confirm a login-selection problem before you report the blocker.
     - If `tea` auth fails, a PR is out of scope, or a merge conflicts, stop and tell main exactly what failed.
   workspace-auditor-skills__manage-review-packets__SKILL.md: |
     ---
@@ -2385,11 +2387,15 @@ data:
     2. Use the minimum relevant repo-local continuity notes and governing docs.
     3. Read a governing Nextcloud artifact only when one exists for the task.
     4. Check Qdrant only when prior conventions may change the implementation.
-    5. Execute, validate as far as practical, and prepare a clean handoff.
-    6. Before returning, store durable implementation notes in Nextcloud when the work created user-relevant technical artifacts or reusable runbook material.
-    7. If Codex was used and the session is not explicitly off-budget, ensure usage is logged before returning.
-    8. Persist reusable implementation decisions to Qdrant when needed.
-    9. Return results or blockers to `agent:main:main`.
+    5. Before changing deployable structure, verify the target repo actually wires the path, chart, image, or manifest location you plan to touch. If a spec or review conflicts with the repo's real deployment wiring, stop and report the mismatch instead of implementing it mechanically.
+    6. For non-trivial code generation, refactors, debugging, or large-repo analysis, delegate the implementation work to Codex in the target repo.
+    7. Start Codex from the target repo root.
+    8. Keep ownership of validation, repo state, and handoff quality after the Codex work returns.
+    9. Execute, validate as far as practical, and prepare a clean handoff.
+    10. Before returning, store durable implementation notes in Nextcloud when the work created user-relevant technical artifacts or reusable runbook material.
+    11. If Codex was used and the session is not explicitly off-budget, ensure usage is logged before returning.
+    12. Persist reusable implementation decisions to Qdrant when needed.
+    13. Return results or blockers to `agent:main:main`.
 
     ## Persistence
 
@@ -2404,6 +2410,7 @@ data:
 
     - Do not replace architect for planning.
     - Do not store code in Nextcloud.
+    - Do not silently bypass broken repo tooling. If `tea`, repo auth, or Codex is misconfigured, diagnose once and return a concrete blocker instead of routing around it with ad hoc credentials or undocumented workflow changes.
     - Do not stop at partial execution when validation or handoff is still required.
   workspace-coder-IDENTITY.md: |
     # Identity
@@ -2464,11 +2471,14 @@ data:
 
     ## Runtime
 
-    - `/workspace` is the repo working tree.
+    - `/workspace` is the writable repo root for implementation work.
+    - Clone repos, create worktrees, and run Codex only under `/workspace`.
+    - Use `/tmp` only for disposable artifacts such as rendered manifests, logs, or one-shot scratch output that does not need workspace file tools.
     - Persistent tool state lives under `/workspace/.home`.
     - `HOME`, `CODEX_HOME`, and XDG directories are already pointed into `/workspace/.home`.
     - Remote Docker access is prewired through `DOCKER_HOST`; the SSH key material lives under `/workspace/.home/.ssh`.
     - Use `CODER_GITEA_BASE_URL` / `CODER_GITEA_HOST` for the in-cluster Gitea service.
+    - `CODER_GITEA_TOKEN` and `CODER_GITEA_TEA_LOGIN_NAME` are the preferred tea login inputs. `CODER_GITEA_PASSWORD` remains available for git/basic-auth and bootstrap fallback only.
     - Use `CODER_REGISTRY_BASE_URL` / `CODER_REGISTRY_HOST` for the in-cluster registry.
     - Canonical repo names in this stack:
       - GitOps: `cluster-gitops`
@@ -2495,7 +2505,9 @@ data:
 
     ## Notes
 
-    - Keep Codex runs inside the target repo.
+    - Keep Codex runs inside the target repo under `/workspace`.
+    - Start Codex from the target repo root.
+    - If `tea` fails, diagnose the configured login before falling back to any lower-level API access. A temporary `tea --login "$CODER_GITEA_TEA_LOGIN_NAME" ...` check is acceptable for diagnosis.
     - Use repo-local worktrees when you need parallel isolation.
     - Do not create a persistent local OpenClaw `CURRENT.md` or `SURFACES.md` in this sandbox. Keep short-term continuity repo-local and mirror outward only when another agent or the user needs it.
     - Keep this file current when sandbox paths, runtime env vars, or canonical repo names change.
@@ -2514,7 +2526,7 @@ data:
   workspace-coder-skills__manage-gitea-gitops-and-registry__SKILL.md: |
     ---
     name: manage-gitea-gitops-and-registry
-    description: Use when working with Gitea, GitOps repos, the in-cluster registry, or Codex-backed implementation.
+    description: Use for Gitea, GitOps, registry, and every non-trivial implementation task that should be delegated to Codex instead of being coded inline.
     ---
 
     # Gitea, GitOps, and Registry
@@ -2526,6 +2538,8 @@ data:
     - Gitea is the default internal source of truth.
     - Default in-cluster repos are `cluster-gitops` and `openclaw-sandbox-images`.
     - Use the preconfigured `git` and `tea` access for the `coder` Gitea user for repo creation, collaborator management, repo inspection, and pull requests.
+    - Keep repo clones and worktrees under `/workspace`, not `/tmp`, so file tools and Codex can operate on them directly.
+    - For `cluster-gitops` and `openclaw-sandbox-images`, start Codex from the target repo root under `/workspace`.
     - Treat GitOps as deployment definition, not a planning scratchpad.
     - Prefer branches and pull requests on shared repos.
     - On every repo you create, add `git-admin` as an admin collaborator. Protected `main` must still allow `git-admin` to approve and merge pull requests.
@@ -2533,14 +2547,8 @@ data:
     - Keep the default internal posture review-first: protected `main`, pull requests, and reviewer approval before merge unless main explicitly says a repo should differ.
     - Tell main when the user needs to review and merge.
     - Tell main when manual Argo CD sync is required after GitOps changes.
-
-    ## Validation
-
-    For GitOps-affecting changes, run:
-    - `./scripts/lint.sh --values-file charts/platform-stack/values.yaml`
-    - `./scripts/lint.sh --values-file charts/platform-stack/values.yaml --values-file charts/platform-stack/values-k3d.yaml`
-    - `./scripts/lint.sh --values-file charts/platform-stack/values.yaml --values-file charts/platform-stack/values-k3s.yaml`
-    - `./scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values.yaml > /tmp/platform-stack.yaml`
+    - If `tea` fails, diagnose it explicitly. One temporary `tea --login "$CODER_GITEA_TEA_LOGIN_NAME" ...` retry is acceptable to confirm login-selection trouble. Do not silently switch to raw `curl` with embedded credentials for normal repo workflow.
+    - Before applying design or audit feedback that changes deployable structure, verify the destination path is actually wired into the repo's deployment flow. If the spec conflicts with the live repo architecture, stop and report the mismatch.
 
     ## Registry Rules
 
@@ -2551,31 +2559,39 @@ data:
 
     ## Codex Rules
 
-    - Keep Codex runs inside the target repo.
+    - Use Codex for non-trivial code generation, refactors, debugging loops, and large-repo analysis. Your job is to orchestrate repo-local Codex work, then keep ownership of repo state, validation, and handoff quality.
+    - Direct manual edits are only for tiny mechanical fixes, final integration, or validation glue around Codex output.
+    - Keep Codex runs inside the target repo under `/workspace`, with the workdir at the repo root.
     - Prefer the default model unless the task clearly needs the higher-cost override.
+    - If Codex auth or the CLI is broken, stop and tell main exactly what failed.
     - Log Codex usage after meaningful Codex-backed work.
 
     ## Escalate
 
     - if validation fails and the cause is environmental or credential-related
     - if the repo workflow requires an operator action outside coder's scope
+    - if `tea` or Codex is unavailable after one focused diagnostic pass
   workspace-coder-skills__run-codex-and-log-usage__SKILL.md: |
     ---
     name: run-codex-and-log-usage
-    description: Use when invoking Codex CLI or recording Codex usage for implementation work.
+    description: Use for non-trivial implementation work. Delegate the coding or large-repo analysis to Codex CLI, then record usage before handing back results.
     ---
 
     # Codex Execution And Logging
 
-    Use for Codex-backed implementation work.
+    Use this skill whenever the task involves meaningful code generation, refactoring, debugging, or broad codebase analysis.
 
     ## Invocation Rules
 
+    - prefer `tokscale headless codex exec ...` when available
+    - otherwise use `codex exec ...`
     - PTY mode is required
     - background mode is preferred for long-running tasks
     - never run Codex in `~/.openclaw/`
     - always keep the workdir inside the target repo
     - use repo-local worktrees when parallel isolation is needed
+    - keep direct manual edits for tiny fixes, integration glue, or post-Codex cleanup
+    - if Codex is unavailable or auth fails, stop and report the blocker instead of coding around it inline
 
     ## Model Heuristic
 
@@ -2585,7 +2601,10 @@ data:
     ## Usage Logging
 
     - if Codex was used and the session is not explicitly off-budget, log usage before returning to main
-    - prefer `tokscale headless codex exec ...` when available
+    - `tokscale` is the source of truth for usage metrics in this stack
+    - prefer `tokscale headless codex exec ...` because it wraps the Codex run and gives you the token and cost numbers needed for logging
+    - when `tokscale` produced the run, copy the reported `input_tokens`, `output_tokens`, `cache_read_tokens` when present, and `estimated_cost_usd` directly from its output instead of estimating them yourself
+    - if you had to use bare `codex exec`, do not guess usage from memory or rough pricing math; fetch the exact numbers from `tokscale` before writing the log entry, or report that accurate logging is blocked
     - append a JSON entry to Nextcloud `/Projects/ai-homebase/codex-usage/YYYY-MM-DD.json`
     - create the file as a JSON array if it does not exist
     - each entry should include `timestamp`, `model`, `input_tokens`, `output_tokens`, `cache_read_tokens` when available, `estimated_cost_usd`, `task_summary`, and `codex_flags`

@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import re
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 
@@ -71,11 +73,40 @@ def assert_no_stale_main_model_claim() -> None:
 def assert_reviewer_wiring_present() -> None:
     required_snippets = {
         "bootstrap.example.toml": ["[openclaw.agents.reviewer.gitea]"],
-        "scripts/bootstrap-config.py": ["REVIEWER_GITEA_USERNAME", "REVIEWER_GITEA_PASSWORD", "reviewer-gitea-init.sh"],
-        "scripts/bootstrap-secrets.sh": ["reviewer-credentials", "REVIEWER_GITEA_PASSWORD"],
-        "scripts/bootstrap-gitops.sh": ["REVIEWER_GITEA_USERNAME", "branch_protections", "collaborators"],
-        "charts/platform-stack/values.yaml": ["reviewer-credentials", "REVIEWER_GITEA_PASSWORD", "reviewer-gitea-init.sh"],
-        "charts/openclaw/values.yaml": ["reviewer-credentials", "REVIEWER_GITEA_PASSWORD", "reviewer-gitea-init.sh"],
+        "scripts/bootstrap-config.py": [
+            "REVIEWER_GITEA_USERNAME",
+            "REVIEWER_GITEA_PASSWORD",
+            "REVIEWER_GITEA_TOKEN",
+            "reviewer-gitea-init.sh",
+            "CODER_GITEA_TOKEN",
+        ],
+        "scripts/bootstrap-secrets.sh": [
+            "reviewer-credentials",
+            "REVIEWER_GITEA_PASSWORD",
+            "REVIEWER_GITEA_TOKEN",
+            "CODER_GITEA_TOKEN",
+        ],
+        "scripts/bootstrap-gitops.sh": [
+            "REVIEWER_GITEA_USERNAME",
+            "REVIEWER_GITEA_TOKEN",
+            "CODER_GITEA_TOKEN",
+            "branch_protections",
+            "collaborators",
+        ],
+        "charts/platform-stack/values.yaml": [
+            "reviewer-credentials",
+            "REVIEWER_GITEA_PASSWORD",
+            "REVIEWER_GITEA_TOKEN",
+            "CODER_GITEA_TOKEN",
+            "reviewer-gitea-init.sh",
+        ],
+        "charts/openclaw/values.yaml": [
+            "reviewer-credentials",
+            "REVIEWER_GITEA_PASSWORD",
+            "REVIEWER_GITEA_TOKEN",
+            "CODER_GITEA_TOKEN",
+            "reviewer-gitea-init.sh",
+        ],
         "scripts/bootstrap-openclaw-skills.sh": ["reviewer-gitea-init.sh"],
     }
     for relative_path, snippets in required_snippets.items():
@@ -85,11 +116,108 @@ def assert_reviewer_wiring_present() -> None:
                 fail(f"{relative_path} is missing reviewer wiring snippet: {snippet}")
 
 
+def run_python_script(relative_path: str, *args: str) -> None:
+    subprocess.run(
+        [sys.executable, str(REPO_ROOT / relative_path), *args],
+        cwd=REPO_ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
+def assert_rendered_repo_agents_contracts() -> None:
+    with tempfile.TemporaryDirectory(prefix="ai-homebase-rendered-gitops-") as tmpdir:
+        output_dir = Path(tmpdir) / "cluster-gitops"
+        run_python_script(
+            "scripts/render-gitops-repo.py",
+            "--output-dir",
+            str(output_dir),
+            "--bootstrap-config",
+            str(REPO_ROOT / "bootstrap.example.toml"),
+            "--profile",
+            "k3d",
+            "--cluster-name",
+            "contract-test",
+            "--release-name",
+            "platform-stack",
+            "--namespace",
+            "ai-homebase",
+            "--repo-url",
+            "http://example.invalid/coder/cluster-gitops.git",
+            "--repo-branch",
+            "main",
+            "--project",
+            "platform-stack",
+        )
+        agents_text = (output_dir / "AGENTS.md").read_text()
+        required_snippets = [
+            "gitops/clusters/contract-test/applications/platform-stack.yaml",
+            "values-k3d.yaml",
+            "helm lint charts/platform-stack",
+            "helm template platform-stack charts/platform-stack",
+        ]
+        forbidden_snippets = [
+            "./scripts/lint.sh",
+            "./scripts/template.sh",
+        ]
+        for snippet in required_snippets:
+            if snippet not in agents_text:
+                fail(f"rendered cluster-gitops AGENTS.md is missing required snippet: {snippet}")
+        for snippet in forbidden_snippets:
+            if snippet in agents_text:
+                fail(f"rendered cluster-gitops AGENTS.md still contains forbidden snippet: {snippet}")
+
+    with tempfile.TemporaryDirectory(prefix="ai-homebase-rendered-sandbox-images-") as tmpdir:
+        output_dir = Path(tmpdir) / "openclaw-sandbox-images"
+        run_python_script(
+            "scripts/render-sandbox-images-repo.py",
+            "--output-dir",
+            str(output_dir),
+            "--registry-host",
+            "registry.example.invalid",
+            "--repo-owner",
+            "coder",
+            "--gitops-repo-name",
+            "cluster-gitops",
+        )
+        agents_text = (output_dir / "AGENTS.md").read_text()
+        required_snippets = [
+            "scripts/build-openclaw-sandbox-images.sh",
+            "scripts/openclaw-remote-docker-publish-images.sh",
+            "Do not mutate `cluster-gitops` from inside this repo.",
+        ]
+        for snippet in required_snippets:
+            if snippet not in agents_text:
+                fail(f"rendered openclaw-sandbox-images AGENTS.md is missing required snippet: {snippet}")
+
+
+def assert_coder_skill_defers_to_repo_agents() -> None:
+    skill_text = read_text("charts/openclaw/files/workspaces/coder/skills/manage-gitea-gitops-and-registry/SKILL.md")
+    required_snippets = [
+        "start Codex from the target repo root under `/workspace`",
+    ]
+    forbidden_snippets = [
+        "./scripts/lint.sh",
+        "./scripts/template.sh",
+        "If the target repo is `ai-homebase`",
+        "AGENTS.md",
+    ]
+    for snippet in required_snippets:
+        if snippet not in skill_text:
+            fail(f"coder Gitea/GitOps skill is missing required repo-local guidance: {snippet}")
+    for snippet in forbidden_snippets:
+        if snippet in skill_text:
+            fail(f"coder Gitea/GitOps skill still contains forbidden maintainer-context snippet: {snippet}")
+
+
 def main() -> int:
     assert_bootstrap_content_seeded()
     assert_cron_skill_refs_valid()
     assert_no_stale_main_model_claim()
     assert_reviewer_wiring_present()
+    assert_rendered_repo_agents_contracts()
+    assert_coder_skill_defers_to_repo_agents()
     print("OpenClaw agent contract assertions passed")
     return 0
 

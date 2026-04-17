@@ -17,6 +17,7 @@ Bootstrap-managed Secrets include:
 
 - `openclaw-secrets`
 - `coder-credentials`
+- `reviewer-credentials`
 - `openclaw-remote-docker-ssh`
 - `gitea-config-secrets`
 - `gitea-admin-secret`

@@ -117,6 +117,41 @@ spec:
 """
 
 
+def render_gitops_agents_md(cluster_name: str, profile: str, namespace: str, release_name: str) -> str:
+    render_output = f"/tmp/{release_name}-platform-stack-{profile}.yaml"
+    return f"""# AGENTS.md
+
+This repository is the in-cluster source of truth for one bootstrapped ai-homebase cluster.
+
+## First Steps
+
+- Read this file first.
+- Keep work inside this repo. Use the files committed here rather than assuming helper scripts or maintainer workflow from some other repo.
+- Confirm the active cluster and profile by reading `gitops/clusters/{cluster_name}/applications/platform-stack.yaml`. The current bootstrapped profile is `values-{profile}.yaml`.
+- Keep the normal shared-repo posture: branch first, then open a pull request against protected `main`.
+
+## Validation
+
+- For changes that affect Helm render output in `charts/` or in cluster values, validate against the active cluster inputs only:
+  - base values: `charts/platform-stack/values.yaml`
+  - active profile values: `charts/platform-stack/values-{profile}.yaml`
+  - cluster bootstrap values: `charts/platform-stack/clusters/{cluster_name}/bootstrap-values.yaml`
+  - cluster GitOps values: `charts/platform-stack/clusters/{cluster_name}/gitops-values.yaml`
+- Use `helm dependency update charts/argo-cd`, `helm dependency update charts/gitea`, and `helm dependency update charts/platform-stack` when dependency metadata changed or when Helm reports missing dependencies.
+- Lint with raw Helm:
+  - `helm lint charts/platform-stack --namespace {namespace} --values charts/platform-stack/values.yaml --values charts/platform-stack/values-{profile}.yaml --values charts/platform-stack/clusters/{cluster_name}/bootstrap-values.yaml --values charts/platform-stack/clusters/{cluster_name}/gitops-values.yaml`
+- Render with raw Helm and write output to `/tmp`:
+  - `helm template {release_name} charts/platform-stack --namespace {namespace} --values charts/platform-stack/values.yaml --values charts/platform-stack/values-{profile}.yaml --values charts/platform-stack/clusters/{cluster_name}/bootstrap-values.yaml --values charts/platform-stack/clusters/{cluster_name}/gitops-values.yaml > {render_output}`
+- For changes limited to `gitops/clusters/{cluster_name}/`, verify referenced source paths and Helm `valueFiles` exist. Rerun the active-profile lint/render commands if the Application source path or `valueFiles` changed.
+
+## Workflow Rules
+
+- Do not change deployment shape without checking the actual Argo CD wiring under `gitops/clusters/{cluster_name}/` and the referenced chart paths.
+- Do not publish images from this repo.
+- Keep image-build or publish work in the separate `openclaw-sandbox-images` repo unless the task is purely about cluster references.
+"""
+
+
 def render_gitops_values(remote_docker_host: str | None, remote_docker_port: str | None) -> str:
     lines = [
         "argoCd:",
@@ -157,6 +192,10 @@ def main() -> int:
         shutil.rmtree(args.output_dir)
 
     shutil.copytree(REPO_ROOT / "charts", args.output_dir / "charts")
+    write_text(
+        args.output_dir / "AGENTS.md",
+        render_gitops_agents_md(args.cluster_name, args.profile, args.namespace, args.release_name),
+    )
 
     bootstrap_values = render_bootstrap_values(args.bootstrap_config)
     cluster_values_dir = args.output_dir / "charts" / "platform-stack" / "clusters" / args.cluster_name

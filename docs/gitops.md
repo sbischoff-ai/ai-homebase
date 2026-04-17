@@ -14,17 +14,18 @@ Use the standalone command when you intentionally want to refresh or replay the 
 
 ## What It Does
 
-The script performs eight steps:
+The script performs ten steps:
 
 1. reapplies the existing `platform-stack` Helm path through `bootstrap-stack.sh --enable-service argo-cd`
 2. reads the bootstrap-managed Gitea admin credentials from Kubernetes
-3. creates or updates the dedicated coder-owned GitOps user, the shared reviewer user, and the private bootstrap repos in Gitea
-4. pushes a self-contained snapshot of the local charts and cluster values to that repo
-5. pushes a slim sandbox-images source snapshot to the dedicated sandbox-images repo
-6. adds the reviewer user as a collaborator on both repos and protects the default branch for the standard internal review flow
-7. registers the GitOps repo in Argo CD and applies the Argo CD `AppProject` and `Application` objects
-8. triggers the first explicit Argo CD sync for the root and platform applications
-9. waits until both applications report `Synced` and `Healthy`
+3. creates or updates the dedicated coder-owned GitOps user and the shared reviewer user in Gitea
+4. mints bootstrap-managed tea API tokens for coder and reviewer and refreshes the runtime credential Secrets
+5. creates or updates the private bootstrap repos in Gitea
+6. pushes a self-contained snapshot of the local charts and cluster values to that repo
+7. pushes a slim sandbox-images source snapshot to the dedicated sandbox-images repo
+8. adds the reviewer user as a collaborator on both repos and protects the default branch for the standard internal review flow
+9. registers the GitOps repo in Argo CD and applies the Argo CD `AppProject` and `Application` objects
+10. triggers the first explicit Argo CD sync for the root and platform applications, then waits until both applications report `Synced` and `Healthy`
 
 The generated repo uses an app-of-apps shape, but the child app is the single `platform-stack` application. Argo CD is therefore self-managed through the umbrella chart instead of through a second standalone Argo CD release.
 
@@ -57,6 +58,7 @@ After the GitOps bootstrap succeeds:
 
 - the GitOps repo becomes the source of truth for cluster definitions
 - the sandbox-images repo becomes the source of truth for the regular and coder OpenClaw sandbox image definitions
+- coder and reviewer tea logins are backed by bootstrap-managed API tokens stored in the runtime credential Secrets
 - Argo CD keeps sync in manual mode because agents may be allowed to push changes to the GitOps repo; sync should therefore be triggered explicitly through the UI or API
 - sandbox image tags referenced from OpenClaw config should be published to the in-cluster registry before GitOps changes point at them
 - direct `helm upgrade` should be treated as break-glass only

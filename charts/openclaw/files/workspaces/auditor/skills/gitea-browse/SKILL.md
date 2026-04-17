@@ -26,11 +26,11 @@ tea issue view <number> --repo <owner>/<repo>
 tea pr reviews <number> --repo <owner>/<repo>
 ```
 
-Clone only for review inspection, then discard the clone.
+Clone only for review inspection, keep the clone under `/workspace`, then discard it.
 
 ```bash
-git clone <gitea-url>/<owner>/<repo> /tmp/<repo>
-cd /tmp/<repo>
+git clone <gitea-url>/<owner>/<repo> /workspace/<repo>
+cd /workspace/<repo>
 git show <sha>:path/to/file.yaml
 git show <sha>
 git diff <expected-sha>..<actual-sha> -- path/to/file
@@ -54,4 +54,5 @@ tea pr merge <number> --repo <owner>/<repo>
 - Do not push branches, create commits, or modify repo file content directly.
 - Ground audit reports in specific commits, file paths, diff hunks, issues, or PR comments.
 - Flag discrepancies between Gitea state and approved designs to main.
+- If plain `tea` fails, one retry with `--login "$REVIEWER_GITEA_TEA_LOGIN_NAME"` is acceptable to confirm a login-selection problem before you report the blocker.
 - If `tea` auth fails, a PR is out of scope, or a merge conflicts, stop and tell main exactly what failed.

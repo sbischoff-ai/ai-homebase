@@ -4,6 +4,7 @@ FROM ghcr.io/openclaw/openclaw:2026.4.14 AS openclaw-runtime
 FROM debian:trixie-slim@sha256:26f98ccd92fd0a44d6928ce8ff8f4921b4d2f535bfa07555ee5d18f61429cf0c
 
 ENV DEBIAN_FRONTEND=noninteractive
+ARG TEA_VERSION=v0.9.2
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -29,7 +30,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends nodejs && \
     rm -rf /var/lib/apt/lists/*
 
-RUN GOBIN=/usr/local/bin go install code.gitea.io/tea@latest && \
+RUN GOBIN=/usr/local/bin go install code.gitea.io/tea@"${TEA_VERSION}" && \
     npm install -g @steipete/summarize && \
     gh --version && \
     tea --version && \
