@@ -29,6 +29,7 @@ That target is expected to run the current stack plus leave room for additional 
 sudo ./scripts/install-k3s-ubuntu-2404.sh
 cp bootstrap.example.toml bootstrap.local.toml
 ./scripts/k3s-homelab-sandbox-up.sh --bootstrap-config bootstrap.local.toml
+./scripts/k3s-homelab-gitea-actions-runner-up.sh --bootstrap-config bootstrap.local.toml
 ./scripts/bootstrap-stack.sh --profile k3s --bootstrap-config bootstrap.local.toml
 ```
 

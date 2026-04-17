@@ -4,6 +4,40 @@
   "type": "object",
   "additionalProperties": true,
   "properties": {
+    "actions": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "runner": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "vmName": {
+              "type": "string"
+            },
+            "hostAlias": {
+              "type": "string"
+            },
+            "sshPort": {
+              "type": "integer"
+            },
+            "labels": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "jobImage": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
     "gitea": {
       "type": "object",
       "additionalProperties": true,

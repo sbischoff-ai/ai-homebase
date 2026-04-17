@@ -308,7 +308,7 @@
       "$ref": "#/definitions/optionalServiceToggle"
     },
     "gitea": {
-      "$ref": "#/definitions/optionalServiceToggle"
+      "$ref": "#/definitions/giteaServiceConfig"
     },
     "registry": {
       "$ref": "#/definitions/optionalServiceToggle"
@@ -578,6 +578,55 @@
         "enabled": {
           "type": "boolean",
           "default": false
+        }
+      }
+    },
+    "giteaServiceConfig": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "actions": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "runner": {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "vmName": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "hostAlias": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "sshPort": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "labels": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "jobImage": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          }
         }
       }
     },

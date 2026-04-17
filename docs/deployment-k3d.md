@@ -45,6 +45,8 @@ This does four things in order:
 
 The local sandbox bootstrap now feeds the Incus VM the same canonical bootstrap-config service host list that the homelab path uses. That keeps sandbox-side ingress resolution aligned across `k3d` and `k3s`, including the standard Nextcloud MCP, Gitea, registry, and other configured service hostnames. You should only need extra host-side work when the k3d ingress listener itself is not reachable on the Incus bridge address.
 
+Because `services.gitea.actions.enabled` now defaults to `true`, those smoke checks normally extend to the dedicated runner VM by verifying runner registration and completing a small Gitea-hosted Actions workflow. Set that flag to `false` only when you intentionally want a Gitea install without Actions.
+
 If you need a different k3s image for `k3d`, export `K3S_IMAGE` before running the script.
 
 ## 3. Access the Services

@@ -18,6 +18,7 @@ GEMINI_API_KEY=""
 XAI_API_KEY=""
 MOONSHOT_API_KEY=""
 GITEA_DB_PASSWORD=""
+GITEA_RUNNER_REGISTRATION_TOKEN=""
 GITEA_ADMIN_USERNAME=""
 GITEA_ADMIN_EMAIL=""
 GITEA_ADMIN_PASSWORD=""
@@ -264,6 +265,7 @@ create_and_apply_secret shared-redis-auth \
   --from-literal=redis-password="$REDIS_PASSWORD"
 
 GITEA_DB_PASSWORD="$(resolve_or_generate "$GITEA_DB_PASSWORD")"
+GITEA_RUNNER_REGISTRATION_TOKEN="$(resolve_or_generate "$GITEA_RUNNER_REGISTRATION_TOKEN")"
 GITEA_ADMIN_PASSWORD="$(resolve_or_generate "$GITEA_ADMIN_PASSWORD")"
 VAULTWARDEN_DB_PASSWORD="$(resolve_or_generate "$VAULTWARDEN_DB_PASSWORD")"
 VAULTWARDEN_ADMIN_TOKEN="$(resolve_or_generate "$VAULTWARDEN_ADMIN_TOKEN")"
@@ -324,7 +326,8 @@ create_and_apply_secret gitea-config-secrets \
   --from-literal=GITEA__session__PROVIDER_CONFIG="${GITEA_REDIS_URI}" \
   --from-literal=GITEA__cache__HOST="${GITEA_REDIS_URI}" \
   --from-literal=GITEA__queue__CONN_STR="${GITEA_REDIS_URI}" \
-  --from-literal=GITEA__global_lock__SERVICE_CONN_STR="${GITEA_REDIS_URI}"
+  --from-literal=GITEA__global_lock__SERVICE_CONN_STR="${GITEA_REDIS_URI}" \
+  --from-literal=GITEA_RUNNER_REGISTRATION_TOKEN="${GITEA_RUNNER_REGISTRATION_TOKEN}"
 
 create_and_apply_secret gitea-admin-secret \
   --from-literal=username="${GITEA_ADMIN_USERNAME}" \

@@ -16,6 +16,10 @@ REMOTE_DOCKER_PORT="${REMOTE_DOCKER_PORT:-}"
 REMOTE_DOCKER_KEY_PATH="${REMOTE_DOCKER_KEY_PATH:-}"
 INCUS_VM_NAME="${INCUS_VM_NAME:-openclaw-sandbox}"
 INCUS_CONNECTION_INFO_PATH="${INCUS_CONNECTION_INFO_PATH:-}"
+GITEA_ACTIONS_ENABLED="${GITEA_ACTIONS_ENABLED:-false}"
+GITEA_ACTIONS_RUNNER_VM_NAME="${GITEA_ACTIONS_RUNNER_VM_NAME:-gitea-actions-runner}"
+GITEA_ACTIONS_RUNNER_CONNECTION_INFO_PATH="${GITEA_ACTIONS_RUNNER_CONNECTION_INFO_PATH:-}"
+GITEA_ACTIONS_RUNNER_KEY_PATH="${GITEA_ACTIONS_RUNNER_KEY_PATH:-}"
 SHARED_OPENCLAW_STATE_SOURCE="${SHARED_OPENCLAW_STATE_SOURCE:-}"
 BOOTSTRAP_VALUES_FILE=""
 REMOTE_DOCKER_OVERRIDE_VALUES_FILE=""
@@ -39,9 +43,11 @@ cert_manager_deployments() {
 }
 CODER_SANDBOX_IMAGE_TAG="${CODER_SANDBOX_IMAGE_TAG:-openclaw-sandbox-coder:trixie-slim}"
 DEFAULT_SANDBOX_IMAGE_TAG="${DEFAULT_SANDBOX_IMAGE_TAG:-openclaw-sandbox:trixie-slim}"
+GITEA_ACTIONS_JOB_IMAGE_TAG="${GITEA_ACTIONS_JOB_IMAGE_TAG:-gitea-actions-job:trixie-slim}"
 GATEWAY_IMAGE_TAG="${GATEWAY_IMAGE_TAG:-openclaw-remote-docker:trixie-slim}"
 CANONICAL_DEFAULT_SANDBOX_IMAGE="${CANONICAL_DEFAULT_SANDBOX_IMAGE:-}"
 CANONICAL_CODER_SANDBOX_IMAGE="${CANONICAL_CODER_SANDBOX_IMAGE:-}"
+CANONICAL_GITEA_ACTIONS_JOB_IMAGE="${CANONICAL_GITEA_ACTIONS_JOB_IMAGE:-}"
 REGISTRY_HOST_VALUE="${REGISTRY_HOST_VALUE:-}"
 REGISTRY_USERNAME_VALUE="${REGISTRY_USERNAME_VALUE:-}"
 REGISTRY_PASSWORD_VALUE="${REGISTRY_PASSWORD_VALUE:-}"
@@ -236,6 +242,7 @@ prepare_openclaw_runtime_images() {
   local gateway_image_needed=0
   local default_image_needed=0
   local coder_image_needed=0
+  local gitea_actions_job_image_needed=0
 
   if values_reference "repository: ${GATEWAY_IMAGE_TAG%%:*}" || values_reference "$GATEWAY_IMAGE_TAG"; then
     gateway_image_needed=1
@@ -248,6 +255,10 @@ prepare_openclaw_runtime_images() {
   if values_reference "openclaw-sandbox-coder:"; then
     coder_image_needed=1
     build_args+=(--coder-image "$CODER_SANDBOX_IMAGE_TAG")
+  fi
+  if [[ "$GITEA_ACTIONS_ENABLED" == "true" ]] || values_reference "gitea-actions-job:"; then
+    gitea_actions_job_image_needed=1
+    build_args+=(--gitea-actions-job-image "$GITEA_ACTIONS_JOB_IMAGE_TAG")
   fi
 
   if [[ ${#build_args[@]} -eq 0 ]]; then
@@ -301,6 +312,11 @@ prepare_openclaw_runtime_images() {
     if [[ ${#publish_cmd[@]} -gt 4 ]]; then
       "${publish_cmd[@]}"
     fi
+  fi
+
+  if [[ "$gitea_actions_job_image_needed" -eq 1 && -n "$CANONICAL_GITEA_ACTIONS_JOB_IMAGE" ]]; then
+    PUBLISH_SOURCE_IMAGES+=("$GITEA_ACTIONS_JOB_IMAGE_TAG")
+    PUBLISH_TARGET_IMAGES+=("$CANONICAL_GITEA_ACTIONS_JOB_IMAGE")
   fi
 }
 
@@ -413,39 +429,52 @@ wait_for_internal_ca_secret() {
   return 1
 }
 
-configure_incus_internal_ca_trust() {
+configure_incus_vm_internal_ca_trust() {
+  local vm_name="$1"
+  local vm_role="$2"
   local registry_host="${REGISTRY_HOST_VALUE:-}"
   local state_source=""
   local root_ca_host_path=""
-  local root_ca_guest_path="/home/node/.openclaw/certs/platform-stack-root-ca.crt"
+  local temp_root_ca_path=""
 
-  if [[ -z "$registry_host" ]]; then
+  if [[ -z "$vm_name" || -z "$registry_host" ]]; then
     return 0
   fi
   state_source="$(effective_shared_openclaw_state_source)"
   root_ca_host_path="${state_source}/certs/platform-stack-root-ca.crt"
   if [[ ! -s "$root_ca_host_path" ]]; then
-    echo "Internal CA file ${root_ca_host_path} is not present; skipping sandbox VM CA trust configuration."
+    echo "Internal CA file ${root_ca_host_path} is not present; skipping ${vm_role} CA trust configuration."
     return 0
   fi
   if ! command -v incus >/dev/null 2>&1; then
-    echo "Incus CLI not found; skipping sandbox VM CA trust configuration."
+    echo "Incus CLI not found; skipping ${vm_role} CA trust configuration."
     return 0
   fi
-  if ! incus info "$INCUS_VM_NAME" >/dev/null 2>&1; then
-    echo "Incus VM ${INCUS_VM_NAME} not found; skipping sandbox VM CA trust configuration."
+  if ! incus info "$vm_name" >/dev/null 2>&1; then
+    echo "Incus VM ${vm_name} not found; skipping ${vm_role} CA trust configuration."
     return 0
   fi
 
-  echo "Configuring internal CA trust inside Incus VM ${INCUS_VM_NAME}"
-  incus exec "$INCUS_VM_NAME" -- sh -ceu "
-    test -s '${root_ca_guest_path}'
-    install -d -m 0755 '/etc/docker/certs.d/${registry_host}' /usr/local/share/ca-certificates
-    cp '${root_ca_guest_path}' '/etc/docker/certs.d/${registry_host}/ca.crt'
-    cp '${root_ca_guest_path}' /usr/local/share/ca-certificates/ai-homebase-root-ca.crt
+  temp_root_ca_path="$(mktemp /tmp/${vm_name}-root-ca.XXXXXX.crt)"
+  cp "$root_ca_host_path" "$temp_root_ca_path"
+  incus file push "$temp_root_ca_path" "${vm_name}/usr/local/share/ca-certificates/ai-homebase-root-ca.crt"
+  rm -f "$temp_root_ca_path"
+
+  echo "Configuring internal CA trust inside Incus VM ${vm_name}"
+  incus exec "$vm_name" -- sh -ceu "
+    test -s /usr/local/share/ca-certificates/ai-homebase-root-ca.crt
+    install -d -m 0755 '/etc/docker/certs.d/${registry_host}'
+    cp /usr/local/share/ca-certificates/ai-homebase-root-ca.crt '/etc/docker/certs.d/${registry_host}/ca.crt'
     update-ca-certificates >/dev/null 2>&1 || true
     systemctl restart docker.service
   "
+}
+
+configure_incus_internal_ca_trust() {
+  configure_incus_vm_internal_ca_trust "$INCUS_VM_NAME" "OpenClaw sandbox VM"
+  if [[ "$GITEA_ACTIONS_ENABLED" == "true" ]]; then
+    configure_incus_vm_internal_ca_trust "$GITEA_ACTIONS_RUNNER_VM_NAME" "Gitea Actions runner VM"
+  fi
 }
 
 publish_runtime_images_to_registry() {
@@ -700,6 +729,7 @@ if [[ -n "$BOOTSTRAP_CONFIG_PATH" ]]; then
   eval "$(python3 ./scripts/bootstrap-config.py shell-vars --config "$BOOTSTRAP_CONFIG_PATH")"
   CANONICAL_DEFAULT_SANDBOX_IMAGE="${OPENCLAW_DEFAULT_SANDBOX_IMAGE:-$CANONICAL_DEFAULT_SANDBOX_IMAGE}"
   CANONICAL_CODER_SANDBOX_IMAGE="${OPENCLAW_CODER_SANDBOX_IMAGE:-$CANONICAL_CODER_SANDBOX_IMAGE}"
+  CANONICAL_GITEA_ACTIONS_JOB_IMAGE="${GITEA_ACTIONS_JOB_IMAGE:-$CANONICAL_GITEA_ACTIONS_JOB_IMAGE}"
   REGISTRY_HOST_VALUE="${REGISTRY_HOST:-$REGISTRY_HOST_VALUE}"
   REGISTRY_USERNAME_VALUE="${REGISTRY_USERNAME:-$REGISTRY_USERNAME_VALUE}"
   REGISTRY_PASSWORD_VALUE="${REGISTRY_PASSWORD:-$REGISTRY_PASSWORD_VALUE}"
@@ -711,6 +741,12 @@ if [[ -z "$INCUS_CONNECTION_INFO_PATH" ]]; then
 fi
 if [[ -z "$REMOTE_DOCKER_KEY_PATH" ]]; then
   REMOTE_DOCKER_KEY_PATH="${HOME}/.local/state/ai-homebase/incus/${INCUS_VM_NAME}-id_ed25519"
+fi
+if [[ -z "$GITEA_ACTIONS_RUNNER_CONNECTION_INFO_PATH" ]]; then
+  GITEA_ACTIONS_RUNNER_CONNECTION_INFO_PATH="${HOME}/.local/state/ai-homebase/incus/${GITEA_ACTIONS_RUNNER_VM_NAME}.env"
+fi
+if [[ -z "$GITEA_ACTIONS_RUNNER_KEY_PATH" ]]; then
+  GITEA_ACTIONS_RUNNER_KEY_PATH="${HOME}/.local/state/ai-homebase/incus/${GITEA_ACTIONS_RUNNER_VM_NAME}-id_ed25519"
 fi
 
 if [[ -f "$INCUS_CONNECTION_INFO_PATH" ]]; then
@@ -801,6 +837,22 @@ if [[ -n "$BOOTSTRAP_CONFIG_PATH" ]]; then
     CODER_GITEA_CMD+=(--kubeconfig "$KUBECONFIG_PATH")
   fi
   "${CODER_GITEA_CMD[@]}"
+fi
+
+if [[ -n "$BOOTSTRAP_CONFIG_PATH" && "$GITEA_ACTIONS_ENABLED" == "true" ]]; then
+  GITEA_ACTIONS_RUNNER_CMD=(
+    ./scripts/bootstrap-gitea-actions-runner.sh
+    --bootstrap-config "$BOOTSTRAP_CONFIG_PATH"
+    --release-name "$RELEASE_NAME"
+    --namespace "$NAMESPACE"
+    --runner-vm-name "$GITEA_ACTIONS_RUNNER_VM_NAME"
+    --runner-connection-info "$GITEA_ACTIONS_RUNNER_CONNECTION_INFO_PATH"
+    --runner-key "$GITEA_ACTIONS_RUNNER_KEY_PATH"
+  )
+  if [[ -n "$KUBECONFIG_PATH" ]]; then
+    GITEA_ACTIONS_RUNNER_CMD+=(--kubeconfig "$KUBECONFIG_PATH")
+  fi
+  "${GITEA_ACTIONS_RUNNER_CMD[@]}"
 fi
 
 if [[ -n "$BOOTSTRAP_CONFIG_PATH" && "$SKIP_GITOPS" -eq 0 ]]; then

@@ -43,6 +43,10 @@ DEFAULT_CODER_GITEA_USERNAME = "coder"
 DEFAULT_REVIEWER_GITEA_USERNAME = "reviewer"
 DEFAULT_REGISTRY_USERNAME = "coder"
 DEFAULT_SANDBOX_IMAGES_REPO_NAME = "openclaw-sandbox-images"
+DEFAULT_GITEA_ACTIONS_RUNNER_VM_NAME = "gitea-actions-runner"
+DEFAULT_GITEA_ACTIONS_RUNNER_HOST_ALIAS = "gitea-actions-runner.homebase.internal"
+DEFAULT_GITEA_ACTIONS_RUNNER_SSH_PORT = "2223"
+DEFAULT_GITEA_ACTIONS_RUNNER_LABELS = ["linux-amd64", "homebase-coder"]
 BUNDLED_SKILLS = [
     "weather",
     "healthcheck",
@@ -207,6 +211,13 @@ def nested_nonempty_string(data: dict[str, object], path: tuple[str, ...], defau
     if value == "":
         return default
     return value
+
+
+def nested_bool(data: dict[str, object], path: tuple[str, ...], default: bool = False) -> bool:
+    value = nested_value(data, path, default)
+    if isinstance(value, bool):
+        return value
+    raise SystemExit(f"{'.'.join(path)} must be a boolean")
 
 
 def require_string_list(value: object, context: str) -> list[str]:
@@ -450,6 +461,32 @@ def resolved_values(data: dict[str, object]) -> dict[str, str]:
     )
     registry_password = nested_string(data, ("services", "registry", "auth", "password"))
     github_token = nested_string(data, ("secrets", "github_token"))
+    gitea_actions_enabled = nested_bool(data, ("services", "gitea", "actions", "enabled"), True)
+    gitea_actions_runner_vm_name = nested_nonempty_string(
+        data,
+        ("services", "gitea", "actions", "vm_name"),
+        DEFAULT_GITEA_ACTIONS_RUNNER_VM_NAME,
+    )
+    gitea_actions_runner_host_alias = nested_nonempty_string(
+        data,
+        ("services", "gitea", "actions", "host_alias"),
+        DEFAULT_GITEA_ACTIONS_RUNNER_HOST_ALIAS,
+    )
+    gitea_actions_runner_ssh_port_value = nested_value(
+        data,
+        ("services", "gitea", "actions", "ssh_port"),
+        DEFAULT_GITEA_ACTIONS_RUNNER_SSH_PORT,
+    )
+    if isinstance(gitea_actions_runner_ssh_port_value, int):
+        gitea_actions_runner_ssh_port = str(gitea_actions_runner_ssh_port_value)
+    elif isinstance(gitea_actions_runner_ssh_port_value, str):
+        gitea_actions_runner_ssh_port = gitea_actions_runner_ssh_port_value
+    else:
+        raise SystemExit("services.gitea.actions.ssh_port must be an integer TCP port.")
+    gitea_actions_runner_labels = require_string_list(
+        nested_value(data, ("services", "gitea", "actions", "labels")) or list(DEFAULT_GITEA_ACTIONS_RUNNER_LABELS),
+        "services.gitea.actions.labels",
+    )
 
     if argocd_admin_user and not re.fullmatch(r"[A-Za-z0-9._-]+", argocd_admin_user):
         raise SystemExit(
@@ -461,6 +498,10 @@ def resolved_values(data: dict[str, object]) -> dict[str, str]:
         raise SystemExit("mail.domain is required so the Postfix relay and application sender addresses can be rendered.")
     if not mail_smtp_host:
         raise SystemExit("mail.smtp_host is required so the Postfix relay can present a stable SMTP hostname.")
+    if not re.fullmatch(r"[0-9]+", gitea_actions_runner_ssh_port):
+        raise SystemExit("services.gitea.actions.ssh_port must be an integer TCP port.")
+    if any(":" in label or "," in label for label in gitea_actions_runner_labels):
+        raise SystemExit("services.gitea.actions.labels must contain plain label names without ':' or ','.")
     if "/" not in codex_model:
         raise SystemExit(
             "openclaw.agents.coder.codex_model must use the OpenClaw provider/model form, for example openai/gpt-5.4-mini."
@@ -526,6 +567,11 @@ def resolved_values(data: dict[str, object]) -> dict[str, str]:
         "REVIEWER_GITEA_PASSWORD": reviewer_gitea_password,
         "REGISTRY_USERNAME": registry_username,
         "REGISTRY_PASSWORD": registry_password,
+        "GITEA_ACTIONS_ENABLED": "true" if gitea_actions_enabled else "false",
+        "GITEA_ACTIONS_RUNNER_VM_NAME": gitea_actions_runner_vm_name,
+        "GITEA_ACTIONS_RUNNER_HOST_ALIAS": gitea_actions_runner_host_alias,
+        "GITEA_ACTIONS_RUNNER_SSH_PORT": gitea_actions_runner_ssh_port,
+        "GITEA_ACTIONS_RUNNER_LABEL_NAMES": ",".join(gitea_actions_runner_labels),
         "CODEX_MODEL": codex_model,
         "CODEX_DEFAULT_MODEL": codex_model.split("/", 1)[1],
         "OPENCLAW_MAIN_MODEL": main_model,
@@ -549,6 +595,12 @@ def resolved_values(data: dict[str, object]) -> dict[str, str]:
     )
     values["OPENCLAW_CODER_SANDBOX_IMAGE"] = registry_image_ref(
         values["REGISTRY_HOST"], values["CODER_GITEA_USERNAME"], "openclaw-sandbox-coder"
+    )
+    values["GITEA_ACTIONS_JOB_IMAGE"] = registry_image_ref(
+        values["REGISTRY_HOST"], values["CODER_GITEA_USERNAME"], "gitea-actions-job"
+    )
+    values["GITEA_ACTIONS_RUNNER_LABELS"] = ",".join(
+        f"{label}:docker://{values['GITEA_ACTIONS_JOB_IMAGE']}" for label in gitea_actions_runner_labels
     )
     return values
 
@@ -956,6 +1008,18 @@ def command_render_values(args: argparse.Namespace) -> int:
         },
         "openclaw": openclaw,
         "gitea": {
+            "actions": {
+                "enabled": values["GITEA_ACTIONS_ENABLED"] == "true",
+                "runner": {
+                    "vmName": values["GITEA_ACTIONS_RUNNER_VM_NAME"],
+                    "hostAlias": values["GITEA_ACTIONS_RUNNER_HOST_ALIAS"],
+                    "sshPort": int(values["GITEA_ACTIONS_RUNNER_SSH_PORT"]),
+                    "labels": values["GITEA_ACTIONS_RUNNER_LABEL_NAMES"].split(",")
+                    if values["GITEA_ACTIONS_RUNNER_LABEL_NAMES"]
+                    else [],
+                    "jobImage": values["GITEA_ACTIONS_JOB_IMAGE"],
+                },
+            },
             "gitea": {
                 "ingress": (
                     {

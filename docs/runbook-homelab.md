@@ -52,7 +52,15 @@ Fill in hostnames, mail settings, provider keys, shared admin details, OpenClaw 
 
 This creates or refreshes the Incus-backed remote Docker VM, mounts `/var/lib/ai-homebase/openclaw-state` into the VM at `/home/node/.openclaw`, and configures hostname resolution for the canonical set of bootstrap-config service hostnames that sandboxed agents may reach through ingress.
 
-## 4. Bootstrap The Stack
+## 4. Prepare Gitea Actions Runner VM
+
+```bash
+./scripts/k3s-homelab-gitea-actions-runner-up.sh --bootstrap-config bootstrap.local.toml
+```
+
+Gitea Actions are enabled by default, so the standard homelab path prepares a second Incus VM for the dedicated runner. Skip this only when you explicitly disable Actions in `bootstrap.local.toml`.
+
+## 5. Bootstrap The Stack
 
 ```bash
 ./scripts/bootstrap-stack.sh --profile k3s --bootstrap-config bootstrap.local.toml
@@ -62,7 +70,7 @@ The shared bootstrap path creates Secrets, renders the generated bootstrap value
 
 Bootstrap-side Gitea API and git operations use a local port-forward to the in-cluster Gitea service, so the first install does not depend on the host trusting the internal ingress CA.
 
-## 5. Confidence Checks
+## 6. Confidence Checks
 
 After bootstrap returns, run:
 

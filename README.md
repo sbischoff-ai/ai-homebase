@@ -66,10 +66,11 @@ cp bootstrap.example.toml bootstrap.local.toml
 sudo ./scripts/install-k3s-ubuntu-2404.sh
 cp bootstrap.example.toml bootstrap.local.toml
 ./scripts/k3s-homelab-sandbox-up.sh --bootstrap-config bootstrap.local.toml
+./scripts/k3s-homelab-gitea-actions-runner-up.sh --bootstrap-config bootstrap.local.toml
 ./scripts/bootstrap-stack.sh --profile k3s --bootstrap-config bootstrap.local.toml
 ```
 
-Fill `bootstrap.local.toml` with hostnames, mail settings, provider keys, admin credentials, and any first-run Gitea overrides before either path.
+Fill `bootstrap.local.toml` with hostnames, mail settings, provider keys, admin credentials, and any first-run Gitea overrides before either path. Gitea Actions are enabled by default, so the standard `k3s` bootstrap path also prepares the dedicated runner VM unless you explicitly set `services.gitea.actions.enabled=false`.
 
 ## 📚 Docs Start Here
 

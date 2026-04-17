@@ -17,6 +17,10 @@ REMOTE_DOCKER_PORT="${REMOTE_DOCKER_PORT:-}"
 REMOTE_DOCKER_KEY_PATH="${REMOTE_DOCKER_KEY_PATH:-}"
 INCUS_VM_NAME="${INCUS_VM_NAME:-openclaw-sandbox}"
 INCUS_CONNECTION_INFO_PATH="${INCUS_CONNECTION_INFO_PATH:-${HOME}/.local/state/ai-homebase/incus/${INCUS_VM_NAME}.env}"
+GITEA_ACTIONS_ENABLED="${GITEA_ACTIONS_ENABLED:-false}"
+GITEA_ACTIONS_RUNNER_VM_NAME="${GITEA_ACTIONS_RUNNER_VM_NAME:-gitea-actions-runner}"
+GITEA_ACTIONS_RUNNER_CONNECTION_INFO_PATH="${GITEA_ACTIONS_RUNNER_CONNECTION_INFO_PATH:-${HOME}/.local/state/ai-homebase/incus/${GITEA_ACTIONS_RUNNER_VM_NAME}.env}"
+GITEA_ACTIONS_RUNNER_KEY_PATH="${GITEA_ACTIONS_RUNNER_KEY_PATH:-${HOME}/.local/state/ai-homebase/incus/${GITEA_ACTIONS_RUNNER_VM_NAME}-id_ed25519}"
 SKIP_INSTALL=0
 OPENCLAW_WAIT_TIMEOUT="${OPENCLAW_WAIT_TIMEOUT:-600s}"
 NEXTCLOUD_WAIT_TIMEOUT="${NEXTCLOUD_WAIT_TIMEOUT:-1200s}"
@@ -124,6 +128,13 @@ for cmd in helm kubectl curl python3; do
     exit 1
   fi
 done
+
+if [[ -f "$BOOTSTRAP_CONFIG_PATH" ]]; then
+  BOOTSTRAP_SHELL_VARS="$(python3 ./scripts/bootstrap-config.py shell-vars --config "$BOOTSTRAP_CONFIG_PATH")" || exit 1
+  eval "$BOOTSTRAP_SHELL_VARS"
+  GITEA_ACTIONS_RUNNER_CONNECTION_INFO_PATH="${HOME}/.local/state/ai-homebase/incus/${GITEA_ACTIONS_RUNNER_VM_NAME}.env"
+  GITEA_ACTIONS_RUNNER_KEY_PATH="${HOME}/.local/state/ai-homebase/incus/${GITEA_ACTIONS_RUNNER_VM_NAME}-id_ed25519"
+fi
 
 HELM_CONTEXT_ARGS=()
 KUBECTL_CONTEXT_ARGS=()
@@ -1080,6 +1091,331 @@ verify_incus_hostname_resolution() {
   "
 }
 
+gitea_api_request() {
+  local method="$1"
+  local endpoint="$2"
+  local username="$3"
+  local password="$4"
+  local payload="${5:-}"
+  local curl_args=(
+    --silent
+    --show-error
+    --fail
+    -u "${username}:${password}"
+    -H "Host: ${GITEA_INGRESS_HOST}"
+    -X "$method"
+  )
+  if [[ -n "$payload" ]]; then
+    curl_args+=(-H 'Content-Type: application/json' -d "$payload")
+  fi
+  curl "${curl_args[@]}" "http://127.0.0.1${endpoint}"
+}
+
+build_gitea_repo_payload() {
+  local repo_name="$1"
+  python3 - "$repo_name" <<'PY'
+import json
+import sys
+
+print(
+    json.dumps(
+        {
+            "name": sys.argv[1],
+            "default_branch": "main",
+            "private": True,
+            "auto_init": True,
+            "trust_model": "default",
+        }
+    )
+)
+PY
+}
+
+build_gitea_contents_payload() {
+  local commit_message="$1"
+  python3 - "$commit_message" <<'PY'
+import base64
+import json
+import sys
+
+print(
+    json.dumps(
+        {
+            "branch": "main",
+            "message": sys.argv[1],
+            "content": base64.b64encode(sys.stdin.buffer.read()).decode(),
+        }
+    )
+)
+PY
+}
+
+verify_gitea_actions_runner() {
+  if [[ "${GITEA_ACTIONS_ENABLED:-false}" != "true" ]]; then
+    return 0
+  fi
+  if [[ ! -f "$GITEA_ACTIONS_RUNNER_CONNECTION_INFO_PATH" ]]; then
+    fail "Expected Gitea Actions runner connection info at ${GITEA_ACTIONS_RUNNER_CONNECTION_INFO_PATH}"
+    exit 1
+  fi
+  if [[ ! -s "$GITEA_ACTIONS_RUNNER_KEY_PATH" ]]; then
+    fail "Expected Gitea Actions runner SSH key at ${GITEA_ACTIONS_RUNNER_KEY_PATH}"
+    exit 1
+  fi
+  if ! command -v ssh >/dev/null 2>&1 || ! command -v ssh-keyscan >/dev/null 2>&1; then
+    warn "Skipping runner-VM SSH checks because ssh/ssh-keyscan is not installed in the current shell"
+    return 0
+  fi
+
+  local runner_host=""
+  local runner_port=""
+  local runner_user=""
+  local known_hosts_file=""
+  local admin_user=""
+  local admin_password=""
+  local runner_json=""
+  local expected_runner_name="${RELEASE_NAME}-${GITEA_ACTIONS_RUNNER_VM_NAME}"
+
+  # shellcheck disable=SC1090
+  source "$GITEA_ACTIONS_RUNNER_CONNECTION_INFO_PATH"
+  runner_host="${HOST_LISTEN_ADDRESS:-}"
+  runner_port="${SSH_HOST_PORT:-}"
+  runner_user="${REMOTE_USER:-}"
+  if [[ -z "$runner_host" || -z "$runner_port" || -z "$runner_user" ]]; then
+    fail "Gitea Actions runner connection info is missing HOST_LISTEN_ADDRESS, SSH_HOST_PORT, or REMOTE_USER"
+    exit 1
+  fi
+
+  known_hosts_file="$(mktemp /tmp/ai-homebase-gitea-actions-runner-known-hosts.XXXXXX)"
+  ssh-keyscan -p "$runner_port" "$runner_host" >"$known_hosts_file" 2>/dev/null || true
+  if [[ ! -s "$known_hosts_file" ]]; then
+    rm -f "$known_hosts_file"
+    fail "Failed to collect SSH host keys for Gitea Actions runner VM ${runner_host}:${runner_port}"
+    exit 1
+  fi
+
+  step "Checking Gitea Actions runner container on the runner VM"
+  CURRENT_COMMAND="ssh ${runner_user}@${runner_host} docker inspect gitea-actions-runner"
+  run_checked ssh \
+    -i "$GITEA_ACTIONS_RUNNER_KEY_PATH" \
+    -o BatchMode=yes \
+    -o StrictHostKeyChecking=yes \
+    -o "UserKnownHostsFile=${known_hosts_file}" \
+    -o GlobalKnownHostsFile=/dev/null \
+    -p "$runner_port" \
+    "${runner_user}@${runner_host}" \
+    "docker inspect gitea-actions-runner >/dev/null"
+  rm -f "$known_hosts_file"
+
+  admin_user="$(kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" get secret gitea-admin-secret -o jsonpath='{.data.username}' | base64 -d)"
+  admin_password="$(kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" get secret gitea-admin-secret -o jsonpath='{.data.password}' | base64 -d)"
+
+  step "Checking Gitea admin Actions runner API"
+  for _ in {1..60}; do
+    runner_json="$(curl --silent --show-error --fail \
+      -u "${admin_user}:${admin_password}" \
+      -H "Host: ${GITEA_INGRESS_HOST}" \
+      "http://127.0.0.1/api/v1/admin/actions/runners" 2>/dev/null || true)"
+    if [[ -n "$runner_json" ]] && python3 - "$runner_json" "$expected_runner_name" <<'PY'
+import json
+import sys
+
+payload = json.loads(sys.argv[1])
+expected = sys.argv[2]
+for runner in payload.get("runners", []):
+    if runner.get("name") == expected and runner.get("status") in {"online", "idle", "active"}:
+        raise SystemExit(0)
+raise SystemExit(1)
+PY
+    then
+      ok "Gitea Actions runner ${expected_runner_name} is registered"
+      return 0
+    fi
+    sleep 2
+  done
+
+  fail "Timed out waiting for Gitea Actions runner ${expected_runner_name} to appear in the Gitea admin API."
+  exit 1
+}
+
+verify_gitea_actions_smoke_workflow() {
+  if [[ "${GITEA_ACTIONS_ENABLED:-false}" != "true" ]]; then
+    return 0
+  fi
+  if [[ -z "${CODER_GITEA_USERNAME:-}" || -z "${CODER_GITEA_PASSWORD:-}" ]]; then
+    warn "Skipping Gitea Actions smoke workflow because coder Gitea credentials are unavailable in bootstrap config"
+    return 0
+  fi
+
+  local admin_user=""
+  local admin_password=""
+  local smoke_repo_name="${RELEASE_NAME}-actions-smoke"
+  local smoke_repo_full_name="${CODER_GITEA_USERNAME}/${smoke_repo_name}"
+  local repo_status=""
+  local dockerfile_payload=""
+  local workflow_payload=""
+  local workflow_runs_json=""
+  local workflow_state=""
+  local status_body_file=""
+
+  admin_user="$(kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" get secret gitea-admin-secret -o jsonpath='{.data.username}' | base64 -d)"
+  admin_password="$(kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" get secret gitea-admin-secret -o jsonpath='{.data.password}' | base64 -d)"
+  status_body_file="$(mktemp /tmp/ai-homebase-gitea-actions-smoke-status.XXXXXX)"
+  trap 'rm -f "$status_body_file"' RETURN
+
+  repo_status="$(
+    curl --silent --show-error \
+      -o "$status_body_file" \
+      -w '%{http_code}' \
+      -u "${CODER_GITEA_USERNAME}:${CODER_GITEA_PASSWORD}" \
+      -H "Host: ${GITEA_INGRESS_HOST}" \
+      "http://127.0.0.1/api/v1/repos/${smoke_repo_full_name}"
+  )"
+  case "$repo_status" in
+    200)
+      step "Removing previous Gitea Actions smoke repo ${smoke_repo_full_name}"
+      CURRENT_COMMAND="DELETE /api/v1/repos/${smoke_repo_full_name}"
+      run_checked curl --silent --show-error --fail \
+        -u "${CODER_GITEA_USERNAME}:${CODER_GITEA_PASSWORD}" \
+        -H "Host: ${GITEA_INGRESS_HOST}" \
+        -X DELETE \
+        "http://127.0.0.1/api/v1/repos/${smoke_repo_full_name}"
+      ;;
+    404)
+      ;;
+    *)
+      cat "$status_body_file" >&2 || true
+      fail "Unexpected Gitea smoke repo lookup status for ${smoke_repo_full_name}: ${repo_status}"
+      exit 1
+      ;;
+  esac
+
+  step "Creating Gitea Actions smoke repo ${smoke_repo_full_name}"
+  CURRENT_COMMAND="POST /api/v1/user/repos"
+  run_checked gitea_api_request \
+    POST \
+    "/api/v1/user/repos" \
+    "$CODER_GITEA_USERNAME" \
+    "$CODER_GITEA_PASSWORD" \
+    "$(build_gitea_repo_payload "$smoke_repo_name")"
+
+  dockerfile_payload="$(
+    cat <<'EOF' | build_gitea_contents_payload "Add Actions smoke Dockerfile"
+FROM debian:trixie-slim
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+CMD ["true"]
+EOF
+  )"
+
+  step "Uploading Gitea Actions smoke Dockerfile"
+  CURRENT_COMMAND="POST /api/v1/repos/${smoke_repo_full_name}/contents/Dockerfile.smoke"
+  run_checked gitea_api_request \
+    POST \
+    "/api/v1/repos/${smoke_repo_full_name}/contents/Dockerfile.smoke" \
+    "$CODER_GITEA_USERNAME" \
+    "$CODER_GITEA_PASSWORD" \
+    "$dockerfile_payload"
+
+  workflow_payload="$(
+    cat <<'EOF' | build_gitea_contents_payload "Add Gitea Actions smoke workflow"
+name: smoke
+on:
+  push:
+    branches:
+      - main
+jobs:
+  smoke:
+    runs-on: homebase-coder
+    steps:
+      - uses: actions/checkout@v4
+      - name: Docker version
+        run: docker version
+      - name: Build smoke image
+        run: docker build -f Dockerfile.smoke -t actions-smoke:smoke .
+EOF
+  )"
+
+  step "Uploading Gitea Actions smoke workflow"
+  CURRENT_COMMAND="POST /api/v1/repos/${smoke_repo_full_name}/contents/.gitea/workflows/smoke.yaml"
+  run_checked gitea_api_request \
+    POST \
+    "/api/v1/repos/${smoke_repo_full_name}/contents/.gitea/workflows/smoke.yaml" \
+    "$CODER_GITEA_USERNAME" \
+    "$CODER_GITEA_PASSWORD" \
+    "$workflow_payload"
+
+  step "Waiting for the Gitea Actions smoke workflow to complete"
+  for _ in {1..120}; do
+    workflow_runs_json="$(
+      curl --silent --show-error --fail \
+        -u "${admin_user}:${admin_password}" \
+        -H "Host: ${GITEA_INGRESS_HOST}" \
+        "http://127.0.0.1/api/v1/admin/actions/runs?limit=20" 2>/dev/null || true
+    )"
+    if [[ -z "$workflow_runs_json" ]]; then
+      sleep 2
+      continue
+    fi
+    workflow_state="$(
+      python3 - "$workflow_runs_json" "$smoke_repo_full_name" <<'PY'
+import json
+import sys
+
+payload = json.loads(sys.argv[1])
+expected = sys.argv[2]
+runs = sorted(payload.get("workflow_runs", []), key=lambda item: item.get("id", 0), reverse=True)
+
+for run in runs:
+    repo = run.get("repository") or {}
+    full_name = repo.get("full_name")
+    if not full_name:
+        owner = repo.get("owner") or {}
+        owner_name = owner.get("login") or owner.get("username") or ""
+        repo_name = repo.get("name") or ""
+        full_name = f"{owner_name}/{repo_name}".strip("/")
+    if full_name != expected:
+        continue
+
+    status = (run.get("status") or "").lower()
+    conclusion = (run.get("conclusion") or "").lower()
+    if status in {"success", "skipped"} or conclusion in {"success", "skipped"}:
+        print("success")
+        raise SystemExit(0)
+    if status in {"failure", "failed", "cancelled"} or conclusion in {"failure", "failed", "cancelled"}:
+        print("failure")
+        raise SystemExit(0)
+    print(status or "pending")
+    raise SystemExit(0)
+
+raise SystemExit(1)
+PY
+    )" || true
+
+    case "$workflow_state" in
+      success)
+        ok "Gitea Actions smoke workflow succeeded for ${smoke_repo_full_name}"
+        rm -f "$status_body_file"
+        trap - RETURN
+        return 0
+        ;;
+      failure)
+        fail "Gitea Actions smoke workflow failed for ${smoke_repo_full_name}"
+        rm -f "$status_body_file"
+        trap - RETURN
+        exit 1
+        ;;
+    esac
+    sleep 2
+  done
+
+  rm -f "$status_body_file"
+  trap - RETURN
+  fail "Timed out waiting for the Gitea Actions smoke workflow to finish for ${smoke_repo_full_name}."
+  exit 1
+}
+
 if [[ "$SKIP_INSTALL" -eq 0 ]]; then
   BOOTSTRAP_STACK_CMD=(
     ./scripts/bootstrap-stack.sh
@@ -1186,6 +1522,8 @@ if [[ "$(is_gitea_enabled)" == "true" ]]; then
   step "Checking gitea ingress endpoint"
   CURRENT_COMMAND="curl --silent --show-error --fail -H Host: ${GITEA_INGRESS_HOST} http://127.0.0.1/api/v1/version"
   wait_for_http_endpoint "${GITEA_INGRESS_HOST}" "http://127.0.0.1/api/v1/version" "Gitea"
+  verify_gitea_actions_runner
+  verify_gitea_actions_smoke_workflow
 else
   warn "Skipping Gitea workload/service checks because gitea.enabled=false in effective values"
 fi

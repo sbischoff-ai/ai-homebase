@@ -7737,6 +7737,11 @@ spec:
           value: /tmp/gitea
         - name: HOME
           value: /data/gitea/git
+        - name: GITEA_RUNNER_REGISTRATION_TOKEN
+          valueFrom:
+            secretKeyRef:
+              key: GITEA_RUNNER_REGISTRATION_TOKEN
+              name: gitea-config-secrets
         image: docker.gitea.com/gitea:1.25.5-rootless
         imagePullPolicy: IfNotPresent
         livenessProbe:
@@ -7807,6 +7812,11 @@ spec:
           value: /data
         - name: GITEA_TEMP
           value: /tmp/gitea
+        - name: GITEA_RUNNER_REGISTRATION_TOKEN
+          valueFrom:
+            secretKeyRef:
+              key: GITEA_RUNNER_REGISTRATION_TOKEN
+              name: gitea-config-secrets
         image: docker.gitea.com/gitea:1.25.5-rootless
         imagePullPolicy: IfNotPresent
         name: init-directories
@@ -7843,6 +7853,11 @@ spec:
           value: /tmp/existing-envs
         - name: ENV_TO_INI_MOUNT_POINT
           value: /env-to-ini-mounts
+        - name: GITEA_RUNNER_REGISTRATION_TOKEN
+          valueFrom:
+            secretKeyRef:
+              key: GITEA_RUNNER_REGISTRATION_TOKEN
+              name: gitea-config-secrets
         - name: GITEA__database__PASSWD
           valueFrom:
             secretKeyRef:
@@ -7910,6 +7925,11 @@ spec:
           value: r8sA8CPHD9!bt6d
         - name: GITEA_ADMIN_PASSWORD_MODE
           value: keepUpdated
+        - name: GITEA_RUNNER_REGISTRATION_TOKEN
+          valueFrom:
+            secretKeyRef:
+              key: GITEA_RUNNER_REGISTRATION_TOKEN
+              name: gitea-config-secrets
         image: docker.gitea.com/gitea:1.25.5-rootless
         imagePullPolicy: IfNotPresent
         name: configure-gitea

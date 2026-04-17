@@ -10,6 +10,7 @@ RELEASE_NAME="${RELEASE_NAME:-platform-stack}"
 KUBECONFIG_PATH="${KUBECONFIG_PATH:-${HOME}/.kube/k3d-${CLUSTER_NAME}.yaml}"
 BOOTSTRAP_CONFIG_PATH="${BOOTSTRAP_CONFIG_PATH:-bootstrap.local.toml}"
 INCUS_VM_NAME="${INCUS_VM_NAME:-openclaw-sandbox}"
+GITEA_ACTIONS_RUNNER_VM_NAME="${GITEA_ACTIONS_RUNNER_VM_NAME:-gitea-actions-runner}"
 SHARED_OPENCLAW_STATE_SOURCE="${SHARED_OPENCLAW_STATE_SOURCE:-${HOME}/.local/state/ai-homebase/openclaw-state}"
 SHARED_OPENCLAW_STATE_NODE_PATH="${SHARED_OPENCLAW_STATE_NODE_PATH:-/var/lib/ai-homebase/openclaw-state}"
 SHARED_OPENCLAW_STATE_VM_PATH="${SHARED_OPENCLAW_STATE_VM_PATH:-/home/node/.openclaw}"
@@ -17,6 +18,8 @@ REMOTE_DOCKER_HOST="${REMOTE_DOCKER_HOST:-host.k3d.internal}"
 REMOTE_DOCKER_PORT="${REMOTE_DOCKER_PORT:-2222}"
 REMOTE_DOCKER_KEY_PATH="${REMOTE_DOCKER_KEY_PATH:-${HOME}/.local/state/ai-homebase/incus/${INCUS_VM_NAME}-id_ed25519}"
 INCUS_CONNECTION_INFO_PATH="${INCUS_CONNECTION_INFO_PATH:-}"
+GITEA_ACTIONS_RUNNER_CONNECTION_INFO_PATH="${GITEA_ACTIONS_RUNNER_CONNECTION_INFO_PATH:-}"
+GITEA_ACTIONS_RUNNER_KEY_PATH="${GITEA_ACTIONS_RUNNER_KEY_PATH:-${HOME}/.local/state/ai-homebase/incus/${GITEA_ACTIONS_RUNNER_VM_NAME}-id_ed25519}"
 REMOTE_DOCKER_HOST_EXPLICIT=0
 REMOTE_DOCKER_PORT_EXPLICIT=0
 OPENCLAW_GATEWAY_TOKEN_VALUE=""
@@ -81,6 +84,9 @@ done
 if [[ -z "$INCUS_CONNECTION_INFO_PATH" ]]; then
   INCUS_CONNECTION_INFO_PATH="${HOME}/.local/state/ai-homebase/incus/${INCUS_VM_NAME}.env"
 fi
+if [[ -z "$GITEA_ACTIONS_RUNNER_CONNECTION_INFO_PATH" ]]; then
+  GITEA_ACTIONS_RUNNER_CONNECTION_INFO_PATH="${HOME}/.local/state/ai-homebase/incus/${GITEA_ACTIONS_RUNNER_VM_NAME}.env"
+fi
 
 bootstrap_init_logging
 export KUBECONFIG="$KUBECONFIG_PATH"
@@ -134,6 +140,20 @@ append_bootstrap_resolve_hosts INCUS_VM_CMD
 run_quiet "${INCUS_VM_CMD[@]}"
 ok "Incus sandbox VM is ready"
 
+if [[ "${GITEA_ACTIONS_ENABLED:-false}" == "true" ]]; then
+  step "Bootstrapping Incus Gitea Actions runner VM"
+  GITEA_ACTIONS_VM_CMD=(
+    ./scripts/incus-vm-up.sh
+    --vm-name "${GITEA_ACTIONS_RUNNER_VM_NAME}"
+    --host-alias "${GITEA_ACTIONS_RUNNER_HOST_ALIAS}"
+    --ssh-host-port "${GITEA_ACTIONS_RUNNER_SSH_PORT}"
+    --remote-user-gecos "Gitea Actions runner Docker user"
+  )
+  append_bootstrap_resolve_hosts GITEA_ACTIONS_VM_CMD
+  run_quiet "${GITEA_ACTIONS_VM_CMD[@]}"
+  ok "Incus Gitea Actions runner VM is ready"
+fi
+
 if [[ -f "$INCUS_CONNECTION_INFO_PATH" ]]; then
   # shellcheck disable=SC1090
   source "$INCUS_CONNECTION_INFO_PATH"
@@ -181,6 +201,9 @@ echo "Local bootstrap complete."
 echo "Summary:"
 echo "  Kubeconfig path: ${KUBECONFIG}"
 echo "  Incus VM: ${INCUS_VM_NAME}"
+if [[ "${GITEA_ACTIONS_ENABLED:-false}" == "true" ]]; then
+echo "  Gitea Actions runner VM: ${GITEA_ACTIONS_RUNNER_VM_NAME}"
+fi
 echo "  Remote Docker endpoint: ssh://docker-remote@${REMOTE_DOCKER_HOST}:${REMOTE_DOCKER_PORT}"
 echo "  Remote Docker SSH secret: openclaw-remote-docker-ssh"
 echo "  OpenClaw gateway token: ${OPENCLAW_GATEWAY_TOKEN_VALUE}"

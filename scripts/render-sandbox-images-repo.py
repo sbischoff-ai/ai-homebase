@@ -13,6 +13,7 @@ INCLUDED_PATHS = (
     Path("images/openclaw-sandbox-base/reviewer-gitea-init.sh"),
     Path("images/openclaw-sandbox-coder/Dockerfile"),
     Path("images/openclaw-sandbox-coder/coder-init.sh"),
+    Path("images/gitea-actions-job/Dockerfile"),
     Path("images/openclaw-remote-docker/Dockerfile"),
     Path("images/openclaw-remote-docker/reviewer-gitea-init.sh"),
     Path("scripts/build-openclaw-sandbox-images.sh"),
@@ -41,6 +42,7 @@ This repository is the canonical source for the OpenClaw sandbox runtime images 
 Images owned here:
 - `openclaw-sandbox`
 - `openclaw-sandbox-coder`
+- `gitea-actions-job`
 - `openclaw-remote-docker`
 
 Operating model:
@@ -56,6 +58,7 @@ Default registry namespace:
 Canonical image names:
 - `{registry_host}/{repo_owner}/openclaw-sandbox:trixie-slim`
 - `{registry_host}/{repo_owner}/openclaw-sandbox-coder:trixie-slim`
+- `{registry_host}/{repo_owner}/gitea-actions-job:trixie-slim`
 - `{registry_host}/{repo_owner}/openclaw-remote-docker:trixie-slim`
 """
 

@@ -5,6 +5,7 @@ source "$(dirname "$0")/lib/logging.sh"
 
 VM_NAME="${VM_NAME:-openclaw-sandbox}"
 REMOTE_USER="${REMOTE_USER:-docker-remote}"
+REMOTE_USER_GECOS="${REMOTE_USER_GECOS:-ai-homebase companion Docker user}"
 SSH_HOST_PORT="${SSH_HOST_PORT:-2222}"
 CPU_LIMIT="${CPU_LIMIT:-2}"
 MEMORY_LIMIT="${MEMORY_LIMIT:-6GiB}"
@@ -35,11 +36,12 @@ usage() {
   cat <<USAGE
 Usage: $0 [options]
 
-Create or reuse the dedicated Incus VM used as a small remote Docker sandbox for OpenClaw.
+Create or reuse a dedicated Incus VM used as a small companion Docker appliance.
 
 Options:
   --vm-name <name>           Incus instance name (default: ${VM_NAME})
   --remote-user <name>       SSH user inside the VM (default: ${REMOTE_USER})
+  --remote-user-gecos <txt>  GECOS/comment for the SSH user (default: ${REMOTE_USER_GECOS})
   --ssh-host-port <port>     Host TCP port proxied to guest SSH 22 (default: ${SSH_HOST_PORT})
   --cpu <count>              CPU allowance for the VM (default: ${CPU_LIMIT})
   --memory <size>            Memory limit for the VM (default: ${MEMORY_LIMIT})
@@ -70,6 +72,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --vm-name) VM_NAME="$2"; shift 2 ;;
     --remote-user) REMOTE_USER="$2"; shift 2 ;;
+    --remote-user-gecos) REMOTE_USER_GECOS="$2"; shift 2 ;;
     --ssh-host-port) SSH_HOST_PORT="$2"; shift 2 ;;
     --cpu) CPU_LIMIT="$2"; shift 2 ;;
     --memory) MEMORY_LIMIT="$2"; shift 2 ;;
@@ -547,7 +550,7 @@ render_cloud_init() {
   local rendered_path
   rendered_path="$(mktemp /tmp/${VM_NAME}-cloud-init.XXXXXX.yaml)"
 
-  python3 - "$template_path" "$rendered_path" "$VM_NAME" "$REMOTE_USER" "$SSH_KEY_PATH.pub" "$HOST_LISTEN_ADDRESS" "$VM_STATIC_IPV4" <<'PY'
+  python3 - "$template_path" "$rendered_path" "$VM_NAME" "$REMOTE_USER" "$REMOTE_USER_GECOS" "$SSH_KEY_PATH.pub" "$HOST_LISTEN_ADDRESS" "$VM_STATIC_IPV4" <<'PY'
 import pathlib
 import sys
 
@@ -555,9 +558,10 @@ template_path = pathlib.Path(sys.argv[1])
 rendered_path = pathlib.Path(sys.argv[2])
 vm_name = sys.argv[3]
 remote_user = sys.argv[4]
-ssh_pubkey_path = pathlib.Path(sys.argv[5])
-host_listen_address = sys.argv[6]
-vm_static_ipv4 = sys.argv[7]
+remote_user_gecos = sys.argv[5]
+ssh_pubkey_path = pathlib.Path(sys.argv[6])
+host_listen_address = sys.argv[7]
+vm_static_ipv4 = sys.argv[8]
 
 text = template_path.read_text()
 ssh_key = ssh_pubkey_path.read_text().strip()
@@ -573,6 +577,7 @@ docker_daemon_json = """{
 rendered = (text
     .replace("__VM_NAME__", vm_name)
     .replace("__REMOTE_USER__", remote_user)
+    .replace("__REMOTE_USER_GECOS__", remote_user_gecos)
     .replace("__SSH_PUBLIC_KEY__", ssh_key)
     .replace("__HOST_LISTEN_ADDRESS__", host_listen_address)
     .replace("__VM_STATIC_IPV4__", vm_static_ipv4)

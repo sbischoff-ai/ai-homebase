@@ -11,7 +11,7 @@ packages:
 users:
   - default
   - name: __REMOTE_USER__
-    gecos: OpenClaw sandbox remote Docker user
+    gecos: __REMOTE_USER_GECOS__
     groups: [sudo]
     shell: /bin/bash
     sudo: ALL=(ALL) NOPASSWD:ALL

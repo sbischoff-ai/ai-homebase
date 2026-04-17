@@ -1,3 +1,14 @@
+actions:
+  enabled: true
+  runner:
+    vmName: gitea-actions-runner
+    hostAlias: gitea-actions-runner.homebase.internal
+    sshPort: 2223
+    labels:
+      - linux-amd64
+      - homebase-coder
+    jobImage: gitea-actions-job:trixie-slim
+
 gitea:
   enabled: true
   image:
@@ -62,6 +73,13 @@ gitea:
             secretKeyRef:
               name: gitea-config-secrets
               key: GITEA__database__PASSWD
+  deployment:
+    env:
+      - name: GITEA_RUNNER_REGISTRATION_TOKEN
+        valueFrom:
+          secretKeyRef:
+            name: gitea-config-secrets
+            key: GITEA_RUNNER_REGISTRATION_TOKEN
   gitea:
     admin:
       username: git-admin

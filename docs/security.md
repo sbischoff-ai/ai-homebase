@@ -70,6 +70,17 @@ The SSH Secret must provide:
 
 The init container locks down permissions before the main OpenClaw container starts. If those files are missing or empty, startup is expected to fail.
 
+## Gitea Actions Runner Trust Boundary
+
+Optional Gitea Actions support uses a separate companion Incus VM instead of the OpenClaw sandbox VM. The runner container mounts that VM's Docker socket so it can launch build-capable job containers.
+
+Important implications:
+
+- treat the runner VM as a trusted internal CI surface only
+- do not share it with untrusted repositories or users
+- expect Docker-socket access on that VM to be equivalent to high host privilege
+- the bootstrap-managed runner registration token now lives in `gitea-config-secrets`
+
 ## Related Pages
 
 - Architecture: [architecture.md](./architecture.md)

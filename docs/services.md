@@ -60,6 +60,9 @@ Memory schema details live in [qdrant-memory-schema.md](./qdrant-memory-schema.m
 ### Gitea, Registry, And GitOps
 
 Gitea holds the GitOps repository and the sandbox image source repository. Bootstrap-side Gitea API and git operations use a local `kubectl port-forward` to the in-cluster Gitea service, so first install does not depend on the host trusting the internal ingress CA.
+Gitea Actions support is enabled by default through `gitea.actions.enabled=true`. Bootstrap injects a global runner registration token into `gitea-config-secrets`, creates a second companion Incus VM just for Actions jobs, and starts a persistent `act_runner` container there in Docker-socket mode unless you explicitly disable that posture.
+The default runner labels are intentionally explicit and non-GitHub-hosted: `linux-amd64` and `homebase-coder`, both mapped to the repo-managed `gitea-actions-job` image.
+The local `k3d` smoke script now also creates a temporary `${release}-actions-smoke` repository in Gitea, uploads a tiny `.gitea/workflows/smoke.yaml`, and waits for that workflow to finish in the default Actions-enabled posture.
 
 The registry stores OpenClaw sandbox images and future coder-built application images. Registry pulls and pushes require both DNS reachability and internal CA trust for the registry hostname in the cluster node runtime and remote Docker sandbox runtime.
 

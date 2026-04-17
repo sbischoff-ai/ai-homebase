@@ -57,7 +57,7 @@ If `openclaw.agents.reviewer.gitea.password` is empty, the bootstrap flow genera
 After the GitOps bootstrap succeeds:
 
 - the GitOps repo becomes the source of truth for cluster definitions
-- the sandbox-images repo becomes the source of truth for the regular and coder OpenClaw sandbox image definitions
+- the sandbox-images repo becomes the source of truth for the regular and coder OpenClaw sandbox images plus the `gitea-actions-job` image definition
 - coder and reviewer tea logins are backed by bootstrap-managed API tokens stored in the runtime credential Secrets
 - Argo CD keeps sync in manual mode because agents may be allowed to push changes to the GitOps repo; sync should therefore be triggered explicitly through the UI or API
 - sandbox image tags referenced from OpenClaw config should be published to the in-cluster registry before GitOps changes point at them

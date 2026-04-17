@@ -87,6 +87,13 @@ username = ""
 email = ""
 password = ""
 
+[services.gitea.actions]
+enabled = true
+vm_name = "gitea-actions-runner"
+host_alias = ""
+ssh_port = 2223
+labels = ["linux-amd64", "homebase-coder"]
+
 [services.registry.auth]
 username = "coder"
 password = ""

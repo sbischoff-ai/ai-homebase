@@ -114,10 +114,12 @@ python3 scripts/bootstrap-config.py validate --config bootstrap.local.toml
 ./scripts/k3d-local-bootstrap.sh --cluster-name ai-homebase-dev --bootstrap-config bootstrap.local.toml
 sudo ./scripts/install-k3s-ubuntu-2404.sh
 ./scripts/k3s-homelab-sandbox-up.sh --bootstrap-config bootstrap.local.toml
+./scripts/k3s-homelab-gitea-actions-runner-up.sh --bootstrap-config bootstrap.local.toml
 ./scripts/bootstrap-stack.sh --profile k3s --bootstrap-config bootstrap.local.toml
 ```
 
 `bootstrap-stack.sh` now includes the GitOps handoff, initial Argo sync, and Argo application validation by default, and it no longer has a supported public mode that returns success before GitOps is finished. Re-run `bootstrap-gitops.sh` only when you want to refresh the in-cluster GitOps repo snapshot separately from the main bootstrap flow.
+The dedicated Gitea Actions runner VM helper is part of the default `k3s` bootstrap path. Skip it only when you explicitly disable Actions with `services.gitea.actions.enabled=false`.
 
 ## Local bootstrap and Incus sandbox helpers
 
@@ -128,6 +130,7 @@ python3 scripts/bootstrap-config.py validate --config bootstrap.local.toml
 ./scripts/incus-vm-up.sh --vm-name openclaw-sandbox
 SSH_READY_TIMEOUT_SECONDS=1800 ./scripts/incus-vm-up.sh --vm-name openclaw-sandbox
 source ~/.local/state/ai-homebase/incus/openclaw-sandbox.env
+./scripts/k3s-homelab-gitea-actions-runner-up.sh --bootstrap-config bootstrap.local.toml
 ./scripts/bootstrap-stack.sh \
   --profile k3d \
   --namespace ai-homebase \
@@ -150,7 +153,7 @@ source ~/.local/state/ai-homebase/incus/openclaw-sandbox.env
 ./scripts/build-openclaw-sandbox-images.sh
 ```
 
-`bootstrap-stack.sh` auto-builds the repo-managed OpenClaw gateway image, makes it available to the active node runtime, rebuilds the regular and coder sandbox images, remote-loads those images onto the Incus-backed Docker host, and publishes runtime images to the in-cluster registry when the rendered OpenClaw config references them. The manual commands above are mainly for debugging or preloading.
+`bootstrap-stack.sh` auto-builds the repo-managed OpenClaw gateway image, rebuilds the regular and coder sandbox images plus the optional `gitea-actions-job` image, remote-loads the OpenClaw sandbox images onto the Incus-backed Docker host, and publishes canonical runtime images to the in-cluster registry when the rendered config references them. The manual commands above are mainly for debugging or preloading.
 
 ## Fresh Ubuntu 24.04 `k3s` host prep
 
@@ -160,3 +163,4 @@ sudo ./scripts/install-k3s-ubuntu-2404.sh
 ```
 
 The k3s prep path expects Docker Engine and git to already exist on the host. It installs k3s with Traefik disabled and installs `ingress-nginx` for the `nginx` ingress class used by both supported target overlays.
+When Gitea Actions remain at their default enabled posture, also run `./scripts/k3s-homelab-gitea-actions-runner-up.sh --bootstrap-config bootstrap.local.toml` before `bootstrap-stack.sh`.

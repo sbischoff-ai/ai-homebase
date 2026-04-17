@@ -41,6 +41,7 @@ python3 scripts/bootstrap-config.py validate --config bootstrap.local.toml
 - `[mail]` sender domain, SMTP hostname, sender local-part, and display name
 - provider/search API keys
 - shared admin identity and service-specific admin overrides
+- Gitea Actions runner bootstrap settings under `[services.gitea.actions]` with Actions enabled by default
 - OpenClaw gateway token and agent model selections
 - registry credentials, coder Gitea defaults, and the shared reviewer Gitea identity for architect and auditor
 - first-run application secrets when the operator wants explicit values
@@ -85,7 +86,7 @@ Use service blocks for service-specific behavior:
 - `certManager.*` for umbrella-owned cert-manager enablement and internal PKI resources
 - `cert-manager.*` for upstream cert-manager subchart values
 - `openclaw.*` for gateway, agent, workspace, sandbox, and MCP runtime values
-- `nextcloud.*`, `gitea.*`, `paperlessNgx.*`, and other service keys for service-local ingress, persistence, resources, and secret refs
+- `nextcloud.*`, `gitea.*`, `paperlessNgx.*`, and other service keys for service-local ingress, persistence, resources, secret refs, and bootstrap-owned companion settings such as `gitea.actions.*`
 
 Use the canonical host keys under `global.hosts.*`, including `paperlessNgx`, `vaultwarden`, `registry`, `argocd`, `qdrant`, `qdrantMcp`, `memgraph`, `memgraphLab`, and `nextcloudMcp`. Bootstrap config uses snake_case TOML names where appropriate, for example `hosts.nextcloud_mcp`.
 

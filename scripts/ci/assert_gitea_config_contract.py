@@ -34,6 +34,7 @@ def main() -> None:
         require(text, "name: GITEA__cache__HOST", context=name)
         require(text, "name: GITEA__queue__CONN_STR", context=name)
         require(text, "name: GITEA__global_lock__SERVICE_CONN_STR", context=name)
+        require(text, "name: GITEA_RUNNER_REGISTRATION_TOKEN", context=name)
         require(text, "name: gitea-config-secrets", context=name)
         require(text, "additionalConfigSources: []", context=name)
         if not re.search(r"\bvalkey:\n\s+enabled: false", text):
@@ -49,6 +50,7 @@ def main() -> None:
         "GITEA__cache__HOST",
         "GITEA__queue__CONN_STR",
         "GITEA__global_lock__SERVICE_CONN_STR",
+        "GITEA_RUNNER_REGISTRATION_TOKEN",
     ):
         require(
             bootstrap_script,
@@ -59,11 +61,6 @@ def main() -> None:
     require(
         bootstrap_script,
         'gitea-config-secrets',
-        context="scripts/bootstrap-secrets.sh",
-    )
-    require(
-        bootstrap_script,
-        "resolve_from_existing_secret_or_generate \"$GITEA_DB_PASSWORD\" gitea-config-secrets '{.data.GITEA__database__PASSWD}'",
         context="scripts/bootstrap-secrets.sh",
     )
     require(
