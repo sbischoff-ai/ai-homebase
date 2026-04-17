@@ -16,6 +16,8 @@ Notes:
 - `via MCP` means access flows through the MCP bridge on the gateway, not directly from the sandbox container.
 - `direct` means the sandbox container or gateway runtime can reach the service directly.
 - `no sandbox` means the agent runs unsandboxed on the gateway.
+- `architect` direct Gitea access uses the ingress hostname path because its reviewer sessions run in Docker sandboxes on the Incus VM outside Kubernetes.
+- `auditor` direct Gitea access uses the in-cluster Gitea HTTP Service because its reviewer work stays on the gateway.
 - Coder's lack of Memgraph access is intentional. Graph data operations belong to `archivist`.
 - Archivist's direct Qdrant REST access is limited to seeded `qdrant/` graph-grooming scripts. Ordinary memory search and storage still goes through Qdrant MCP.
 - `limited` internet access indicates a narrower outbound posture than the general-purpose agents.

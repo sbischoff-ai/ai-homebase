@@ -10,6 +10,7 @@ The supported target posture is:
 - Docker/browser sandboxes run on a single-purpose Incus VM outside Helm.
 - Gateway pod and Incus VM share the same OpenClaw state tree at `/home/node/.openclaw`.
 - Sandbox `/workspace` binds into that durable state and remains writable.
+- Sandbox tool state lives under `/workspace/.home`, which is the writable home and XDG root for regular sandbox sessions.
 - Ingress hostnames that sandboxes call are resolved into the Incus host listener by the sandbox helper scripts.
 
 The shared state source is target-specific:
@@ -67,6 +68,13 @@ Bootstrap seeds explicit agents:
 - `archivist`: Qdrant/Memgraph memory stewardship
 - `watchdog`: low-cost monitoring and scheduled triage
 - `auditor`: sparse high-judgment review, with gateway reviewer access to Gitea
+
+Reviewer Gitea routing is runtime-specific:
+
+- gateway reviewer sessions use the in-cluster Gitea HTTP Service URL
+- Docker sandbox reviewer sessions use the configured ingress hostname resolved through the Incus VM host overrides
+
+Do not expect cluster-internal DNS names to resolve inside Docker sandbox containers.
 
 Agent model selections come from `bootstrap.local.toml` under `[openclaw.agents.<id>]`. `coder` also accepts `codex_model` for the Codex CLI runtime inside its sandbox.
 Heartbeat is configured explicitly rather than relying on OpenClaw's built-in default cadence: `main` is disabled with `heartbeat.every=0m` plus `heartbeat.includeSystemPromptSection=false`, while `watchdog` is the standing heartbeat agent at `30m`.

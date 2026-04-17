@@ -1,12 +1,11 @@
 ---
 name: gitea-browse
-description: Browse in-cluster Gitea repos, issues, pull requests, commits, chart values, GitOps definitions, and sandbox image sources for read-only design context with the shared reviewer identity.
+description: Browse in-cluster Gitea repos, issues, pull requests, commits, chart values, GitOps definitions, and sandbox image sources for read-only design context with the `__REVIEWER_GITEA_USERNAME__` Gitea user shared with auditor.
 ---
 
 # Gitea Browse
 
 Use this skill to inspect in-cluster source control before design work.
-Your sandbox is expected to arrive with the shared reviewer identity already configured for `git` and `tea`.
 
 ## Default Repos
 
@@ -15,7 +14,7 @@ Your sandbox is expected to arrive with the shared reviewer identity already con
 
 ## Read-Only Commands
 
-Use `git` and `tea` with the shared reviewer identity that is already configured in your sandbox.
+Use the preconfigured `git` and `tea` access for the `__REVIEWER_GITEA_USERNAME__` Gitea user. Auditor uses this same Gitea user for review work. Coder uses the separate `__CODER_GITEA_USERNAME__` Gitea user for implementation and repo management.
 
 ```bash
 tea repo list
@@ -43,6 +42,7 @@ git show <sha> --stat
 
 - Do not push branches, open pull requests, create commits, merge, or modify repo state.
 - Do not stage or commit changes.
+- The Gitea admin account `__GITEA_ADMIN_USERNAME__` remains the final authority for approvals and merges on protected `main`.
 - Cite concrete repo paths, commits, issues, or PRs when they shape a design.
 - Tell main when a design depends on absent, ambiguous, or inconsistent Gitea state.
 - If `tea` auth fails or a critical repo is missing, stop and tell main exactly what failed.

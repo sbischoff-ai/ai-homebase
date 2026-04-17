@@ -309,6 +309,7 @@ assert rendered_values["openclaw"]["openclaw"]["tools"]["agentToAgent"]["allow"]
 assert rendered_values["openclaw"]["openclaw"]["tools"]["sessions"]["visibility"] == "all"
 assert rendered_values["openclaw"]["openclaw"]["plugins"]["slots"]["memory"] == "none"
 assert rendered_values["openclaw"]["workspaceBootstrap"]["enabled"] is True
+assert rendered_values["openclaw"]["workspaceBootstrap"]["giteaAdminUsername"] == "git-admin"
 assert rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"] == {
     "workspace": "/home/node/.openclaw/workspace",
     "filesDir": "workspaces/main",

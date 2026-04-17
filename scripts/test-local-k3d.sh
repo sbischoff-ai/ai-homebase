@@ -610,14 +610,18 @@ verify_openclaw_remote_docker() {
 
 verify_openclaw_gateway_tooling() {
   local deployment_name="$1"
+  local expected_reviewer_host="${RELEASE_NAME}-gitea-http.${NAMESPACE}.svc.cluster.local"
+  local expected_reviewer_base_url="http://${expected_reviewer_host}:3000"
 
   step "Checking OpenClaw gateway tooling for watchdog/session-logs"
-  CURRENT_COMMAND="kubectl exec deployment/${deployment_name} -- sh -ceu 'command -v jq && command -v rg && command -v python3 && command -v tokscale'"
+  CURRENT_COMMAND="kubectl exec deployment/${deployment_name} -- sh -ceu 'command -v jq && command -v rg && command -v python3 && command -v tokscale && check reviewer Gitea env'"
   run_checked kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" exec "deployment/${deployment_name}" -- sh -ceu "
     command -v jq >/dev/null
     command -v rg >/dev/null
     command -v python3 >/dev/null
     command -v tokscale >/dev/null
+    [ \"\${REVIEWER_GITEA_HOST:-}\" = \"${expected_reviewer_host}\" ]
+    [ \"\${REVIEWER_GITEA_BASE_URL:-}\" = \"${expected_reviewer_base_url}\" ]
   "
 }
 
@@ -626,6 +630,13 @@ verify_openclaw_mcp_bootstrap_config() {
   local deployment_name="$2"
   local openclaw_json=""
   local cron_jobs_json=""
+  local architect_reviewer_scheme="https"
+  local architect_reviewer_base_url=""
+
+  if [[ "${GITEA_INGRESS_HOST:-}" == *.localtest.me ]]; then
+    architect_reviewer_scheme="http"
+  fi
+  architect_reviewer_base_url="${architect_reviewer_scheme}://${GITEA_INGRESS_HOST}"
 
   openclaw_json="$(
     kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" get configmap "$configmap_name" -o jsonpath='{.data.openclaw\.json}'
@@ -666,6 +677,11 @@ verify_openclaw_mcp_bootstrap_config() {
     exit 1
   fi
 
+  if [[ "$openclaw_json" != *'"HOME":"/workspace/.home"'* ]]; then
+    fail "OpenClaw bootstrap config in ConfigMap/${configmap_name} is not keeping regular sandbox home state under /workspace/.home"
+    exit 1
+  fi
+
   if [[ "$openclaw_json" == *'/home/node/.openclaw/certs/ai-homebase-ca-bundle.crt:/etc/ssl/certs/ai-homebase-ca-bundle.crt:ro'* ]]; then
     fail "OpenClaw bootstrap config in ConfigMap/${configmap_name} still contains the retired out-of-roots sandbox CA bind mount"
     exit 1
@@ -683,6 +699,21 @@ verify_openclaw_mcp_bootstrap_config() {
 
   if [[ "$openclaw_json" != *'"id":"architect"'*'"mode":"non-main"'* ]]; then
     fail "OpenClaw bootstrap config in ConfigMap/${configmap_name} is not keeping architect main sessions on the gateway"
+    exit 1
+  fi
+
+  if [[ "$openclaw_json" != *"\"REVIEWER_GITEA_BASE_URL\":\"${architect_reviewer_base_url}\""* ]]; then
+    fail "OpenClaw bootstrap config in ConfigMap/${configmap_name} is not keeping architect reviewer access on the ingress hostname path"
+    exit 1
+  fi
+
+  if [[ "$openclaw_json" != *"\"REVIEWER_GITEA_HOST\":\"${GITEA_INGRESS_HOST}\""* ]]; then
+    fail "OpenClaw bootstrap config in ConfigMap/${configmap_name} is not rendering architect reviewer host routing from the configured Gitea ingress hostname"
+    exit 1
+  fi
+
+  if [[ "$openclaw_json" != *'"id":"auditor"'*'"mode":"off"'* ]]; then
+    fail "OpenClaw bootstrap config in ConfigMap/${configmap_name} is not keeping auditor on the gateway"
     exit 1
   fi
 
@@ -790,6 +821,7 @@ verify_openclaw_workspace_bootstrap() {
     grep -F "verdicts -> auditor" /home/node/.openclaw/workspace-architect/AGENTS.md >/dev/null
     test ! -e /home/node/.openclaw/workspace-architect/HEARTBEAT.md
     test -f /home/node/.openclaw/workspace-architect/.openclaw-runtime/ai-homebase-ca-bundle.crt
+    grep -F "Do not swap in cluster-internal Kubernetes DNS names inside the sandbox." /home/node/.openclaw/workspace-architect/skills/gitea-browse/SKILL.md >/dev/null
 
     test -f /home/node/.openclaw/workspace-watchdog/AGENTS.md
     grep -F "systemic review -> auditor" /home/node/.openclaw/workspace-watchdog/AGENTS.md >/dev/null
@@ -805,6 +837,7 @@ verify_openclaw_workspace_bootstrap() {
     grep -F "\"agent\":\"auditor\"" /home/node/.openclaw/workspace-auditor/MEMORY.md >/dev/null
     test ! -e /home/node/.openclaw/workspace-auditor/HEARTBEAT.md
     test -f /home/node/.openclaw/workspace-auditor/.openclaw-runtime/ai-homebase-ca-bundle.crt
+    grep -F "Do not replace it with \`localtest.me\` or other ingress hostnames from the gateway runtime." /home/node/.openclaw/workspace-auditor/skills/gitea-browse/SKILL.md >/dev/null
   '
 }
 
@@ -908,6 +941,34 @@ verify_coder_sandbox_runtime() {
         grep -F \"model = \\\"gpt-5.4-mini\\\"\" /workspace/.home/.codex/config.toml >/dev/null
         grep -F \"forced_login_method = \\\"api\\\"\" /workspace/.home/.codex/config.toml >/dev/null
         test -f /workspace/.home/.codex/auth.json
+        test -d /workspace/.home/.config/tea
+      '
+  "
+}
+
+verify_reviewer_sandbox_runtime() {
+  if ! command -v incus >/dev/null 2>&1; then
+    warn "Skipping reviewer sandbox runtime checks because incus is not installed in the current shell"
+    return 0
+  fi
+
+  step "Checking reviewer sandbox runtime image on the Incus Docker host"
+  CURRENT_COMMAND="incus exec ${INCUS_VM_NAME} -- sh -ceu 'docker run reviewer sandbox validation'"
+  run_checked incus exec "$INCUS_VM_NAME" -- sh -ceu "
+    docker image inspect openclaw-sandbox:trixie-slim >/dev/null
+    docker run --rm --entrypoint sh \
+      -e HOME=/workspace/.home \
+      -e XDG_CONFIG_HOME=/workspace/.home/.config \
+      -e XDG_CACHE_HOME=/workspace/.home/.cache \
+      -e XDG_STATE_HOME=/workspace/.home/.local/state \
+      -e REVIEWER_GITEA_USERNAME=reviewer \
+      -e REVIEWER_GITEA_EMAIL=reviewer@example.invalid \
+      openclaw-sandbox:trixie-slim -ceu '
+        getent passwd sandbox | cut -d: -f6 | grep -Fx /workspace/.home >/dev/null
+        test -w /workspace/.home
+        command -v tea >/dev/null
+        /usr/local/bin/reviewer-gitea-init.sh >/tmp/reviewer-gitea-init.log
+        test -d /workspace/.home/.tea
         test -d /workspace/.home/.config/tea
       '
   "
@@ -1039,6 +1100,7 @@ fi
 
 NEXTCLOUD_INGRESS_HOST="$(effective_value "nextcloud.ingress.private.host")"
 NEXTCLOUD_MCP_INGRESS_HOST="$(effective_value "nextcloudMcp.ingress.hosts.0.host")"
+GITEA_INGRESS_HOST="$(effective_value "gitea.gitea.ingress.hosts.0.host")"
 VAULTWARDEN_INGRESS_HOST="$(effective_value "vaultwarden.ingress.hosts.0.host")"
 PAPERLESS_INGRESS_HOST="$(effective_value "paperlessNgx.ingress.hosts.0.host")"
 OPENCLAW_INGRESS_HOST="$(effective_value "openclaw.ingress.hosts.0.host")"
@@ -1097,6 +1159,14 @@ fi
 if [[ "$(is_gitea_enabled)" == "true" ]]; then
   wait_for_gitea_workloads "$GITEA_WAIT_TIMEOUT"
   verify_gitea_services
+  if [[ -n "$HOST_LISTEN_ADDRESS_VALUE" ]]; then
+    verify_incus_hostname_resolution "$GITEA_INGRESS_HOST" "$HOST_LISTEN_ADDRESS_VALUE" "/api/v1/version" "Gitea" "200"
+  else
+    warn "Skipping Incus sandbox DNS checks for Gitea because ${INCUS_CONNECTION_INFO_PATH} is missing or does not define HOST_LISTEN_ADDRESS"
+  fi
+  step "Checking gitea ingress endpoint"
+  CURRENT_COMMAND="curl --silent --show-error --fail -H Host: ${GITEA_INGRESS_HOST} http://127.0.0.1/api/v1/version"
+  wait_for_http_endpoint "${GITEA_INGRESS_HOST}" "http://127.0.0.1/api/v1/version" "Gitea"
 else
   warn "Skipping Gitea workload/service checks because gitea.enabled=false in effective values"
 fi
@@ -1185,6 +1255,7 @@ if [[ -n "$HOST_LISTEN_ADDRESS_VALUE" ]]; then
   else
     verify_archivist_sandbox_runtime "$MEMGRAPH_INGRESS_HOST" ""
   fi
+  verify_reviewer_sandbox_runtime
   verify_coder_sandbox_runtime "$MEMGRAPH_INGRESS_HOST"
 else
   warn "Skipping sandbox runtime checks because ${INCUS_CONNECTION_INFO_PATH} is missing or does not define HOST_LISTEN_ADDRESS"

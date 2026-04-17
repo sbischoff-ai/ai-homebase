@@ -614,6 +614,8 @@ def command_render_values(args: argparse.Namespace) -> int:
     full_mail_from = f"{values['MAIL_FROM_LOCALPART']}@{values['MAIL_DOMAIN']}"
     gitea_scheme = "http" if values["GITEA_HOST"].endswith(".localtest.me") else "https"
     gitea_base_url = f"{gitea_scheme}://{values['GITEA_HOST']}"
+    internal_gitea_service_host = '{{ printf "%s-gitea-http.%s.svc.cluster.local" .Release.Name .Release.Namespace }}'
+    internal_gitea_service_base_url = f"http://{internal_gitea_service_host}:3000"
     qdrant_scheme = "http" if values["QDRANT_HOST"].endswith(".localtest.me") else "https"
     qdrant_sandbox_url = f"{qdrant_scheme}://{values['QDRANT_HOST']}" if values["QDRANT_HOST"] else ""
     openclaw["openclaw"] = {
@@ -634,6 +636,10 @@ def command_render_values(args: argparse.Namespace) -> int:
                     "docker": {
                         "image": values["OPENCLAW_DEFAULT_SANDBOX_IMAGE"],
                         "env": {
+                            "HOME": "/workspace/.home",
+                            "XDG_CONFIG_HOME": "/workspace/.home/.config",
+                            "XDG_CACHE_HOME": "/workspace/.home/.cache",
+                            "XDG_STATE_HOME": "/workspace/.home/.local/state",
                             "SSL_CERT_FILE": SANDBOX_CA_BUNDLE_PATH,
                             "REQUESTS_CA_BUNDLE": SANDBOX_CA_BUNDLE_PATH,
                             "NODE_EXTRA_CA_CERTS": SANDBOX_CA_BUNDLE_PATH,
@@ -756,6 +762,10 @@ def command_render_values(args: argparse.Namespace) -> int:
                             "readOnlyRoot": True,
                             "tmpfs": ["/tmp", "/var/tmp", "/run"],
                             "env": {
+                                "HOME": "/workspace/.home",
+                                "XDG_CONFIG_HOME": "/workspace/.home/.config",
+                                "XDG_CACHE_HOME": "/workspace/.home/.cache",
+                                "XDG_STATE_HOME": "/workspace/.home/.local/state",
                                 "SSL_CERT_FILE": SANDBOX_CA_BUNDLE_PATH,
                                 "REQUESTS_CA_BUNDLE": SANDBOX_CA_BUNDLE_PATH,
                                 "NODE_EXTRA_CA_CERTS": SANDBOX_CA_BUNDLE_PATH,
@@ -878,8 +888,8 @@ def command_render_values(args: argparse.Namespace) -> int:
             "name": "MEMGRAPH_BOLT_URI",
             "value": 'bolt://{{ printf "%s-memgraph" .Release.Name | trunc 63 | trimSuffix "-" }}:7687',
         },
-        {"name": "REVIEWER_GITEA_BASE_URL", "value": gitea_base_url},
-        {"name": "REVIEWER_GITEA_HOST", "value": values["GITEA_HOST"]},
+        {"name": "REVIEWER_GITEA_BASE_URL", "value": internal_gitea_service_base_url},
+        {"name": "REVIEWER_GITEA_HOST", "value": internal_gitea_service_host},
         {"name": "REVIEWER_GITEA_USERNAME", "value": values["REVIEWER_GITEA_USERNAME"]},
         {"name": "REVIEWER_GITEA_EMAIL", "value": values["REVIEWER_GITEA_EMAIL"]},
         {"name": "REVIEWER_GITEA_TEA_LOGIN_NAME", "value": "reviewer"},
@@ -1200,6 +1210,7 @@ def command_render_values(args: argparse.Namespace) -> int:
             }
         },
     }
+    workspace_bootstrap["giteaAdminUsername"] = values["GITEA_ADMIN_USERNAME"]
     rendered["openclaw"]["workspaceBootstrap"] = workspace_bootstrap
     if values["ARGOCD_ADMIN_USER"] and values["ARGOCD_ADMIN_USER"] != "admin":
         rendered["argoCd"]["argocd"].setdefault("configs", {}).setdefault("cm", {})[

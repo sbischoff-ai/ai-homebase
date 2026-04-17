@@ -41,10 +41,13 @@ RUN GOBIN=/usr/local/bin go install code.gitea.io/tea@latest \
   && npm --version \
   && summarize --version
 
-RUN useradd --create-home --shell /bin/bash sandbox
-RUN chmod 0755 /usr/local/bin/reviewer-gitea-init.sh
+RUN useradd --create-home --shell /bin/bash sandbox && \
+    usermod --home /workspace/.home sandbox && \
+    mkdir -p /workspace/.home && \
+    chown -R sandbox:sandbox /workspace && \
+    chmod 0755 /usr/local/bin/reviewer-gitea-init.sh
 
 USER sandbox
-WORKDIR /home/sandbox
+WORKDIR /workspace
 
 CMD ["sleep", "infinity"]

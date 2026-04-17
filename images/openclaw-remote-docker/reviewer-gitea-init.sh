@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+HOME_DIR="${HOME:-/home/node}"
+XDG_CONFIG_HOME_DIR="${XDG_CONFIG_HOME:-${HOME_DIR}/.config}"
+XDG_CACHE_HOME_DIR="${XDG_CACHE_HOME:-${HOME_DIR}/.cache}"
+XDG_STATE_HOME_DIR="${XDG_STATE_HOME:-${HOME_DIR}/.local/state}"
+
 REVIEWER_GITEA_USERNAME="${REVIEWER_GITEA_USERNAME:-reviewer}"
 REVIEWER_GITEA_EMAIL="${REVIEWER_GITEA_EMAIL:-reviewer@example.invalid}"
 REVIEWER_GITEA_HOST="${REVIEWER_GITEA_HOST:-}"
@@ -9,7 +14,16 @@ REVIEWER_GITEA_PASSWORD="${REVIEWER_GITEA_PASSWORD:-}"
 REVIEWER_GITEA_TEA_LOGIN_NAME="${REVIEWER_GITEA_TEA_LOGIN_NAME:-reviewer}"
 REVIEWER_GITEA_TEA_TOKEN_NAME="${REVIEWER_GITEA_TEA_TOKEN_NAME:-openclaw-reviewer}"
 
-mkdir -p "${HOME}/.config/tea"
+export HOME="${HOME_DIR}"
+export XDG_CONFIG_HOME="${XDG_CONFIG_HOME_DIR}"
+export XDG_CACHE_HOME="${XDG_CACHE_HOME_DIR}"
+export XDG_STATE_HOME="${XDG_STATE_HOME_DIR}"
+
+mkdir -p \
+  "${HOME}/.tea" \
+  "${XDG_CONFIG_HOME}/tea" \
+  "${XDG_CACHE_HOME}" \
+  "${XDG_STATE_HOME}"
 
 git config --global user.name "${REVIEWER_GITEA_USERNAME}"
 git config --global user.email "${REVIEWER_GITEA_EMAIL}"

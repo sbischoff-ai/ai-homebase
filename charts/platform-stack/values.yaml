@@ -113,9 +113,9 @@ openclaw:
     - name: MEMGRAPH_BOLT_URI
       value: 'bolt://{{ printf "%s-memgraph" .Release.Name | trunc 63 | trimSuffix "-" }}:7687'
     - name: REVIEWER_GITEA_BASE_URL
-      value: https://gitea.homebase.local
+      value: 'http://{{ printf "%s-gitea-http.%s.svc.cluster.local:3000" .Release.Name .Release.Namespace }}'
     - name: REVIEWER_GITEA_HOST
-      value: gitea.homebase.local
+      value: '{{ printf "%s-gitea-http.%s.svc.cluster.local" .Release.Name .Release.Namespace }}'
     - name: REVIEWER_GITEA_USERNAME
       value: reviewer
     - name: REVIEWER_GITEA_EMAIL
@@ -146,6 +146,7 @@ openclaw:
       key: QDRANT_API_KEY
   workspaceBootstrap:
     enabled: true
+    giteaAdminUsername: git-admin
     agents:
       main:
         workspace: /home/node/.openclaw/workspace
@@ -209,6 +210,10 @@ openclaw:
               - /var/tmp
               - /run
             env:
+              HOME: /workspace/.home
+              XDG_CONFIG_HOME: /workspace/.home/.config
+              XDG_CACHE_HOME: /workspace/.home/.cache
+              XDG_STATE_HOME: /workspace/.home/.local/state
               SSL_CERT_FILE: /workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt
               REQUESTS_CA_BUNDLE: /workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt
               NODE_EXTRA_CA_CERTS: /workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt
@@ -347,6 +352,10 @@ openclaw:
                 - /var/tmp
                 - /run
               env:
+                HOME: /workspace/.home
+                XDG_CONFIG_HOME: /workspace/.home/.config
+                XDG_CACHE_HOME: /workspace/.home/.cache
+                XDG_STATE_HOME: /workspace/.home/.local/state
                 SSL_CERT_FILE: /workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt
                 REQUESTS_CA_BUNDLE: /workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt
                 NODE_EXTRA_CA_CERTS: /workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt

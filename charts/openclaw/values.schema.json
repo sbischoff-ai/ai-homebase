@@ -177,6 +177,19 @@
         }
       }
     },
+    "workspaceBootstrap": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "giteaAdminUsername": {
+          "type": "string",
+          "default": "git-admin",
+          "minLength": 1,
+          "description": "Gitea admin username substituted into seeded workspace files that need the operator's exact account name."
+        }
+      }
+    },
     "existingSecret": {
       "type": "string",
       "default": "openclaw-secrets",

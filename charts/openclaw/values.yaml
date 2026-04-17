@@ -96,6 +96,7 @@ qdrant:
 
 workspaceBootstrap:
   enabled: true
+  giteaAdminUsername: git-admin
   agents:
     main:
       workspace: /home/node/.openclaw/workspace
@@ -165,6 +166,10 @@ openclaw:
             - /var/tmp
             - /run
           env:
+            HOME: /workspace/.home
+            XDG_CONFIG_HOME: /workspace/.home/.config
+            XDG_CACHE_HOME: /workspace/.home/.cache
+            XDG_STATE_HOME: /workspace/.home/.local/state
             SSL_CERT_FILE: /workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt
             REQUESTS_CA_BUNDLE: /workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt
             NODE_EXTRA_CA_CERTS: /workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt
@@ -303,6 +308,10 @@ openclaw:
               - /var/tmp
               - /run
             env:
+              HOME: /workspace/.home
+              XDG_CONFIG_HOME: /workspace/.home/.config
+              XDG_CACHE_HOME: /workspace/.home/.cache
+              XDG_STATE_HOME: /workspace/.home/.local/state
               SSL_CERT_FILE: /workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt
               REQUESTS_CA_BUNDLE: /workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt
               NODE_EXTRA_CA_CERTS: /workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt
@@ -486,9 +495,9 @@ env:
   - name: MEMGRAPH_BOLT_URI
     value: ""
   - name: REVIEWER_GITEA_BASE_URL
-    value: https://gitea.example.com
+    value: 'http://{{ printf "%s-gitea-http.%s.svc.cluster.local:3000" .Release.Name .Release.Namespace }}'
   - name: REVIEWER_GITEA_HOST
-    value: gitea.example.com
+    value: '{{ printf "%s-gitea-http.%s.svc.cluster.local" .Release.Name .Release.Namespace }}'
   - name: REVIEWER_GITEA_USERNAME
     value: reviewer
   - name: REVIEWER_GITEA_EMAIL

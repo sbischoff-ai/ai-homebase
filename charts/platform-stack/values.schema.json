@@ -261,6 +261,21 @@
             }
           }
         },
+        "workspaceBootstrap": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true
+            },
+            "giteaAdminUsername": {
+              "type": "string",
+              "default": "git-admin",
+              "minLength": 1
+            }
+          }
+        },
         "service": {
           "$ref": "#/definitions/service"
         },

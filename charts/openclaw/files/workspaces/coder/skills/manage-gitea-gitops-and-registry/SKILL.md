@@ -11,11 +11,11 @@ Use for repo and deployment-definition workflow.
 
 - Gitea is the default internal source of truth.
 - Default in-cluster repos are `cluster-gitops` and `openclaw-sandbox-images`.
-- Use `git` and `tea` with the coder identity for repo creation, collaborator management, repo inspection, and pull requests.
+- Use the preconfigured `git` and `tea` access for the `__CODER_GITEA_USERNAME__` Gitea user for repo creation, collaborator management, repo inspection, and pull requests.
 - Treat GitOps as deployment definition, not a planning scratchpad.
 - Prefer branches and pull requests on shared repos.
-- When you create a new repo for a user project, invite the user once their Gitea username is known.
-- When you create a new internal repo, add the shared reviewer account as a collaborator so architect and auditor can review through that identity.
+- On every repo you create, add `__GITEA_ADMIN_USERNAME__` as an admin collaborator. Protected `main` must still allow `__GITEA_ADMIN_USERNAME__` to approve and merge pull requests.
+- When you create a new internal repo, add the shared reviewer account `__REVIEWER_GITEA_USERNAME__` as a collaborator so architect and auditor can review through that identity.
 - Keep the default internal posture review-first: protected `main`, pull requests, and reviewer approval before merge unless main explicitly says a repo should differ.
 - Tell main when the user needs to review and merge.
 - Tell main when manual Argo CD sync is required after GitOps changes.

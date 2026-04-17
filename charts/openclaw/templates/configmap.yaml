@@ -1,6 +1,17 @@
 {{- if .Values.config.enabled }}
 {{- $agentDefaults := deepCopy .Values.openclaw.agents.defaults }}
 {{- $agentList := deepCopy .Values.openclaw.agents.list }}
+{{- $coderGiteaUsername := "coder" }}
+{{- $reviewerGiteaUsername := "reviewer" }}
+{{- $giteaAdminUsername := .Values.workspaceBootstrap.giteaAdminUsername | default "git-admin" }}
+{{- range $agent := $agentList }}
+  {{- if eq (get $agent "id") "coder" }}
+    {{- $coderGiteaUsername = dig "sandbox" "docker" "env" "CODER_GITEA_USERNAME" $coderGiteaUsername $agent }}
+  {{- end }}
+  {{- if eq (get $agent "id") "architect" }}
+    {{- $reviewerGiteaUsername = dig "sandbox" "docker" "env" "REVIEWER_GITEA_USERNAME" $reviewerGiteaUsername $agent }}
+  {{- end }}
+{{- end }}
 {{- if not .Values.qdrant.apiKeySecret.name }}
   {{- if and (hasKey $agentDefaults "sandbox") (hasKey $agentDefaults.sandbox "docker") (hasKey $agentDefaults.sandbox.docker "env") }}
     {{- $_ := unset $agentDefaults.sandbox.docker.env "QDRANT_API_KEY" }}
@@ -52,7 +63,8 @@ data:
   {{- $filesDir := $agentConfig.filesDir | default "" }}
   {{- range $path, $_ := $.Files.Glob (printf "files/%s/**" $filesDir) }}
   {{- $filePath := trimPrefix (printf "files/%s/" $filesDir) $path }}
-{{ printf "  workspace-%s-%s: |\n%s" $agentId (replace "/" "__" $filePath) ($.Files.Get $path | trimPrefix "\n" | indent 4) }}
+  {{- $renderedFile := $.Files.Get $path | replace "__CODER_GITEA_USERNAME__" $coderGiteaUsername | replace "__REVIEWER_GITEA_USERNAME__" $reviewerGiteaUsername | replace "__GITEA_ADMIN_USERNAME__" $giteaAdminUsername }}
+{{ printf "  workspace-%s-%s: |\n%s" $agentId (replace "/" "__" $filePath) ($renderedFile | trimPrefix "\n" | indent 4) }}
   {{- end }}
   {{- end }}
   {{- end }}
