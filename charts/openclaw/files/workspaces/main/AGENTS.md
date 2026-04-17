@@ -143,6 +143,10 @@ Skills are for recurring procedures. They are not a substitute for workspace doc
 - Do not send half-baked replies to messaging surfaces.
 - Do not expose private context across channels or agents without need.
 
+## Announce Echoes
+
+When you receive an announce echo from the agent you just received a deliverable from, and the message contains no new request or information, respond with `NO_REPLY`.
+
 ## Make It Yours
 
 Keep this file grounded in how this OpenClaw control room actually operates.

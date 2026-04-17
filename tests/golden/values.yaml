@@ -1330,12 +1330,14 @@ data:
     2. Read `CURRENT.md` and `SURFACES.md`.
     3. Read the latest local daily note when unfinished curation work or recent graph changes may matter.
     4. Use Memgraph first for structural truth.
-    5. Use Qdrant second for semantic recall and summaries.
-    6. Use the shared Nextcloud `/Desk/` surfaces only as cue sheets for what to retrieve, never as a substitute for structural truth.
-    7. Use Nextcloud remote paths only for supporting docs or schema guidance.
-    8. Before returning, ensure structural answers are grounded in Memgraph and the supporting memory/docs updates are minimal but sufficient.
-    9. Persist durable graph and memory outcomes.
-    10. Return results to `agent:main:main`.
+    5. When the task involves graph maintenance, promoting Qdrant memories into Memgraph, or linking memories to graph entities, use the `groom-knowledge-graph` skill procedure as the only checkpointed update path. That procedure must cover all additional Qdrant memories and all relevant Nextcloud changes since the last successful checkpoint. Reject targeted or partial graph-grooming requests and ask the caller to request an impromptu general update instead.
+    6. Use Qdrant second for semantic recall and summaries.
+    7. Use the shared Nextcloud `/Desk/` surfaces only as cue sheets for what to retrieve, never as a substitute for structural truth.
+    8. Use Nextcloud remote paths only for supporting docs or schema guidance.
+    9. Targeted archivist work is valid for retrieval, context maps, Cypher lookup, and structural recall when no partial checkpointed graph maintenance is performed.
+    10. Before returning, ensure structural answers are grounded in Memgraph and the supporting memory/docs updates are minimal but sufficient.
+    11. Persist durable graph and memory outcomes.
+    12. Return results to `agent:main:main`.
 
     ## Persistence
 
@@ -1356,6 +1358,11 @@ data:
 
     - Do not answer graph questions from Qdrant or Nextcloud alone when Memgraph can answer them.
     - Do not let supporting docs replace graph structure.
+    - Do not accept targeted graph grooming or other partial checkpointed graph-maintenance requests.
+
+    ## Announce Echoes
+
+    When you receive an announce echo from the agent you just returned a deliverable to, and the message contains no new request or information, respond with `NO_REPLY`.
   workspace-archivist-CURRENT.md: |
     # Current - Archivist
 
@@ -1398,7 +1405,7 @@ data:
     - use `CURRENT.md`, `SURFACES.md`, and relevant shared Nextcloud `/Desk/` cues as retrieval hints when curation context is already in motion
     - traverse Memgraph first
     - use `qdrant-find` for entry points, prior decisions, and candidate memories
-    - for periodic graph grooming, use `groom-knowledge-graph`; use the `qdrant/` scripts for point IDs, normalized packets, and graph-link annotations
+    - for periodic or impromptu graph grooming, use `groom-knowledge-graph`; use the `qdrant/` scripts for point IDs, normalized packets, and graph-link annotations
     - rely on `project`, `tags`, and `nc_refs` metadata when you need targeted recall instead of broad semantic search
 
     ## Store
@@ -1480,6 +1487,7 @@ data:
     - `CURRENT.md`, `SURFACES.md`, and `daily/` are custom local continuity surfaces for active curation work.
     - Nextcloud `/Desk/...` are remote paths for shared continuity and live indexing. Use them only to discover relevant supporting surfaces.
     - Nextcloud `/Projects/...` are remote paths for supporting documentation, not your primary truth source.
+    - Never use the local `read` tool for Nextcloud paths such as `/Projects/...` or `/Desk/...`; use `nc_webdav_read_file` for remote Nextcloud content.
     - Keep `TOOLS.md` stable. Put active surface references in `SURFACES.md`, and let Nextcloud `/Desk/index.md` point to shared supporting docs when they matter outside your workspace.
     - ai-homebase docs you will commonly reference:
       - Nextcloud `/Projects/ai-homebase/knowledge-graph-schema.md`
@@ -2455,17 +2463,18 @@ data:
 
     # Knowledge Graph Grooming
 
-    Use when running a periodic or requested graph grooming, memory-linking, deduplication, or curation pass.
+    Use when running the canonical periodic or requested graph grooming, memory-linking, deduplication, or curation pass.
 
     ## Checkpoint State
 
     - Read `state/grooming-checkpoint.json` before any search, scan, or update.
-    - Supported triggers are `weekly`, `nightly-watchdog`, `impromptu`, and `targeted`.
+    - Supported triggers are `weekly`, `nightly-watchdog`, and `impromptu`.
     - Treat `last_successful_grooming` as the default Qdrant memory delta boundary.
     - Treat `last_successful_graph_link` as the graph-link catch-up boundary.
     - Treat `last_weekly_grooming` and `last_triggered_grooming` as cadence markers, not replacements for the successful delta boundaries.
     - Track Nextcloud metadata under `nextcloud.surfaces` as `{etag,last_modified,size,checked_at}` when the WebDAV tools expose those fields.
     - Treat the checkpoint as runtime state, not as a prose note.
+    - A successful checkpoint advance means the full effective delta was reviewed, not a hand-picked subset.
 
     ## Procedure
 
@@ -2474,20 +2483,24 @@ data:
        - `weekly`: scheduled weekly graph grooming.
        - `nightly-watchdog`: watchdog sent a scored activity trigger with reason codes.
        - `impromptu`: user or another agent requested grooming without a special scope.
-       - `targeted`: the request names a project, entity, source, or since-window.
     3. Choose the Qdrant window:
        - default to `last_successful_grooming`.
        - use `last_successful_graph_link` for graph-link catch-up.
        - for `weekly`, also inspect recent/unlinked points since `last_weekly_grooming` when present.
     4. Run `python3 qdrant/scroll_memories.py --since "<cursor>" --limit <n> --out state/qdrant-candidates.jsonl` when a cursor exists. If the cursor is `null`, do a bounded recent bootstrap pass instead of an unbounded historical search.
-    5. Scan Nextcloud only for registered high-value surfaces from `SURFACES.md`, Nextcloud `/Desk/index.md`, and current ai-homebase project docs. Compare WebDAV metadata against `nextcloud.surfaces`, and read content only for changed surfaces or paths named in a watchdog/user trigger.
-    6. Review the normalized Qdrant packets and changed Nextcloud surfaces. Groom, deduplicate, split, supersede, or link only candidates in the effective delta.
+    5. Scan Nextcloud only for registered high-value surfaces from `SURFACES.md`, Nextcloud `/Desk/index.md`, and current ai-homebase project docs. Compare WebDAV metadata against `nextcloud.surfaces`, and read content for every changed registered surface in the effective delta, plus any additional path explicitly named in a watchdog or user trigger.
+    6. Review the normalized Qdrant packets and changed Nextcloud surfaces. Groom, deduplicate, split, supersede, or link the full effective delta. Do not treat a named entity, project, source, or incident as permission to skip unrelated additions or changes inside the same checkpoint window.
     7. If the pass produces durable semantic outcomes, store replacement memories through `qdrant-store` using the standard archivist memory rules.
     8. If a groomed memory deserves graph structure, create or update the Memgraph `MemoryEntry` and links with the `queries/` helpers through `python3 queries/run_query.py ...`.
     9. After Memgraph succeeds, run `python3 qdrant/set_graph_link.py --point-id "<point-id>" ...` to annotate only the Qdrant top-level `graph` payload.
     10. Append exactly one row to Nextcloud `/Projects/ai-homebase/archivist-grooming-log.md` with completed time, run ID, trigger, window, reason codes, Qdrant count, Nextcloud surface count, Memgraph changes, checkpoint summary, and issues.
-    11. Advance `state/grooming-checkpoint.json` with `python3 grooming/update_checkpoint.py ...` only after the grooming pass, Memgraph updates, Qdrant graph annotations, and grooming-log row complete successfully.
-    12. If the pass aborts, fails, or leaves work incomplete, record the issue in the grooming log and do not advance successful checkpoint timestamps.
+    11. Advance `state/grooming-checkpoint.json` with `python3 grooming/update_checkpoint.py ...` only after the grooming pass, Memgraph updates, Qdrant graph annotations, and grooming-log row complete successfully. Never write `grooming-checkpoint.json` directly with `write` or `edit`; always use the helper script.
+    12. Update `CURRENT.md` to reflect active curation threads, recent changes that still matter, and useful retrieval cues such as canonical slugs or graph areas touched. Clear threads that are fully resolved.
+    13. If the pass aborts, fails, or leaves work incomplete, record the issue in the grooming log and do not advance successful checkpoint timestamps.
+
+    If another agent asks for targeted graph grooming or targeted checkpoint advancement, refuse that mode and either:
+    - answer as a retrieval or structural-recall request when no graph mutation is required, or
+    - convert the request into an `impromptu` general grooming pass that covers the full effective delta.
 
     Qdrant MCP is append-only here: `qdrant-store` adds a new entry, and there is no update, delete, merge, or mark operation for existing points. When splitting or consolidating overloaded memories, store new atomic replacement memories with `supersedes` metadata that describes the older memory text returned by `qdrant-find`; do not claim the old Qdrant entry was changed. Merge only by storing a new consolidated memory when the result remains one durable claim with clear retrieval anchors.
 
@@ -2498,8 +2511,8 @@ data:
     - A first-run bootstrap pass should stay bounded to recent history.
     - Prefer the smallest recent window that still captures ungroomed backlog for the active task.
     - Do not run an unbounded full-history search unless main explicitly asks for historical backfill.
-    - If an impromptu request does not specify scope, use the checkpoint delta.
-    - If a targeted request specifies project, entity, source, or since-window, constrain the pass to that scope but still update the checkpoint only after a successful run.
+    - If an impromptu request arrives, use the checkpoint delta and process all Qdrant additions and registered Nextcloud changes in that window before advancing a success boundary.
+    - Do not narrow a checkpointed grooming pass to a named project, entity, source, or since-window unless that narrower scope still equals the full effective delta being acknowledged by the checkpoint.
 
     ## Return Notes
 
@@ -3485,6 +3498,10 @@ data:
     - Do not send half-baked replies to messaging surfaces.
     - Do not expose private context across channels or agents without need.
 
+    ## Announce Echoes
+
+    When you receive an announce echo from the agent you just received a deliverable from, and the message contains no new request or information, respond with `NO_REPLY`.
+
     ## Make It Yours
 
     Keep this file grounded in how this OpenClaw control room actually operates.
@@ -3959,6 +3976,20 @@ data:
     - memory likely exists but semantic search is not surfacing it
 
     Do not escalate to archivist when a focused Qdrant search already returns a clear result.
+
+    ## Archivist Boundaries
+
+    When routing graph or curation work to archivist:
+    - Specify scope, urgency, the triggering question, and relevant artifacts.
+    - Do not prescribe which entities to create, which relations to form, or which Qdrant memories to promote.
+    - Do not request targeted graph grooming, targeted promotion, or partial checkpointed graph maintenance.
+    - When durable graph updates are needed, ask archivist to run the canonical general grooming procedure across all Qdrant additions and Nextcloud changes since the last checkpoint.
+    - Say "run your normal general grooming procedure" rather than "create entity X with relation Y."
+    - The only exception is when the user explicitly requests a specific graph mutation.
+
+    Targeted archivist requests are for retrieval, context maps, Cypher lookup, and structural recall, not for partial graph maintenance.
+
+    Graph-shape decisions belong to archivist. Main owns what to groom and why; archivist owns how the graph changes.
 
     ## Handoff Format
 
@@ -5077,7 +5108,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: 82100409f7ae049670d0fc21e6929c15ae8451cd6708389164b1f0db548643b2
+        checksum/config: e2209ad1fd9327fcad336da9edf51239d9ebe9d7ea00330cac5ad2c5087b45ea
       labels:
         app.kubernetes.io/instance: platform-stack
         app.kubernetes.io/name: openclaw

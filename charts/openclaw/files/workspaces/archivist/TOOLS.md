@@ -22,6 +22,7 @@ This file records how this OpenClaw setup expects you to use your available tool
 - `CURRENT.md`, `SURFACES.md`, and `daily/` are custom local continuity surfaces for active curation work.
 - Nextcloud `/Desk/...` are remote paths for shared continuity and live indexing. Use them only to discover relevant supporting surfaces.
 - Nextcloud `/Projects/...` are remote paths for supporting documentation, not your primary truth source.
+- Never use the local `read` tool for Nextcloud paths such as `/Projects/...` or `/Desk/...`; use `nc_webdav_read_file` for remote Nextcloud content.
 - Keep `TOOLS.md` stable. Put active surface references in `SURFACES.md`, and let Nextcloud `/Desk/index.md` point to shared supporting docs when they matter outside your workspace.
 - ai-homebase docs you will commonly reference:
   - Nextcloud `/Projects/ai-homebase/knowledge-graph-schema.md`

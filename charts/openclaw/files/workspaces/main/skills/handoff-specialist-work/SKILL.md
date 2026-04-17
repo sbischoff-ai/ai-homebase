@@ -26,6 +26,20 @@ Route to archivist when:
 
 Do not escalate to archivist when a focused Qdrant search already returns a clear result.
 
+## Archivist Boundaries
+
+When routing graph or curation work to archivist:
+- Specify scope, urgency, the triggering question, and relevant artifacts.
+- Do not prescribe which entities to create, which relations to form, or which Qdrant memories to promote.
+- Do not request targeted graph grooming, targeted promotion, or partial checkpointed graph maintenance.
+- When durable graph updates are needed, ask archivist to run the canonical general grooming procedure across all Qdrant additions and Nextcloud changes since the last checkpoint.
+- Say "run your normal general grooming procedure" rather than "create entity X with relation Y."
+- The only exception is when the user explicitly requests a specific graph mutation.
+
+Targeted archivist requests are for retrieval, context maps, Cypher lookup, and structural recall, not for partial graph maintenance.
+
+Graph-shape decisions belong to archivist. Main owns what to groom and why; archivist owns how the graph changes.
+
 ## Handoff Format
 
 ```markdown
