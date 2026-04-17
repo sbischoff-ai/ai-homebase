@@ -71,12 +71,25 @@ cp bootstrap.example.toml bootstrap.local.toml
 
 Fill `bootstrap.local.toml` with hostnames, mail settings, provider keys, admin credentials, and any first-run Gitea overrides before either path.
 
-## 📚 Documentation
+## 📚 Docs Start Here
 
+Use this README as the front door, then jump into the full docs index at [docs/README.md](./docs/README.md).
+
+If you are orienting yourself:
+
+- Platform architecture: [docs/architecture.md](./docs/architecture.md)
 - Deployment overview: [docs/deployment.md](./docs/deployment.md)
-- Local `k3d` workflow: [docs/deployment-k3d.md](./docs/deployment-k3d.md)
-- Homelab `k3s` runbook: [docs/runbook-homelab.md](./docs/runbook-homelab.md)
 - Configuration and values layering: [docs/configuration.md](./docs/configuration.md)
 - Service defaults and secret contracts: [docs/services.md](./docs/services.md)
-- OpenClaw runtime contract: [docs/openclaw-runtime.md](./docs/openclaw-runtime.md)
+
+If you are trying to do work:
+
+- Local `k3d` workflow: [docs/deployment-k3d.md](./docs/deployment-k3d.md)
+- Homelab `k3s` runbook: [docs/runbook-homelab.md](./docs/runbook-homelab.md)
+- GitOps operating model: [docs/gitops.md](./docs/gitops.md)
 - Commands and validation: [docs/commands.md](./docs/commands.md)
+
+If you are working on agents and runtime behavior:
+
+- OpenClaw runtime contract: [docs/openclaw-runtime.md](./docs/openclaw-runtime.md)
+- Agent process examples: [docs/agent_process_examples/README.md](./docs/agent_process_examples/README.md)
