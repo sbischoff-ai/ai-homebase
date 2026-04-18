@@ -682,6 +682,9 @@ def command_render_values(args: argparse.Namespace) -> int:
         "agents": {
             "defaults": {
                 "workspace": "/home/node/.openclaw/workspace",
+                "heartbeat": {
+                    "every": "0m",
+                },
                 "models": allowed_models,
                 "sandbox": {
                     "workspaceAccess": "rw",

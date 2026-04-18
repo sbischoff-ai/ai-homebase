@@ -147,6 +147,7 @@ if [[ "${GITEA_ACTIONS_ENABLED:-false}" == "true" ]]; then
     --vm-name "${GITEA_ACTIONS_RUNNER_VM_NAME}"
     --host-alias "${GITEA_ACTIONS_RUNNER_HOST_ALIAS}"
     --ssh-host-port "${GITEA_ACTIONS_RUNNER_SSH_PORT}"
+    --ssh-key-path "${GITEA_ACTIONS_RUNNER_KEY_PATH}"
     --remote-user-gecos "Gitea Actions runner Docker user"
   )
   append_bootstrap_resolve_hosts GITEA_ACTIONS_VM_CMD

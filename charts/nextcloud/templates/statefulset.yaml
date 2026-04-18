@@ -112,13 +112,16 @@ spec:
               containerPort: {{ .Values.service.targetPort }}
           {{- if .Values.probes.liveness.enabled }}
           livenessProbe:
-            exec:
-              command:
-                - /bin/sh
-                - -ec
-                - su -s /bin/sh www-data -c 'cd /var/www/html && php occ status --output=json 2>/dev/null | grep -q "\"installed\":true"'
+            httpGet:
+              path: {{ .Values.probes.liveness.path }}
+              port: http
+              httpHeaders:
+                - name: Host
+                  value: localhost
             initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
             periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.liveness.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.liveness.failureThreshold }}
           {{- end }}
           {{- if .Values.probes.readiness.enabled }}
           readinessProbe:
@@ -129,6 +132,8 @@ spec:
                 - su -s /bin/sh www-data -c 'cd /var/www/html && php occ status --output=json 2>/dev/null | grep -q "\"installed\":true"'
             initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
             periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.readiness.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.readiness.failureThreshold }}
           {{- end }}
           {{- $trustedProxiesValue := join " " (.Values.trustedProxies | default (list)) }}
           env:

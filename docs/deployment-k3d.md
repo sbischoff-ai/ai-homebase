@@ -84,6 +84,7 @@ By default this now removes:
 
 - the `k3d` cluster
 - the Incus sandbox VM
+- the Incus Gitea Actions runner VM when `services.gitea.actions.enabled=true`
 - the shared local OpenClaw state directory at `~/.local/state/ai-homebase/openclaw-state`
 
 Use `--keep-openclaw-state` when you intentionally want to preserve the local OpenClaw state across rebuilds.

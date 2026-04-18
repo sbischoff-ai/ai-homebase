@@ -9,6 +9,7 @@ VM_NAME="${VM_NAME:-gitea-actions-runner}"
 HOST_ALIAS="${HOST_ALIAS:-gitea-actions-runner.homebase.internal}"
 SSH_HOST_PORT="${SSH_HOST_PORT:-2223}"
 INCUS_CONNECTION_INFO_PATH="${INCUS_CONNECTION_INFO_PATH:-}"
+SSH_KEY_PATH="${SSH_KEY_PATH:-}"
 EXTRA_RESOLVE_HOSTS=()
 
 usage() {
@@ -23,6 +24,7 @@ Options:
   --host-alias <name>          Hostname the VM should expose for the SSH-backed runner Docker endpoint (default: ${HOST_ALIAS})
   --ssh-host-port <port>       Host TCP port proxied to guest SSH 22 (default: ${SSH_HOST_PORT})
   --incus-connection-info <p>  Optional explicit Incus connection info env file
+  --ssh-key-path <path>        Optional explicit SSH private key path for the runner VM
   --resolve-host <name>        Additional hostname to resolve inside the VM and its Docker containers (repeatable)
   --verbose                    Stream full command output
   -h, --help                   Show this help message
@@ -36,6 +38,7 @@ while [[ $# -gt 0 ]]; do
     --host-alias) HOST_ALIAS="$2"; shift 2 ;;
     --ssh-host-port) SSH_HOST_PORT="$2"; shift 2 ;;
     --incus-connection-info) INCUS_CONNECTION_INFO_PATH="$2"; shift 2 ;;
+    --ssh-key-path) SSH_KEY_PATH="$2"; shift 2 ;;
     --resolve-host) EXTRA_RESOLVE_HOSTS+=("$2"); shift 2 ;;
     --verbose) BOOTSTRAP_VERBOSE=1; shift ;;
     -h|--help) usage; exit 0 ;;
@@ -56,12 +59,16 @@ if [[ -f "$BOOTSTRAP_CONFIG_PATH" ]]; then
   HOST_ALIAS="${GITEA_ACTIONS_RUNNER_HOST_ALIAS:-$HOST_ALIAS}"
   SSH_HOST_PORT="${GITEA_ACTIONS_RUNNER_SSH_PORT:-$SSH_HOST_PORT}"
 fi
+if [[ -z "$SSH_KEY_PATH" ]]; then
+  SSH_KEY_PATH="${HOME}/.local/state/ai-homebase/incus/${VM_NAME}-id_ed25519"
+fi
 
 INCUS_VM_CMD=(
   ./scripts/incus-vm-up.sh
   --vm-name "$VM_NAME"
   --host-alias "$HOST_ALIAS"
   --ssh-host-port "$SSH_HOST_PORT"
+  --ssh-key-path "$SSH_KEY_PATH"
   --remote-user-gecos "Gitea Actions runner Docker user"
 )
 
@@ -78,4 +85,5 @@ echo "Summary:"
 echo "  VM: ${VM_NAME}"
 echo "  Host alias: ${HOST_ALIAS}"
 echo "  SSH proxy port: ${SSH_HOST_PORT}"
+echo "  SSH key path: ${SSH_KEY_PATH}"
 echo "  Incus connection info: ${INCUS_CONNECTION_INFO_PATH}"

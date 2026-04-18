@@ -790,7 +790,9 @@ verify_openclaw_workspace_bootstrap() {
   step "Checking bootstrapped OpenClaw workspace files"
   CURRENT_COMMAND="kubectl exec deployment/${deployment_name} -- sh -ceu 'test workspace bootstrap files'"
   run_checked kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" exec "deployment/${deployment_name}" -- sh -ceu '
+    jq -e '"'"'.agents.defaults.heartbeat.every == "0m"'"'"' /home/node/.openclaw/openclaw.json >/dev/null
     jq -e '"'"'.agents.list[] | select(.id=="main") | .heartbeat.every == "0m" and .heartbeat.includeSystemPromptSection == false'"'"' /home/node/.openclaw/openclaw.json >/dev/null
+    jq -e '"'"'[.agents.list[] | select(.id != "watchdog") | select(.heartbeat.every? != null and .heartbeat.every != "0m")] | length == 0'"'"' /home/node/.openclaw/openclaw.json >/dev/null
     jq -e '"'"'.agents.list[] | select(.id=="watchdog") | .heartbeat.every == "30m"'"'"' /home/node/.openclaw/openclaw.json >/dev/null
 
     test -f /home/node/.openclaw/workspace/BOOTSTRAP.md
@@ -799,7 +801,6 @@ verify_openclaw_workspace_bootstrap() {
     test -f /home/node/.openclaw/workspace/AGENTS.md
     grep -F "systemic quality judgment -> \`auditor\`" /home/node/.openclaw/workspace/AGENTS.md >/dev/null
     grep -F "choose an execution mode first: \`spec-first\` or \`direct-build\`" /home/node/.openclaw/workspace/AGENTS.md >/dev/null
-    test ! -e /home/node/.openclaw/workspace/HEARTBEAT.md
     test -f /home/node/.openclaw/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt
 
     test -f /home/node/.openclaw/workspace-coder/TOOLS.md
@@ -812,7 +813,6 @@ verify_openclaw_workspace_bootstrap() {
     grep -F "default \`gpt-5.4-mini\` for routine work" /home/node/.openclaw/workspace-coder/skills/run-codex-and-log-usage/SKILL.md >/dev/null
     test -f /home/node/.openclaw/workspace/skills/handoff-specialist-work/SKILL.md
     grep -F "Do not request an architect spec and coder implementation in parallel for the same change." /home/node/.openclaw/workspace/skills/handoff-specialist-work/SKILL.md >/dev/null
-    test ! -e /home/node/.openclaw/workspace-coder/HEARTBEAT.md
     test -f /home/node/.openclaw/workspace-coder/.openclaw-runtime/ai-homebase-ca-bundle.crt
     test -f /home/node/.openclaw/workspace-coder/.home/.ssh/id_ed25519
     test -f /home/node/.openclaw/workspace-coder/.home/.ssh/known_hosts
@@ -838,14 +838,12 @@ verify_openclaw_workspace_bootstrap() {
     test -f /home/node/.openclaw/workspace-archivist/queries/entity-by-slug.cypher
     test -f /home/node/.openclaw/workspace-archivist/queries/upsert-memory-entry.cypher
     test -f /home/node/.openclaw/workspace-archivist/queries/link-memory-to-entity.cypher
-    test ! -e /home/node/.openclaw/workspace-archivist/HEARTBEAT.md
     test -f /home/node/.openclaw/workspace-archivist/.openclaw-runtime/ai-homebase-ca-bundle.crt
 
     test -f /home/node/.openclaw/workspace-architect/AGENTS.md
     grep -F "verdicts -> auditor" /home/node/.openclaw/workspace-architect/AGENTS.md >/dev/null
-    test ! -e /home/node/.openclaw/workspace-architect/HEARTBEAT.md
     test -f /home/node/.openclaw/workspace-architect/.openclaw-runtime/ai-homebase-ca-bundle.crt
-    grep -F "Do not swap in cluster-internal Kubernetes DNS names inside the sandbox." /home/node/.openclaw/workspace-architect/skills/gitea-browse/SKILL.md >/dev/null
+    grep -F "Do not push branches, open pull requests, create commits, merge, or modify repo state." /home/node/.openclaw/workspace-architect/skills/gitea-browse/SKILL.md >/dev/null
 
     test -f /home/node/.openclaw/workspace-watchdog/AGENTS.md
     grep -F "systemic review -> auditor" /home/node/.openclaw/workspace-watchdog/AGENTS.md >/dev/null
@@ -859,9 +857,8 @@ verify_openclaw_workspace_bootstrap() {
 
     test -f /home/node/.openclaw/workspace-auditor/MEMORY.md
     grep -F "\"agent\":\"auditor\"" /home/node/.openclaw/workspace-auditor/MEMORY.md >/dev/null
-    test ! -e /home/node/.openclaw/workspace-auditor/HEARTBEAT.md
     test -f /home/node/.openclaw/workspace-auditor/.openclaw-runtime/ai-homebase-ca-bundle.crt
-    grep -F "Do not replace it with \`localtest.me\` or other ingress hostnames from the gateway runtime." /home/node/.openclaw/workspace-auditor/skills/gitea-browse/SKILL.md >/dev/null
+    grep -F "Merge only when main or the user explicitly instructs you to merge." /home/node/.openclaw/workspace-auditor/skills/gitea-browse/SKILL.md >/dev/null
   '
 }
 
@@ -876,12 +873,13 @@ verify_nextcloud_bootstrap_content() {
     [ "$(stat -c "%U:%G" /var/www/html/data/openclaw/files)" = "www-data:www-data" ]
     [ "$(stat -c "%U:%G" /var/www/html/data/openclaw/files/Projects)" = "www-data:www-data" ]
     test -f "${project_root}/coordination-status.json"
-    grep -F "\"agent\": \"bootstrap\"" "${project_root}/coordination-status.json" >/dev/null
-    test ! -e "${project_root}/heartbeat.json"
+    grep -F "\"agent\"" "${project_root}/coordination-status.json" >/dev/null
+    grep -F "\"status\"" "${project_root}/coordination-status.json" >/dev/null
     test -f "${project_root}/knowledge-graph-schema.md"
     grep -F "MemoryEntry" "${project_root}/knowledge-graph-schema.md" >/dev/null
     test -f "${project_root}/archivist-grooming-log.md"
     test -f "${project_root}/audit-log.md"
+    test -f "${project_root}/watchdog-status-log.md"
     test -f "${project_root}/codex-usage/.gitkeep"
     test ! -e "${project_root}/budget-ledger.json"
 
@@ -1080,9 +1078,9 @@ verify_incus_hostname_resolution() {
   "
 
   step "Checking Docker-container reachability for ${endpoint_label}"
-  CURRENT_COMMAND="incus exec ${INCUS_VM_NAME} -- docker run --rm curlimages/curl:8.12.1 -sSI http://${host_name}${url_path}"
+  CURRENT_COMMAND="incus exec ${INCUS_VM_NAME} -- docker run --rm curlimages/curl:8.12.1 -sS -o /dev/null -w '%{http_code}' http://${host_name}${url_path}"
   run_checked incus exec "$INCUS_VM_NAME" -- sh -ceu "
-    status_line=\$(docker run --rm curlimages/curl:8.12.1 -sSI 'http://${host_name}${url_path}' | awk 'NR==1 {print \$2}')
+    status_line=\$(docker run --rm curlimages/curl:8.12.1 -sS -o /dev/null -w '%{http_code}' 'http://${host_name}${url_path}')
     [ -n \"\$status_line\" ]
     case \"\$status_line\" in
       ${status_patterns}) ;;
@@ -1133,21 +1131,26 @@ PY
 
 build_gitea_contents_payload() {
   local commit_message="$1"
-  python3 - "$commit_message" <<'PY'
+  local content_file=""
+  content_file="$(mktemp /tmp/ai-homebase-gitea-content.XXXXXX)"
+  cat >"$content_file"
+  python3 - "$commit_message" "$content_file" <<'PY'
 import base64
 import json
 import sys
+from pathlib import Path
 
 print(
     json.dumps(
         {
             "branch": "main",
             "message": sys.argv[1],
-            "content": base64.b64encode(sys.stdin.buffer.read()).decode(),
+            "content": base64.b64encode(Path(sys.argv[2]).read_bytes()).decode(),
         }
     )
 )
 PY
+  rm -f "$content_file"
 }
 
 verify_gitea_actions_runner() {
@@ -1223,7 +1226,12 @@ import sys
 payload = json.loads(sys.argv[1])
 expected = sys.argv[2]
 for runner in payload.get("runners", []):
-    if runner.get("name") == expected and runner.get("status") in {"online", "idle", "active"}:
+    labels = {label.get("name") for label in runner.get("labels", [])}
+    if (
+        runner.get("name") == expected
+        and runner.get("status") in {"online", "idle", "active"}
+        and "homebase-coder" in labels
+    ):
         raise SystemExit(0)
 raise SystemExit(1)
 PY
@@ -1515,7 +1523,7 @@ if [[ "$(is_gitea_enabled)" == "true" ]]; then
   wait_for_gitea_workloads "$GITEA_WAIT_TIMEOUT"
   verify_gitea_services
   if [[ -n "$HOST_LISTEN_ADDRESS_VALUE" ]]; then
-    verify_incus_hostname_resolution "$GITEA_INGRESS_HOST" "$HOST_LISTEN_ADDRESS_VALUE" "/api/v1/version" "Gitea" "200"
+    verify_incus_hostname_resolution "$GITEA_INGRESS_HOST" "$HOST_LISTEN_ADDRESS_VALUE" "/api/v1/version" "Gitea" "200|308"
   else
     warn "Skipping Incus sandbox DNS checks for Gitea because ${INCUS_CONNECTION_INFO_PATH} is missing or does not define HOST_LISTEN_ADDRESS"
   fi

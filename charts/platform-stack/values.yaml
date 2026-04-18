@@ -186,6 +186,8 @@ openclaw:
     agents:
       defaults:
         workspace: /home/node/.openclaw/workspace
+        heartbeat:
+          every: 0m
         models:
           openai/gpt-5.4:
             alias: Main / Coder / Architect / Archivist / Auditor
@@ -631,11 +633,14 @@ nextcloud:
       path: /status.php
       initialDelaySeconds: 30
       periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 6
     readiness:
       enabled: true
-      path: /status.php
       initialDelaySeconds: 10
       periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 6
   backup:
     annotations: {}
   existingSecret: ""

@@ -223,8 +223,44 @@ resolve_or_generate() {
   generate_secret_hex "$bytes"
 }
 
+read_existing_secret_value() {
+  local secret_name="$1"
+  local key_name="$2"
+  local encoded_value=""
+
+  encoded_value="$(
+    kubectl "${KUBECTL_ARGS[@]}" -n "$NAMESPACE" get secret "$secret_name" \
+      -o "go-template={{index .data \"$key_name\"}}" 2>/dev/null || true
+  )"
+  if [[ -z "$encoded_value" ]]; then
+    return 1
+  fi
+
+  printf '%s' "$encoded_value" | base64 -d
+}
+
+resolve_or_reuse_secret() {
+  local explicit_value="$1"
+  local secret_name="$2"
+  local key_name="$3"
+  local bytes="${4:-24}"
+  local existing_value=""
+
+  if [[ -n "$explicit_value" ]]; then
+    printf '%s' "$explicit_value"
+    return 0
+  fi
+
+  if existing_value="$(read_existing_secret_value "$secret_name" "$key_name")" && [[ -n "$existing_value" ]]; then
+    printf '%s' "$existing_value"
+    return 0
+  fi
+
+  generate_secret_hex "$bytes"
+}
+
 resolve_paperless_secret_key() {
-  resolve_or_generate "$PAPERLESS_SECRET_KEY" 32
+  resolve_or_reuse_secret "$PAPERLESS_SECRET_KEY" "paperless-config-secrets" "PAPERLESS_SECRET_KEY" 32
 }
 
 generate_htpasswd_entry() {
@@ -254,9 +290,9 @@ metadata:
 MANIFEST
 
 step "Applying bootstrap secrets from ${BOOTSTRAP_CONFIG_PATH}"
-OPENCLAW_GATEWAY_TOKEN="$(resolve_or_generate "$OPENCLAW_GATEWAY_TOKEN")"
-POSTGRES_ADMIN_PASSWORD="$(resolve_or_generate "$POSTGRES_ADMIN_PASSWORD")"
-REDIS_PASSWORD="$(resolve_or_generate "$REDIS_PASSWORD")"
+OPENCLAW_GATEWAY_TOKEN="$(resolve_or_reuse_secret "$OPENCLAW_GATEWAY_TOKEN" "openclaw-secrets" "OPENCLAW_GATEWAY_TOKEN")"
+POSTGRES_ADMIN_PASSWORD="$(resolve_or_reuse_secret "$POSTGRES_ADMIN_PASSWORD" "shared-postgresql-auth" "postgres-password")"
+REDIS_PASSWORD="$(resolve_or_reuse_secret "$REDIS_PASSWORD" "shared-redis-auth" "redis-password")"
 create_and_apply_secret shared-postgresql-auth \
   --from-literal=postgres-password="$POSTGRES_ADMIN_PASSWORD" \
   --from-literal=password="$POSTGRES_ADMIN_PASSWORD"
@@ -264,21 +300,21 @@ create_and_apply_secret shared-postgresql-auth \
 create_and_apply_secret shared-redis-auth \
   --from-literal=redis-password="$REDIS_PASSWORD"
 
-GITEA_DB_PASSWORD="$(resolve_or_generate "$GITEA_DB_PASSWORD")"
-GITEA_RUNNER_REGISTRATION_TOKEN="$(resolve_or_generate "$GITEA_RUNNER_REGISTRATION_TOKEN")"
-GITEA_ADMIN_PASSWORD="$(resolve_or_generate "$GITEA_ADMIN_PASSWORD")"
-VAULTWARDEN_DB_PASSWORD="$(resolve_or_generate "$VAULTWARDEN_DB_PASSWORD")"
-VAULTWARDEN_ADMIN_TOKEN="$(resolve_or_generate "$VAULTWARDEN_ADMIN_TOKEN")"
-NEXTCLOUD_DB_PASSWORD="$(resolve_or_generate "$NEXTCLOUD_DB_PASSWORD")"
-NEXTCLOUD_ADMIN_PASSWORD="$(resolve_or_generate "$NEXTCLOUD_ADMIN_PASSWORD")"
-OPENCLAW_NEXTCLOUD_MCP_PASSWORD="$(resolve_or_generate "$OPENCLAW_NEXTCLOUD_MCP_PASSWORD")"
-PAPERLESS_DB_PASSWORD="$(resolve_or_generate "$PAPERLESS_DB_PASSWORD")"
-PAPERLESS_ADMIN_PASSWORD="$(resolve_or_generate "$PAPERLESS_ADMIN_PASSWORD")"
+GITEA_DB_PASSWORD="$(resolve_or_reuse_secret "$GITEA_DB_PASSWORD" "gitea-config-secrets" "GITEA__database__PASSWD")"
+GITEA_RUNNER_REGISTRATION_TOKEN="$(resolve_or_reuse_secret "$GITEA_RUNNER_REGISTRATION_TOKEN" "gitea-config-secrets" "GITEA_RUNNER_REGISTRATION_TOKEN")"
+GITEA_ADMIN_PASSWORD="$(resolve_or_reuse_secret "$GITEA_ADMIN_PASSWORD" "gitea-admin-secret" "password")"
+VAULTWARDEN_DB_PASSWORD="$(resolve_or_reuse_secret "$VAULTWARDEN_DB_PASSWORD" "vaultwarden-config-secrets" "VAULTWARDEN_DB_PASSWORD")"
+VAULTWARDEN_ADMIN_TOKEN="$(resolve_or_reuse_secret "$VAULTWARDEN_ADMIN_TOKEN" "vaultwarden-config-secrets" "ADMIN_TOKEN")"
+NEXTCLOUD_DB_PASSWORD="$(resolve_or_reuse_secret "$NEXTCLOUD_DB_PASSWORD" "nextcloud-config-secrets" "POSTGRES_PASSWORD")"
+NEXTCLOUD_ADMIN_PASSWORD="$(resolve_or_reuse_secret "$NEXTCLOUD_ADMIN_PASSWORD" "nextcloud-config-secrets" "NEXTCLOUD_ADMIN_PASSWORD")"
+OPENCLAW_NEXTCLOUD_MCP_PASSWORD="$(resolve_or_reuse_secret "$OPENCLAW_NEXTCLOUD_MCP_PASSWORD" "openclaw-nextcloud-mcp-secrets" "NEXTCLOUD_PASSWORD")"
+PAPERLESS_DB_PASSWORD="$(resolve_or_reuse_secret "$PAPERLESS_DB_PASSWORD" "paperless-config-secrets" "PAPERLESS_DB_PASSWORD")"
+PAPERLESS_ADMIN_PASSWORD="$(resolve_or_reuse_secret "$PAPERLESS_ADMIN_PASSWORD" "paperless-config-secrets" "PAPERLESS_ADMIN_PASSWORD")"
 PAPERLESS_SECRET_KEY="$(resolve_paperless_secret_key)"
 REGISTRY_USERNAME="${REGISTRY_USERNAME:-coder}"
-REGISTRY_PASSWORD="$(resolve_or_generate "$REGISTRY_PASSWORD")"
-CODER_GITEA_PASSWORD="$(resolve_or_generate "${CODER_GITEA_PASSWORD:-}")"
-REVIEWER_GITEA_PASSWORD="$(resolve_or_generate "${REVIEWER_GITEA_PASSWORD:-}")"
+REGISTRY_PASSWORD="$(resolve_or_reuse_secret "$REGISTRY_PASSWORD" "registry-auth-secret" "password")"
+CODER_GITEA_PASSWORD="$(resolve_or_reuse_secret "${CODER_GITEA_PASSWORD:-}" "coder-credentials" "CODER_GITEA_PASSWORD")"
+REVIEWER_GITEA_PASSWORD="$(resolve_or_reuse_secret "${REVIEWER_GITEA_PASSWORD:-}" "reviewer-credentials" "REVIEWER_GITEA_PASSWORD")"
 GITEA_REDIS_URI="redis://:${REDIS_PASSWORD}@platform-stack-shared-redis:6379/0?pool_size=100&idle_timeout=180s"
 PAPERLESS_REDIS_URI="redis://:${REDIS_PASSWORD}@platform-stack-shared-redis:6379/0"
 REGISTRY_HTPASSWD="$(generate_htpasswd_entry "$REGISTRY_USERNAME" "$REGISTRY_PASSWORD")"

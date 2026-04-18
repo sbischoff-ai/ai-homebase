@@ -118,11 +118,14 @@ probes:
     path: /status.php
     initialDelaySeconds: 30
     periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
   readiness:
     enabled: true
-    path: /status.php
     initialDelaySeconds: 10
     periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
 
 # Secret injection conventions:
 # - Secret names: kebab-case (example: nextcloud-app-secrets)

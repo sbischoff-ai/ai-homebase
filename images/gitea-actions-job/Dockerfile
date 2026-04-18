@@ -1,8 +1,12 @@
+FROM docker:28-cli AS docker-cli
+
 FROM openclaw-sandbox:trixie-slim
 
 USER root
 
 ARG DEBIAN_FRONTEND=noninteractive
+
+COPY --from=docker-cli /usr/local/bin/docker /usr/local/bin/docker
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -10,7 +14,6 @@ RUN apt-get update && \
       build-essential \
       ca-certificates \
       curl \
-      docker.io \
       file \
       git \
       jq \

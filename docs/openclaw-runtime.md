@@ -79,7 +79,7 @@ Do not expect cluster-internal DNS names to resolve inside Docker sandbox contai
 Bootstrap also mints dedicated tea API tokens for coder and reviewer, stores them in `coder-credentials` and `reviewer-credentials`, and passes them into the runtime. The password remains in those Secrets for git/basic-auth and for first-session fallback if a running OpenClaw pod has not yet been restarted onto the refreshed token values.
 
 Agent model selections come from `bootstrap.local.toml` under `[openclaw.agents.<id>]`. `coder` also accepts `codex_model` for the Codex CLI runtime inside its sandbox.
-Heartbeat is configured explicitly rather than relying on OpenClaw's built-in default cadence: `main` is disabled with `heartbeat.every=0m` plus `heartbeat.includeSystemPromptSection=false`, while `watchdog` is the standing heartbeat agent at `30m`.
+Heartbeat is configured explicitly rather than relying on OpenClaw's built-in default cadence: `agents.defaults.heartbeat.every=0m` disables standing heartbeats for every agent unless a specific agent overrides it, `main` also keeps `heartbeat.includeSystemPromptSection=false`, and `watchdog` is the standing heartbeat agent at `30m`. Runtime-created `HEARTBEAT.md` templates are not authoritative for scheduling; the rendered heartbeat interval is.
 
 Workspace seed files live under `charts/openclaw/files/workspaces/`. Keep those files written from the bootstrapped agent's in-cluster perspective; avoid maintainer-only rationale there.
 

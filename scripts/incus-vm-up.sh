@@ -13,7 +13,7 @@ DISK_SIZE="${DISK_SIZE:-12GiB}"
 INCUS_IMAGE="${INCUS_IMAGE:-images:debian/12/cloud}"
 INCUS_NETWORK="${INCUS_NETWORK:-incusbr0}"
 STATE_DIR="${STATE_DIR:-${HOME}/.local/state/ai-homebase/incus}"
-SSH_KEY_PATH="${SSH_KEY_PATH:-${STATE_DIR}/${VM_NAME}-id_ed25519}"
+SSH_KEY_PATH="${SSH_KEY_PATH:-}"
 HOST_ALIAS="${HOST_ALIAS:-host.k3d.internal}"
 VM_STATIC_IPV4="${VM_STATIC_IPV4:-}"
 HOST_LISTEN_ADDRESS="${HOST_LISTEN_ADDRESS:-}"
@@ -31,6 +31,11 @@ SHARED_OPENCLAW_STATE_SOURCE="${SHARED_OPENCLAW_STATE_SOURCE:-}"
 SHARED_OPENCLAW_STATE_TARGET="${SHARED_OPENCLAW_STATE_TARGET:-/home/node/.openclaw}"
 SSH_READY_TIMEOUT_SECONDS="${SSH_READY_TIMEOUT_SECONDS:-1800}"
 READINESS_FAILURE_REASON=""
+SSH_KEY_PATH_EXPLICIT=0
+
+if [[ -n "$SSH_KEY_PATH" ]]; then
+  SSH_KEY_PATH_EXPLICIT=1
+fi
 
 usage() {
   cat <<USAGE
@@ -80,7 +85,7 @@ while [[ $# -gt 0 ]]; do
     --image) INCUS_IMAGE="$2"; shift 2 ;;
     --network) INCUS_NETWORK="$2"; shift 2 ;;
     --state-dir) STATE_DIR="$2"; shift 2 ;;
-    --ssh-key-path) SSH_KEY_PATH="$2"; shift 2 ;;
+    --ssh-key-path) SSH_KEY_PATH="$2"; SSH_KEY_PATH_EXPLICIT=1; shift 2 ;;
     --host-alias) HOST_ALIAS="$2"; shift 2 ;;
     --host-listen-address) HOST_LISTEN_ADDRESS="$2"; shift 2 ;;
     --resolve-host) RESOLVE_HOSTS+=("$2"); shift 2 ;;
@@ -96,6 +101,9 @@ done
 
 if [[ -z "$CONNECTION_INFO_PATH" ]]; then
   CONNECTION_INFO_PATH="${STATE_DIR}/${VM_NAME}.env"
+fi
+if [[ "$SSH_KEY_PATH_EXPLICIT" -eq 0 ]]; then
+  SSH_KEY_PATH="${STATE_DIR}/${VM_NAME}-id_ed25519"
 fi
 
 if ! [[ "$SSH_READY_TIMEOUT_SECONDS" =~ ^[0-9]+$ ]]; then
@@ -732,7 +740,7 @@ EOF
   step "Reconciling guest hostname overrides for ${VM_NAME}"
   run_checked incus exec "$VM_NAME" -- sh -ceu '
     export DEBIAN_FRONTEND=noninteractive
-    if ! dpkg-query -W -f="${Status}" dnsmasq 2>/dev/null | grep -q "install ok installed"; then
+    if ! dpkg-query -W -f="\${Status}" dnsmasq 2>/dev/null | grep -q "install ok installed"; then
       apt-get update
       apt-get install -y dnsmasq
     fi

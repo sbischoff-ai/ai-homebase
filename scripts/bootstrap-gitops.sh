@@ -585,28 +585,38 @@ ensure_gitea_user() {
 
 extract_gitea_token_ids() {
   local token_name="$1"
-  python3 - "$token_name" <<'PY'
+  python3 -c '
 import json
 import sys
 
 token_name = sys.argv[1]
-payload = json.load(sys.stdin)
+raw = sys.stdin.read().strip()
+if not raw:
+    raise SystemExit(0)
+payload = json.loads(raw)
+if not isinstance(payload, list):
+    raise SystemExit(0)
 for item in payload:
     if item.get("name") == token_name and item.get("id") is not None:
         print(item["id"])
-PY
+' "$token_name"
 }
 
 extract_gitea_token_sha1() {
-  python3 - <<'PY'
+  python3 -c '
 import json
 import sys
 
-payload = json.load(sys.stdin)
+raw = sys.stdin.read().strip()
+if not raw:
+    raise SystemExit(0)
+payload = json.loads(raw)
+if not isinstance(payload, dict):
+    raise SystemExit(0)
 token = payload.get("sha1")
 if token:
     print(token)
-PY
+'
 }
 
 build_token_payload() {
@@ -619,18 +629,60 @@ print(json.dumps({"name": sys.argv[1], "scopes": ["all"]}))
 PY
 }
 
+wait_for_gitea_user_auth() {
+  local username="$1"
+  local password="$2"
+  local ready_url="${GITEA_API_URL}/users/${username}/tokens"
+  local response_file=""
+  local status=""
+  local attempt=0
+
+  response_file="$(mktemp /tmp/ai-homebase-gitea-auth-ready.XXXXXX.json)"
+  while (( attempt < 30 )); do
+    status="$(
+      curl -sS -o "$response_file" -w '%{http_code}' \
+        --user "${username}:${password}" \
+        "${ready_url}"
+    )"
+    if [[ "$status" == "200" ]]; then
+      rm -f "$response_file"
+      return 0
+    fi
+    if [[ "$status" != "401" && "$status" != "404" && "$status" != "000" ]]; then
+      echo "Gitea user auth for ${username} failed unexpectedly with HTTP ${status}" >&2
+      cat "$response_file" >&2 || true
+      rm -f "$response_file"
+      exit 1
+    fi
+    attempt=$((attempt + 1))
+    sleep 1
+  done
+
+  echo "Timed out waiting for Gitea user ${username} authentication to become ready." >&2
+  cat "$response_file" >&2 || true
+  rm -f "$response_file"
+  exit 1
+}
+
 ensure_gitea_api_token() {
   local username="$1"
   local password="$2"
   local token_name="$3"
   local tokens_url="${GITEA_API_URL}/users/${username}/tokens"
   local existing_token_ids
+  local duplicate_token_ids
+  local list_body_file=""
   local token_payload
   local token
+  local create_body_file=""
+  local create_status=""
+  local create_attempt=0
 
-  existing_token_ids="$(
-    curl -fsS -u "${username}:${password}" "${tokens_url}" | extract_gitea_token_ids "${token_name}" || true
-  )"
+  wait_for_gitea_user_auth "$username" "$password"
+  list_body_file="$(mktemp /tmp/ai-homebase-gitea-token-list.XXXXXX.json)"
+  curl -fsS -u "${username}:${password}" -o "$list_body_file" "${tokens_url}"
+  existing_token_ids="$(extract_gitea_token_ids "${token_name}" <"$list_body_file" || true)"
+  rm -f "$list_body_file"
   if [[ -n "${existing_token_ids}" ]]; then
     while IFS= read -r token_id; do
       [[ -n "${token_id}" ]] || continue
@@ -639,18 +691,66 @@ ensure_gitea_api_token() {
   fi
 
   token_payload="$(build_token_payload "${token_name}")"
-  token="$(
-    curl -fsS -u "${username}:${password}" \
-      -H 'Content-Type: application/json' \
-      -d "${token_payload}" \
-      "${tokens_url}" \
-      | extract_gitea_token_sha1
-  )"
-
-  if [[ -z "${token}" ]]; then
-    echo "Failed to create Gitea API token ${token_name} for ${username}." >&2
+  create_body_file="$(mktemp /tmp/ai-homebase-gitea-token-create.XXXXXX.json)"
+  while (( create_attempt < 5 )); do
+    token=""
+    create_status="$(
+      curl -sS -o "$create_body_file" -w '%{http_code}' \
+        -u "${username}:${password}" \
+        -H 'Content-Type: application/json' \
+        -d "${token_payload}" \
+        "${tokens_url}"
+    )"
+    if [[ "$create_status" == "201" || "$create_status" == "200" ]]; then
+      token="$(extract_gitea_token_sha1 <"$create_body_file" || true)"
+      if [[ -n "${token}" ]]; then
+        break
+      fi
+      list_body_file="$(mktemp /tmp/ai-homebase-gitea-token-list.XXXXXX.json)"
+      curl -fsS -u "${username}:${password}" -o "$list_body_file" "${tokens_url}"
+      duplicate_token_ids="$(extract_gitea_token_ids "${token_name}" <"$list_body_file" || true)"
+      rm -f "$list_body_file"
+      if [[ -n "${duplicate_token_ids}" ]]; then
+        while IFS= read -r token_id; do
+          [[ -n "${token_id}" ]] || continue
+          curl -fsS -X DELETE -u "${username}:${password}" "${tokens_url}/${token_id}" >/dev/null
+        done <<<"${duplicate_token_ids}"
+      fi
+      create_attempt=$((create_attempt + 1))
+      sleep 1
+      continue
+    fi
+    if [[ "$create_status" == "400" ]] && grep -q 'access token name has been used already' "$create_body_file"; then
+      list_body_file="$(mktemp /tmp/ai-homebase-gitea-token-list.XXXXXX.json)"
+      curl -fsS -u "${username}:${password}" -o "$list_body_file" "${tokens_url}"
+      duplicate_token_ids="$(extract_gitea_token_ids "${token_name}" <"$list_body_file" || true)"
+      rm -f "$list_body_file"
+      if [[ -n "${duplicate_token_ids}" ]]; then
+        while IFS= read -r token_id; do
+          [[ -n "${token_id}" ]] || continue
+          curl -fsS -X DELETE -u "${username}:${password}" "${tokens_url}/${token_id}" >/dev/null
+        done <<<"${duplicate_token_ids}"
+      fi
+      create_attempt=$((create_attempt + 1))
+      sleep 1
+      continue
+    fi
+    break
+  done
+  if [[ "$create_status" != "201" && "$create_status" != "200" ]]; then
+    echo "Failed to create Gitea API token ${token_name} for ${username}: HTTP ${create_status}" >&2
+    cat "$create_body_file" >&2 || true
+    rm -f "$create_body_file"
     exit 1
   fi
+
+  if [[ -z "${token}" ]]; then
+    echo "Failed to create Gitea API token ${token_name} for ${username}: missing sha1 in successful response." >&2
+    cat "$create_body_file" >&2 || true
+    rm -f "$create_body_file"
+    exit 1
+  fi
+  rm -f "$create_body_file"
 
   printf '%s' "${token}"
 }
