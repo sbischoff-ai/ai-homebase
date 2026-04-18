@@ -34,7 +34,7 @@ The rendered PVC requests total about `2.2TiB`; including the OpenClaw hostPath 
 
 ## Rendered `k3s` Resource Posture
 
-The current `k3s` values request roughly `17Gi` steady Kubernetes memory before workload spikes and optional future apps. Limits remain below the `64Gi` host capacity while leaving room for:
+The current `k3s` values request roughly `18Gi` steady Kubernetes memory before workload spikes and optional future apps. Limits remain below the `64Gi` host capacity while leaving room for:
 
 - the 6 GiB Incus OpenClaw sandbox VM,
 - node and k3s system overhead,
@@ -46,7 +46,7 @@ Key steady requests in `values-k3s.yaml`:
 
 | Workload | CPU request | Memory request | Memory limit |
 | --- | ---: | ---: | ---: |
-| OpenClaw gateway | `1` | `2Gi` | `6Gi` |
+| OpenClaw gateway | `1` | `3Gi` | `8Gi` |
 | Nextcloud | `1` | `3Gi` | `8Gi` |
 | Qdrant | `750m` | `2Gi` | `6Gi` |
 | Memgraph | `750m` | `2Gi` | `6Gi` |

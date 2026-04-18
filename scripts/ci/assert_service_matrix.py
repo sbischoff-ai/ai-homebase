@@ -515,7 +515,7 @@ def assert_k3s_runtime_and_sizing() -> None:
         raise SystemExit("k3s overlay rendered shared Redis without expected 30Gi local-path storage")
 
     expected_request_snippets = {
-        "platform-stack-openclaw": ['cpu: "1"', "memory: 2Gi"],
+        "platform-stack-openclaw": ['cpu: "1"', "memory: 3Gi"],
         "platform-stack-nextcloud": ['cpu: "1"', "memory: 3Gi"],
         "platform-stack-qdrant": ["cpu: 750m", "memory: 2Gi"],
         "platform-stack-memgraph": ["cpu: 750m", "memory: 2Gi"],

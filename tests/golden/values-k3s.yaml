@@ -5295,10 +5295,10 @@ spec:
         resources:
           limits:
             cpu: '4'
-            memory: 6Gi
+            memory: 8Gi
           requests:
             cpu: '1'
-            memory: 2Gi
+            memory: 3Gi
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
