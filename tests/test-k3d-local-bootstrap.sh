@@ -26,6 +26,7 @@ run_case() {
   mkdir -p "${repo_dir}/scripts/lib"
   cp "${REPO_ROOT}/scripts/k3d-local-bootstrap.sh" "${repo_dir}/scripts/k3d-local-bootstrap.sh"
   cp "${REPO_ROOT}/scripts/bootstrap-config.py" "${repo_dir}/scripts/bootstrap-config.py"
+  cp "${REPO_ROOT}/scripts/lib/bootstrap-hosts.sh" "${repo_dir}/scripts/lib/bootstrap-hosts.sh"
   cp "${REPO_ROOT}/scripts/lib/logging.sh" "${repo_dir}/scripts/lib/logging.sh"
   chmod +x "${repo_dir}/scripts/k3d-local-bootstrap.sh"
   chmod +x "${repo_dir}/scripts/bootstrap-config.py"
@@ -40,18 +41,22 @@ run_case() {
 [providers]
 openai_api_key = "test-openai-key"
 anthropic_api_key = "test-anthropic-key"
+gemini_api_key = "test-gemini-key"
 
 [openclaw.agents.main]
 model = "anthropic/claude-sonnet-4-6"
 
 [openclaw.agents.coder]
-model = "anthropic/claude-sonnet-4-5"
+model = "openai/gpt-5.4"
 
 [openclaw.agents.architect]
-model = "anthropic/claude-opus-4-6"
+model = "openai/gpt-5.4"
 
 [openclaw.agents.watchdog]
-model = "anthropic/claude-haiku-4-5"
+model = "openai/gpt-5.4-nano"
+
+[openclaw.agents.auditor]
+model = "anthropic/claude-opus-4-7"
 
 [hosts]
 openclaw = "openclaw.test.internal"
@@ -114,7 +119,7 @@ EOF
   assert_contains "${output}" "  Kubeconfig path: ${kubeconfig_path}"
   assert_contains "${output}" "  OpenClaw URL: http://openclaw.test.internal"
   assert_contains "${output}" "  OpenClaw main model: anthropic/claude-sonnet-4-6"
-  assert_contains "${output}" "  OpenClaw coder model: anthropic/claude-sonnet-4-5"
+  assert_contains "${output}" "  OpenClaw coder model: openai/gpt-5.4"
   assert_contains "${output}" "  Gitea URL: http://gitea.test.internal"
   assert_contains "${output}" "  Registry URL: https://registry.test.internal"
   assert_contains "${output}" "  Memgraph URL: http://memgraph.localtest.me"
@@ -131,7 +136,7 @@ EOF
   assert_contains "${commands}" "--remote-docker-port 2222"
   assert_contains "${commands}" "test-local-k3d.sh --release-name test-release --namespace test-namespace --kubeconfig ${kubeconfig_path} --skip-install"
   assert_contains "${commands}" "k3d-up.sh --cluster-name test-cluster --kubeconfig ${kubeconfig_path} --shared-openclaw-state-source ${shared_state_source} --shared-openclaw-state-target /var/lib/ai-homebase/openclaw-state"
-  assert_contains "${commands}" "incus-vm-up.sh --vm-name openclaw-sandbox --shared-openclaw-state-source ${shared_state_source} --shared-openclaw-state-target /home/node/.openclaw --resolve-host openclaw.test.internal --resolve-host nextcloud.test.internal --resolve-host nextcloud-mcp.localtest.me --resolve-host qdrant.localtest.me --resolve-host qdrant-mcp.localtest.me --resolve-host memgraph.localtest.me --resolve-host memgraph-lab.localtest.me --resolve-host gitea.test.internal --resolve-host registry.test.internal"
+  assert_contains "${commands}" "incus-vm-up.sh --vm-name openclaw-sandbox --shared-openclaw-state-source ${shared_state_source} --shared-openclaw-state-target /home/node/.openclaw --resolve-host openclaw.test.internal --resolve-host nextcloud.test.internal --resolve-host gitea.test.internal --resolve-host registry.test.internal --resolve-host vaultwarden.test.internal --resolve-host paperless.test.internal"
 
   trap - RETURN
   rm -rf "${sandbox_dir}"

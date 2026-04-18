@@ -21,6 +21,7 @@ repo_dir="${sandbox_dir}/repo"
 mkdir -p "${repo_dir}/scripts/lib"
 cp "${REPO_ROOT}/scripts/k3s-homelab-sandbox-up.sh" "${repo_dir}/scripts/k3s-homelab-sandbox-up.sh"
 cp "${REPO_ROOT}/scripts/bootstrap-config.py" "${repo_dir}/scripts/bootstrap-config.py"
+cp "${REPO_ROOT}/scripts/lib/bootstrap-hosts.sh" "${repo_dir}/scripts/lib/bootstrap-hosts.sh"
 cp "${REPO_ROOT}/scripts/lib/logging.sh" "${repo_dir}/scripts/lib/logging.sh"
 chmod +x "${repo_dir}/scripts/k3s-homelab-sandbox-up.sh" "${repo_dir}/scripts/bootstrap-config.py"
 
@@ -28,18 +29,22 @@ cat >"${sandbox_dir}/bootstrap.local.toml" <<'EOF'
 [providers]
 openai_api_key = "test-openai-key"
 anthropic_api_key = "test-anthropic-key"
+gemini_api_key = "test-gemini-key"
 
 [openclaw.agents.main]
 model = "anthropic/claude-sonnet-4-6"
 
 [openclaw.agents.coder]
-model = "anthropic/claude-sonnet-4-5"
+model = "openai/gpt-5.4"
 
 [openclaw.agents.architect]
-model = "anthropic/claude-opus-4-6"
+model = "openai/gpt-5.4"
 
 [openclaw.agents.watchdog]
-model = "anthropic/claude-haiku-4-5"
+model = "openai/gpt-5.4-nano"
+
+[openclaw.agents.auditor]
+model = "anthropic/claude-opus-4-7"
 
 [hosts]
 openclaw = "openclaw.test.internal"

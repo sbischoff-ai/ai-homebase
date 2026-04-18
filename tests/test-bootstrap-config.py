@@ -22,31 +22,36 @@ valid_config = write_config(
 [providers]
 openai_api_key = "test-openai-key"
 anthropic_api_key = "test-anthropic-key"
+gemini_api_key = "test-gemini-key"
 brave_api_key = "test-brave-key"
 
 [openclaw.agents.main]
-model = "openai/gpt-5.4"
-fallback_models = ["anthropic/claude-sonnet-4-6"]
+model = "anthropic/claude-sonnet-4-6"
+fallback_models = ["openai/gpt-5.4", "google/gemini-3.1-pro-preview"]
 
 [openclaw.agents.coder]
-model = "anthropic/claude-sonnet-4-6"
-fallback_models = ["openai/gpt-5.4"]
+model = "openai/gpt-5.4"
+fallback_models = ["anthropic/claude-sonnet-4-6", "google/gemini-3.1-pro-preview"]
 
 [openclaw.agents.coder.gitea]
 username = "coder-bot"
 password = "coder-password"
 
 [openclaw.agents.architect]
-model = "anthropic/claude-opus-4-6"
-fallback_models = ["openai/gpt-5.4"]
+model = "openai/gpt-5.4"
+fallback_models = ["anthropic/claude-sonnet-4-6", "google/gemini-3.1-pro-preview"]
 
 [openclaw.agents.archivist]
-model = "anthropic/claude-sonnet-4-6"
-fallback_models = ["openai/gpt-5.4-mini"]
+model = "openai/gpt-5.4-mini"
+fallback_models = ["anthropic/claude-sonnet-4-6", "google/gemini-3.1-flash-lite-preview"]
 
 [openclaw.agents.watchdog]
 model = "openai/gpt-5.4-nano"
-fallback_models = ["anthropic/claude-haiku-4-5"]
+fallback_models = ["google/gemini-3.1-flash-lite-preview", "anthropic/claude-haiku-4-5"]
+
+[openclaw.agents.auditor]
+model = "anthropic/claude-opus-4-7"
+fallback_models = ["openai/gpt-5.4", "google/gemini-3.1-pro-preview"]
 
 [hosts]
 openclaw = "openclaw.test.internal"
@@ -116,13 +121,15 @@ shell_vars = subprocess.run(
 ).stdout
 assert "OPENAI_API_KEY=test-openai-key" in shell_vars
 assert "ANTHROPIC_API_KEY=test-anthropic-key" in shell_vars
+assert "GEMINI_API_KEY=test-gemini-key" in shell_vars
 assert "BRAVE_API_KEY=test-brave-key" in shell_vars
-assert "OPENCLAW_MAIN_MODEL=openai/gpt-5.4" in shell_vars
-assert "OPENCLAW_CODER_MODEL=anthropic/claude-sonnet-4-6" in shell_vars
+assert "OPENCLAW_MAIN_MODEL=anthropic/claude-sonnet-4-6" in shell_vars
+assert "OPENCLAW_CODER_MODEL=openai/gpt-5.4" in shell_vars
 assert "GITHUB_TOKEN=github-token" in shell_vars
-assert "OPENCLAW_ARCHITECT_MODEL=anthropic/claude-opus-4-6" in shell_vars
-assert "OPENCLAW_ARCHIVIST_MODEL=anthropic/claude-sonnet-4-6" in shell_vars
+assert "OPENCLAW_ARCHITECT_MODEL=openai/gpt-5.4" in shell_vars
+assert "OPENCLAW_ARCHIVIST_MODEL=openai/gpt-5.4-mini" in shell_vars
 assert "OPENCLAW_WATCHDOG_MODEL=openai/gpt-5.4-nano" in shell_vars
+assert "OPENCLAW_AUDITOR_MODEL=anthropic/claude-opus-4-7" in shell_vars
 assert "GITEA_ADMIN_EMAIL=git@example.invalid" in shell_vars
 assert "NEXTCLOUD_ADMIN_USER=test-admin" in shell_vars
 assert "NEXTCLOUD_MCP_HOST=nextcloud-mcp.test.internal" in shell_vars
@@ -159,6 +166,7 @@ rendered_values = json.loads(
 )
 assert rendered_values["openclaw"]["secretKeys"]["openaiApiKey"] == "OPENAI_API_KEY"
 assert rendered_values["openclaw"]["secretKeys"]["anthropicApiKey"] == "ANTHROPIC_API_KEY"
+assert rendered_values["openclaw"]["secretKeys"]["geminiApiKey"] == "GEMINI_API_KEY"
 assert rendered_values["openclaw"]["secretKeys"]["githubToken"] == "GITHUB_TOKEN"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["defaults"]["workspace"] == "/home/node/.openclaw/workspace"
 assert rendered_values["openclaw"]["openclaw"]["skills"]["allowBundled"] == [
@@ -173,17 +181,19 @@ assert rendered_values["openclaw"]["openclaw"]["skills"]["allowBundled"] == [
 ]
 assert "coding-agent" not in rendered_values["openclaw"]["openclaw"]["skills"]["allowBundled"]
 assert rendered_values["openclaw"]["openclaw"]["agents"]["defaults"]["models"] == {
-    "openai/gpt-5.4": {"alias": "Main / Coder / Architect / Auditor"},
-    "anthropic/claude-sonnet-4-6": {"alias": "Main / Coder / Archivist"},
-    "anthropic/claude-opus-4-6": {"alias": "Architect / Auditor"},
-    "openai/gpt-5.4-mini": {"alias": "Archivist"},
-    "openai/gpt-5.4-nano": {"alias": "Watchdog"},
-    "anthropic/claude-haiku-4-5": {"alias": "Watchdog"},
+    "anthropic/claude-sonnet-4-6": {"alias": "claude-sonnet-4-6"},
+    "openai/gpt-5.4": {"alias": "gpt-5.4"},
+    "google/gemini-3.1-pro-preview": {"alias": "gemini-3.1-pro-preview"},
+    "openai/gpt-5.4-mini": {"alias": "gpt-5.4-mini"},
+    "google/gemini-3.1-flash-lite-preview": {"alias": "gemini-3.1-flash-lite-preview"},
+    "openai/gpt-5.4-nano": {"alias": "gpt-5.4-nano"},
+    "anthropic/claude-haiku-4-5": {"alias": "claude-haiku-4-5"},
+    "anthropic/claude-opus-4-7": {"alias": "claude-opus-4-7"},
 }
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][0]["id"] == "main"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][0]["default"] is True
-assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][0]["model"]["primary"] == "openai/gpt-5.4"
-assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][0]["model"]["fallbacks"] == ["anthropic/claude-sonnet-4-6"]
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][0]["model"]["primary"] == "anthropic/claude-sonnet-4-6"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][0]["model"]["fallbacks"] == ["openai/gpt-5.4", "google/gemini-3.1-pro-preview"]
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][0]["skills"] == [
     "handoff-specialist-work",
     "manage-worker-lifecycle",
@@ -207,8 +217,8 @@ assert rendered_values["openclaw"]["openclaw"]["agents"]["defaults"]["sandbox"][
 assert rendered_values["openclaw"]["openclaw"]["agents"]["defaults"]["sandbox"]["docker"]["env"]["GEMINI_API_KEY"] == "${GEMINI_API_KEY}"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["id"] == "coder"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["workspace"] == "/home/node/.openclaw/workspace-coder"
-assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["model"]["primary"] == "anthropic/claude-sonnet-4-6"
-assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["model"]["fallbacks"] == ["openai/gpt-5.4"]
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["model"]["primary"] == "openai/gpt-5.4"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["model"]["fallbacks"] == ["anthropic/claude-sonnet-4-6", "google/gemini-3.1-pro-preview"]
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["mode"] == "all"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["workspaceAccess"] == "rw"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["image"] == "registry.test.internal/coder-bot/openclaw-sandbox-coder:trixie-slim"
@@ -241,9 +251,9 @@ assert "coding-agent" not in rendered_values["openclaw"]["openclaw"]["agents"]["
 assert "session-logs" not in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["skills"]
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["id"] == "architect"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["workspace"] == "/home/node/.openclaw/workspace-architect"
-assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["model"]["primary"] == "anthropic/claude-opus-4-6"
-assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["model"]["fallbacks"] == ["openai/gpt-5.4"]
-assert "sandbox" not in rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["model"]["primary"] == "openai/gpt-5.4"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["model"]["fallbacks"] == ["anthropic/claude-sonnet-4-6", "google/gemini-3.1-pro-preview"]
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["sandbox"]["mode"] == "non-main"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["skills"] == [
     "plan-projects",
     "package-worker-definitions",
@@ -257,8 +267,8 @@ assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["skills"] ==
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["tools"]["deny"] == ["tts", "image_generate", "canvas"]
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][3]["id"] == "archivist"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][3]["workspace"] == "/home/node/.openclaw/workspace-archivist"
-assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][3]["model"]["primary"] == "anthropic/claude-sonnet-4-6"
-assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][3]["model"]["fallbacks"] == ["openai/gpt-5.4-mini"]
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][3]["model"]["primary"] == "openai/gpt-5.4-mini"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][3]["model"]["fallbacks"] == ["anthropic/claude-sonnet-4-6", "google/gemini-3.1-flash-lite-preview"]
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][3]["sandbox"] == {"mode": "non-main"}
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][3]["skills"] == [
     "curate-memgraph",
@@ -272,7 +282,7 @@ assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][3]["tools"]["de
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][4]["id"] == "watchdog"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][4]["workspace"] == "/home/node/.openclaw/workspace-watchdog"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][4]["model"]["primary"] == "openai/gpt-5.4-nano"
-assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][4]["model"]["fallbacks"] == ["anthropic/claude-haiku-4-5"]
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][4]["model"]["fallbacks"] == ["google/gemini-3.1-flash-lite-preview", "anthropic/claude-haiku-4-5"]
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][4]["sandbox"]["mode"] == "off"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][4]["skills"] == [
     "classify-severity-and-escalate",
@@ -293,6 +303,8 @@ assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][4]["tools"]["de
     "subagents",
 ]
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][5]["id"] == "auditor"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][5]["model"]["primary"] == "anthropic/claude-opus-4-7"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][5]["model"]["fallbacks"] == ["openai/gpt-5.4", "google/gemini-3.1-pro-preview"]
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][5]["skills"] == [
     "classify-review-mode",
     "manage-review-packets",
@@ -309,7 +321,7 @@ assert rendered_values["openclaw"]["openclaw"]["tools"]["agentToAgent"]["allow"]
 assert rendered_values["openclaw"]["openclaw"]["tools"]["sessions"]["visibility"] == "all"
 assert rendered_values["openclaw"]["openclaw"]["plugins"]["slots"]["memory"] == "none"
 assert rendered_values["openclaw"]["workspaceBootstrap"]["enabled"] is True
-assert rendered_values["openclaw"]["workspaceBootstrap"]["giteaAdminUsername"] == "git-admin"
+assert rendered_values["openclaw"]["workspaceBootstrap"]["giteaAdminUsername"] == "test-admin"
 assert rendered_values["openclaw"]["workspaceBootstrap"]["agents"]["main"] == {
     "workspace": "/home/node/.openclaw/workspace",
     "filesDir": "workspaces/main",
@@ -416,7 +428,7 @@ assert "Qdrant Semantic Memory Schema" in (project_docs_dir / "qdrant-memory-sch
 assert "Knowledge Graph Schema" in (project_docs_dir / "knowledge-graph-schema.md").read_text()
 project_documentation_model = (project_docs_dir / "project-documentation-model.md").read_text()
 assert "/Desk/" in project_documentation_model
-assert "created by `main` at bootstrap or first use" in project_documentation_model
+assert "created by `main` on first use" in project_documentation_model
 assert rendered_values["nextcloud"]["ingress"]["private"]["host"] == "nextcloud.test.internal"
 assert rendered_values["nextcloud"]["ingress"]["public"]["host"] == "nextcloud.example.com"
 assert rendered_values["nextcloud"]["smtp"]["host"] == "platform-stack-postfix-relay"
@@ -448,19 +460,30 @@ assert rendered_values["openclaw"]["env"] == [
         "name": "MEMGRAPH_BOLT_URI",
         "value": 'bolt://{{ printf "%s-memgraph" .Release.Name | trunc 63 | trimSuffix "-" }}:7687',
     },
+    {
+        "name": "REVIEWER_GITEA_BASE_URL",
+        "value": "http://{{ printf \"%s-gitea-http.%s.svc.cluster.local\" .Release.Name .Release.Namespace }}:3000",
+    },
+    {
+        "name": "REVIEWER_GITEA_HOST",
+        "value": '{{ printf "%s-gitea-http.%s.svc.cluster.local" .Release.Name .Release.Namespace }}',
+    },
+    {"name": "REVIEWER_GITEA_USERNAME", "value": "reviewer"},
+    {"name": "REVIEWER_GITEA_EMAIL", "value": "reviewer@example.invalid"},
+    {"name": "REVIEWER_GITEA_TEA_LOGIN_NAME", "value": "reviewer"},
+    {"name": "REVIEWER_GITEA_TEA_TOKEN_NAME", "value": "openclaw-reviewer"},
 ]
-assert rendered_values["openclaw"]["openclaw"]["agents"]["defaults"]["sandbox"]["docker"]["env"] == {
-    "MEMGRAPH_HOST": "memgraph.test.internal",
-    "MEMGRAPH_PORT": "7687",
-    "MEMGRAPH_BOLT_URI": "bolt://memgraph.test.internal:7687",
-    "QDRANT_URL": "https://qdrant.test.internal",
-    "QDRANT_COLLECTION": "openclaw-memory",
-    "QDRANT_API_KEY": "${QDRANT_API_KEY}",
-    "GITHUB_TOKEN": "${GITHUB_TOKEN}",
-    "OPENAI_API_KEY": "${OPENAI_API_KEY}",
-    "ANTHROPIC_API_KEY": "${ANTHROPIC_API_KEY}",
-    "GEMINI_API_KEY": "${GEMINI_API_KEY}",
-}
+sandbox_env = rendered_values["openclaw"]["openclaw"]["agents"]["defaults"]["sandbox"]["docker"]["env"]
+assert sandbox_env["MEMGRAPH_HOST"] == "memgraph.test.internal"
+assert sandbox_env["MEMGRAPH_PORT"] == "7687"
+assert sandbox_env["MEMGRAPH_BOLT_URI"] == "bolt://memgraph.test.internal:7687"
+assert sandbox_env["QDRANT_URL"] == "https://qdrant.test.internal"
+assert sandbox_env["QDRANT_COLLECTION"] == "openclaw-memory"
+assert sandbox_env["QDRANT_API_KEY"] == "${QDRANT_API_KEY}"
+assert sandbox_env["GITHUB_TOKEN"] == "${GITHUB_TOKEN}"
+assert sandbox_env["OPENAI_API_KEY"] == "${OPENAI_API_KEY}"
+assert sandbox_env["ANTHROPIC_API_KEY"] == "${ANTHROPIC_API_KEY}"
+assert sandbox_env["GEMINI_API_KEY"] == "${GEMINI_API_KEY}"
 
 coder_dockerfile = (REPO_ROOT / "images" / "openclaw-sandbox-coder" / "Dockerfile").read_text(encoding="utf-8")
 base_dockerfile = (REPO_ROOT / "images" / "openclaw-sandbox-base" / "Dockerfile").read_text(encoding="utf-8")
@@ -476,14 +499,14 @@ assert "@openai/codex" in coder_dockerfile
 assert "debian:trixie-slim" in base_dockerfile
 assert "COPY --from=memgraph-tools /usr/bin/mgconsole /usr/local/bin/mgconsole" in base_dockerfile
 assert "https://deb.nodesource.com/node_22.x" in base_dockerfile
-assert "go install code.gitea.io/tea@latest" in base_dockerfile
+assert 'go install code.gitea.io/tea@"${TEA_VERSION}"' in base_dockerfile
 assert "npm install -g @steipete/summarize" in base_dockerfile
 assert "gh --version" in base_dockerfile
 assert "debian:trixie-slim" in gateway_dockerfile
 assert "COPY --from=openclaw-runtime /app /app" in gateway_dockerfile
 assert "COPY --from=memgraph-tools /usr/bin/mgconsole /usr/local/bin/mgconsole" in gateway_dockerfile
 assert "https://deb.nodesource.com/node_22.x" in gateway_dockerfile
-assert "go install code.gitea.io/tea@latest" in gateway_dockerfile
+assert 'go install code.gitea.io/tea@"${TEA_VERSION}"' in gateway_dockerfile
 assert "npm install -g @steipete/summarize" in gateway_dockerfile
 assert "tmux -V" in gateway_dockerfile
 assert "toolDescriptions:" in qdrant_mcp_values
@@ -516,15 +539,19 @@ missing_openai_for_coder_config = write_config(
 [providers]
 openai_api_key = ""
 anthropic_api_key = "test-anthropic-key"
+gemini_api_key = "test-gemini-key"
 
 [openclaw.agents.main]
 model = "anthropic/claude-sonnet-4-6"
+fallback_models = ["google/gemini-3.1-pro-preview"]
 
 [openclaw.agents.coder]
-model = "anthropic/claude-sonnet-4-5"
+model = "anthropic/claude-sonnet-4-6"
+fallback_models = ["google/gemini-3.1-pro-preview"]
 
 [openclaw.agents.architect]
-model = "anthropic/claude-opus-4-6"
+model = "anthropic/claude-sonnet-4-6"
+fallback_models = ["google/gemini-3.1-pro-preview"]
 
 [mail]
 domain = "example.com"
@@ -546,15 +573,18 @@ invalid_argocd_user_config = write_config(
 [providers]
 openai_api_key = "test-openai-key"
 anthropic_api_key = "test-anthropic-key"
+gemini_api_key = "test-gemini-key"
 
 [openclaw.agents.main]
 model = "anthropic/claude-sonnet-4-6"
 
 [openclaw.agents.coder]
-model = "anthropic/claude-sonnet-4-5"
+model = "anthropic/claude-sonnet-4-6"
+fallback_models = ["google/gemini-3.1-pro-preview"]
 
 [openclaw.agents.architect]
-model = "anthropic/claude-opus-4-6"
+model = "anthropic/claude-opus-4-7"
+fallback_models = ["google/gemini-3.1-pro-preview"]
 
 [mail]
 domain = "example.com"
@@ -580,15 +610,18 @@ custom_argocd_user_config = write_config(
 [providers]
 openai_api_key = "test-openai-key"
 anthropic_api_key = "test-anthropic-key"
+gemini_api_key = "test-gemini-key"
 
 [openclaw.agents.main]
 model = "anthropic/claude-sonnet-4-6"
 
 [openclaw.agents.coder]
-model = "anthropic/claude-sonnet-4-5"
+model = "anthropic/claude-sonnet-4-6"
+fallback_models = ["google/gemini-3.1-pro-preview"]
 
 [openclaw.agents.architect]
-model = "anthropic/claude-opus-4-6"
+model = "anthropic/claude-opus-4-7"
+fallback_models = ["google/gemini-3.1-pro-preview"]
 
 [mail]
 domain = "example.com"
@@ -616,15 +649,18 @@ blank_service_admin_override_config = write_config(
 [providers]
 openai_api_key = "test-openai-key"
 anthropic_api_key = "test-anthropic-key"
+gemini_api_key = "test-gemini-key"
 
 [openclaw.agents.main]
 model = "anthropic/claude-sonnet-4-6"
 
 [openclaw.agents.coder]
-model = "anthropic/claude-sonnet-4-5"
+model = "anthropic/claude-sonnet-4-6"
+fallback_models = ["google/gemini-3.1-pro-preview"]
 
 [openclaw.agents.architect]
-model = "anthropic/claude-opus-4-6"
+model = "anthropic/claude-opus-4-7"
+fallback_models = ["google/gemini-3.1-pro-preview"]
 
 [mail]
 domain = "example.com"
@@ -665,12 +701,15 @@ openai_api_key = "test-openai-key"
 
 [openclaw.agents.main]
 model = "anthropic/claude-sonnet-4-6"
+fallback_models = ["openai/gpt-5.4"]
 
 [openclaw.agents.coder]
-model = "anthropic/claude-sonnet-4-5"
+model = "anthropic/claude-sonnet-4-6"
+fallback_models = ["openai/gpt-5.4"]
 
 [openclaw.agents.architect]
-model = "anthropic/claude-opus-4-6"
+model = "anthropic/claude-opus-4-7"
+fallback_models = ["openai/gpt-5.4"]
 
 [mail]
 domain = "example.com"
@@ -692,9 +731,10 @@ missing_provider_for_fallback_config = write_config(
 [providers]
 openai_api_key = "test-openai-key"
 anthropic_api_key = "test-anthropic-key"
+gemini_api_key = "test-gemini-key"
 
 [openclaw.agents.architect]
-model = "anthropic/claude-opus-4-6"
+model = "anthropic/claude-opus-4-7"
 fallback_models = ["moonshot/kimi-k2"]
 
 [mail]
@@ -717,15 +757,19 @@ missing_architect_provider_config = write_config(
 [providers]
 openai_api_key = "test-openai-key"
 anthropic_api_key = ""
+gemini_api_key = "test-gemini-key"
 
 [openclaw.agents.main]
-model = "anthropic/claude-sonnet-4-5"
+model = "anthropic/claude-sonnet-4-6"
+fallback_models = ["google/gemini-3.1-pro-preview"]
 
 [openclaw.agents.coder]
-model = "anthropic/claude-sonnet-4-5"
+model = "anthropic/claude-sonnet-4-6"
+fallback_models = ["google/gemini-3.1-pro-preview"]
 
 [openclaw.agents.architect]
-model = "anthropic/claude-opus-4-6"
+model = "anthropic/claude-opus-4-7"
+fallback_models = ["google/gemini-3.1-pro-preview"]
 
 [mail]
 domain = "example.com"

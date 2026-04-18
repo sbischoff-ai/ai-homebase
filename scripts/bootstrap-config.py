@@ -21,21 +21,21 @@ PROVIDER_ENV_VARS = (
     "MOONSHOT_API_KEY",
 )
 
-DEFAULT_MAIN_MODEL = "openai/gpt-5.4"
-DEFAULT_MAIN_FALLBACK_MODELS = ["anthropic/claude-sonnet-4-6"]
-DEFAULT_CODER_MODEL = "anthropic/claude-sonnet-4-6"
-DEFAULT_CODER_FALLBACK_MODELS = ["openai/gpt-5.4"]
+DEFAULT_MAIN_MODEL = "anthropic/claude-sonnet-4-6"
+DEFAULT_MAIN_FALLBACK_MODELS = ["openai/gpt-5.4", "google/gemini-3.1-pro-preview"]
+DEFAULT_CODER_MODEL = "openai/gpt-5.4"
+DEFAULT_CODER_FALLBACK_MODELS = ["anthropic/claude-sonnet-4-6", "google/gemini-3.1-pro-preview"]
 # `openai/gpt-5.3-codex` remains a valid override for higher code quality
 # at roughly 3x the cost ($2.275 / $18.20 per 1M tokens).
 DEFAULT_CODEX_MODEL = "openai/gpt-5.4-mini"
-DEFAULT_ARCHITECT_MODEL = "anthropic/claude-sonnet-4-6"
-DEFAULT_ARCHITECT_FALLBACK_MODELS = ["openai/gpt-5.4"]
+DEFAULT_ARCHITECT_MODEL = "openai/gpt-5.4"
+DEFAULT_ARCHITECT_FALLBACK_MODELS = ["anthropic/claude-sonnet-4-6", "google/gemini-3.1-pro-preview"]
 DEFAULT_ARCHIVIST_MODEL = "openai/gpt-5.4-mini"
-DEFAULT_ARCHIVIST_FALLBACK_MODELS = ["anthropic/claude-sonnet-4-6"]
+DEFAULT_ARCHIVIST_FALLBACK_MODELS = ["anthropic/claude-sonnet-4-6", "google/gemini-3.1-flash-lite-preview"]
 DEFAULT_WATCHDOG_MODEL = "openai/gpt-5.4-nano"
-DEFAULT_WATCHDOG_FALLBACK_MODELS = ["anthropic/claude-haiku-4-5"]
-DEFAULT_AUDITOR_MODEL = "anthropic/claude-opus-4-6"
-DEFAULT_AUDITOR_FALLBACK_MODELS = ["openai/gpt-5.4"]
+DEFAULT_WATCHDOG_FALLBACK_MODELS = ["google/gemini-3.1-flash-lite-preview", "anthropic/claude-haiku-4-5"]
+DEFAULT_AUDITOR_MODEL = "anthropic/claude-opus-4-7"
+DEFAULT_AUDITOR_FALLBACK_MODELS = ["openai/gpt-5.4", "google/gemini-3.1-pro-preview"]
 SHARED_MCP_BRIDGE_PATH = "/opt/openclaw-runtime/mcp/mcp-http-bridge.mjs"
 SANDBOX_CA_BUNDLE_PATH = "/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt"
 NEXTCLOUD_MCP_USERNAME = "openclaw"
@@ -624,20 +624,11 @@ def command_render_values(args: argparse.Namespace) -> int:
     agent_models = resolve_agent_models(data, provider_values(data))
     workspace_bootstrap = workspace_bootstrap_values()
     allowed_models: dict[str, dict[str, str]] = {}
-    for agent_id, alias in (
-        ("main", "Main"),
-        ("coder", "Coder"),
-        ("architect", "Architect"),
-        ("archivist", "Archivist"),
-        ("watchdog", "Watchdog"),
-        ("auditor", "Auditor"),
-    ):
+    for agent_id in ("main", "coder", "architect", "archivist", "watchdog", "auditor"):
         model_config = agent_models[agent_id]
         for model_id in [require_string(model_config["primary"], f"openclaw.agents.{agent_id}.model"), *require_string_list(model_config["fallbacks"], f"openclaw.agents.{agent_id}.fallback_models")]:
-            if model_id in allowed_models:
-                allowed_models[model_id]["alias"] = f"{allowed_models[model_id]['alias']} / {alias}"
-            else:
-                allowed_models[model_id] = {"alias": alias}
+            if model_id not in allowed_models:
+                allowed_models[model_id] = {"alias": model_id.split("/", 1)[1]}
     openclaw: dict[str, object] = {
         "secretKeys": {
             "gatewayToken": "OPENCLAW_GATEWAY_TOKEN",

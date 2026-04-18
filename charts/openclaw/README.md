@@ -28,7 +28,7 @@ This chart deploys OpenClaw as a **single trusted-boundary, long-running gateway
 You must provide a Kubernetes Secret that includes:
 
 - `OPENCLAW_GATEWAY_TOKEN` (**mandatory**) for gateway authentication.
-- At least one model provider key for assistant responses, for example `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `XAI_API_KEY`, or `MOONSHOT_API_KEY`.
+- The model provider keys required by your selected standing-agent routing. The shipped defaults require `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, and `GEMINI_API_KEY`.
 
 Search-only keys such as `BRAVE_API_KEY` and `PERPLEXITY_API_KEY` enable built-in web search but do not by themselves make chat replies work.
 
@@ -133,11 +133,11 @@ type: Opaque
 stringData:
   OPENCLAW_GATEWAY_TOKEN: "replace-with-long-random-token"
   OPENAI_API_KEY: "replace-with-openai-key"
-  # or use ANTHROPIC_API_KEY instead of OPENAI_API_KEY
+  ANTHROPIC_API_KEY: "replace-with-anthropic-key"
+  GEMINI_API_KEY: "replace-with-gemini-key"
 
   BRAVE_API_KEY: "optional"
   PERPLEXITY_API_KEY: "optional"
-  GEMINI_API_KEY: "optional"
   XAI_API_KEY: "optional"
   MOONSHOT_API_KEY: "optional"
 ```
@@ -149,7 +149,7 @@ existingSecret: openclaw-secrets
 secretKeys:
   gatewayToken: OPENCLAW_GATEWAY_TOKEN
   openaiApiKey: OPENAI_API_KEY
-  # anthropicApiKey: ANTHROPIC_API_KEY
+  anthropicApiKey: ANTHROPIC_API_KEY
   braveApiKey: BRAVE_API_KEY
   perplexityApiKey: PERPLEXITY_API_KEY
   geminiApiKey: GEMINI_API_KEY

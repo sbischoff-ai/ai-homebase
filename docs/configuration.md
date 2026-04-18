@@ -48,6 +48,14 @@ python3 scripts/bootstrap-config.py validate --config bootstrap.local.toml
 
 `scripts/bootstrap-config.py render-values` turns that file into a generated Helm values layer during bootstrap. Treat the generated layer as a bridge from operator input into Helm, not as the long-term source of truth.
 
+The shipped OpenClaw defaults use OpenAI, Anthropic, and Google model IDs across primary and fallback assignments, so an unmodified `bootstrap.example.toml` now requires:
+
+- `openai_api_key`
+- `anthropic_api_key`
+- `gemini_api_key`
+
+If you do not want a three-provider bootstrap posture, override the affected agent `model` and `fallback_models` selections in `bootstrap.local.toml`.
+
 ## What Belongs Where
 
 Use `charts/platform-stack/values.yaml` for reusable stack defaults that should apply to both supported targets.

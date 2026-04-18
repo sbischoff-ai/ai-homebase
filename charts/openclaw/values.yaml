@@ -146,13 +146,21 @@ openclaw:
         every: 0m
       models:
         openai/gpt-5.4:
-          alias: Main / Coder / Architect / Archivist / Auditor
+          alias: gpt-5.4
         anthropic/claude-sonnet-4-6:
-          alias: Main / Architect
+          alias: claude-sonnet-4-6
+        google/gemini-3.1-pro-preview:
+          alias: gemini-3.1-pro-preview
+        openai/gpt-5.4-mini:
+          alias: gpt-5.4-mini
         openai/gpt-5.4-nano:
-          alias: Watchdog
-        anthropic/claude-opus-4-6:
-          alias: Auditor
+          alias: gpt-5.4-nano
+        google/gemini-3.1-flash-lite-preview:
+          alias: gemini-3.1-flash-lite-preview
+        anthropic/claude-opus-4-7:
+          alias: claude-opus-4-7
+        anthropic/claude-haiku-4-5:
+          alias: claude-haiku-4-5
       sandbox:
         backend: docker
         mode: non-main
@@ -214,9 +222,10 @@ openclaw:
           every: 0m
           includeSystemPromptSection: false
         model:
-          primary: openai/gpt-5.4
+          primary: anthropic/claude-sonnet-4-6
           fallbacks:
-            - anthropic/claude-sonnet-4-6
+            - openai/gpt-5.4
+            - google/gemini-3.1-pro-preview
         skills:
           - handoff-specialist-work
           - manage-worker-lifecycle
@@ -240,9 +249,10 @@ openclaw:
         name: Coder
         workspace: /home/node/.openclaw/workspace-coder
         model:
-          primary: anthropic/claude-sonnet-4-6
+          primary: openai/gpt-5.4
           fallbacks:
-            - openai/gpt-5.4
+            - anthropic/claude-sonnet-4-6
+            - google/gemini-3.1-pro-preview
         skills:
           - manage-gitea-gitops-and-registry
           - run-codex-and-log-usage
@@ -296,9 +306,10 @@ openclaw:
         name: Architect
         workspace: /home/node/.openclaw/workspace-architect
         model:
-          primary: anthropic/claude-sonnet-4-6
+          primary: openai/gpt-5.4
           fallbacks:
-            - openai/gpt-5.4
+            - anthropic/claude-sonnet-4-6
+            - google/gemini-3.1-pro-preview
         sandbox:
           mode: non-main
           workspaceAccess: rw
@@ -368,6 +379,7 @@ openclaw:
           primary: openai/gpt-5.4-mini
           fallbacks:
             - anthropic/claude-sonnet-4-6
+            - google/gemini-3.1-flash-lite-preview
         skills:
           - curate-memgraph
           - groom-knowledge-graph
@@ -391,6 +403,7 @@ openclaw:
         model:
           primary: openai/gpt-5.4-nano
           fallbacks:
+            - google/gemini-3.1-flash-lite-preview
             - anthropic/claude-haiku-4-5
         skills:
           - classify-severity-and-escalate
@@ -415,9 +428,10 @@ openclaw:
         name: Auditor
         workspace: /home/node/.openclaw/workspace-auditor
         model:
-          primary: anthropic/claude-opus-4-6
+          primary: anthropic/claude-opus-4-7
           fallbacks:
             - openai/gpt-5.4
+            - google/gemini-3.1-pro-preview
         skills:
           - classify-review-mode
           - manage-review-packets

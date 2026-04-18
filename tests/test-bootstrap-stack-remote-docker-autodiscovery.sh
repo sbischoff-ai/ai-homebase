@@ -45,18 +45,22 @@ cat >"${sandbox_dir}/bootstrap.local.toml" <<'EOF'
 [providers]
 openai_api_key = "test-openai-key"
 anthropic_api_key = "test-anthropic-key"
+gemini_api_key = "test-gemini-key"
 
 [openclaw.agents.main]
 model = "anthropic/claude-sonnet-4-6"
 
 [openclaw.agents.coder]
-model = "anthropic/claude-sonnet-4-5"
+model = "openai/gpt-5.4"
 
 [openclaw.agents.architect]
-model = "anthropic/claude-opus-4-6"
+model = "openai/gpt-5.4"
 
 [openclaw.agents.watchdog]
 model = "anthropic/claude-haiku-4-5"
+
+[openclaw.agents.auditor]
+model = "anthropic/claude-opus-4-7"
 
 [mail]
 domain = "example.com"

@@ -14,24 +14,34 @@ def main() -> int:
 [providers]
 openai_api_key = "test-openai-key"
 anthropic_api_key = "test-anthropic-key"
+gemini_api_key = "test-gemini-key"
 
 [openclaw.agents.main]
 model = "anthropic/claude-sonnet-4-6"
+fallback_models = ["openai/gpt-5.4", "google/gemini-3.1-pro-preview"]
 
 [openclaw.agents.coder]
-model = "anthropic/claude-sonnet-4-5"
+model = "openai/gpt-5.4"
+fallback_models = ["anthropic/claude-sonnet-4-6", "google/gemini-3.1-pro-preview"]
 
 [openclaw.agents.coder.gitea]
 username = "coder-bot"
 
 [openclaw.agents.architect]
-model = "anthropic/claude-opus-4-6"
+model = "openai/gpt-5.4"
+fallback_models = ["anthropic/claude-sonnet-4-6", "google/gemini-3.1-pro-preview"]
 
 [openclaw.agents.archivist]
-model = "anthropic/claude-sonnet-4-6"
+model = "openai/gpt-5.4-mini"
+fallback_models = ["anthropic/claude-sonnet-4-6", "google/gemini-3.1-flash-lite-preview"]
 
 [openclaw.agents.watchdog]
-model = "anthropic/claude-haiku-4-5"
+model = "openai/gpt-5.4-nano"
+fallback_models = ["google/gemini-3.1-flash-lite-preview", "anthropic/claude-haiku-4-5"]
+
+[openclaw.agents.auditor]
+model = "anthropic/claude-opus-4-7"
+fallback_models = ["openai/gpt-5.4", "google/gemini-3.1-pro-preview"]
 
 [hosts]
 openclaw = "openclaw.test.internal"
@@ -114,22 +124,24 @@ project = "platform-stack"
         assert '"architect"' in bootstrap_values
         assert '"watchdog"' in bootstrap_values
         assert '"archivist"' in bootstrap_values
-        assert 'claude-opus-4-6' in bootstrap_values
+        assert 'claude-opus-4-7' in bootstrap_values
         assert 'claude-haiku-4-5' in bootstrap_values
+        assert 'gemini-3.1-pro-preview' in bootstrap_values
+        assert 'gemini-3.1-flash-lite-preview' in bootstrap_values
         assert 'memgraph.test.internal' in bootstrap_values
         assert 'memgraph-lab.test.internal' in bootstrap_values
         assert '"mcp"' in bootstrap_values
         assert '"servers"' in bootstrap_values
         assert '"nextcloud"' in bootstrap_values
         assert '"bootstrapProjectContent"' in bootstrap_values
-        assert '/Projects/ai-homebase/' in bootstrap_values
+        assert '"slug": "ai-homebase"' in bootstrap_values
+        assert '"projectsFilesDir": "bootstrap-content/ai-homebase/projects"' in bootstrap_values
         assert 'multi-agent-topology.md' in bootstrap_values
         assert 'qdrant-memory-schema.md' in bootstrap_values
         assert 'knowledge-graph-schema.md' in bootstrap_values
         assert 'incidents/README.md' in bootstrap_values
         assert 'baselines.md' in bootstrap_values
         assert 'escalation-rules.md' in bootstrap_values
-        assert '/Desk/' in bootstrap_values
         assert '"workspaceBootstrap"' in bootstrap_values
         assert '"filesDir": "workspaces/main"' in bootstrap_values
         assert '"filesDir": "workspaces/coder"' in bootstrap_values
