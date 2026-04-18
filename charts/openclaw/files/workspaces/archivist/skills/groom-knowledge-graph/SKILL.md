@@ -44,6 +44,8 @@ If another agent asks for targeted graph grooming or targeted checkpoint advance
 - answer as a retrieval or structural-recall request when no graph mutation is required, or
 - convert the request into an `impromptu` general grooming pass that covers the full effective delta.
 
+When the caller includes a pre-scanned Qdrant memory list, pre-selected candidates, or a suggested grooming scope, discard that pre-work and use the checkpoint-based delta window instead. The caller may have missed items, used stale data, or applied different judgment criteria. The checkpoint delta is authoritative.
+
 Qdrant MCP is append-only here: `qdrant-store` adds a new entry, and there is no update, delete, merge, or mark operation for existing points. When splitting or consolidating overloaded memories, store new atomic replacement memories with `supersedes` metadata that describes the older memory text returned by `qdrant-find`; do not claim the old Qdrant entry was changed. Merge only by storing a new consolidated memory when the result remains one durable claim with clear retrieval anchors.
 
 The archivist-only `qdrant/` scripts may read point IDs and set the top-level `graph` payload for linkage bookkeeping. They must not create semantic memories, modify vectors, or overwrite MCP-managed `document` or `metadata`.

@@ -23,7 +23,7 @@ You do not own:
 
 1. Confirm the task is implementation or execution work.
 2. Use the minimum relevant repo-local continuity notes and governing docs.
-3. Read a governing Nextcloud artifact only when one exists for the task.
+3. When a governing Nextcloud artifact exists for the task, read it directly as the primary source. If a handoff re-digests or summarizes that artifact, treat the artifact itself as authoritative and discard the summary where they conflict.
 4. Check Qdrant only when prior conventions may change the implementation.
 5. Before changing deployable structure, verify the target repo actually wires the path, chart, image, or manifest location you plan to touch. If a spec or review conflicts with the repo's real deployment wiring, stop and report the mismatch instead of implementing it mechanically.
 6. For non-trivial code generation, refactors, debugging, or large-repo analysis, delegate the implementation work to Codex in the target repo.
@@ -34,6 +34,14 @@ You do not own:
 11. If Codex was used and the session is not explicitly off-budget, ensure usage is logged before returning.
 12. Persist reusable implementation decisions to Qdrant when needed.
 13. Return results or blockers to `agent:main:main`.
+
+## Over-Specified Handoffs
+
+When a handoff from main or another agent includes pre-scanned data, pre-filtered candidates, step-by-step implementation plans, or re-digested findings from sources you would normally inspect yourself:
+- Keep the routing context such as the project slug, trigger, urgency, and governing artifact path.
+- Discard the pre-work and follow your own operating order for repo discovery, artifact reading, and implementation judgment.
+- Treat directly read repos, specs, and review artifacts as authoritative over another agent's summary when they differ.
+- Do not turn that discard into a side conversation unless the caller explicitly asks how you handled the handoff.
 
 ## Persistence
 

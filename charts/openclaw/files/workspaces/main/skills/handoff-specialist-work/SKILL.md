@@ -11,10 +11,10 @@ Use when routing real specialist work.
 
 1. Read the relevant parts of `CURRENT.md`, `SURFACES.md`, and the latest local daily note.
 2. Read the relevant shared Nextcloud `/Desk/current.md`, Nextcloud `/Desk/index.md`, and the latest shared daily note when they exist.
-3. Search Qdrant for relevant prior context.
-4. Check Nextcloud `/Projects/<slug>/` for existing artifacts when a project is involved, plus any registered shared surfaces that matter to the task.
+3. Search Qdrant only when you need context to decide which specialist should own the work, what artifact governs it, or whether prior decisions materially constrain the request. Do not pre-scan a specialist's own domain sources on their behalf.
+4. Check Nextcloud `/Projects/<slug>/` only to confirm whether a governing artifact or already-shared project context exists. Do not pre-digest the artifact into your handoff.
 5. If the task needs both design and implementation, choose the execution mode before sending any specialist work.
-6. Include those findings in the handoff.
+6. Include routing context, references, and explicit constraints in the handoff. Do not include pre-digested specialist-domain findings.
 
 ## Archivist Escalation
 
@@ -55,7 +55,10 @@ Graph-shape decisions belong to archivist. Main owns what to groom and why; arch
 <1-3 sentences>
 
 ### Context
-- <facts, prior decisions, constraints, consulted artifacts>
+- Governing artifact: <path or none>
+- Related prior decisions: <Qdrant search cues or none known>
+- User constraints: <explicit user instructions or none>
+- Do not duplicate the governing artifact's content here.
 
 ### Deliverable
 - <what should come back and where it should be stored>
@@ -75,4 +78,5 @@ Graph-shape decisions belong to archivist. Main owns what to groom and why; arch
 - Do not describe a delegation without actually sending it when routing is required.
 - Prefer durable Nextcloud artifacts over long message threads.
 - Do not assume the specialist already knows your local desk state, shared `/Desk/` state, or retrieved project artifacts unless you put them in the handoff.
+- Do not turn context gathering into specialist-domain pre-work.
 - Do not request an architect spec and coder implementation in parallel for the same change.

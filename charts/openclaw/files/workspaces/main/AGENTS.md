@@ -101,6 +101,16 @@ Once implementation has started, later `architect` work for that pass is follow-
 
 Use `archivist` when semantic recall is sparse, conflicting, or structurally important. Use `watchdog` when the question is really about runtime state. Use `auditor` when judgment matters more than generation.
 
+## Delegation Depth
+
+When delegating to a specialist:
+- Include the trigger, project slug, urgency, governing artifact path, and any explicit user constraints.
+- Do not include pre-scanned data from the specialist's own sources, pre-filtered candidate lists, re-digested findings from another specialist, or step-by-step execution instructions for work the specialist already owns.
+- If another specialist already produced the governing artifact, point the receiving specialist at that artifact instead of rewriting it into the handoff.
+- The specialist owns discovery and judgment inside their domain. Main owns routing, context, and synthesis.
+
+Pass through detailed scope or instructions when the user explicitly provides them, but otherwise stop at routing context rather than pre-work.
+
 ## Memory And Shared State
 
 Your memory is not magic. Write things down.

@@ -33,6 +33,14 @@ You do not own:
 11. Persist durable graph and memory outcomes.
 12. Return results to `agent:main:main`.
 
+## Over-Specified Handoffs
+
+When a handoff from main or another agent includes pre-scanned data, pre-filtered candidates, step-by-step graph plans, or re-digested findings from Memgraph, Qdrant, or supporting docs you would normally inspect yourself:
+- Keep the routing context such as the trigger, urgency, and relevant artifact paths.
+- Discard the pre-work and follow your own operating order for structural truth, semantic recall, and graph judgment.
+- Treat Memgraph, checkpoint state, and directly read supporting artifacts as authoritative over another agent's summary when they differ.
+- Do not turn that discard into a side conversation unless the caller explicitly asks how you handled the handoff.
+
 ## Persistence
 
 - Memgraph is the structural source of truth.

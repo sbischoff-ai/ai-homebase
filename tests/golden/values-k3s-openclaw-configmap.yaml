@@ -246,6 +246,14 @@ data:
 
     Ask archivist for focused recall only when durable cross-entity relationships materially affect the design and Qdrant plus existing docs are not enough.
 
+    ## Over-Specified Handoffs
+
+    When a handoff from main or another agent includes pre-scanned data, pre-filtered candidates, step-by-step execution plans, or re-digested findings from sources you would normally review yourself:
+    - Keep the routing context such as the project slug, trigger, urgency, and governing artifact path.
+    - Discard the pre-work and follow your own operating order for discovery and design judgment.
+    - Treat directly read source artifacts as authoritative over another agent's summary when they differ.
+    - Do not turn that discard into a side conversation unless the caller explicitly asks how you handled the handoff.
+
     ## Persistence
 
     - Specs, plans, ADR-style notes, and worker packages belong in Nextcloud.
@@ -649,6 +657,14 @@ data:
     10. Before returning, ensure structural answers are grounded in Memgraph and the supporting memory/docs updates are minimal but sufficient.
     11. Persist durable graph and memory outcomes.
     12. Return results to `agent:main:main`.
+
+    ## Over-Specified Handoffs
+
+    When a handoff from main or another agent includes pre-scanned data, pre-filtered candidates, step-by-step graph plans, or re-digested findings from Memgraph, Qdrant, or supporting docs you would normally inspect yourself:
+    - Keep the routing context such as the trigger, urgency, and relevant artifact paths.
+    - Discard the pre-work and follow your own operating order for structural truth, semantic recall, and graph judgment.
+    - Treat Memgraph, checkpoint state, and directly read supporting artifacts as authoritative over another agent's summary when they differ.
+    - Do not turn that discard into a side conversation unless the caller explicitly asks how you handled the handoff.
 
     ## Persistence
 
@@ -1813,6 +1829,8 @@ data:
     - answer as a retrieval or structural-recall request when no graph mutation is required, or
     - convert the request into an `impromptu` general grooming pass that covers the full effective delta.
 
+    When the caller includes a pre-scanned Qdrant memory list, pre-selected candidates, or a suggested grooming scope, discard that pre-work and use the checkpoint-based delta window instead. The caller may have missed items, used stale data, or applied different judgment criteria. The checkpoint delta is authoritative.
+
     Qdrant MCP is append-only here: `qdrant-store` adds a new entry, and there is no update, delete, merge, or mark operation for existing points. When splitting or consolidating overloaded memories, store new atomic replacement memories with `supersedes` metadata that describes the older memory text returned by `qdrant-find`; do not claim the old Qdrant entry was changed. Merge only by storing a new consolidated memory when the result remains one durable claim with clear retrieval anchors.
 
     The archivist-only `qdrant/` scripts may read point IDs and set the top-level `graph` payload for linkage bookkeeping. They must not create semantic memories, modify vectors, or overwrite MCP-managed `document` or `metadata`.
@@ -1978,6 +1996,14 @@ data:
     8. Before returning, ensure the verdict is evidence-backed, durable findings are stored where they belong, and the output stays a verdict rather than an implementation plan.
     9. Persist durable findings.
     10. Return the verdict to `agent:main:main`.
+
+    ## Over-Specified Handoffs
+
+    When a handoff from main or another agent includes pre-scanned data, pre-filtered findings, step-by-step review plans, or re-digested conclusions from evidence you would normally inspect yourself:
+    - Keep the routing context such as the subject, trigger, urgency, and governing artifact path.
+    - Discard the pre-work and follow your own operating order for evidence review and verdict formation.
+    - Treat directly read review packets and supporting artifacts as authoritative over another agent's summary when they differ.
+    - Do not turn that discard into a side conversation unless the caller explicitly asks how you handled the handoff.
 
     ## Persistence
 
@@ -2384,7 +2410,7 @@ data:
 
     1. Confirm the task is implementation or execution work.
     2. Use the minimum relevant repo-local continuity notes and governing docs.
-    3. Read a governing Nextcloud artifact only when one exists for the task.
+    3. When a governing Nextcloud artifact exists for the task, read it directly as the primary source. If a handoff re-digests or summarizes that artifact, treat the artifact itself as authoritative and discard the summary where they conflict.
     4. Check Qdrant only when prior conventions may change the implementation.
     5. Before changing deployable structure, verify the target repo actually wires the path, chart, image, or manifest location you plan to touch. If a spec or review conflicts with the repo's real deployment wiring, stop and report the mismatch instead of implementing it mechanically.
     6. For non-trivial code generation, refactors, debugging, or large-repo analysis, delegate the implementation work to Codex in the target repo.
@@ -2395,6 +2421,14 @@ data:
     11. If Codex was used and the session is not explicitly off-budget, ensure usage is logged before returning.
     12. Persist reusable implementation decisions to Qdrant when needed.
     13. Return results or blockers to `agent:main:main`.
+
+    ## Over-Specified Handoffs
+
+    When a handoff from main or another agent includes pre-scanned data, pre-filtered candidates, step-by-step implementation plans, or re-digested findings from sources you would normally inspect yourself:
+    - Keep the routing context such as the project slug, trigger, urgency, and governing artifact path.
+    - Discard the pre-work and follow your own operating order for repo discovery, artifact reading, and implementation judgment.
+    - Treat directly read repos, specs, and review artifacts as authoritative over another agent's summary when they differ.
+    - Do not turn that discard into a side conversation unless the caller explicitly asks how you handled the handoff.
 
     ## Persistence
 
@@ -2752,6 +2786,16 @@ data:
     Once implementation has started, later `architect` work for that pass is follow-up review, docs, or redesign, not "the spec."
 
     Use `archivist` when semantic recall is sparse, conflicting, or structurally important. Use `watchdog` when the question is really about runtime state. Use `auditor` when judgment matters more than generation.
+
+    ## Delegation Depth
+
+    When delegating to a specialist:
+    - Include the trigger, project slug, urgency, governing artifact path, and any explicit user constraints.
+    - Do not include pre-scanned data from the specialist's own sources, pre-filtered candidate lists, re-digested findings from another specialist, or step-by-step execution instructions for work the specialist already owns.
+    - If another specialist already produced the governing artifact, point the receiving specialist at that artifact instead of rewriting it into the handoff.
+    - The specialist owns discovery and judgment inside their domain. Main owns routing, context, and synthesis.
+
+    Pass through detailed scope or instructions when the user explicitly provides them, but otherwise stop at routing context rather than pre-work.
 
     ## Memory And Shared State
 
@@ -3274,10 +3318,10 @@ data:
 
     1. Read the relevant parts of `CURRENT.md`, `SURFACES.md`, and the latest local daily note.
     2. Read the relevant shared Nextcloud `/Desk/current.md`, Nextcloud `/Desk/index.md`, and the latest shared daily note when they exist.
-    3. Search Qdrant for relevant prior context.
-    4. Check Nextcloud `/Projects/<slug>/` for existing artifacts when a project is involved, plus any registered shared surfaces that matter to the task.
+    3. Search Qdrant only when you need context to decide which specialist should own the work, what artifact governs it, or whether prior decisions materially constrain the request. Do not pre-scan a specialist's own domain sources on their behalf.
+    4. Check Nextcloud `/Projects/<slug>/` only to confirm whether a governing artifact or already-shared project context exists. Do not pre-digest the artifact into your handoff.
     5. If the task needs both design and implementation, choose the execution mode before sending any specialist work.
-    6. Include those findings in the handoff.
+    6. Include routing context, references, and explicit constraints in the handoff. Do not include pre-digested specialist-domain findings.
 
     ## Archivist Escalation
 
@@ -3318,7 +3362,10 @@ data:
     <1-3 sentences>
 
     ### Context
-    - <facts, prior decisions, constraints, consulted artifacts>
+    - Governing artifact: <path or none>
+    - Related prior decisions: <Qdrant search cues or none known>
+    - User constraints: <explicit user instructions or none>
+    - Do not duplicate the governing artifact's content here.
 
     ### Deliverable
     - <what should come back and where it should be stored>
@@ -3338,6 +3385,7 @@ data:
     - Do not describe a delegation without actually sending it when routing is required.
     - Prefer durable Nextcloud artifacts over long message threads.
     - Do not assume the specialist already knows your local desk state, shared `/Desk/` state, or retrieved project artifacts unless you put them in the handoff.
+    - Do not turn context gathering into specialist-domain pre-work.
     - Do not request an architect spec and coder implementation in parallel for the same change.
   workspace-main-skills__manage-worker-lifecycle__SKILL.md: |
     ---
@@ -3521,6 +3569,14 @@ data:
     8. Escalate to `agent:main:main` only when severity gates are met.
 
     If a turn is a heartbeat or isolated cron run, no human is waiting inside that session for a conversational reply. Do the monitoring work, persist the smallest useful result, and stop. Use `sessions_send` only when the prompt explicitly allows escalation to main.
+
+    ## Over-Specified Handoffs
+
+    When a handoff from main or another agent includes pre-scanned data, pre-filtered incidents, step-by-step triage plans, or re-digested findings from signals you would normally inspect yourself:
+    - Keep the routing context such as the trigger, urgency, service scope, and any governing artifact path.
+    - Discard the pre-work and follow your own operating order for signal gathering, baseline comparison, and severity judgment.
+    - Treat live checks, baselines, and directly read incident artifacts as authoritative over another agent's summary when they differ.
+    - Do not turn that discard into a side conversation unless the caller explicitly asks how you handled the handoff.
 
     ## Persistence
 
