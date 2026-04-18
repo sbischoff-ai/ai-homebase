@@ -454,6 +454,10 @@ assert rendered_values["paperlessNgx"]["ingress"]["hosts"][0]["host"] == "paperl
 assert rendered_values["global"]["mail"]["smtpHost"] == "smtp.example.com"
 assert rendered_values["global"]["hosts"]["registry"] == "registry.test.internal"
 assert rendered_values["openclaw"]["env"] == [
+    {"name": "XDG_CONFIG_HOME", "value": "/home/node/.openclaw/.config"},
+    {"name": "XDG_CACHE_HOME", "value": "/home/node/.openclaw/.cache"},
+    {"name": "XDG_STATE_HOME", "value": "/home/node/.openclaw/.local/state"},
+    {"name": "GIT_CONFIG_GLOBAL", "value": "/home/node/.openclaw/.config/git/config"},
     {"name": "MEMGRAPH_HOST", "value": '{{ printf "%s-memgraph" .Release.Name | trunc 63 | trimSuffix "-" }}'},
     {"name": "MEMGRAPH_PORT", "value": "7687"},
     {
@@ -488,6 +492,7 @@ assert sandbox_env["GEMINI_API_KEY"] == "${GEMINI_API_KEY}"
 coder_dockerfile = (REPO_ROOT / "images" / "openclaw-sandbox-coder" / "Dockerfile").read_text(encoding="utf-8")
 base_dockerfile = (REPO_ROOT / "images" / "openclaw-sandbox-base" / "Dockerfile").read_text(encoding="utf-8")
 gateway_dockerfile = (REPO_ROOT / "images" / "openclaw-remote-docker" / "Dockerfile").read_text(encoding="utf-8")
+gateway_start_script = (REPO_ROOT / "images" / "openclaw-remote-docker" / "openclaw-gateway-start.sh").read_text(encoding="utf-8")
 qdrant_mcp_values = (REPO_ROOT / "charts" / "qdrant-mcp" / "values.yaml").read_text(encoding="utf-8")
 assert "usermod --home /workspace/.home sandbox" in coder_dockerfile
 assert "mkdir -p /workspace/.home" in coder_dockerfile
@@ -505,10 +510,13 @@ assert "gh --version" in base_dockerfile
 assert "debian:trixie-slim" in gateway_dockerfile
 assert "COPY --from=openclaw-runtime /app /app" in gateway_dockerfile
 assert "COPY --from=memgraph-tools /usr/bin/mgconsole /usr/local/bin/mgconsole" in gateway_dockerfile
+assert "COPY openclaw-gateway-start.sh /usr/local/bin/openclaw-gateway-start.sh" in gateway_dockerfile
 assert "https://deb.nodesource.com/node_22.x" in gateway_dockerfile
 assert 'go install code.gitea.io/tea@"${TEA_VERSION}"' in gateway_dockerfile
 assert "npm install -g @steipete/summarize" in gateway_dockerfile
 assert "tmux -V" in gateway_dockerfile
+assert "reviewer-gitea-init.sh" in gateway_start_script
+assert "exec \"$@\"" in gateway_start_script
 assert "toolDescriptions:" in qdrant_mcp_values
 assert "Store a memory for cross-agent recall." in qdrant_mcp_values
 assert "Search shared semantic memory across all agents." in qdrant_mcp_values

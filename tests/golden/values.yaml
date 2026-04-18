@@ -5108,11 +5108,13 @@ spec:
         app.kubernetes.io/name: openclaw
     spec:
       containers:
-      - command:
+      - args:
         - node
         - openclaw.mjs
         - gateway
         - --allow-unconfigured
+        command:
+        - /usr/local/bin/openclaw-gateway-start.sh
         env:
         - name: OPENCLAW_GATEWAY_PORT
           value: '18789'
@@ -5150,6 +5152,14 @@ spec:
           value: ssh://docker-remote@openclaw-sandbox:2222
         - name: HOME
           value: /home/node
+        - name: XDG_CONFIG_HOME
+          value: /home/node/.openclaw/.config
+        - name: XDG_CACHE_HOME
+          value: /home/node/.openclaw/.cache
+        - name: XDG_STATE_HOME
+          value: /home/node/.openclaw/.local/state
+        - name: GIT_CONFIG_GLOBAL
+          value: /home/node/.openclaw/.config/git/config
         - name: SSL_CERT_FILE
           value: /home/node/.openclaw/certs/ai-homebase-ca-bundle.crt
         - name: REQUESTS_CA_BUNDLE

@@ -15,6 +15,7 @@ INCLUDED_PATHS = (
     Path("images/openclaw-sandbox-coder/coder-init.sh"),
     Path("images/gitea-actions-job/Dockerfile"),
     Path("images/openclaw-remote-docker/Dockerfile"),
+    Path("images/openclaw-remote-docker/openclaw-gateway-start.sh"),
     Path("images/openclaw-remote-docker/reviewer-gitea-init.sh"),
     Path("scripts/build-openclaw-sandbox-images.sh"),
     Path("scripts/openclaw-remote-docker-load-images.sh"),

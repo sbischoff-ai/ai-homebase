@@ -103,7 +103,10 @@ if [ -z "${CODER_GITEA_TOKEN}" ] && [ -n "${CODER_GITEA_BASE_URL}" ] && [ -n "${
 fi
 
 if [ -n "${CODER_GITEA_BASE_URL}" ] && [ -n "${CODER_GITEA_TOKEN}" ]; then
-  tea login add --name "${CODER_GITEA_TEA_LOGIN_NAME}" --url "${CODER_GITEA_BASE_URL}" --token "${CODER_GITEA_TOKEN}" >/dev/null 2>&1 || true
+  if ! tea login add --name "${CODER_GITEA_TEA_LOGIN_NAME}" --url "${CODER_GITEA_BASE_URL}" --token "${CODER_GITEA_TOKEN}" >/dev/null 2>&1; then
+    echo >&2 "WARNING: tea login add failed for ${CODER_GITEA_TEA_LOGIN_NAME} at ${CODER_GITEA_BASE_URL}"
+    echo >&2 "WARNING: coder Gitea CLI access may be unavailable until sandbox login state is repaired"
+  fi
 fi
 
 if [ -n "${CODER_REGISTRY_HOST}" ] && [ -n "${CODER_REGISTRY_USERNAME}" ] && [ -n "${CODER_REGISTRY_PASSWORD}" ]; then

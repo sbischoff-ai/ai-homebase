@@ -930,6 +930,10 @@ def command_render_values(args: argparse.Namespace) -> int:
         },
     }
     openclaw["env"] = [
+        {"name": "XDG_CONFIG_HOME", "value": "/home/node/.openclaw/.config"},
+        {"name": "XDG_CACHE_HOME", "value": "/home/node/.openclaw/.cache"},
+        {"name": "XDG_STATE_HOME", "value": "/home/node/.openclaw/.local/state"},
+        {"name": "GIT_CONFIG_GLOBAL", "value": "/home/node/.openclaw/.config/git/config"},
         {"name": "MEMGRAPH_HOST", "value": '{{ printf "%s-memgraph" .Release.Name | trunc 63 | trimSuffix "-" }}'},
         {"name": "MEMGRAPH_PORT", "value": "7687"},
         {

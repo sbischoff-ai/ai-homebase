@@ -114,11 +114,27 @@ if ! command -v reviewer-gitea-init.sh >/dev/null 2>&1; then
   warn "reviewer-gitea-init.sh is not installed."
   exit 0
 fi
-if [ -z "${REVIEWER_GITEA_BASE_URL:-}" ] || [ -z "${REVIEWER_GITEA_USERNAME:-}" ] || [ -z "${REVIEWER_GITEA_PASSWORD:-}" ]; then
+if ! command -v tea >/dev/null 2>&1; then
+  warn "tea CLI is not installed."
+  exit 0
+fi
+if [ -z "${REVIEWER_GITEA_BASE_URL:-}" ] || [ -z "${REVIEWER_GITEA_USERNAME:-}" ]; then
   warn "reviewer Gitea env vars are incomplete."
+  exit 0
+fi
+if [ -z "${REVIEWER_GITEA_TOKEN:-}" ] && [ -z "${REVIEWER_GITEA_PASSWORD:-}" ]; then
+  warn "reviewer Gitea setup needs REVIEWER_GITEA_TOKEN or REVIEWER_GITEA_PASSWORD."
   exit 0
 fi
 if ! reviewer-gitea-init.sh; then
   warn "reviewer-gitea-init.sh failed."
+fi
+login_name="${REVIEWER_GITEA_TEA_LOGIN_NAME:-reviewer}"
+if ! tea login list 2>/dev/null | grep -F "${login_name}" >/dev/null; then
+  warn "reviewer tea login ${login_name} is still missing after init."
+  exit 0
+fi
+if ! tea repo list --login "${login_name}" >/dev/null 2>&1; then
+  warn "tea repo list failed for login ${login_name}."
 fi
 '

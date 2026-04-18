@@ -623,16 +623,31 @@ verify_openclaw_gateway_tooling() {
   local deployment_name="$1"
   local expected_reviewer_host="${RELEASE_NAME}-gitea-http.${NAMESPACE}.svc.cluster.local"
   local expected_reviewer_base_url="http://${expected_reviewer_host}:3000"
+  local expected_xdg_config_home="/home/node/.openclaw/.config"
+  local expected_xdg_cache_home="/home/node/.openclaw/.cache"
+  local expected_xdg_state_home="/home/node/.openclaw/.local/state"
+  local expected_git_config_global="/home/node/.openclaw/.config/git/config"
+  local expected_repo_url="${expected_reviewer_base_url}/${CODER_GITEA_USERNAME}/${GITOPS_REPO_NAME}.git"
 
-  step "Checking OpenClaw gateway tooling for watchdog/session-logs"
-  CURRENT_COMMAND="kubectl exec deployment/${deployment_name} -- sh -ceu 'command -v jq && command -v rg && command -v python3 && command -v tokscale && check reviewer Gitea env'"
+  step "Checking OpenClaw gateway tooling and reviewer Gitea access"
+  CURRENT_COMMAND="kubectl exec deployment/${deployment_name} -- sh -ceu 'check gateway tooling, reviewer env, tea login, and git read access'"
   run_checked kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" exec "deployment/${deployment_name}" -- sh -ceu "
     command -v jq >/dev/null
     command -v rg >/dev/null
     command -v python3 >/dev/null
     command -v tokscale >/dev/null
+    command -v tea >/dev/null
     [ \"\${REVIEWER_GITEA_HOST:-}\" = \"${expected_reviewer_host}\" ]
     [ \"\${REVIEWER_GITEA_BASE_URL:-}\" = \"${expected_reviewer_base_url}\" ]
+    [ \"\${XDG_CONFIG_HOME:-}\" = \"${expected_xdg_config_home}\" ]
+    [ \"\${XDG_CACHE_HOME:-}\" = \"${expected_xdg_cache_home}\" ]
+    [ \"\${XDG_STATE_HOME:-}\" = \"${expected_xdg_state_home}\" ]
+    [ \"\${GIT_CONFIG_GLOBAL:-}\" = \"${expected_git_config_global}\" ]
+    test -f \"${expected_git_config_global}\"
+    test -d \"${expected_xdg_config_home}/tea\"
+    tea login list | grep -F \"reviewer\" >/dev/null
+    tea repo list --login reviewer | grep -F \"cluster-gitops\" >/dev/null
+    git ls-remote \"${expected_repo_url}\" >/dev/null
   "
 }
 
@@ -984,24 +999,53 @@ verify_coder_sandbox_runtime() {
 }
 
 verify_reviewer_sandbox_runtime() {
+  local reviewer_scheme="https"
+  local reviewer_base_url=""
+  local reviewer_token=""
+
   if ! command -v incus >/dev/null 2>&1; then
     warn "Skipping reviewer sandbox runtime checks because incus is not installed in the current shell"
     return 0
+  fi
+
+  if [[ "${GITEA_INGRESS_HOST:-}" == *.localtest.me ]]; then
+    reviewer_scheme="http"
+  fi
+  reviewer_base_url="${reviewer_scheme}://${GITEA_INGRESS_HOST}"
+  reviewer_token="$(
+    kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" \
+      get secret reviewer-credentials -o jsonpath='{.data.REVIEWER_GITEA_TOKEN}' | base64 -d
+  )"
+  if [[ -z "${reviewer_token}" ]]; then
+    fail "reviewer-credentials Secret is missing REVIEWER_GITEA_TOKEN for sandbox smoke checks"
+    exit 1
   fi
 
   step "Checking reviewer sandbox runtime image on the Incus Docker host"
   CURRENT_COMMAND="incus exec ${INCUS_VM_NAME} -- sh -ceu 'docker run reviewer sandbox validation'"
   run_checked incus exec "$INCUS_VM_NAME" -- sh -ceu "
     docker image inspect openclaw-sandbox:trixie-slim >/dev/null
+    tmpdir=\$(mktemp -d)
+    trap 'rm -rf \"\$tmpdir\"' EXIT
+    mkdir -p \"\$tmpdir/.openclaw-runtime\"
+    cp /home/node/.openclaw/certs/ai-homebase-ca-bundle.crt \"\$tmpdir/.openclaw-runtime/ai-homebase-ca-bundle.crt\"
     docker run --rm --entrypoint sh \
+      -v \"\$tmpdir:/workspace\" \
       -e HOME=/workspace/.home \
       -e XDG_CONFIG_HOME=/workspace/.home/.config \
       -e XDG_CACHE_HOME=/workspace/.home/.cache \
       -e XDG_STATE_HOME=/workspace/.home/.local/state \
-      -e REVIEWER_GITEA_BASE_URL=https://gitea.example.invalid \
-      -e REVIEWER_GITEA_TOKEN=test-reviewer-token \
-      -e REVIEWER_GITEA_USERNAME=reviewer \
-      -e REVIEWER_GITEA_EMAIL=reviewer@example.invalid \
+      -e SSL_CERT_FILE=/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt \
+      -e REQUESTS_CA_BUNDLE=/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt \
+      -e NODE_EXTRA_CA_CERTS=/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt \
+      -e GIT_SSL_CAINFO=/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt \
+      -e CURL_CA_BUNDLE=/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt \
+      -e REVIEWER_GITEA_BASE_URL=${reviewer_base_url} \
+      -e REVIEWER_GITEA_HOST=${GITEA_INGRESS_HOST} \
+      -e REVIEWER_GITEA_TOKEN=${reviewer_token} \
+      -e REVIEWER_GITEA_USERNAME=${REVIEWER_GITEA_USERNAME} \
+      -e REVIEWER_GITEA_EMAIL=${REVIEWER_GITEA_EMAIL} \
+      -e REVIEWER_GITEA_TEA_LOGIN_NAME=reviewer \
       openclaw-sandbox:trixie-slim -ceu '
         getent passwd sandbox | cut -d: -f6 | grep -Fx /workspace/.home >/dev/null
         test -w /workspace/.home
@@ -1010,6 +1054,8 @@ verify_reviewer_sandbox_runtime() {
         /usr/local/bin/reviewer-gitea-init.sh >/tmp/reviewer-gitea-init.log
         test -d /workspace/.home/.tea
         test -d /workspace/.home/.config/tea
+        tea login list | grep -F reviewer >/dev/null
+        tea repo list --login reviewer | grep -F cluster-gitops >/dev/null
       '
   "
 }

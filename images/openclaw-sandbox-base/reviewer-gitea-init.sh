@@ -65,5 +65,8 @@ if [ -z "${REVIEWER_GITEA_TOKEN}" ] && [ -n "${REVIEWER_GITEA_BASE_URL}" ] && [ 
 fi
 
 if [ -n "${REVIEWER_GITEA_BASE_URL}" ] && [ -n "${REVIEWER_GITEA_TOKEN}" ] && [ "${REVIEWER_GITEA_TOKEN}" != "null" ]; then
-  tea login add --name "${REVIEWER_GITEA_TEA_LOGIN_NAME}" --url "${REVIEWER_GITEA_BASE_URL}" --token "${REVIEWER_GITEA_TOKEN}" >/dev/null 2>&1 || true
+  if ! tea login add --name "${REVIEWER_GITEA_TEA_LOGIN_NAME}" --url "${REVIEWER_GITEA_BASE_URL}" --token "${REVIEWER_GITEA_TOKEN}" >/dev/null 2>&1; then
+    echo >&2 "WARNING: tea login add failed for ${REVIEWER_GITEA_TEA_LOGIN_NAME} at ${REVIEWER_GITEA_BASE_URL}"
+    echo >&2 "WARNING: reviewer Gitea CLI access may be unavailable until sandbox login state is repaired"
+  fi
 fi

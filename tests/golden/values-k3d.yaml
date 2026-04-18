@@ -5108,11 +5108,13 @@ spec:
         app.kubernetes.io/name: openclaw
     spec:
       containers:
-      - command:
+      - args:
         - node
         - openclaw.mjs
         - gateway
         - --allow-unconfigured
+        command:
+        - /usr/local/bin/openclaw-gateway-start.sh
         env:
         - name: OPENCLAW_GATEWAY_PORT
           value: '18789'
