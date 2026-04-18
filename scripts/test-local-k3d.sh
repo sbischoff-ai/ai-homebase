@@ -738,6 +738,18 @@ verify_openclaw_mcp_bootstrap_config() {
     exit 1
   fi
 
+  if ! kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" \
+    exec "deployment/${deployment_name}" -- sh -lc '[ -n "${CODER_GITEA_TOKEN:-}" ]'; then
+    fail "OpenClaw deployment/${deployment_name} is still missing a live CODER_GITEA_TOKEN env value after bootstrap"
+    exit 1
+  fi
+
+  if ! kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" \
+    exec "deployment/${deployment_name}" -- sh -lc '[ -n "${REVIEWER_GITEA_TOKEN:-}" ]'; then
+    fail "OpenClaw deployment/${deployment_name} is still missing a live REVIEWER_GITEA_TOKEN env value after bootstrap"
+    exit 1
+  fi
+
   cron_jobs_json="$(
     kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" exec "deployment/${deployment_name}" -- openclaw cron list --json
   )"

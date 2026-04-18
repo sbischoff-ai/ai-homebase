@@ -25,6 +25,8 @@ ARGOCD_SERVER_DEPLOYMENT="${ARGOCD_SERVER_DEPLOYMENT:-${RELEASE_NAME}-argocd-ser
 GITEA_BOOTSTRAP_LOCAL_PORT="${GITEA_BOOTSTRAP_LOCAL_PORT:-13000}"
 CODER_GITEA_TEA_TOKEN_NAME="${CODER_GITEA_TEA_TOKEN_NAME:-openclaw-coder-sandbox}"
 REVIEWER_GITEA_TEA_TOKEN_NAME="${REVIEWER_GITEA_TEA_TOKEN_NAME:-openclaw-reviewer}"
+OPENCLAW_DEPLOYMENT_NAME="${OPENCLAW_DEPLOYMENT_NAME:-${RELEASE_NAME}-openclaw}"
+OPENCLAW_ROLLOUT_TIMEOUT="${OPENCLAW_ROLLOUT_TIMEOUT:-600s}"
 SKIP_INSTALL=0
 GITEA_PORT_FORWARD_PID=""
 GITEA_PORT_FORWARD_LOG=""
@@ -150,6 +152,34 @@ fi
 
 step() {
   printf '==> %s\n' "$*"
+}
+
+restart_openclaw_for_runtime_secret_refresh() {
+  local skills_cmd=()
+
+  if ! kubectl "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" get deployment "$OPENCLAW_DEPLOYMENT_NAME" >/dev/null 2>&1; then
+    step "Skipping OpenClaw restart because deployment/${OPENCLAW_DEPLOYMENT_NAME} is not present"
+    return 0
+  fi
+
+  step "Restarting OpenClaw so refreshed runtime credential Secrets take effect"
+  kubectl "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" rollout restart "deployment/${OPENCLAW_DEPLOYMENT_NAME}"
+  kubectl "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" rollout status "deployment/${OPENCLAW_DEPLOYMENT_NAME}" --timeout "$OPENCLAW_ROLLOUT_TIMEOUT"
+
+  step "Re-seeding OpenClaw gateway skill setup after restart"
+  skills_cmd=(
+    ./scripts/bootstrap-openclaw-skills.sh
+    --release-name "$RELEASE_NAME"
+    --namespace "$NAMESPACE"
+    --deployment "$OPENCLAW_DEPLOYMENT_NAME"
+  )
+  if [[ -n "$KUBECONFIG_PATH" ]]; then
+    skills_cmd+=(--kubeconfig "$KUBECONFIG_PATH")
+  fi
+  if [[ -n "$KUBE_CONTEXT" ]]; then
+    skills_cmd+=(--kube-context "$KUBE_CONTEXT")
+  fi
+  "${skills_cmd[@]}"
 }
 
 cleanup() {
@@ -1107,6 +1137,7 @@ kubectl "${KUBECTL_CONTEXT_ARGS[@]}" apply -f "${REPO_WORK_DIR}/gitops/clusters/
 
 sync_and_validate_argocd_apps "${ARGOCD_ADMIN_USER:-admin}" "${ARGOCD_ADMIN_PASSWORD:-}"
 seed_memgraph
+restart_openclaw_for_runtime_secret_refresh
 
 printf 'GitOps bootstrap complete.\n'
 printf '  Argo CD URL: http://%s\n' "$ARGOCD_HOST"
