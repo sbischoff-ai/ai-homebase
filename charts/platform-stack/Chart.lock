@@ -4,7 +4,7 @@ dependencies:
   version: v1.20.0
 - name: openclaw
   repository: file://../openclaw
-  version: 0.1.1
+  version: 0.1.2
 - name: argo-cd
   repository: file://../argo-cd
   version: 0.1.0
@@ -47,5 +47,5 @@ dependencies:
 - name: shared-redis
   repository: file://../shared-redis
   version: 0.1.0
-digest: sha256:11beec9b6a91ac29f26b6319539ec6d08d4cedcdcda94fedf898794d670c9526
-generated: "2026-04-03T20:22:39.397856575+02:00"
+digest: sha256:2cb07137dc110cd186abde7b63b475341befc688421518290ce3cf6980fe61af
+generated: "2026-04-18T19:49:02.345896335+02:00"

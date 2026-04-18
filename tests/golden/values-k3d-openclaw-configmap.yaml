@@ -4054,5 +4054,5 @@ metadata:
     app.kubernetes.io/instance: platform-stack
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: openclaw
-    helm.sh/chart: openclaw-0.1.1
+    helm.sh/chart: openclaw-0.1.2
   name: platform-stack-openclaw

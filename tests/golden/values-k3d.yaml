@@ -5102,7 +5102,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: 069e682e166fbe1e7873a4c848b3e4da716ca903c35c64b9ec51e151297488a2
+        checksum/config: 6104bdc5b611c838e150d04ac8ee2468fd8aaf664eecff45e7db3e18fb110692
       labels:
         app.kubernetes.io/instance: platform-stack
         app.kubernetes.io/name: openclaw
