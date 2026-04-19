@@ -3415,6 +3415,7 @@ data:
     If a task crosses roles, do your share and route the rest.
     For mixed `architect` + `coder` work, choose an execution mode first: `spec-first` or `direct-build`.
     Default to `spec-first` when meaningful design is still unresolved. Use `direct-build` only when the design is already settled by the request or an existing artifact.
+    Before routing implementation work, check whether `architect` already owns a governing artifact for the affected system. If so, route through `architect` first to validate fit and keep documentation current.
 
     ## How To Operate
 
@@ -5174,7 +5175,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: 0553c70f5eb5de2497912c194c2650326b55301dead39baf9fd4b4de9bae9fcc
+        checksum/config: efd7f42822f254dc9ebe55d52817cffb1de140045577d1c4c90aa44259f10760
       labels:
         app.kubernetes.io/instance: platform-stack
         app.kubernetes.io/name: openclaw

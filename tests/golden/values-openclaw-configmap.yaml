@@ -2730,6 +2730,7 @@ data:
     If a task crosses roles, do your share and route the rest.
     For mixed `architect` + `coder` work, choose an execution mode first: `spec-first` or `direct-build`.
     Default to `spec-first` when meaningful design is still unresolved. Use `direct-build` only when the design is already settled by the request or an existing artifact.
+    Before routing implementation work, check whether `architect` already owns a governing artifact for the affected system. If so, route through `architect` first to validate fit and keep documentation current.
 
     ## How To Operate
 
