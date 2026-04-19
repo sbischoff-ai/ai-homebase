@@ -27,6 +27,42 @@ warn() {
   echo >&2 "WARNING: $*"
 }
 
+tea_ssh_host() {
+  if [ -n "${REVIEWER_GITEA_HOST}" ]; then
+    printf '%s\n' "${REVIEWER_GITEA_HOST}"
+    return
+  fi
+
+  local host="${REVIEWER_GITEA_BASE_URL#*://}"
+  host="${host%%/*}"
+  host="${host%%:*}"
+  printf '%s\n' "${host}"
+}
+
+write_tea_config() {
+  local ssh_host created_at
+  ssh_host="$(tea_ssh_host)"
+  created_at="$(date +%s)"
+
+  cat > "${XDG_CONFIG_HOME}/tea/config.yml" <<EOF
+logins:
+- name: ${REVIEWER_GITEA_TEA_LOGIN_NAME}
+  url: ${REVIEWER_GITEA_BASE_URL}
+  token: ${REVIEWER_GITEA_TOKEN}
+  default: true
+  ssh_host: ${ssh_host}
+  ssh_key: ""
+  insecure: false
+  user: ${REVIEWER_GITEA_USERNAME}
+  created: ${created_at}
+preferences:
+  editor: false
+  flag_defaults:
+    remote: ""
+EOF
+  chmod 0600 "${XDG_CONFIG_HOME}/tea/config.yml"
+}
+
 mkdir -p \
   "${XDG_CONFIG_HOME}/tea" \
   "$(dirname "${GIT_CONFIG_GLOBAL}")" \
@@ -83,8 +119,5 @@ if [ -z "${REVIEWER_GITEA_TOKEN}" ] && [ -n "${REVIEWER_GITEA_BASE_URL}" ] && [ 
 fi
 
 if [ -n "${REVIEWER_GITEA_BASE_URL}" ] && [ -n "${REVIEWER_GITEA_TOKEN}" ] && [ "${REVIEWER_GITEA_TOKEN}" != "null" ]; then
-  if ! tea login add --name "${REVIEWER_GITEA_TEA_LOGIN_NAME}" --url "${REVIEWER_GITEA_BASE_URL}" --token "${REVIEWER_GITEA_TOKEN}" >/dev/null 2>&1; then
-    warn "tea login add failed for ${REVIEWER_GITEA_TEA_LOGIN_NAME} at ${REVIEWER_GITEA_BASE_URL}"
-    warn "reviewer Gitea CLI access may be unavailable until login state is repaired"
-  fi
+  write_tea_config
 fi

@@ -628,9 +628,10 @@ verify_openclaw_gateway_tooling() {
   local expected_xdg_state_home="/home/node/.openclaw/.local/state"
   local expected_git_config_global="/home/node/.openclaw/.config/git/config"
   local expected_repo_url="${expected_reviewer_base_url}/${CODER_GITEA_USERNAME}/${GITOPS_REPO_NAME}.git"
+  local coder_workspace_home="/home/node/.openclaw/workspace-coder/.home"
 
-  step "Checking OpenClaw gateway tooling and reviewer Gitea access"
-  CURRENT_COMMAND="kubectl exec deployment/${deployment_name} -- sh -ceu 'check gateway tooling, reviewer env, tea login, and git read access'"
+  step "Checking OpenClaw gateway tooling and seeded coder/reviewer auth state"
+  CURRENT_COMMAND="kubectl exec deployment/${deployment_name} -- sh -ceu 'check gateway tooling plus seeded coder and reviewer auth state'"
   run_checked kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" exec "deployment/${deployment_name}" -- sh -ceu "
     command -v jq >/dev/null
     command -v rg >/dev/null
@@ -646,8 +647,24 @@ verify_openclaw_gateway_tooling() {
     test -f \"${expected_git_config_global}\"
     test -d \"${expected_xdg_config_home}/tea\"
     tea login list | grep -F \"reviewer\" >/dev/null
+    tea login list | grep -F 'true' >/dev/null
     tea repo list --login reviewer | grep -F \"cluster-gitops\" >/dev/null
     git ls-remote \"${expected_repo_url}\" >/dev/null
+    test -f \"${coder_workspace_home}/.codex/auth.json\"
+    grep -F '\"auth_mode\": \"apikey\"' \"${coder_workspace_home}/.codex/auth.json\" >/dev/null
+    test -f \"${coder_workspace_home}/.config/tea/config.yml\"
+    grep -F 'name: coder' \"${coder_workspace_home}/.config/tea/config.yml\" >/dev/null
+    grep -F 'default: true' \"${coder_workspace_home}/.config/tea/config.yml\" >/dev/null
+    test -f \"${coder_workspace_home}/.docker/config.json\"
+    python3 - <<'PY'
+import json
+from pathlib import Path
+
+config = json.loads(Path('${coder_workspace_home}/.docker/config.json').read_text())
+auths = config.get('auths', {})
+if '${REGISTRY_INGRESS_HOST}' not in auths:
+    raise SystemExit('missing registry auth for coder workspace')
+PY
   "
 }
 

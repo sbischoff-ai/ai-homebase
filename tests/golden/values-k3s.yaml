@@ -5249,6 +5249,24 @@ spec:
           value: '7687'
         - name: MEMGRAPH_BOLT_URI
           value: bolt://platform-stack-memgraph:7687
+        - name: CODER_GITEA_BASE_URL
+          value: https://gitea.homebase.local
+        - name: CODER_GITEA_HOST
+          value: gitea.homebase.local
+        - name: CODER_GITEA_USERNAME
+          value: coder
+        - name: CODER_GITEA_EMAIL
+          value: coder@example.invalid
+        - name: CODER_GITEA_TEA_LOGIN_NAME
+          value: coder
+        - name: CODER_GITEA_TEA_TOKEN_NAME
+          value: openclaw-coder-sandbox
+        - name: CODER_REGISTRY_HOST
+          value: registry.homebase.local
+        - name: CODER_REGISTRY_USERNAME
+          value: coder
+        - name: CODER_REGISTRY_BASE_URL
+          value: https://registry.homebase.local
         - name: REVIEWER_GITEA_BASE_URL
           value: http://platform-stack-gitea-http.ai-homebase.svc.cluster.local:3000
         - name: REVIEWER_GITEA_HOST
@@ -8370,6 +8388,7 @@ kind: Ingress
 metadata:
   annotations:
     cert-manager.io/cluster-issuer: platform-stack-root-ca
+    nginx.ingress.kubernetes.io/proxy-body-size: '0'
   labels:
     app.kubernetes.io/instance: platform-stack
     app.kubernetes.io/managed-by: Helm

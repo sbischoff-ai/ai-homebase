@@ -520,6 +520,26 @@ env:
     value: "7687"
   - name: MEMGRAPH_BOLT_URI
     value: ""
+  - name: CODER_GITEA_BASE_URL
+    value: https://gitea.example.com
+  - name: CODER_GITEA_BOOTSTRAP_URL
+    value: 'http://{{ printf "%s-gitea-http.%s.svc.cluster.local:3000" .Release.Name .Release.Namespace }}'
+  - name: CODER_GITEA_HOST
+    value: gitea.example.com
+  - name: CODER_GITEA_USERNAME
+    value: coder
+  - name: CODER_GITEA_EMAIL
+    value: coder@example.invalid
+  - name: CODER_GITEA_TEA_LOGIN_NAME
+    value: coder
+  - name: CODER_GITEA_TEA_TOKEN_NAME
+    value: openclaw-coder-sandbox
+  - name: CODER_REGISTRY_HOST
+    value: registry.example.com
+  - name: CODER_REGISTRY_USERNAME
+    value: coder
+  - name: CODER_REGISTRY_BASE_URL
+    value: https://registry.example.com
   - name: REVIEWER_GITEA_BASE_URL
     value: 'http://{{ printf "%s-gitea-http.%s.svc.cluster.local:3000" .Release.Name .Release.Namespace }}'
   - name: REVIEWER_GITEA_HOST

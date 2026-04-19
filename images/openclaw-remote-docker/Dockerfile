@@ -43,6 +43,7 @@ RUN curl -fsSL "https://gitea.com/gitea/tea/releases/download/v${TEA_VERSION}/te
 COPY --from=openclaw-runtime /usr/local /usr/local
 COPY --from=openclaw-runtime /app /app
 COPY --from=memgraph-tools /usr/bin/mgconsole /usr/local/bin/mgconsole
+COPY coder-workspace-init.sh /usr/local/bin/coder-workspace-init.sh
 COPY reviewer-gitea-init.sh /usr/local/bin/reviewer-gitea-init.sh
 COPY openclaw-gateway-start.sh /usr/local/bin/openclaw-gateway-start.sh
 
@@ -50,7 +51,7 @@ RUN useradd --create-home --uid 1000 --shell /bin/bash node && \
     chown -R node:node /app /home/node && \
     npm install -g tokscale && \
     tokscale --version && \
-    chmod 0755 /usr/local/bin/reviewer-gitea-init.sh /usr/local/bin/openclaw-gateway-start.sh
+    chmod 0755 /usr/local/bin/coder-workspace-init.sh /usr/local/bin/reviewer-gitea-init.sh /usr/local/bin/openclaw-gateway-start.sh
 
 USER node
 WORKDIR /app

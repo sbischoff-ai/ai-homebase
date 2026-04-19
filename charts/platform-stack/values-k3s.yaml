@@ -296,6 +296,7 @@ registry:
     className: nginx
     annotations:
       cert-manager.io/cluster-issuer: platform-stack-root-ca
+      nginx.ingress.kubernetes.io/proxy-body-size: "0"
     hosts:
       - host: registry.vpn.homebase.internal
         paths:

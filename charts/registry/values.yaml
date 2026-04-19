@@ -30,6 +30,7 @@ ingress:
   className: ""
   annotations:
     cert-manager.io/cluster-issuer: platform-stack-root-ca
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
   defaultHost: registry.example.com
   hosts:
     - host: ""

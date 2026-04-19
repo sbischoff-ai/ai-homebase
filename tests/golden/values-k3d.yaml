@@ -8280,6 +8280,7 @@ kind: Ingress
 metadata:
   annotations:
     cert-manager.io/cluster-issuer: platform-stack-root-ca
+    nginx.ingress.kubernetes.io/proxy-body-size: '0'
   labels:
     app.kubernetes.io/instance: platform-stack
     app.kubernetes.io/managed-by: Helm

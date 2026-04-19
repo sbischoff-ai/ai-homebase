@@ -138,3 +138,59 @@ if ! tea repo list --login "${login_name}" >/dev/null 2>&1; then
   warn "tea repo list failed for login ${login_name}."
 fi
 '
+
+run_gateway_setup "coder-workspace" '
+set -eu
+warn() { echo "Warning: coder workspace setup skipped: $*" >&2; }
+workspace_home="/home/node/.openclaw/workspace-coder/.home"
+tea_config="${workspace_home}/.config/tea/config.yml"
+codex_auth="${workspace_home}/.codex/auth.json"
+docker_config="${workspace_home}/.docker/config.json"
+
+if ! command -v coder-workspace-init.sh >/dev/null 2>&1; then
+  warn "coder-workspace-init.sh is not installed."
+  exit 0
+fi
+if [ -z "${CODER_GITEA_BASE_URL:-}" ] || [ -z "${CODER_GITEA_USERNAME:-}" ]; then
+  warn "coder Gitea env vars are incomplete."
+  exit 0
+fi
+if [ -z "${OPENAI_API_KEY:-}" ]; then
+  warn "OPENAI_API_KEY is not present in the gateway environment."
+  exit 0
+fi
+if [ -z "${CODER_GITEA_TOKEN:-}" ] && [ -z "${CODER_GITEA_PASSWORD:-}" ]; then
+  warn "coder workspace setup needs CODER_GITEA_TOKEN or CODER_GITEA_PASSWORD."
+  exit 0
+fi
+if [ -z "${CODER_REGISTRY_PASSWORD:-}" ]; then
+  warn "CODER_REGISTRY_PASSWORD is not present in the gateway environment."
+  exit 0
+fi
+if ! env \
+  HOME="${workspace_home}" \
+  CODEX_HOME="${workspace_home}/.codex" \
+  XDG_CONFIG_HOME="${workspace_home}/.config" \
+  XDG_CACHE_HOME="${workspace_home}/.cache" \
+  XDG_STATE_HOME="${workspace_home}/.local/state" \
+  DOCKER_CONFIG="${workspace_home}/.docker" \
+  GIT_CONFIG_GLOBAL="${workspace_home}/.gitconfig" \
+  coder-workspace-init.sh; then
+  warn "coder-workspace-init.sh failed."
+  exit 0
+fi
+if [ ! -f "${codex_auth}" ]; then
+  warn "coder Codex auth file is still missing after init."
+  exit 0
+fi
+if [ ! -f "${tea_config}" ]; then
+  warn "coder tea config is still missing after init."
+  exit 0
+fi
+if ! grep -F "default: true" "${tea_config}" >/dev/null 2>&1; then
+  warn "coder tea login is not marked default after init."
+fi
+if [ ! -f "${docker_config}" ]; then
+  warn "coder docker config is still missing after init."
+fi
+'
