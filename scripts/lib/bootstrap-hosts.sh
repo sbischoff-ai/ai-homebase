@@ -1,5 +1,21 @@
 #!/usr/bin/env bash
 
+bootstrap_load_shell_vars() {
+  local bootstrap_config_path="$1"
+  local bootstrap_shell_vars=""
+
+  if [[ -z "$bootstrap_config_path" ]]; then
+    return 0
+  fi
+  if [[ ! -f "$bootstrap_config_path" ]]; then
+    echo "Bootstrap config not found: ${bootstrap_config_path}" >&2
+    return 1
+  fi
+
+  bootstrap_shell_vars="$(python3 ./scripts/bootstrap-config.py shell-vars --config "$bootstrap_config_path")" || return 1
+  eval "$bootstrap_shell_vars"
+}
+
 append_bootstrap_resolve_hosts() {
   local -n cmd_ref="$1"
   local -A seen=()

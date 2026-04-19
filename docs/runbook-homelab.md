@@ -33,7 +33,7 @@ The host-prep script intentionally does not install Docker or git. They are oper
 sudo ./scripts/install-k3s-ubuntu-2404.sh
 ```
 
-The script installs/starts k3s with Traefik disabled, installs or upgrades `ingress-nginx`, and waits for the `nginx` ingress controller to become ready. Rendered k3s manifests should not rely on a Traefik ingress class.
+The script installs the Ubuntu-side prerequisites only: Helm, `kubectl`, Incus, package repos, group membership, and the shared OpenClaw state directory. It does not start k3s, initialize Incus, or deploy any cluster resources.
 
 ## 2. Prepare Bootstrap Config
 
@@ -44,33 +44,27 @@ python3 scripts/bootstrap-config.py validate --config bootstrap.local.toml
 
 Fill in hostnames, mail settings, provider keys, shared admin details, OpenClaw gateway token, Vaultwarden admin token, registry credentials if desired, and GitOps/coder overrides if the defaults are not what you want.
 
-## 3. Prepare OpenClaw Sandbox VM
+## 3. Reconcile k3s Runtime And Companion VMs
 
 ```bash
-./scripts/k3s-homelab-sandbox-up.sh --bootstrap-config bootstrap.local.toml
+./scripts/k3s-up.sh --bootstrap-config bootstrap.local.toml
 ```
 
-This creates or refreshes the Incus-backed remote Docker VM, mounts `/var/lib/ai-homebase/openclaw-state` into the VM at `/home/node/.openclaw`, and configures hostname resolution for the canonical set of bootstrap-config service hostnames that sandboxed agents may reach through ingress.
+This reconciles the runtime in one step: it installs `k3s` when missing, enforces the repo's Traefik-disabled posture, installs or upgrades `ingress-nginx`, initializes Incus host state, creates or refreshes the OpenClaw sandbox VM, and also prepares the dedicated Gitea Actions runner VM when `services.gitea.actions.enabled=true`.
+If you prepared the host with `install-k3s-ubuntu-2404.sh --openclaw-shared-state-dir <path>`, pass that same path here with `--openclaw-shared-state-dir <path>`.
 
-## 4. Prepare Gitea Actions Runner VM
-
-```bash
-./scripts/k3s-homelab-gitea-actions-runner-up.sh --bootstrap-config bootstrap.local.toml
-```
-
-Gitea Actions are enabled by default, so the standard homelab path prepares a second Incus VM for the dedicated runner. Skip this only when you explicitly disable Actions in `bootstrap.local.toml`.
-
-## 5. Bootstrap The Stack
+## 4. Bootstrap The Stack
 
 ```bash
 ./scripts/bootstrap-stack.sh --profile k3s --bootstrap-config bootstrap.local.toml
 ```
 
 The shared bootstrap path creates Secrets, renders the generated bootstrap values layer, builds/imports the repo-managed OpenClaw gateway image, installs the Helm release, exports the internal CA bundle, publishes runtime images where required, hands the cluster to Gitea/Argo CD, triggers the first sync, and waits for Argo applications to report `Synced` and `Healthy`.
+If you changed the shared state directory during host prep, pass the same path here with `--shared-openclaw-state-source <path>` so bootstrap exports the internal CA bundle into the directory that the gateway and sandbox VM actually share.
 
 Bootstrap-side Gitea API and git operations use a local port-forward to the in-cluster Gitea service, so the first install does not depend on the host trusting the internal ingress CA.
 
-## 6. Confidence Checks
+## 5. Confidence Checks
 
 After bootstrap returns, run:
 
@@ -107,6 +101,14 @@ rg -n 'image: "openclaw-remote-docker:trixie-slim"' /tmp/platform-stack-k3s.yaml
 ```
 
 The first `rg` should produce no Traefik ingress dependency; the second should find the OpenClaw Deployment image.
+
+## Stop Without Tearing Down
+
+```bash
+./scripts/k3s-down.sh --bootstrap-config bootstrap.local.toml
+```
+
+This stops `k3s` and both Incus VMs if present, but leaves installed packages, Incus bridge/storage definitions, and durable host data in place.
 
 ## GitOps Refresh
 

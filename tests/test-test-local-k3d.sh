@@ -53,7 +53,7 @@ printf '%s\n' "$*" >>"${FAKE_HELM_LOG:?}"
 case "$1 $2" in
   "get values")
     cat <<JSON
-{"openclaw":{"ingress":{"enabled":true,"hosts":[{"host":"openclaw.test.internal"}]},"remoteDocker":{"enabled":true,"dockerHost":"ssh://docker-remote@host.k3d.internal:2222"}},"nextcloud":{"enabled":false,"ingress":{"private":{"host":"nextcloud.test.internal"}}},"gitea":{"enabled":${FAKE_GITEA_ENABLED:-true}},"vaultwarden":{"enabled":false,"ingress":{"hosts":[{"host":"vaultwarden.test.internal"}]}},"paperlessNgx":{"enabled":true,"ingress":{"hosts":[{"host":"paperless.test.internal"}]}}}
+{"openclaw":{"ingress":{"enabled":true,"hosts":[{"host":"openclaw.test.internal"}]},"remoteDocker":{"enabled":true,"dockerHost":"ssh://docker-remote@host.k3d.internal:2222"}},"nextcloud":{"enabled":false,"ingress":{"private":{"host":"nextcloud.test.internal"}}},"nextcloudMcp":{"enabled":false,"ingress":{"hosts":[{"host":"nextcloud-mcp.test.internal"}]}},"gitea":{"enabled":${FAKE_GITEA_ENABLED:-true},"gitea":{"ingress":{"hosts":[{"host":"gitea.test.internal"}]}}},"registry":{"enabled":false,"ingress":{"hosts":[{"host":"registry.localtest.me"}]}},"vaultwarden":{"enabled":false,"ingress":{"hosts":[{"host":"vaultwarden.test.internal"}]}},"postfixRelay":{"enabled":false},"paperlessNgx":{"enabled":true,"ingress":{"hosts":[{"host":"paperless.test.internal"}]}},"qdrant":{"enabled":false,"ingress":{"hosts":[{"host":"qdrant.test.internal"}]}},"qdrantMcp":{"enabled":false,"ingress":{"hosts":[{"host":"qdrant-mcp.test.internal"}]}},"memgraph":{"enabled":false,"ingress":{"hosts":[{"host":"memgraph.test.internal"}]}},"memgraphLab":{"enabled":false,"ingress":{"hosts":[{"host":"memgraph-lab.test.internal"}]}}}
 JSON
     exit 0
     ;;
@@ -96,9 +96,26 @@ for ((i=0; i<${#args[@]}; i++)); do
       printf 'platform-stack-openclaw'
       exit 0
     fi
+    if [[ "${resource}" == "secret" && $((i+2)) -lt ${#args[@]} ]]; then
+      secret_name="${args[$((i+2))]}"
+      case "${secret_name}" in
+        reviewer-credentials)
+          printf 'cmV2aWV3ZXItdG9rZW4='
+          exit 0
+          ;;
+        gitea-admin-secret)
+          if [[ "$*" == *".data.username"* ]]; then
+            printf 'Z2l0LWFkbWlu'
+          else
+            printf 'Z2l0LWFkbWluLXBhc3M='
+          fi
+          exit 0
+          ;;
+      esac
+    fi
     if [[ "${resource}" == "configmap" ]]; then
       cat <<'JSON'
-{"commands":{"mcp":true},"cron":{"enabled":true,"store":"~/.openclaw/cron/jobs.json"},"agents":{"defaults":{"sandbox":{"backend":"docker","docker":{"image":"registry.localtest.me/openclaw/openclaw-sandbox:trixie-slim"}}},"list":[{"id":"coder","sandbox":{"docker":{"image":"registry.localtest.me/openclaw/openclaw-sandbox-coder:trixie-slim"}}}]},"mcp":{"servers":{"nextcloud":{"args":["${OPENCLAW_NEXTCLOUD_MCP_INTERNAL_URL}","${OPENCLAW_NEXTCLOUD_MCP_EXTERNAL_URL}"]}}}}
+{"commands":{"mcp":true},"cron":{"enabled":true,"store":"~/.openclaw/cron/jobs.json"},"agents":{"defaults":{"sandbox":{"backend":"docker","docker":{"image":"registry.localtest.me/openclaw/openclaw-sandbox:trixie-slim","env":{"HOME":"/workspace/.home","SSL_CERT_FILE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","REQUESTS_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","NODE_EXTRA_CA_CERTS":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","GIT_SSL_CAINFO":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","CURL_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt"}}},"list":[{"id":"coder","sandbox":{"docker":{"image":"registry.localtest.me/openclaw/openclaw-sandbox-coder:trixie-slim","env":{"DOCKER_HOST":"${DOCKER_HOST}","CODER_GITEA_TOKEN":"${CODER_GITEA_TOKEN}"}}}},{"id":"architect","sandbox":{"mode":"non-main","docker":{"env":{"REVIEWER_GITEA_BASE_URL":"https://gitea.test.internal","REVIEWER_GITEA_HOST":"gitea.test.internal","REVIEWER_GITEA_TOKEN":"${REVIEWER_GITEA_TOKEN}"}}}},{"id":"auditor","sandbox":{"mode":"off"}}]},"mcp":{"servers":{"nextcloud":{"args":["${OPENCLAW_NEXTCLOUD_MCP_INTERNAL_URL}","${OPENCLAW_NEXTCLOUD_MCP_EXTERNAL_URL}"]}}}}
 JSON
       exit 0
     fi
@@ -175,6 +192,12 @@ FAKEINCUS
     export FAKE_CURL_COUNTER_FILE="${sandbox_dir}/curl-counter"
     export FAKE_GITEA_ENABLED="${gitea_enabled}"
     export FAKE_FAIL_FIRST_PAPERLESS_CURL="1"
+    export CODER_GITEA_USERNAME="coder"
+    export CODER_GITEA_TOKEN="coder-token"
+    export REVIEWER_GITEA_TOKEN="reviewer-token"
+    export REVIEWER_GITEA_USERNAME="reviewer"
+    export REVIEWER_GITEA_EMAIL="reviewer@example.invalid"
+    export GITOPS_REPO_NAME="cluster-gitops"
 
     ./scripts/test-local-k3d.sh \
       --release-name platform-stack \

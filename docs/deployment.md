@@ -28,12 +28,12 @@ That target is expected to run the current stack plus leave room for additional 
 ```bash
 sudo ./scripts/install-k3s-ubuntu-2404.sh
 cp bootstrap.example.toml bootstrap.local.toml
-./scripts/k3s-homelab-sandbox-up.sh --bootstrap-config bootstrap.local.toml
-./scripts/k3s-homelab-gitea-actions-runner-up.sh --bootstrap-config bootstrap.local.toml
+./scripts/k3s-up.sh --bootstrap-config bootstrap.local.toml
 ./scripts/bootstrap-stack.sh --profile k3s --bootstrap-config bootstrap.local.toml
 ```
 
-The k3s prep path expects Docker Engine and git to already be working on the host. It installs k3s with Traefik disabled and installs `ingress-nginx` for the `nginx` ingress class used by rendered manifests.
+The host-prep path expects Docker Engine and git to already be working on the host. `install-k3s-ubuntu-2404.sh` installs the Ubuntu-side prerequisites only, and `k3s-up.sh` then reconciles k3s with Traefik disabled, installs `ingress-nginx` for the `nginx` ingress class used by rendered manifests, prepares the Incus host runtime, and brings up the sandbox VM plus the default-on Gitea Actions runner VM when enabled.
+If you prepared the host with a custom `--openclaw-shared-state-dir`, pass that same path to `k3s-up.sh --openclaw-shared-state-dir ...` and `bootstrap-stack.sh --shared-openclaw-state-source ...`.
 
 Continue with [runbook-homelab.md](./runbook-homelab.md).
 

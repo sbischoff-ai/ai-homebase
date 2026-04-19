@@ -113,13 +113,13 @@ scripts/ci/check_golden.sh
 python3 scripts/bootstrap-config.py validate --config bootstrap.local.toml
 ./scripts/k3d-local-bootstrap.sh --cluster-name ai-homebase-dev --bootstrap-config bootstrap.local.toml
 sudo ./scripts/install-k3s-ubuntu-2404.sh
-./scripts/k3s-homelab-sandbox-up.sh --bootstrap-config bootstrap.local.toml
-./scripts/k3s-homelab-gitea-actions-runner-up.sh --bootstrap-config bootstrap.local.toml
+./scripts/k3s-up.sh --bootstrap-config bootstrap.local.toml
 ./scripts/bootstrap-stack.sh --profile k3s --bootstrap-config bootstrap.local.toml
+./scripts/k3s-down.sh --bootstrap-config bootstrap.local.toml
 ```
 
 `bootstrap-stack.sh` now includes the GitOps handoff, initial Argo sync, and Argo application validation by default, and it no longer has a supported public mode that returns success before GitOps is finished. Re-run `bootstrap-gitops.sh` only when you want to refresh the in-cluster GitOps repo snapshot separately from the main bootstrap flow.
-The dedicated Gitea Actions runner VM helper is part of the default `k3s` bootstrap path. Skip it only when you explicitly disable Actions with `services.gitea.actions.enabled=false`.
+The dedicated Gitea Actions runner VM is part of the default `k3s` runtime path. `k3s-up.sh` prepares it automatically unless you explicitly disable Actions with `services.gitea.actions.enabled=false`.
 
 ## Local bootstrap and Incus sandbox helpers
 
@@ -130,7 +130,6 @@ python3 scripts/bootstrap-config.py validate --config bootstrap.local.toml
 ./scripts/incus-vm-up.sh --vm-name openclaw-sandbox
 SSH_READY_TIMEOUT_SECONDS=1800 ./scripts/incus-vm-up.sh --vm-name openclaw-sandbox
 source ~/.local/state/ai-homebase/incus/openclaw-sandbox.env
-./scripts/k3s-homelab-gitea-actions-runner-up.sh --bootstrap-config bootstrap.local.toml
 ./scripts/bootstrap-stack.sh \
   --profile k3d \
   --namespace ai-homebase \
@@ -160,8 +159,7 @@ source ~/.local/state/ai-homebase/incus/openclaw-sandbox.env
 
 ```bash
 sudo ./scripts/install-k3s-ubuntu-2404.sh
-./scripts/k3s-homelab-sandbox-up.sh --bootstrap-config bootstrap.local.toml
+./scripts/k3s-up.sh --bootstrap-config bootstrap.local.toml
 ```
 
-The k3s prep path expects Docker Engine and git to already exist on the host. It installs k3s with Traefik disabled and installs `ingress-nginx` for the `nginx` ingress class used by both supported target overlays.
-When Gitea Actions remain at their default enabled posture, also run `./scripts/k3s-homelab-gitea-actions-runner-up.sh --bootstrap-config bootstrap.local.toml` before `bootstrap-stack.sh`.
+The k3s prep path expects Docker Engine and git to already exist on the host. `install-k3s-ubuntu-2404.sh` prepares the Ubuntu-side prerequisites only, and `k3s-up.sh` then reconciles k3s with Traefik disabled, installs `ingress-nginx` for the `nginx` ingress class used by both supported target overlays, and prepares the default-on Gitea Actions runner VM when enabled.
