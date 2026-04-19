@@ -5,7 +5,7 @@ FROM memgraph/memgraph:3.8.1 AS memgraph-tools
 FROM debian:trixie-slim@sha256:26f98ccd92fd0a44d6928ce8ff8f4921b4d2f535bfa07555ee5d18f61429cf0c
 
 ENV DEBIAN_FRONTEND=noninteractive
-ARG TEA_VERSION=v0.9.2
+ARG TEA_VERSION=0.9.2
 
 RUN --mount=type=cache,id=openclaw-sandbox-bookworm-apt-cache,target=/var/cache/apt,sharing=locked \
   --mount=type=cache,id=openclaw-sandbox-bookworm-apt-lists,target=/var/lib/apt,sharing=locked \
@@ -18,7 +18,6 @@ RUN --mount=type=cache,id=openclaw-sandbox-bookworm-apt-cache,target=/var/cache/
     git \
     gh \
     gnupg \
-    golang-go \
     jq \
     python3 \
     ripgrep \
@@ -34,10 +33,12 @@ RUN --mount=type=cache,id=openclaw-sandbox-bookworm-apt-cache,target=/var/cache/
 COPY --from=memgraph-tools /usr/bin/mgconsole /usr/local/bin/mgconsole
 COPY reviewer-gitea-init.sh /usr/local/bin/reviewer-gitea-init.sh
 
-RUN GOBIN=/usr/local/bin go install code.gitea.io/tea@"${TEA_VERSION}" \
+RUN curl -fsSL "https://gitea.com/gitea/tea/releases/download/v${TEA_VERSION}/tea-${TEA_VERSION}-linux-amd64" \
+    -o /usr/local/bin/tea \
+  && chmod 0755 /usr/local/bin/tea \
   && npm install -g @steipete/summarize \
   && gh --version \
-  && tea --version \
+  && tea --version | grep -F "${TEA_VERSION}" >/dev/null \
   && node --version \
   && npm --version \
   && summarize --version

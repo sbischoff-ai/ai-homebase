@@ -1027,8 +1027,16 @@ verify_reviewer_sandbox_runtime() {
     docker image inspect openclaw-sandbox:trixie-slim >/dev/null
     tmpdir=\$(mktemp -d)
     trap 'rm -rf \"\$tmpdir\"' EXIT
+    chown 1000:1000 \"\$tmpdir\"
+    chmod 0755 \"\$tmpdir\"
+    mkdir -p \"\$tmpdir/.home\"
+    chown 1000:1000 \"\$tmpdir/.home\"
+    chmod 0755 \"\$tmpdir/.home\"
     mkdir -p \"\$tmpdir/.openclaw-runtime\"
     cp /home/node/.openclaw/certs/ai-homebase-ca-bundle.crt \"\$tmpdir/.openclaw-runtime/ai-homebase-ca-bundle.crt\"
+    chown -R 1000:1000 \"\$tmpdir/.openclaw-runtime\"
+    chmod 0755 \"\$tmpdir/.openclaw-runtime\"
+    chmod 0644 \"\$tmpdir/.openclaw-runtime/ai-homebase-ca-bundle.crt\"
     docker run --rm --entrypoint sh \
       -v \"\$tmpdir:/workspace\" \
       -e HOME=/workspace/.home \
