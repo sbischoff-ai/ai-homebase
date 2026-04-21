@@ -611,23 +611,23 @@ probes:
   liveness:
     enabled: true
     path: /healthz
-    initialDelaySeconds: 10
+    initialDelaySeconds: 120
     periodSeconds: 15
-    timeoutSeconds: 5
-    failureThreshold: 3
+    timeoutSeconds: 10
+    failureThreshold: 6
   readiness:
     enabled: true
     path: /readyz
     initialDelaySeconds: 5
     periodSeconds: 10
-    timeoutSeconds: 2
-    failureThreshold: 3
+    timeoutSeconds: 5
+    failureThreshold: 6
   startup:
     enabled: true
     path: /startupz
     initialDelaySeconds: 10
     periodSeconds: 10
-    timeoutSeconds: 3
+    timeoutSeconds: 5
     failureThreshold: 30
 
 autoscaling:

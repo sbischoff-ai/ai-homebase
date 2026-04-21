@@ -629,6 +629,7 @@ verify_openclaw_gateway_tooling() {
   local expected_git_config_global="/home/node/.openclaw/.config/git/config"
   local expected_repo_url="${expected_reviewer_base_url}/${CODER_GITEA_USERNAME}/${GITOPS_REPO_NAME}.git"
   local coder_workspace_home="/home/node/.openclaw/workspace-coder/.home"
+  local reviewer_workspace_homes="/home/node/.openclaw/workspace-architect/.home /home/node/.openclaw/workspace-auditor/.home"
 
   step "Checking OpenClaw gateway tooling and seeded coder/reviewer auth state"
   CURRENT_COMMAND="kubectl exec deployment/${deployment_name} -- sh -ceu 'check gateway tooling plus seeded coder and reviewer auth state'"
@@ -654,8 +655,28 @@ verify_openclaw_gateway_tooling() {
     grep -F '\"auth_mode\": \"apikey\"' \"${coder_workspace_home}/.codex/auth.json\" >/dev/null
     test -f \"${coder_workspace_home}/.config/tea/config.yml\"
     grep -F 'name: coder' \"${coder_workspace_home}/.config/tea/config.yml\" >/dev/null
+    grep -F 'url: ${expected_reviewer_base_url}' \"${coder_workspace_home}/.config/tea/config.yml\" >/dev/null
     grep -F 'default: true' \"${coder_workspace_home}/.config/tea/config.yml\" >/dev/null
+    env \
+      HOME=\"${coder_workspace_home}\" \
+      XDG_CONFIG_HOME=\"${coder_workspace_home}/.config\" \
+      XDG_CACHE_HOME=\"${coder_workspace_home}/.cache\" \
+      XDG_STATE_HOME=\"${coder_workspace_home}/.local/state\" \
+      tea repo list --login coder | grep -F \"cluster-gitops\" >/dev/null
     test -f \"${coder_workspace_home}/.docker/config.json\"
+    for reviewer_workspace_home in ${reviewer_workspace_homes}; do
+      test -f \"\${reviewer_workspace_home}/.config/tea/config.yml\"
+      grep -F 'name: reviewer' \"\${reviewer_workspace_home}/.config/tea/config.yml\" >/dev/null
+      grep -F 'url: ${expected_reviewer_base_url}' \"\${reviewer_workspace_home}/.config/tea/config.yml\" >/dev/null
+      grep -F 'default: true' \"\${reviewer_workspace_home}/.config/tea/config.yml\" >/dev/null
+      env \
+        HOME=\"\${reviewer_workspace_home}\" \
+        XDG_CONFIG_HOME=\"\${reviewer_workspace_home}/.config\" \
+        XDG_CACHE_HOME=\"\${reviewer_workspace_home}/.cache\" \
+        XDG_STATE_HOME=\"\${reviewer_workspace_home}/.local/state\" \
+        GIT_CONFIG_GLOBAL=\"\${reviewer_workspace_home}/.config/git/config\" \
+        tea repo list --login reviewer | grep -F \"cluster-gitops\" >/dev/null
+    done
     python3 - <<'PY'
 import json
 from pathlib import Path
@@ -745,6 +766,11 @@ verify_openclaw_mcp_bootstrap_config() {
     exit 1
   fi
 
+  if [[ "$openclaw_json" != *"\"CODER_GITEA_TEA_URL\":\"${architect_reviewer_base_url}\""* ]]; then
+    fail "OpenClaw bootstrap config in ConfigMap/${configmap_name} is not keeping coder sandbox tea access on the ingress hostname path"
+    exit 1
+  fi
+
   if [[ "$openclaw_json" != *'"REVIEWER_GITEA_TOKEN":"${REVIEWER_GITEA_TOKEN}"'* ]]; then
     fail "OpenClaw bootstrap config in ConfigMap/${configmap_name} is not wiring reviewer tea token interpolation from gateway env"
     exit 1
@@ -757,6 +783,11 @@ verify_openclaw_mcp_bootstrap_config() {
 
   if [[ "$openclaw_json" != *"\"REVIEWER_GITEA_BASE_URL\":\"${architect_reviewer_base_url}\""* ]]; then
     fail "OpenClaw bootstrap config in ConfigMap/${configmap_name} is not keeping architect reviewer access on the ingress hostname path"
+    exit 1
+  fi
+
+  if [[ "$openclaw_json" != *"\"REVIEWER_GITEA_TEA_URL\":\"${architect_reviewer_base_url}\""* ]]; then
+    fail "OpenClaw bootstrap config in ConfigMap/${configmap_name} is not keeping architect tea access on the ingress hostname path"
     exit 1
   fi
 

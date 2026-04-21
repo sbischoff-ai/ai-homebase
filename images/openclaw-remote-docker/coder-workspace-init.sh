@@ -18,6 +18,7 @@ CODER_GITEA_EMAIL="${CODER_GITEA_EMAIL:-coder@example.invalid}"
 CODER_GITEA_HOST="${CODER_GITEA_HOST:-}"
 CODER_GITEA_BASE_URL="${CODER_GITEA_BASE_URL:-}"
 CODER_GITEA_BOOTSTRAP_URL="${CODER_GITEA_BOOTSTRAP_URL:-${CODER_GITEA_BASE_URL}}"
+CODER_GITEA_TEA_URL="${CODER_GITEA_TEA_URL:-}"
 CODER_GITEA_PASSWORD="${CODER_GITEA_PASSWORD:-}"
 CODER_GITEA_TOKEN="${CODER_GITEA_TOKEN:-}"
 CODER_GITEA_TEA_LOGIN_NAME="${CODER_GITEA_TEA_LOGIN_NAME:-coder}"
@@ -41,7 +42,8 @@ tea_ssh_host() {
     return
   fi
 
-  local host="${CODER_GITEA_BASE_URL#*://}"
+  local host="${CODER_GITEA_TEA_URL:-${CODER_GITEA_BASE_URL}}"
+  host="${host#*://}"
   host="${host%%/*}"
   host="${host%%:*}"
   printf '%s\n' "${host}"
@@ -55,7 +57,7 @@ write_tea_config() {
   cat > "${XDG_CONFIG_HOME}/tea/config.yml" <<EOF
 logins:
 - name: ${CODER_GITEA_TEA_LOGIN_NAME}
-  url: ${CODER_GITEA_BASE_URL}
+  url: ${CODER_GITEA_TEA_URL}
   token: ${CODER_GITEA_TOKEN}
   default: true
   ssh_host: ${ssh_host}
@@ -140,6 +142,10 @@ if [ -z "${CODER_GITEA_BASE_URL}" ] && [ -n "${CODER_GITEA_HOST}" ]; then
   esac
 fi
 
+if [ -z "${CODER_GITEA_TEA_URL}" ]; then
+  CODER_GITEA_TEA_URL="${CODER_GITEA_BASE_URL}"
+fi
+
 if [ -z "${CODER_GITEA_TOKEN}" ] && [ -n "${CODER_GITEA_BOOTSTRAP_URL}" ] && [ -n "${CODER_GITEA_USERNAME}" ] && [ -n "${CODER_GITEA_PASSWORD}" ]; then
   tokens_url="${CODER_GITEA_BOOTSTRAP_URL}/api/v1/users/${CODER_GITEA_USERNAME}/tokens"
   auth="${CODER_GITEA_USERNAME}:${CODER_GITEA_PASSWORD}"
@@ -165,7 +171,7 @@ if [ -z "${CODER_GITEA_TOKEN}" ] && [ -n "${CODER_GITEA_BOOTSTRAP_URL}" ] && [ -
   )"
 fi
 
-if [ -n "${CODER_GITEA_BASE_URL}" ] && [ -n "${CODER_GITEA_TOKEN}" ]; then
+if [ -n "${CODER_GITEA_TEA_URL}" ] && [ -n "${CODER_GITEA_TOKEN}" ]; then
   write_tea_config
 else
   warn "coder Gitea token is unavailable; leaving coder workspace without seeded tea login"

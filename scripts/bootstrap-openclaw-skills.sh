@@ -7,6 +7,8 @@ KUBECONFIG_PATH="${KUBECONFIG_PATH:-}"
 KUBE_CONTEXT="${KUBE_CONTEXT:-}"
 OPENCLAW_DEPLOYMENT_NAME="${OPENCLAW_DEPLOYMENT_NAME:-${RELEASE_NAME}-openclaw}"
 OPENCLAW_ROLLOUT_TIMEOUT="${OPENCLAW_ROLLOUT_TIMEOUT:-600s}"
+OPENCLAW_SETUP_RETRIES="${OPENCLAW_SETUP_RETRIES:-3}"
+OPENCLAW_SETUP_RETRY_DELAY_SECONDS="${OPENCLAW_SETUP_RETRY_DELAY_SECONDS:-15}"
 
 usage() {
   cat <<USAGE
@@ -54,8 +56,28 @@ kubectl "${KUBECTL_ARGS[@]}" -n "$NAMESPACE" rollout status "deployment/${OPENCL
 run_gateway_setup() {
   local label="$1"
   local script="$2"
-  echo "Checking OpenClaw skill setup: ${label}"
-  kubectl "${KUBECTL_ARGS[@]}" -n "$NAMESPACE" exec "deployment/${OPENCLAW_DEPLOYMENT_NAME}" -- sh -lc "$script"
+  local attempt=1
+  local status=0
+
+  while (( attempt <= OPENCLAW_SETUP_RETRIES )); do
+    echo "Checking OpenClaw skill setup: ${label} (attempt ${attempt}/${OPENCLAW_SETUP_RETRIES})"
+    kubectl "${KUBECTL_ARGS[@]}" -n "$NAMESPACE" rollout status "deployment/${OPENCLAW_DEPLOYMENT_NAME}" --timeout "$OPENCLAW_ROLLOUT_TIMEOUT"
+    if kubectl "${KUBECTL_ARGS[@]}" -n "$NAMESPACE" exec "deployment/${OPENCLAW_DEPLOYMENT_NAME}" -- sh -lc "$script"; then
+      return 0
+    else
+      status=$?
+    fi
+
+    if (( attempt == OPENCLAW_SETUP_RETRIES )); then
+      break
+    fi
+
+    echo "OpenClaw setup check '${label}' failed with exit ${status}; waiting ${OPENCLAW_SETUP_RETRY_DELAY_SECONDS}s before retrying." >&2
+    sleep "$OPENCLAW_SETUP_RETRY_DELAY_SECONDS"
+    (( attempt += 1 ))
+  done
+
+  return "$status"
 }
 
 run_gateway_setup "github" '
@@ -110,6 +132,32 @@ fi
 run_gateway_setup "reviewer-gitea" '
 set -eu
 warn() { echo "Warning: reviewer Gitea setup skipped: $*" >&2; }
+seed_reviewer_home() {
+  local workspace_home="$1"
+  local label="$2"
+
+  if ! env \
+    HOME="${workspace_home}" \
+    XDG_CONFIG_HOME="${workspace_home}/.config" \
+    XDG_CACHE_HOME="${workspace_home}/.cache" \
+    XDG_STATE_HOME="${workspace_home}/.local/state" \
+    GIT_CONFIG_GLOBAL="${workspace_home}/.config/git/config" \
+    reviewer-gitea-init.sh; then
+    warn "${label} reviewer-gitea-init.sh failed."
+    return 1
+  fi
+
+  if ! env \
+    HOME="${workspace_home}" \
+    XDG_CONFIG_HOME="${workspace_home}/.config" \
+    XDG_CACHE_HOME="${workspace_home}/.cache" \
+    XDG_STATE_HOME="${workspace_home}/.local/state" \
+    GIT_CONFIG_GLOBAL="${workspace_home}/.config/git/config" \
+    tea repo list --login "${login_name}" >/dev/null 2>&1; then
+    warn "tea repo list failed for ${label} login ${login_name}."
+    return 1
+  fi
+}
 if ! command -v reviewer-gitea-init.sh >/dev/null 2>&1; then
   warn "reviewer-gitea-init.sh is not installed."
   exit 0
@@ -137,6 +185,8 @@ fi
 if ! tea repo list --login "${login_name}" >/dev/null 2>&1; then
   warn "tea repo list failed for login ${login_name}."
 fi
+seed_reviewer_home "/home/node/.openclaw/workspace-architect/.home" "architect workspace"
+seed_reviewer_home "/home/node/.openclaw/workspace-auditor/.home" "auditor workspace"
 '
 
 run_gateway_setup "coder-workspace" '
