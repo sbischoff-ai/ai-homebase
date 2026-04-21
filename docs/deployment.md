@@ -8,7 +8,7 @@ Use this target when you want the full stack locally for development, smoke test
 
 ```bash
 cp bootstrap.example.toml bootstrap.local.toml
-./scripts/k3d-local-bootstrap.sh --cluster-name ai-homebase-dev --bootstrap-config bootstrap.local.toml
+./scripts/bootstrap-stack.sh --profile k3d --cluster-name ai-homebase-dev --bootstrap-config bootstrap.local.toml
 ```
 
 Continue with [deployment-k3d.md](./deployment-k3d.md).
@@ -28,19 +28,18 @@ That target is expected to run the current stack plus leave room for additional 
 ```bash
 sudo ./scripts/install-k3s-ubuntu-2404.sh
 cp bootstrap.example.toml bootstrap.local.toml
-./scripts/k3s-up.sh --bootstrap-config bootstrap.local.toml
 ./scripts/bootstrap-stack.sh --profile k3s --bootstrap-config bootstrap.local.toml
 ```
 
-The host-prep path expects Docker Engine and git to already be working on the host. `install-k3s-ubuntu-2404.sh` installs the Ubuntu-side prerequisites only, and `k3s-up.sh` then reconciles k3s with Traefik disabled, installs `ingress-nginx` for the `nginx` ingress class used by rendered manifests, prepares the Incus host runtime, and brings up the sandbox VM plus the default-on Gitea Actions runner VM when enabled.
-If you prepared the host with a custom `--openclaw-shared-state-dir`, pass that same path to `k3s-up.sh --openclaw-shared-state-dir ...` and `bootstrap-stack.sh --shared-openclaw-state-source ...`.
+The host-prep path expects Docker Engine and git to already be working on the host. `install-k3s-ubuntu-2404.sh` installs the Ubuntu-side prerequisites only, and `bootstrap-stack.sh --profile k3s` then reconciles k3s with Traefik disabled, installs `ingress-nginx` for the `nginx` ingress class used by rendered manifests, prepares the Incus host runtime, brings up the sandbox VM plus the default-on Gitea Actions runner VM when enabled, applies the shared bootstrap resources, performs the GitOps handoff, and runs smoke checks.
+If you prepared the host with a custom `--openclaw-shared-state-dir`, pass that same path to `bootstrap-stack.sh --shared-openclaw-state-source ...`.
 
 Continue with [runbook-homelab.md](./runbook-homelab.md).
 
 ## Shared Assumptions
 
 - `bootstrap.local.toml` is the operator input for both targets
-- `k3d` and `k3s` share the same `bootstrap-stack.sh` secret/bootstrap/apply path after cluster setup
+- `k3d` and `k3s` share the same `bootstrap-stack.sh` path end-to-end after target-specific runtime preparation begins
 - `k3d` and `k3s` both use `ingress-nginx`; Traefik is not part of the supported target posture
 - the normal bootstrap path now includes the GitOps handoff, initial Argo sync, and application-state validation before it returns
 - the current `k3s` target is a deliberately single-node system; it is intended to use one stronger server well before any future multi-node expansion

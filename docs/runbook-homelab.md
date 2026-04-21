@@ -44,22 +44,13 @@ python3 scripts/bootstrap-config.py validate --config bootstrap.local.toml
 
 Fill in hostnames, mail settings, provider keys, shared admin details, OpenClaw gateway token, Vaultwarden admin token, registry credentials if desired, and GitOps/coder overrides if the defaults are not what you want.
 
-## 3. Reconcile k3s Runtime And Companion VMs
-
-```bash
-./scripts/k3s-up.sh --bootstrap-config bootstrap.local.toml
-```
-
-This reconciles the runtime in one step: it installs `k3s` when missing, enforces the repo's Traefik-disabled posture, installs or upgrades `ingress-nginx`, initializes Incus host state, creates or refreshes the OpenClaw sandbox VM, and also prepares the dedicated Gitea Actions runner VM when `services.gitea.actions.enabled=true`.
-If you prepared the host with `install-k3s-ubuntu-2404.sh --openclaw-shared-state-dir <path>`, pass that same path here with `--openclaw-shared-state-dir <path>`.
-
-## 4. Bootstrap The Stack
+## 3. Run The Bootstrap
 
 ```bash
 ./scripts/bootstrap-stack.sh --profile k3s --bootstrap-config bootstrap.local.toml
 ```
 
-The shared bootstrap path creates Secrets, renders the generated bootstrap values layer, builds/imports the repo-managed OpenClaw gateway image, installs the Helm release, exports the internal CA bundle, publishes runtime images where required, hands the cluster to Gitea/Argo CD, triggers the first sync, and waits for Argo applications to report `Synced` and `Healthy`.
+This single command reconciles the runtime and the stack in one ordered flow: it installs `k3s` when missing, enforces the repo's Traefik-disabled posture, installs or upgrades `ingress-nginx`, initializes Incus host state, creates or refreshes the OpenClaw sandbox VM, prepares the dedicated Gitea Actions runner VM when `services.gitea.actions.enabled=true`, creates Secrets, renders the generated bootstrap values layer, builds/imports the repo-managed OpenClaw gateway image, installs the Helm release, exports the internal CA bundle, publishes runtime images where required, hands the cluster to Gitea/Argo CD, triggers the first sync, waits for Argo applications to report `Synced` and `Healthy`, and then runs smoke checks.
 If you changed the shared state directory during host prep, pass the same path here with `--shared-openclaw-state-source <path>` so bootstrap exports the internal CA bundle into the directory that the gateway and sandbox VM actually share.
 
 Bootstrap-side Gitea API and git operations use a local port-forward to the in-cluster Gitea service, so the first install does not depend on the host trusting the internal ingress CA.

@@ -57,7 +57,7 @@ Agents can prepare meaningful change, but the operator remains the final deploym
 
 ```bash
 cp bootstrap.example.toml bootstrap.local.toml
-./scripts/k3d-local-bootstrap.sh --cluster-name ai-homebase-dev --bootstrap-config bootstrap.local.toml
+./scripts/bootstrap-stack.sh --profile k3d --cluster-name ai-homebase-dev --bootstrap-config bootstrap.local.toml
 ```
 
 ### `k3s`
@@ -65,12 +65,11 @@ cp bootstrap.example.toml bootstrap.local.toml
 ```bash
 sudo ./scripts/install-k3s-ubuntu-2404.sh
 cp bootstrap.example.toml bootstrap.local.toml
-./scripts/k3s-up.sh --bootstrap-config bootstrap.local.toml
 ./scripts/bootstrap-stack.sh --profile k3s --bootstrap-config bootstrap.local.toml
 ```
 
-Fill `bootstrap.local.toml` with hostnames, mail settings, provider keys, admin credentials, and any first-run Gitea overrides before either path. The shipped OpenClaw defaults now assume `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, and `GEMINI_API_KEY` are all present unless you override the default agent model routing. Gitea Actions are enabled by default, so the standard `k3s` runtime path also prepares the dedicated runner VM unless you explicitly set `services.gitea.actions.enabled=false`.
-If you install `k3s` with a non-default `--openclaw-shared-state-dir`, pass that same path to both `k3s-up.sh --openclaw-shared-state-dir ...` and `bootstrap-stack.sh --shared-openclaw-state-source ...` so the gateway, sandbox VM, and CA export stay aligned.
+Fill `bootstrap.local.toml` with hostnames, mail settings, provider keys, admin credentials, and any first-run Gitea overrides before either path. The shipped OpenClaw defaults now assume `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, and `GEMINI_API_KEY` are all present unless you override the default agent model routing. Gitea Actions are enabled by default, so the standard bootstrap path also prepares the dedicated runner VM unless you explicitly set `services.gitea.actions.enabled=false`.
+If you install `k3s` with a non-default `--openclaw-shared-state-dir`, pass that same path to `bootstrap-stack.sh --shared-openclaw-state-source ...` so the gateway, sandbox VM, and CA export stay aligned.
 
 ## 📚 Docs Start Here
 

@@ -21,12 +21,12 @@ repo_dir="${sandbox_dir}/repo"
 fake_bin="${sandbox_dir}/bin"
 mkdir -p "${repo_dir}/scripts/lib" "${fake_bin}" "${sandbox_dir}/shared-state" "${sandbox_dir}/etc/rancher/k3s"
 
-cp "${REPO_ROOT}/scripts/k3s-up.sh" "${repo_dir}/scripts/k3s-up.sh"
+cp "${REPO_ROOT}/scripts/bootstrap-runtime-k3s.sh" "${repo_dir}/scripts/bootstrap-runtime-k3s.sh"
 cp "${REPO_ROOT}/scripts/bootstrap-config.py" "${repo_dir}/scripts/bootstrap-config.py"
 cp "${REPO_ROOT}/scripts/lib/bootstrap-hosts.sh" "${repo_dir}/scripts/lib/bootstrap-hosts.sh"
 cp "${REPO_ROOT}/scripts/lib/ingress-nginx.sh" "${repo_dir}/scripts/lib/ingress-nginx.sh"
 cp "${REPO_ROOT}/scripts/lib/logging.sh" "${repo_dir}/scripts/lib/logging.sh"
-chmod +x "${repo_dir}/scripts/k3s-up.sh" "${repo_dir}/scripts/bootstrap-config.py"
+chmod +x "${repo_dir}/scripts/bootstrap-runtime-k3s.sh" "${repo_dir}/scripts/bootstrap-config.py"
 
 cat >"${sandbox_dir}/bootstrap.local.toml" <<'EOF'
 [providers]
@@ -177,13 +177,41 @@ set -euo pipefail
 exit 0
 SH
 
+cat >"${fake_bin}/python3" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+if [[ "$1" == "./scripts/bootstrap-config.py" && "$2" == "shell-vars" ]]; then
+  cat <<'EOF'
+GITEA_ACTIONS_ENABLED='true'
+GITEA_ACTIONS_RUNNER_VM_NAME='actions-vm'
+GITEA_ACTIONS_RUNNER_HOST_ALIAS='actions.test.internal'
+GITEA_ACTIONS_RUNNER_SSH_PORT='2227'
+OPENCLAW_HOST='openclaw.test.internal'
+NEXTCLOUD_HOST='nextcloud.test.internal'
+NEXTCLOUD_MCP_HOST='nextcloud-mcp.test.internal'
+QDRANT_HOST='qdrant.test.internal'
+QDRANT_MCP_HOST='qdrant-mcp.test.internal'
+MEMGRAPH_HOST='memgraph.test.internal'
+MEMGRAPH_LAB_HOST='memgraph-lab.test.internal'
+GITEA_HOST='gitea.test.internal'
+REGISTRY_HOST='registry.test.internal'
+VAULTWARDEN_HOST='vaultwarden.test.internal'
+PAPERLESS_HOST='paperless.test.internal'
+EOF
+  exit 0
+fi
+printf 'unexpected python3 invocation: %s\n' "$*" >&2
+exit 1
+SH
+
 chmod +x \
   "${fake_bin}/sudo" \
   "${fake_bin}/systemctl" \
   "${fake_bin}/kubectl" \
   "${fake_bin}/helm" \
   "${fake_bin}/incus" \
-  "${fake_bin}/k3s"
+  "${fake_bin}/k3s" \
+  "${fake_bin}/python3"
 
 (
   cd "${repo_dir}"
@@ -192,7 +220,7 @@ chmod +x \
   export K3S_CONFIG_DIR="${sandbox_dir}/etc/rancher/k3s/config.yaml.d"
   export K3S_CONFIG_PATH="${K3S_CONFIG_DIR}/10-ai-homebase.yaml"
   export K3S_KUBECONFIG="${sandbox_dir}/etc/rancher/k3s/k3s.yaml"
-  ./scripts/k3s-up.sh \
+  ./scripts/bootstrap-runtime-k3s.sh \
     --bootstrap-config "${sandbox_dir}/bootstrap.local.toml" \
     --openclaw-shared-state-dir "${sandbox_dir}/shared-state" \
     >"${sandbox_dir}/output.log"
@@ -228,4 +256,4 @@ assert_contains "${config_contents}" "  - traefik"
 assert_contains "${output}" "k3s runtime is ready."
 assert_contains "${output}" "./scripts/bootstrap-stack.sh --profile k3s --bootstrap-config ${sandbox_dir}/bootstrap.local.toml --shared-openclaw-state-source ${sandbox_dir}/shared-state"
 
-echo "k3s up tests passed"
+echo "k3s runtime tests passed"

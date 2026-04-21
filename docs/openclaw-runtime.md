@@ -35,10 +35,10 @@ The standard sandbox VM helpers are:
 
 ```bash
 ./scripts/incus-vm-up.sh --vm-name openclaw-sandbox
-./scripts/k3s-up.sh --bootstrap-config bootstrap.local.toml
+./scripts/bootstrap-stack.sh --profile k3s --bootstrap-config bootstrap.local.toml
 ```
 
-The k3d and k3s bootstrap wrappers auto-discover the generated Incus connection env file when it exists and render the concrete remote Docker endpoint into the first install. On `k3s`, `k3s-up.sh` is the canonical runtime reconciler for both the sandbox VM and the default-on Gitea Actions runner VM.
+The `k3d` and `k3s` bootstrap flow auto-discovers the generated Incus connection env file when it exists and renders the concrete remote Docker endpoint into the first install. On `k3s`, `bootstrap-stack.sh --profile k3s` reconciles both the sandbox VM and the default-on Gitea Actions runner VM before the shared apply and smoke phases run.
 
 ## Internal CA Trust
 

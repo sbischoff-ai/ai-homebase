@@ -30,7 +30,7 @@ assert_contains "${script_contents}" "helm kubectl incus"
 assert_contains "${script_contents}" "usermod -aG incus-admin"
 assert_contains "${script_contents}" "OPENCLAW_SHARED_STATE_DIR"
 assert_contains "${script_contents}" 'install -d -m 0775 -o "${TARGET_UID}" -g "${TARGET_GID}" "${OPENCLAW_SHARED_STATE_DIR}"'
-assert_contains "${script_contents}" './scripts/k3s-up.sh --bootstrap-config bootstrap.local.toml --openclaw-shared-state-dir ${OPENCLAW_SHARED_STATE_DIR}'
+assert_contains "${script_contents}" './scripts/bootstrap-stack.sh --profile k3s --bootstrap-config bootstrap.local.toml --shared-openclaw-state-source ${OPENCLAW_SHARED_STATE_DIR}'
 assert_not_contains "${script_contents}" "systemctl enable --now k3s"
 assert_not_contains "${script_contents}" "systemctl enable --now incus"
 assert_not_contains "${script_contents}" "ensure_ingress_nginx"

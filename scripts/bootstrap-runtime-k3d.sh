@@ -42,7 +42,7 @@ usage() {
   cat <<USAGE
 Usage: $0 [options]
 
-End-to-end local bootstrap for k3d: cluster + ingress-nginx + bootstrap config + secrets + deploy + smoke checks.
+Prepare the k3d runtime for ai-homebase: cluster + ingress-nginx + companion Incus VMs.
 
 Options:
   --cluster-name <name>    k3d cluster name (default: ${CLUSTER_NAME})
@@ -101,6 +101,12 @@ trap on_error ERR
 
 BOOTSTRAP_SHELL_VARS="$(python3 ./scripts/bootstrap-config.py shell-vars --config "$BOOTSTRAP_CONFIG_PATH")" || exit 1
 eval "$BOOTSTRAP_SHELL_VARS"
+if [[ -z "$GITEA_ACTIONS_RUNNER_CONNECTION_INFO_PATH" || "$GITEA_ACTIONS_RUNNER_CONNECTION_INFO_PATH" == "${HOME}/.local/state/ai-homebase/incus/gitea-actions-runner.env" ]]; then
+  GITEA_ACTIONS_RUNNER_CONNECTION_INFO_PATH="${HOME}/.local/state/ai-homebase/incus/${GITEA_ACTIONS_RUNNER_VM_NAME}.env"
+fi
+if [[ -z "$GITEA_ACTIONS_RUNNER_KEY_PATH" || "$GITEA_ACTIONS_RUNNER_KEY_PATH" == "${HOME}/.local/state/ai-homebase/incus/gitea-actions-runner-id_ed25519" ]]; then
+  GITEA_ACTIONS_RUNNER_KEY_PATH="${HOME}/.local/state/ai-homebase/incus/${GITEA_ACTIONS_RUNNER_VM_NAME}-id_ed25519"
+fi
 OPENCLAW_GATEWAY_TOKEN_VALUE="${OPENCLAW_GATEWAY_TOKEN:-local-dev-token}"
 OPENCLAW_MAIN_MODEL="${OPENCLAW_MAIN_MODEL:-}"
 OPENCLAW_CODER_MODEL="${OPENCLAW_CODER_MODEL:-}"
@@ -166,39 +172,8 @@ if [[ -f "$INCUS_CONNECTION_INFO_PATH" ]]; then
   fi
 fi
 
-step "Bootstrapping platform stack and running smoke checks"
-BOOTSTRAP_STACK_CMD=(
-  ./scripts/bootstrap-stack.sh
-  --profile k3d \
-  --namespace "$NAMESPACE" \
-  --release-name "$RELEASE_NAME" \
-  --kubeconfig "$KUBECONFIG_PATH" \
-  --bootstrap-config "$BOOTSTRAP_CONFIG_PATH" \
-  --incus-vm-name "$INCUS_VM_NAME" \
-  --incus-connection-info "$INCUS_CONNECTION_INFO_PATH" \
-  --remote-docker-key "$REMOTE_DOCKER_KEY_PATH"
-  --shared-openclaw-state-source "$SHARED_OPENCLAW_STATE_SOURCE"
-)
-if [[ -n "$REMOTE_DOCKER_HOST" ]]; then
-  BOOTSTRAP_STACK_CMD+=(--remote-docker-host "$REMOTE_DOCKER_HOST")
-fi
-if [[ -n "$REMOTE_DOCKER_PORT" ]]; then
-  BOOTSTRAP_STACK_CMD+=(--remote-docker-port "$REMOTE_DOCKER_PORT")
-fi
-if [[ "${BOOTSTRAP_VERBOSE:-0}" == "1" ]]; then
-  BOOTSTRAP_STACK_CMD+=(--verbose)
-fi
-run_quiet "${BOOTSTRAP_STACK_CMD[@]}"
-ok "Platform stack is bootstrapped"
-
-run_quiet ./scripts/test-local-k3d.sh \
-  --release-name "$RELEASE_NAME" \
-  --namespace "$NAMESPACE" \
-  --kubeconfig "$KUBECONFIG_PATH" \
-  --skip-install
-ok "Smoke checks passed"
 echo
-echo "Local bootstrap complete."
+echo "k3d runtime is ready."
 echo "Summary:"
 echo "  Kubeconfig path: ${KUBECONFIG}"
 echo "  Incus VM: ${INCUS_VM_NAME}"
@@ -206,18 +181,6 @@ if [[ "${GITEA_ACTIONS_ENABLED:-false}" == "true" ]]; then
 echo "  Gitea Actions runner VM: ${GITEA_ACTIONS_RUNNER_VM_NAME}"
 fi
 echo "  Remote Docker endpoint: ssh://docker-remote@${REMOTE_DOCKER_HOST}:${REMOTE_DOCKER_PORT}"
-echo "  Remote Docker SSH secret: openclaw-remote-docker-ssh"
-echo "  OpenClaw gateway token: ${OPENCLAW_GATEWAY_TOKEN_VALUE}"
-echo "  OpenClaw URL: http://${OPENCLAW_HOST_VALUE}"
-echo "  Nextcloud URL: http://${NEXTCLOUD_HOST_VALUE}"
-echo "  Nextcloud MCP URL: http://${NEXTCLOUD_MCP_HOST_VALUE}"
-echo "  Memgraph URL: http://${MEMGRAPH_HOST_VALUE}"
-echo "  Memgraph Lab URL: http://${MEMGRAPH_LAB_HOST_VALUE}"
-echo "  OpenClaw main model: ${OPENCLAW_MAIN_MODEL}"
-echo "  OpenClaw architect model: ${OPENCLAW_ARCHITECT_MODEL}"
-echo "  OpenClaw coder model: ${OPENCLAW_CODER_MODEL}"
-echo "  Gitea URL: http://${GITEA_HOST_VALUE}"
-echo "  Registry URL: https://${REGISTRY_HOST_VALUE}"
-echo "  Vaultwarden URL: http://${VAULTWARDEN_HOST_VALUE}"
-echo "  Paperless URL: http://${PAPERLESS_HOST_VALUE}"
+echo "  Shared OpenClaw state: ${SHARED_OPENCLAW_STATE_SOURCE}"
+echo "  Next step: ./scripts/bootstrap-stack.sh --profile k3d --bootstrap-config ${BOOTSTRAP_CONFIG_PATH} --kubeconfig ${KUBECONFIG_PATH} --shared-openclaw-state-source ${SHARED_OPENCLAW_STATE_SOURCE}"
 echo "  Bootstrap log: ${BOOTSTRAP_LOG_FILE}"

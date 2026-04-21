@@ -111,36 +111,30 @@ scripts/ci/check_golden.sh
 
 ```bash
 python3 scripts/bootstrap-config.py validate --config bootstrap.local.toml
-./scripts/k3d-local-bootstrap.sh --cluster-name ai-homebase-dev --bootstrap-config bootstrap.local.toml
+./scripts/bootstrap-stack.sh --profile k3d --cluster-name ai-homebase-dev --bootstrap-config bootstrap.local.toml
 sudo ./scripts/install-k3s-ubuntu-2404.sh
-./scripts/k3s-up.sh --bootstrap-config bootstrap.local.toml
 ./scripts/bootstrap-stack.sh --profile k3s --bootstrap-config bootstrap.local.toml
-./scripts/k3s-down.sh --bootstrap-config bootstrap.local.toml
+./scripts/bootstrap-smoke.sh --profile k3d --cluster-name ai-homebase-dev --bootstrap-config bootstrap.local.toml
 ```
 
 `bootstrap-stack.sh` now includes the GitOps handoff, initial Argo sync, and Argo application validation by default, and it no longer has a supported public mode that returns success before GitOps is finished. Re-run `bootstrap-gitops.sh` only when you want to refresh the in-cluster GitOps repo snapshot separately from the main bootstrap flow.
-The dedicated Gitea Actions runner VM is part of the default `k3s` runtime path. `k3s-up.sh` prepares it automatically unless you explicitly disable Actions with `services.gitea.actions.enabled=false`.
+The dedicated Gitea Actions runner VM is part of the default bootstrap path. `bootstrap-stack.sh --profile k3s` prepares it automatically unless you explicitly disable Actions with `services.gitea.actions.enabled=false`.
 
 ## Local bootstrap and Incus sandbox helpers
 
 ```bash
 cp bootstrap.example.toml bootstrap.local.toml
 python3 scripts/bootstrap-config.py validate --config bootstrap.local.toml
-./scripts/k3d-local-bootstrap.sh --cluster-name ai-homebase-dev --bootstrap-config bootstrap.local.toml
+./scripts/bootstrap-stack.sh --profile k3d --cluster-name ai-homebase-dev --bootstrap-config bootstrap.local.toml
 ./scripts/incus-vm-up.sh --vm-name openclaw-sandbox
 SSH_READY_TIMEOUT_SECONDS=1800 ./scripts/incus-vm-up.sh --vm-name openclaw-sandbox
 source ~/.local/state/ai-homebase/incus/openclaw-sandbox.env
-./scripts/bootstrap-stack.sh \
+./scripts/bootstrap-smoke.sh \
   --profile k3d \
   --namespace ai-homebase \
   --release-name platform-stack \
   --bootstrap-config bootstrap.local.toml \
-  --remote-docker-host "$HOST_LISTEN_ADDRESS" \
-  --remote-docker-port "$SSH_HOST_PORT" \
-  --remote-docker-key ~/.local/state/ai-homebase/incus/openclaw-sandbox-id_ed25519
-# Re-running bootstrap-stack refreshes the app secrets, reapplies the chart-managed install flow,
-# refreshes the GitOps snapshot, triggers the initial/manual sync step, and validates Argo app state.
-# Change bootstrap.local.toml when you intentionally need new hostnames, DB passwords, or admin passwords.
+  --incus-connection-info ~/.local/state/ai-homebase/incus/openclaw-sandbox.env
 ./scripts/incus-vm-down.sh --vm-name openclaw-sandbox
 ./scripts/k3d-local-teardown.sh --cluster-name ai-homebase-dev --vm-name openclaw-sandbox
 # By default, local teardown also removes the default-on Gitea Actions runner VM
@@ -159,7 +153,7 @@ source ~/.local/state/ai-homebase/incus/openclaw-sandbox.env
 
 ```bash
 sudo ./scripts/install-k3s-ubuntu-2404.sh
-./scripts/k3s-up.sh --bootstrap-config bootstrap.local.toml
+./scripts/bootstrap-stack.sh --profile k3s --bootstrap-config bootstrap.local.toml
 ```
 
-The k3s prep path expects Docker Engine and git to already exist on the host. `install-k3s-ubuntu-2404.sh` prepares the Ubuntu-side prerequisites only, and `k3s-up.sh` then reconciles k3s with Traefik disabled, installs `ingress-nginx` for the `nginx` ingress class used by both supported target overlays, and prepares the default-on Gitea Actions runner VM when enabled.
+The k3s prep path expects Docker Engine and git to already exist on the host. `install-k3s-ubuntu-2404.sh` prepares the Ubuntu-side prerequisites only, and `bootstrap-stack.sh --profile k3s` then reconciles k3s with Traefik disabled, installs `ingress-nginx` for the `nginx` ingress class used by both supported target overlays, and prepares the default-on Gitea Actions runner VM when enabled.

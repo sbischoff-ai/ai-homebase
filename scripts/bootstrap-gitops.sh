@@ -967,9 +967,9 @@ fi
 "${BOOTSTRAP_SECRETS_CMD[@]}"
 
 if [[ "$SKIP_INSTALL" -eq 0 ]]; then
-  step "Installing Argo CD through the existing Helm path"
+  step "Installing Argo CD through the shared apply step"
   INSTALL_CMD=(
-    ./scripts/bootstrap-stack.sh
+    ./scripts/bootstrap-apply.sh
     --profile "$PROFILE"
     --bootstrap-config "$BOOTSTRAP_CONFIG_PATH"
     --release-name "$RELEASE_NAME"

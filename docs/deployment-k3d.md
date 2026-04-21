@@ -21,7 +21,7 @@ Fill in:
 ## 2. Bootstrap the Local Target
 
 ```bash
-./scripts/k3d-local-bootstrap.sh --cluster-name ai-homebase-dev --bootstrap-config bootstrap.local.toml
+./scripts/bootstrap-stack.sh --profile k3d --cluster-name ai-homebase-dev --bootstrap-config bootstrap.local.toml
 ```
 
 This local bootstrap now creates a shared OpenClaw state directory on the host, bind-mounts it into the k3d nodes, and mounts the same directory into the Incus sandbox VM so remote Docker sandboxes see the same `/home/node/.openclaw` tree as the gateway pod.
@@ -93,7 +93,7 @@ Use `--keep-openclaw-state` when you intentionally want to preserve the local Op
 
 The normal local bootstrap now already adds Argo CD, pushes the GitOps repo snapshot, triggers the initial sync, and waits for the Argo applications to reach `Synced` and `Healthy`.
 
-Re-run `./scripts/bootstrap-gitops.sh --profile k3d --bootstrap-config bootstrap.local.toml` only when you intentionally want to refresh the in-cluster GitOps repo snapshot from the current working tree without re-running the full local bootstrap helper.
+Re-run `./scripts/bootstrap-gitops.sh --profile k3d --bootstrap-config bootstrap.local.toml` only when you intentionally want to refresh the in-cluster GitOps repo snapshot from the current working tree without rerunning the full bootstrap flow.
 
 ## See Also
 

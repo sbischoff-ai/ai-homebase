@@ -4,7 +4,7 @@ This page covers the GitOps handoff that adds Argo CD, pushes the repo snapshot 
 
 ## When to Run It
 
-The normal `bootstrap-stack.sh` and `k3d-local-bootstrap.sh` workflows now run the GitOps handoff automatically before they return.
+The normal `bootstrap-stack.sh` workflow runs the GitOps handoff automatically before it returns.
 
 ```bash
 ./scripts/bootstrap-gitops.sh --profile <k3d|k3s> --bootstrap-config bootstrap.local.toml
@@ -16,7 +16,7 @@ Use the standalone command when you intentionally want to refresh or replay the 
 
 The script performs ten steps:
 
-1. reapplies the existing `platform-stack` Helm path through `bootstrap-stack.sh --enable-service argo-cd`
+1. reapplies the existing `platform-stack` Helm path through the shared apply step with `argo-cd` enabled
 2. reads the bootstrap-managed Gitea admin credentials from Kubernetes
 3. creates or updates the dedicated coder-owned GitOps user and the shared reviewer user in Gitea
 4. mints bootstrap-managed tea API tokens for coder and reviewer and refreshes the runtime credential Secrets

@@ -3,6 +3,7 @@ set -Eeuo pipefail
 
 source "$(dirname "$0")/lib/logging.sh"
 
+PROFILE="${PROFILE:-}"
 RELEASE_NAME="${RELEASE_NAME:-platform-stack}"
 NAMESPACE="${NAMESPACE:-ai-homebase}"
 CLUSTER_NAME="${CLUSTER_NAME:-ai-homebase-dev}"
@@ -21,7 +22,8 @@ GITEA_ACTIONS_ENABLED="${GITEA_ACTIONS_ENABLED:-false}"
 GITEA_ACTIONS_RUNNER_VM_NAME="${GITEA_ACTIONS_RUNNER_VM_NAME:-gitea-actions-runner}"
 GITEA_ACTIONS_RUNNER_CONNECTION_INFO_PATH="${GITEA_ACTIONS_RUNNER_CONNECTION_INFO_PATH:-${HOME}/.local/state/ai-homebase/incus/${GITEA_ACTIONS_RUNNER_VM_NAME}.env}"
 GITEA_ACTIONS_RUNNER_KEY_PATH="${GITEA_ACTIONS_RUNNER_KEY_PATH:-${HOME}/.local/state/ai-homebase/incus/${GITEA_ACTIONS_RUNNER_VM_NAME}-id_ed25519}"
-SKIP_INSTALL=0
+EXPECTED_DEFAULT_SANDBOX_IMAGE="${EXPECTED_DEFAULT_SANDBOX_IMAGE:-}"
+EXPECTED_CODER_SANDBOX_IMAGE="${EXPECTED_CODER_SANDBOX_IMAGE:-}"
 OPENCLAW_WAIT_TIMEOUT="${OPENCLAW_WAIT_TIMEOUT:-600s}"
 NEXTCLOUD_WAIT_TIMEOUT="${NEXTCLOUD_WAIT_TIMEOUT:-1200s}"
 NEXTCLOUD_MCP_WAIT_TIMEOUT="${NEXTCLOUD_MCP_WAIT_TIMEOUT:-900s}"
@@ -52,11 +54,12 @@ normalize_kubeconfig_path() {
 
 usage() {
   cat <<USAGE
-Usage: $0 [options]
+Usage: $0 --profile <k3d|k3s> [options]
 
-Deploy the k3d profile and run local smoke checks.
+Run shared post-bootstrap smoke checks for a prepared ai-homebase cluster.
 
 Options:
+  --profile <k3d|k3s>       Supported target profile
   --cluster-name <name>      k3d cluster name used for the default kubeconfig path (default: ${CLUSTER_NAME})
   --release-name <name>       Helm release name (default: ${RELEASE_NAME})
   --namespace <name>          Kubernetes namespace (default: ${NAMESPACE})
@@ -70,7 +73,6 @@ Options:
   --remote-docker-key <path>  Override OpenClaw remote Docker SSH private key during bootstrap
   --incus-vm-name <name>      Incus VM name for sandbox-side checks (default: ${INCUS_VM_NAME})
   --incus-connection-info <p> Incus VM env file for sandbox-side checks (default: ${INCUS_CONNECTION_INFO_PATH})
-  --skip-install              Skip the shared bootstrap/install phase and run smoke checks only
   Env timeouts                OPENCLAW_WAIT_TIMEOUT=${OPENCLAW_WAIT_TIMEOUT}, NEXTCLOUD_WAIT_TIMEOUT=${NEXTCLOUD_WAIT_TIMEOUT}, GITEA_WAIT_TIMEOUT=${GITEA_WAIT_TIMEOUT}, VAULTWARDEN_WAIT_TIMEOUT=${VAULTWARDEN_WAIT_TIMEOUT}, POSTFIX_RELAY_WAIT_TIMEOUT=${POSTFIX_RELAY_WAIT_TIMEOUT}, PAPERLESS_WAIT_TIMEOUT=${PAPERLESS_WAIT_TIMEOUT}
   Ingress retry tuning        INGRESS_ENDPOINT_RETRIES=${INGRESS_ENDPOINT_RETRIES}, INGRESS_ENDPOINT_RETRY_DELAY_SECONDS=${INGRESS_ENDPOINT_RETRY_DELAY_SECONDS}
   --verbose                   Stream full command output
@@ -80,6 +82,7 @@ USAGE
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --profile) PROFILE="$2"; shift 2 ;;
     --cluster-name) CLUSTER_NAME="$2"; shift 2 ;;
     --release-name) RELEASE_NAME="$2"; shift 2 ;;
     --namespace) NAMESPACE="$2"; shift 2 ;;
@@ -93,33 +96,39 @@ while [[ $# -gt 0 ]]; do
     --remote-docker-key) REMOTE_DOCKER_KEY_PATH="$2"; shift 2 ;;
     --incus-vm-name) INCUS_VM_NAME="$2"; INCUS_CONNECTION_INFO_PATH="${HOME}/.local/state/ai-homebase/incus/${INCUS_VM_NAME}.env"; shift 2 ;;
     --incus-connection-info) INCUS_CONNECTION_INFO_PATH="$2"; shift 2 ;;
-    --skip-install) SKIP_INSTALL=1; shift ;;
     --verbose) BOOTSTRAP_VERBOSE=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
   esac
 done
 
+case "$PROFILE" in
+  k3d|k3s) ;;
+  *) echo "Missing or unsupported --profile. Use k3d or k3s." >&2; usage; exit 1 ;;
+esac
+
 if [[ -z "$KUBECONFIG_PATH" ]]; then
   KUBECONFIG_PATH="$(normalize_kubeconfig_path "$RAW_KUBECONFIG")"
 fi
 
 DEFAULT_K3D_KUBECONFIG_PATH="${HOME}/.kube/k3d-${CLUSTER_NAME}.yaml"
-if [[ -z "$KUBECONFIG_PATH" ]]; then
+if [[ "$PROFILE" == "k3d" && -z "$KUBECONFIG_PATH" ]]; then
   if [[ -f "$DEFAULT_K3D_KUBECONFIG_PATH" ]]; then
     KUBECONFIG_PATH="$DEFAULT_K3D_KUBECONFIG_PATH"
   fi
-elif [[ "$KUBECONFIG_PATH" == "${HOME}/.kube/config" && -f "$DEFAULT_K3D_KUBECONFIG_PATH" ]]; then
+elif [[ "$PROFILE" == "k3d" && "$KUBECONFIG_PATH" == "${HOME}/.kube/config" && -f "$DEFAULT_K3D_KUBECONFIG_PATH" ]]; then
   KUBECONFIG_PATH="$DEFAULT_K3D_KUBECONFIG_PATH"
 fi
 
 bootstrap_init_logging
 
 if [[ ${#VALUES_FILES[@]} -eq 0 ]]; then
-  VALUES_FILES=(
-    "charts/platform-stack/values.yaml"
-    "charts/platform-stack/values-k3d.yaml"
-  )
+  VALUES_FILES=("charts/platform-stack/values.yaml")
+  if [[ "$PROFILE" == "k3d" ]]; then
+    VALUES_FILES+=("charts/platform-stack/values-k3d.yaml")
+  else
+    VALUES_FILES+=("charts/platform-stack/values-k3s.yaml")
+  fi
 fi
 
 for cmd in helm kubectl curl python3; do
@@ -134,6 +143,8 @@ if [[ -f "$BOOTSTRAP_CONFIG_PATH" ]]; then
   eval "$BOOTSTRAP_SHELL_VARS"
   GITEA_ACTIONS_RUNNER_CONNECTION_INFO_PATH="${HOME}/.local/state/ai-homebase/incus/${GITEA_ACTIONS_RUNNER_VM_NAME}.env"
   GITEA_ACTIONS_RUNNER_KEY_PATH="${HOME}/.local/state/ai-homebase/incus/${GITEA_ACTIONS_RUNNER_VM_NAME}-id_ed25519"
+  EXPECTED_DEFAULT_SANDBOX_IMAGE="${OPENCLAW_DEFAULT_SANDBOX_IMAGE:-$EXPECTED_DEFAULT_SANDBOX_IMAGE}"
+  EXPECTED_CODER_SANDBOX_IMAGE="${OPENCLAW_CODER_SANDBOX_IMAGE:-$EXPECTED_CODER_SANDBOX_IMAGE}"
 fi
 
 HELM_CONTEXT_ARGS=()
@@ -262,7 +273,7 @@ print_failure_hints() {
 print_next_steps() {
   echo "--- What to do next ---" >&2
   echo "1) Re-run with verbose diagnostics:" >&2
-  echo "   ./scripts/test-local-k3d.sh --release-name ${RELEASE_NAME} --namespace ${NAMESPACE} --verbose" >&2
+  echo "   ./scripts/bootstrap-smoke.sh --profile ${PROFILE} --release-name ${RELEASE_NAME} --namespace ${NAMESPACE} --verbose" >&2
   echo "2) Inspect namespace resources and events:" >&2
   echo "   kubectl ${KUBECTL_KUBECONFIG_ARGS[*]} ${KUBECTL_CONTEXT_ARGS[*]} -n ${NAMESPACE} get pods,deploy,statefulset,job,ingress" >&2
   echo "   kubectl ${KUBECTL_KUBECONFIG_ARGS[*]} ${KUBECTL_CONTEXT_ARGS[*]} -n ${NAMESPACE} get events --sort-by=.lastTimestamp | tail -n 40" >&2
@@ -277,7 +288,7 @@ print_next_steps() {
 on_error() {
   local line="$1"
   local failed_command="${CURRENT_COMMAND:-${2:-unknown}}"
-  fail "Local k3d smoke test failed near line ${line}."
+  fail "Bootstrap smoke checks failed near line ${line}."
   echo "Failed command: ${failed_command}" >&2
 
   if [[ "$failed_command" == *"helm "* ]] || [[ "$failed_command" == helm* ]]; then
@@ -726,12 +737,18 @@ verify_openclaw_mcp_bootstrap_config() {
     exit 1
   fi
 
-  if [[ "$openclaw_json" != *'registry.localtest.me/openclaw/openclaw-sandbox:trixie-slim'* ]]; then
+  if [[ -z "$EXPECTED_DEFAULT_SANDBOX_IMAGE" ]]; then
+    EXPECTED_DEFAULT_SANDBOX_IMAGE="${REGISTRY_INGRESS_HOST}/openclaw/openclaw-sandbox:trixie-slim"
+  fi
+  if [[ "$openclaw_json" != *"${EXPECTED_DEFAULT_SANDBOX_IMAGE}"* ]]; then
     fail "OpenClaw bootstrap config in ConfigMap/${configmap_name} is not using the canonical registry-backed default sandbox image"
     exit 1
   fi
 
-  if [[ "$openclaw_json" != *'registry.localtest.me/openclaw/openclaw-sandbox-coder:trixie-slim'* ]]; then
+  if [[ -z "$EXPECTED_CODER_SANDBOX_IMAGE" ]]; then
+    EXPECTED_CODER_SANDBOX_IMAGE="${REGISTRY_INGRESS_HOST}/openclaw/openclaw-sandbox-coder:trixie-slim"
+  fi
+  if [[ "$openclaw_json" != *"${EXPECTED_CODER_SANDBOX_IMAGE}"* ]]; then
     fail "OpenClaw bootstrap config in ConfigMap/${configmap_name} is not using the canonical registry-backed coder sandbox image"
     exit 1
   fi
@@ -1538,43 +1555,6 @@ PY
   exit 1
 }
 
-if [[ "$SKIP_INSTALL" -eq 0 ]]; then
-  BOOTSTRAP_STACK_CMD=(
-    ./scripts/bootstrap-stack.sh
-    --profile k3d
-    --bootstrap-config "$BOOTSTRAP_CONFIG_PATH"
-    --release-name "$RELEASE_NAME"
-    --namespace "$NAMESPACE"
-  )
-  if [[ -n "$KUBECONFIG_PATH" ]]; then
-    BOOTSTRAP_STACK_CMD+=(--kubeconfig "$KUBECONFIG_PATH")
-  fi
-  if [[ -n "$KUBE_CONTEXT" ]]; then
-    BOOTSTRAP_STACK_CMD+=(--kube-context "$KUBE_CONTEXT")
-  fi
-  if [[ -n "$REMOTE_DOCKER_SECRET_NAME" ]]; then
-    BOOTSTRAP_STACK_CMD+=(--remote-docker-secret "$REMOTE_DOCKER_SECRET_NAME")
-  fi
-  if [[ -n "$REMOTE_DOCKER_HOST" ]]; then
-    BOOTSTRAP_STACK_CMD+=(--remote-docker-host "$REMOTE_DOCKER_HOST")
-  fi
-  if [[ -n "$REMOTE_DOCKER_PORT" ]]; then
-    BOOTSTRAP_STACK_CMD+=(--remote-docker-port "$REMOTE_DOCKER_PORT")
-  fi
-  if [[ -n "$REMOTE_DOCKER_KEY_PATH" ]]; then
-    BOOTSTRAP_STACK_CMD+=(--remote-docker-key "$REMOTE_DOCKER_KEY_PATH")
-  fi
-  for values_file in "${VALUES_FILES[@]}"; do
-    BOOTSTRAP_STACK_CMD+=(--values-file "$values_file")
-  done
-  if [[ "${BOOTSTRAP_VERBOSE:-0}" == "1" ]]; then
-    BOOTSTRAP_STACK_CMD+=(--verbose)
-  fi
-
-  step "Running shared bootstrap/install flow for k3d"
-  run_checked "${BOOTSTRAP_STACK_CMD[@]}"
-fi
-
 NEXTCLOUD_INGRESS_HOST="$(effective_value "nextcloud.ingress.private.host")"
 NEXTCLOUD_MCP_INGRESS_HOST="$(effective_value "nextcloudMcp.ingress.hosts.0.host")"
 GITEA_INGRESS_HOST="$(effective_value "gitea.gitea.ingress.hosts.0.host")"
@@ -1758,5 +1738,5 @@ else
   warn "Skipping OpenClaw ingress endpoint check because openclaw.ingress.enabled=false in effective values"
 fi
 
-echo "Local k3d smoke checks passed for release=${RELEASE_NAME} namespace=${NAMESPACE}"
+echo "Bootstrap smoke checks passed for profile=${PROFILE} release=${RELEASE_NAME} namespace=${NAMESPACE}"
 echo "Bootstrap log: ${BOOTSTRAP_LOG_FILE}"

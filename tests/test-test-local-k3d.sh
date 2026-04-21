@@ -2,7 +2,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-SCRIPT_PATH="${REPO_ROOT}/scripts/test-local-k3d.sh"
+SCRIPT_PATH="${REPO_ROOT}/scripts/bootstrap-smoke.sh"
 
 assert_contains() {
   local haystack="$1"
@@ -42,9 +42,9 @@ run_case() {
   local output_file="${sandbox_dir}/output.log"
   mkdir -p "${repo_dir}/scripts/lib" "${fake_bin}"
 
-  cp "${SCRIPT_PATH}" "${repo_dir}/scripts/test-local-k3d.sh"
+  cp "${SCRIPT_PATH}" "${repo_dir}/scripts/bootstrap-smoke.sh"
   cp "${REPO_ROOT}/scripts/lib/logging.sh" "${repo_dir}/scripts/lib/logging.sh"
-  chmod +x "${repo_dir}/scripts/test-local-k3d.sh"
+  chmod +x "${repo_dir}/scripts/bootstrap-smoke.sh"
 
   cat >"${fake_bin}/helm" <<'FAKEHELM'
 #!/usr/bin/env bash
@@ -64,16 +64,25 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: platform-stack-gitea
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/name: gitea
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: platform-stack-gitea-http
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/name: gitea
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: platform-stack-gitea-ssh
+  labels:
+    app.kubernetes.io/instance: platform-stack
+    app.kubernetes.io/name: gitea
 YAML
     fi
     exit 0
@@ -115,7 +124,7 @@ for ((i=0; i<${#args[@]}; i++)); do
     fi
     if [[ "${resource}" == "configmap" ]]; then
       cat <<'JSON'
-{"commands":{"mcp":true},"cron":{"enabled":true,"store":"~/.openclaw/cron/jobs.json"},"agents":{"defaults":{"sandbox":{"backend":"docker","docker":{"image":"registry.localtest.me/openclaw/openclaw-sandbox:trixie-slim","env":{"HOME":"/workspace/.home","SSL_CERT_FILE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","REQUESTS_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","NODE_EXTRA_CA_CERTS":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","GIT_SSL_CAINFO":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","CURL_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt"}}},"list":[{"id":"coder","sandbox":{"docker":{"image":"registry.localtest.me/openclaw/openclaw-sandbox-coder:trixie-slim","env":{"DOCKER_HOST":"${DOCKER_HOST}","CODER_GITEA_TOKEN":"${CODER_GITEA_TOKEN}"}}}},{"id":"architect","sandbox":{"mode":"non-main","docker":{"env":{"REVIEWER_GITEA_BASE_URL":"https://gitea.test.internal","REVIEWER_GITEA_HOST":"gitea.test.internal","REVIEWER_GITEA_TOKEN":"${REVIEWER_GITEA_TOKEN}"}}}},{"id":"auditor","sandbox":{"mode":"off"}}]},"mcp":{"servers":{"nextcloud":{"args":["${OPENCLAW_NEXTCLOUD_MCP_INTERNAL_URL}","${OPENCLAW_NEXTCLOUD_MCP_EXTERNAL_URL}"]}}}}
+{"commands":{"mcp":true},"cron":{"enabled":true,"store":"~/.openclaw/cron/jobs.json"},"agents":{"defaults":{"sandbox":{"backend":"docker","docker":{"image":"registry.localtest.me/openclaw/openclaw-sandbox:trixie-slim","env":{"HOME":"/workspace/.home","SSL_CERT_FILE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","REQUESTS_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","NODE_EXTRA_CA_CERTS":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","GIT_SSL_CAINFO":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","CURL_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt"}}},"list":[{"id":"coder","sandbox":{"docker":{"image":"registry.localtest.me/openclaw/openclaw-sandbox-coder:trixie-slim","env":{"DOCKER_HOST":"${DOCKER_HOST}","CODER_GITEA_TOKEN":"${CODER_GITEA_TOKEN}","CODER_GITEA_TEA_URL":"https://gitea.test.internal"}}}},{"id":"architect","sandbox":{"mode":"non-main","docker":{"env":{"REVIEWER_GITEA_BASE_URL":"https://gitea.test.internal","REVIEWER_GITEA_TEA_URL":"https://gitea.test.internal","REVIEWER_GITEA_HOST":"gitea.test.internal","REVIEWER_GITEA_TOKEN":"${REVIEWER_GITEA_TOKEN}"}}}},{"id":"auditor","sandbox":{"mode":"off"}}]},"mcp":{"servers":{"nextcloud":{"args":["${OPENCLAW_NEXTCLOUD_MCP_INTERNAL_URL}","${OPENCLAW_NEXTCLOUD_MCP_EXTERNAL_URL}"]}}}}
 JSON
       exit 0
     fi
@@ -183,6 +192,68 @@ exit 0
 FAKEINCUS
   chmod +x "${fake_bin}/incus"
 
+  cat >"${fake_bin}/python3" <<'FAKEPYTHON'
+#!/usr/bin/env bash
+set -euo pipefail
+if [[ "${1:-}" == "-c" ]]; then
+  cat >/dev/null || true
+  if [[ $# -ge 4 ]]; then
+    kind_filter="${3:-}"
+    case "${kind_filter}" in
+      StatefulSet)
+        if [[ "${FAKE_GITEA_ENABLED:-true}" == "true" ]]; then
+          printf 'platform-stack-gitea\n'
+        fi
+        exit 0
+        ;;
+      Deployment)
+        exit 0
+        ;;
+      Service)
+        if [[ "${FAKE_GITEA_ENABLED:-true}" == "true" ]]; then
+          printf 'platform-stack-gitea-http\nplatform-stack-gitea-ssh\n'
+        fi
+        exit 0
+        ;;
+    esac
+  fi
+  path="${3:-}"
+  case "${path}" in
+    "openclaw.ingress.enabled") printf 'true\n' ;;
+    "openclaw.remoteDocker.enabled") printf 'true\n' ;;
+    "nextcloud.enabled") printf 'false\n' ;;
+    "nextcloudMcp.enabled") printf 'false\n' ;;
+    "gitea.enabled") printf '%s\n' "${FAKE_GITEA_ENABLED:-true}" ;;
+    "registry.enabled") printf 'false\n' ;;
+    "vaultwarden.enabled") printf 'false\n' ;;
+    "postfixRelay.enabled") printf 'false\n' ;;
+    "paperlessNgx.enabled") printf 'true\n' ;;
+    "qdrant.enabled") printf 'false\n' ;;
+    "qdrantMcp.enabled") printf 'false\n' ;;
+    "nextcloud.ingress.private.host") printf 'nextcloud.test.internal\n' ;;
+    "nextcloudMcp.ingress.hosts.0.host") printf 'nextcloud-mcp.test.internal\n' ;;
+    "gitea.gitea.ingress.hosts.0.host") printf 'gitea.test.internal\n' ;;
+    "vaultwarden.ingress.hosts.0.host") printf 'vaultwarden.test.internal\n' ;;
+    "paperlessNgx.ingress.hosts.0.host") printf 'paperless.test.internal\n' ;;
+    "openclaw.ingress.hosts.0.host") printf 'openclaw.test.internal\n' ;;
+    "registry.ingress.hosts.0.host") printf 'registry.localtest.me\n' ;;
+    "qdrant.ingress.hosts.0.host") printf 'qdrant.test.internal\n' ;;
+    "qdrantMcp.ingress.hosts.0.host") printf 'qdrant-mcp.test.internal\n' ;;
+    "memgraph.ingress.hosts.0.host") printf 'memgraph.test.internal\n' ;;
+    "memgraphLab.ingress.hosts.0.host") printf 'memgraph-lab.test.internal\n' ;;
+    *) printf '\n' ;;
+  esac
+  exit 0
+fi
+if [[ "${1:-}" == "-" ]]; then
+  cat >/dev/null
+  exit 0
+fi
+printf 'unexpected python3 invocation: %s\n' "$*" >&2
+exit 1
+FAKEPYTHON
+  chmod +x "${fake_bin}/python3"
+
   if ! (
     cd "${repo_dir}"
     export PATH="${fake_bin}:$PATH"
@@ -199,11 +270,11 @@ FAKEINCUS
     export REVIEWER_GITEA_EMAIL="reviewer@example.invalid"
     export GITOPS_REPO_NAME="cluster-gitops"
 
-    ./scripts/test-local-k3d.sh \
+    ./scripts/bootstrap-smoke.sh \
+      --profile k3d \
       --release-name platform-stack \
       --namespace ai-homebase \
-      --kubeconfig "${sandbox_dir}/kubeconfig.yaml" \
-      --skip-install
+      --kubeconfig "${sandbox_dir}/kubeconfig.yaml"
   ) >"${output_file}" 2>&1; then
     cat "${output_file}" >&2
     exit 1
@@ -215,7 +286,7 @@ FAKEINCUS
   kubectl_output="$(cat "${kubectl_log}")"
   curl_output="$(cat "${curl_log}")"
 
-  assert_contains "${output}" "Local k3d smoke checks passed"
+  assert_contains "${output}" "Bootstrap smoke checks passed for profile=k3d"
   assert_contains "${curl_output}" "-H Host: openclaw.test.internal http://127.0.0.1/"
   assert_contains "${kubectl_output}" "exec deployment/platform-stack-openclaw -- sh -ceu"
 
@@ -243,4 +314,4 @@ FAKEINCUS
 run_case gitea-enabled true
 run_case gitea-disabled false
 
-echo "test-local-k3d script tests passed"
+echo "bootstrap smoke script tests passed"
