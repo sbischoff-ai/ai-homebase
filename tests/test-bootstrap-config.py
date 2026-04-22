@@ -524,6 +524,8 @@ coder_dockerfile = (REPO_ROOT / "images" / "openclaw-sandbox-coder" / "Dockerfil
 base_dockerfile = (REPO_ROOT / "images" / "openclaw-sandbox-base" / "Dockerfile").read_text(encoding="utf-8")
 gateway_dockerfile = (REPO_ROOT / "images" / "openclaw-remote-docker" / "Dockerfile").read_text(encoding="utf-8")
 gateway_start_script = (REPO_ROOT / "images" / "openclaw-remote-docker" / "openclaw-gateway-start.sh").read_text(encoding="utf-8")
+coder_init_script = (REPO_ROOT / "images" / "openclaw-sandbox-coder" / "coder-init.sh").read_text(encoding="utf-8")
+coder_workspace_init_script = (REPO_ROOT / "images" / "openclaw-remote-docker" / "coder-workspace-init.sh").read_text(encoding="utf-8")
 qdrant_mcp_values = (REPO_ROOT / "charts" / "qdrant-mcp" / "values.yaml").read_text(encoding="utf-8")
 assert "usermod --home /workspace/.home sandbox" in coder_dockerfile
 assert "mkdir -p /workspace/.home" in coder_dockerfile
@@ -531,7 +533,13 @@ assert "ln -sfn /workspace/.home /home/sandbox" in coder_dockerfile
 assert "ENV HOME=/workspace" not in coder_dockerfile
 assert "WORKDIR /workspace" in coder_dockerfile
 assert "tmux" in coder_dockerfile
-assert "@openai/codex" in coder_dockerfile
+assert "@openai/codex@0.122.0" in coder_dockerfile
+assert "bwrap" not in coder_dockerfile
+assert "bubblewrap" not in coder_dockerfile
+assert 'approval_policy = "never"' in coder_init_script
+assert 'sandbox_mode = "danger-full-access"' in coder_init_script
+assert 'approval_policy = "never"' in coder_workspace_init_script
+assert 'sandbox_mode = "danger-full-access"' in coder_workspace_init_script
 assert "debian:trixie-slim" in base_dockerfile
 assert "COPY --from=memgraph-tools /usr/bin/mgconsole /usr/local/bin/mgconsole" in base_dockerfile
 assert "https://deb.nodesource.com/node_22.x" in base_dockerfile

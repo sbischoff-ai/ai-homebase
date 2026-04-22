@@ -1076,6 +1076,8 @@ verify_coder_sandbox_runtime() {
         command -v tokscale >/dev/null
         /usr/local/bin/coder-init.sh >/tmp/coder-init.log
         test -f /workspace/.home/.codex/config.toml
+        grep -F \"approval_policy = \\\"never\\\"\" /workspace/.home/.codex/config.toml >/dev/null
+        grep -F \"sandbox_mode = \\\"danger-full-access\\\"\" /workspace/.home/.codex/config.toml >/dev/null
         grep -F \"model = \\\"gpt-5.4-mini\\\"\" /workspace/.home/.codex/config.toml >/dev/null
         grep -F \"forced_login_method = \\\"api\\\"\" /workspace/.home/.codex/config.toml >/dev/null
         test -f /workspace/.home/.codex/auth.json

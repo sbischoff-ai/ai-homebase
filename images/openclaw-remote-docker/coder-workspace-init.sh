@@ -109,6 +109,10 @@ cat > "${CODEX_HOME}/config.toml" <<EOF
 #
 # This deployment uses gpt-5.4-mini for cost efficiency, with selective
 # override to gpt-5.3-codex for complex multi-file refactorings.
+# The sandbox container is already Docker-isolated, so Codex itself runs
+# without an extra inner sandbox or approval gate.
+approval_policy = "never"
+sandbox_mode = "danger-full-access"
 model = "${CODEX_DEFAULT_MODEL}"
 forced_login_method = "api"
 EOF

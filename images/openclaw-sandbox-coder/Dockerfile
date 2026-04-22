@@ -38,7 +38,7 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="${UV_INSTAL
 RUN curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal && \
     rustc --version && cargo --version
 
-RUN npm install -g @openai/codex@0.118.0 && \
+RUN npm install -g @openai/codex@0.122.0 && \
     codex --version
 
 RUN npm install -g tokscale && \
