@@ -208,6 +208,9 @@ fi
 
 step "Writing dedicated kubeconfig to ${KUBECONFIG_PATH}"
 run_k3d_concise bash -c 'k3d kubeconfig get "$1" > "$2"' _ "$CLUSTER_NAME" "$KUBECONFIG_PATH"
+if grep -q 'server: https://0\.0\.0\.0:' "$KUBECONFIG_PATH"; then
+  run_quiet sed -i 's#server: https://0\.0\.0\.0:#server: https://127.0.0.1:#' "$KUBECONFIG_PATH"
+fi
 ok "Kubeconfig written to ${KUBECONFIG_PATH}"
 
 run_quiet kubectl "${KUBECTL_ARGS[@]}" config use-context "$K3D_CONTEXT"

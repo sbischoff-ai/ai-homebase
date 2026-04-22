@@ -19,6 +19,9 @@ INCUS_CONNECTION_INFO_PATH="${INCUS_CONNECTION_INFO_PATH:-}"
 SHARED_OPENCLAW_STATE_SOURCE="${SHARED_OPENCLAW_STATE_SOURCE:-}"
 CLUSTER_NAME="${CLUSTER_NAME:-ai-homebase-dev}"
 VERBOSE=0
+default_k3d_kubeconfig_path() {
+  printf '%s/.kube/k3d-%s.yaml' "$HOME" "$CLUSTER_NAME"
+}
 
 normalize_kubeconfig_path() {
   local candidate="${1:-}"
@@ -97,6 +100,10 @@ case "$PROFILE" in
   k3d|k3s) ;;
   *) echo "Missing or unsupported --profile. Use k3d or k3s." >&2; usage; exit 1 ;;
 esac
+
+if [[ "$PROFILE" == "k3d" ]] && [[ -z "$KUBECONFIG_PATH" || "$KUBECONFIG_PATH" == "${HOME}/.kube/config" ]]; then
+  KUBECONFIG_PATH="$(default_k3d_kubeconfig_path)"
+fi
 
 COMMON_ARGS=(
   --profile "$PROFILE"

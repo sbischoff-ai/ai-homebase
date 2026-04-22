@@ -106,7 +106,21 @@ command:
       python -m venv /tmp/qdrant-mcp
       /tmp/qdrant-mcp/bin/pip install --no-cache-dir "mcp-server-qdrant==0.8.0"
     fi
-    exec /tmp/qdrant-mcp/bin/mcp-server-qdrant --transport streamable-http
+
+    startup_log=/tmp/qdrant-mcp-startup.log
+    if /tmp/qdrant-mcp/bin/mcp-server-qdrant --transport streamable-http 2>"${startup_log}"; then
+      exit 0
+    fi
+
+    startup_status=$?
+    if grep -q "model_optimized.onnx failed:Load model .* File doesn't exist" "${startup_log}"; then
+      echo "Detected incomplete FastEmbed cache in /tmp/fastembed_cache; clearing cache and retrying once." >&2
+      rm -rf /tmp/fastembed_cache
+      exec /tmp/qdrant-mcp/bin/mcp-server-qdrant --transport streamable-http
+    fi
+
+    cat "${startup_log}" >&2
+    exit "${startup_status}"
 
 podAnnotations: {}
 podLabels: {}
@@ -152,6 +166,11 @@ resources:
     memory: 1Gi
 
 probes:
+  startup:
+    enabled: true
+    type: tcp
+    periodSeconds: 10
+    failureThreshold: 180
   readiness:
     enabled: true
     type: tcp

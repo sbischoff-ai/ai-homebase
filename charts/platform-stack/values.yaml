@@ -32,6 +32,8 @@ cert-manager:
   crds:
     enabled: true
     keep: true
+  startupapicheck:
+    enabled: false
 
 certManager:
   enabled: true

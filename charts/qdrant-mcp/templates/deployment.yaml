@@ -115,6 +115,19 @@ spec:
           securityContext:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+          {{- if .Values.probes.startup.enabled }}
+          startupProbe:
+            {{- if eq (.Values.probes.startup.type | default "http") "tcp" }}
+            tcpSocket:
+              port: http
+            {{- else }}
+            httpGet:
+              path: {{ .Values.probes.startup.path }}
+              port: http
+            {{- end }}
+            periodSeconds: {{ .Values.probes.startup.periodSeconds }}
+            failureThreshold: {{ .Values.probes.startup.failureThreshold }}
+          {{- end }}
       volumes:
         - name: tmp
           emptyDir: {}

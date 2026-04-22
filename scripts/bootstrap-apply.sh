@@ -26,7 +26,8 @@ REMOTE_DOCKER_OVERRIDE_VALUES_FILE=""
 SKIP_GITOPS=0
 VERBOSE=0
 CERT_MANAGER_CRD_WAIT_TIMEOUT="${CERT_MANAGER_CRD_WAIT_TIMEOUT:-180s}"
-CERT_MANAGER_DEPLOYMENT_WAIT_TIMEOUT="${CERT_MANAGER_DEPLOYMENT_WAIT_TIMEOUT:-180s}"
+CERT_MANAGER_DEPLOYMENT_WAIT_TIMEOUT="${CERT_MANAGER_DEPLOYMENT_WAIT_TIMEOUT:-600s}"
+HELM_RELEASE_TIMEOUT="${HELM_RELEASE_TIMEOUT:-45m}"
 CERT_MANAGER_CRDS=(
   certificates.cert-manager.io
   certificaterequests.cert-manager.io
@@ -100,6 +101,7 @@ helm_upgrade_install() {
     "${HELM_CONTEXT_ARGS[@]}" \
     --namespace "$NAMESPACE" \
     --create-namespace \
+    --timeout "$HELM_RELEASE_TIMEOUT" \
     "${VALUES_ARGS[@]}" \
     "$@" \
     "${SET_ARGS[@]}"
@@ -608,7 +610,10 @@ wait_for_cert_manager_deployments() {
   local deployment
   while IFS= read -r deployment; do
     echo "Waiting for cert-manager deployment ${deployment} in namespace ${NAMESPACE}"
-    kubectl "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" rollout status "deployment/${deployment}" --timeout "${CERT_MANAGER_DEPLOYMENT_WAIT_TIMEOUT}"
+    kubectl "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" wait \
+      "deployment/${deployment}" \
+      --for=condition=Available=True \
+      --timeout "${CERT_MANAGER_DEPLOYMENT_WAIT_TIMEOUT}"
   done < <(cert_manager_deployments)
 }
 
@@ -637,6 +642,7 @@ Options:
   --shared-openclaw-state-source <p>
                                 Host path shared with OpenClaw and the sandbox VM for first-run CA export
   --verbose                    Stream full command output
+  Env timeouts                 HELM_RELEASE_TIMEOUT=${HELM_RELEASE_TIMEOUT}, CERT_MANAGER_CRD_WAIT_TIMEOUT=${CERT_MANAGER_CRD_WAIT_TIMEOUT}, CERT_MANAGER_DEPLOYMENT_WAIT_TIMEOUT=${CERT_MANAGER_DEPLOYMENT_WAIT_TIMEOUT}
   -h, --help                   Show this help message
 
 Supported services: openclaw, nextcloud, nextcloud-mcp, gitea, registry, argo-cd, vaultwarden, postfix-relay, paperless-ngx, qdrant, qdrant-mcp

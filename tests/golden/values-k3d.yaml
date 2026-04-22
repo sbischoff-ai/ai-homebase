@@ -7229,7 +7229,21 @@ spec:
             python -m venv /tmp/qdrant-mcp
             /tmp/qdrant-mcp/bin/pip install --no-cache-dir "mcp-server-qdrant==0.8.0"
           fi
-          exec /tmp/qdrant-mcp/bin/mcp-server-qdrant --transport streamable-http
+
+          startup_log=/tmp/qdrant-mcp-startup.log
+          if /tmp/qdrant-mcp/bin/mcp-server-qdrant --transport streamable-http 2>"${startup_log}"; then
+            exit 0
+          fi
+
+          startup_status=$?
+          if grep -q "model_optimized.onnx failed:Load model .* File doesn't exist" "${startup_log}"; then
+            echo "Detected incomplete FastEmbed cache in /tmp/fastembed_cache; clearing cache and retrying once." >&2
+            rm -rf /tmp/fastembed_cache
+            exec /tmp/qdrant-mcp/bin/mcp-server-qdrant --transport streamable-http
+          fi
+
+          cat "${startup_log}" >&2
+          exit "${startup_status}"
         env:
         - name: FASTMCP_PORT
           value: '8000'
@@ -7341,6 +7355,11 @@ spec:
           runAsGroup: 1000
           runAsNonRoot: true
           runAsUser: 1000
+        startupProbe:
+          failureThreshold: 180
+          periodSeconds: 10
+          tcpSocket:
+            port: http
         volumeMounts:
         - mountPath: /tmp
           name: tmp
@@ -8841,64 +8860,6 @@ spec:
         terminationMessagePolicy: FallbackToLogsOnError
       restartPolicy: Never
 ---
-apiVersion: batch/v1
-kind: Job
-metadata:
-  annotations:
-    helm.sh/hook: post-install
-    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
-    helm.sh/hook-weight: '1'
-  labels:
-    app: startupapicheck
-    app.kubernetes.io/component: startupapicheck
-    app.kubernetes.io/instance: platform-stack
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: startupapicheck
-    app.kubernetes.io/version: v1.20.0
-  name: platform-stack-cert-manager-startupapicheck
-  namespace: ai-homebase
-spec:
-  backoffLimit: 4
-  template:
-    metadata:
-      labels:
-        app: startupapicheck
-        app.kubernetes.io/component: startupapicheck
-        app.kubernetes.io/instance: platform-stack
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/name: startupapicheck
-        app.kubernetes.io/version: v1.20.0
-    spec:
-      containers:
-      - args:
-        - check
-        - api
-        - --wait=1m
-        - -v
-        env:
-        - name: POD_NAMESPACE
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace
-        image: quay.io/jetstack/cert-manager-startupapicheck:v1.20.0
-        imagePullPolicy: IfNotPresent
-        name: cert-manager-startupapicheck
-        securityContext:
-          allowPrivilegeEscalation: false
-          capabilities:
-            drop:
-            - ALL
-          readOnlyRootFilesystem: true
-      enableServiceLinks: false
-      nodeSelector:
-        kubernetes.io/os: linux
-      restartPolicy: OnFailure
-      securityContext:
-        runAsNonRoot: true
-        seccompProfile:
-          type: RuntimeDefault
-      serviceAccountName: platform-stack-cert-manager-startupapicheck
----
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -9780,24 +9741,6 @@ metadata:
     app.kubernetes.io/name: cainjector
     app.kubernetes.io/version: v1.20.0
   name: platform-stack-cert-manager-cainjector
-  namespace: ai-homebase
----
-apiVersion: v1
-automountServiceAccountToken: true
-kind: ServiceAccount
-metadata:
-  annotations:
-    helm.sh/hook: post-install
-    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
-    helm.sh/hook-weight: '-5'
-  labels:
-    app: startupapicheck
-    app.kubernetes.io/component: startupapicheck
-    app.kubernetes.io/instance: platform-stack
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: startupapicheck
-    app.kubernetes.io/version: v1.20.0
-  name: platform-stack-cert-manager-startupapicheck
   namespace: ai-homebase
 ---
 apiVersion: v1
