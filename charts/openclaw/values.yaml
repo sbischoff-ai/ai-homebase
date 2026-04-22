@@ -5,7 +5,7 @@ replicaCount: 1
 
 image:
   repository: ghcr.io/openclaw/openclaw
-  tag: "2026.4.15"
+  tag: "2026.4.21"
   pullPolicy: IfNotPresent
 
 imagePullSecrets: []
