@@ -127,7 +127,7 @@ openclaw:
     - name: CODER_GITEA_BOOTSTRAP_URL
       value: 'http://{{ printf "%s-gitea-http.%s.svc.cluster.local:3000" .Release.Name .Release.Namespace }}'
     - name: CODER_GITEA_TEA_URL
-      value: 'http://{{ printf "%s-gitea-http.%s.svc.cluster.local:3000" .Release.Name .Release.Namespace }}'
+      value: https://gitea.homebase.local
     - name: CODER_GITEA_HOST
       value: gitea.homebase.local
     - name: CODER_GITEA_USERNAME
@@ -396,6 +396,7 @@ openclaw:
                 XDG_CONFIG_HOME: /workspace/.home/.config
                 XDG_CACHE_HOME: /workspace/.home/.cache
                 XDG_STATE_HOME: /workspace/.home/.local/state
+                GIT_CONFIG_GLOBAL: /workspace/.home/.config/git/config
                 SSL_CERT_FILE: /workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt
                 REQUESTS_CA_BUNDLE: /workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt
                 NODE_EXTRA_CA_CERTS: /workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt

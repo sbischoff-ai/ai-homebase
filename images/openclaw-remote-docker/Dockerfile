@@ -48,6 +48,8 @@ COPY reviewer-gitea-init.sh /usr/local/bin/reviewer-gitea-init.sh
 COPY openclaw-gateway-start.sh /usr/local/bin/openclaw-gateway-start.sh
 
 RUN useradd --create-home --uid 1000 --shell /bin/bash node && \
+    ln -sfn /home/node/.openclaw/.config/tea /home/node/.tea && \
+    ln -sfn /home/node/.openclaw/.config/git/config /home/node/.gitconfig && \
     chown -R node:node /app /home/node && \
     npm install -g tokscale && \
     tokscale --version && \

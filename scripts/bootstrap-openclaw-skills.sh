@@ -153,8 +153,12 @@ seed_reviewer_home() {
     XDG_CACHE_HOME="${workspace_home}/.cache" \
     XDG_STATE_HOME="${workspace_home}/.local/state" \
     GIT_CONFIG_GLOBAL="${workspace_home}/.config/git/config" \
-    tea repo list --login "${login_name}" >/dev/null 2>&1; then
-    warn "tea repo list failed for ${label} login ${login_name}."
+    sh -ceu '
+      output="$(tea repo list 2>&1)"
+      printf "%s\n" "$output" | grep -F "cluster-gitops" >/dev/null
+      ! printf "%s\n" "$output" | grep -F "falling back to login" >/dev/null
+    '; then
+    warn "plain tea repo list failed for ${label} without fallback login handling."
     return 1
   fi
 }
@@ -182,8 +186,12 @@ if ! tea login list 2>/dev/null | grep -F "${login_name}" >/dev/null; then
   warn "reviewer tea login ${login_name} is still missing after init."
   exit 0
 fi
-if ! tea repo list --login "${login_name}" >/dev/null 2>&1; then
-  warn "tea repo list failed for login ${login_name}."
+if ! sh -ceu '
+  output="$(tea repo list 2>&1)"
+  printf "%s\n" "$output" | grep -F "cluster-gitops" >/dev/null
+  ! printf "%s\n" "$output" | grep -F "falling back to login" >/dev/null
+'; then
+  warn "plain tea repo list failed without fallback login handling."
 fi
 seed_reviewer_home "/home/node/.openclaw/workspace-architect/.home" "architect workspace"
 seed_reviewer_home "/home/node/.openclaw/workspace-auditor/.home" "auditor workspace"

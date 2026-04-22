@@ -5,6 +5,7 @@ HOME_DIR="${HOME:-/workspace/.home}"
 XDG_CONFIG_HOME_DIR="${XDG_CONFIG_HOME:-${HOME_DIR}/.config}"
 XDG_CACHE_HOME_DIR="${XDG_CACHE_HOME:-${HOME_DIR}/.cache}"
 XDG_STATE_HOME_DIR="${XDG_STATE_HOME:-${HOME_DIR}/.local/state}"
+GIT_CONFIG_GLOBAL_FILE="${GIT_CONFIG_GLOBAL:-${XDG_CONFIG_HOME_DIR}/git/config}"
 
 REVIEWER_GITEA_USERNAME="${REVIEWER_GITEA_USERNAME:-reviewer}"
 REVIEWER_GITEA_EMAIL="${REVIEWER_GITEA_EMAIL:-reviewer@example.invalid}"
@@ -16,11 +17,13 @@ REVIEWER_GITEA_PASSWORD="${REVIEWER_GITEA_PASSWORD:-}"
 REVIEWER_GITEA_TOKEN="${REVIEWER_GITEA_TOKEN:-}"
 REVIEWER_GITEA_TEA_LOGIN_NAME="${REVIEWER_GITEA_TEA_LOGIN_NAME:-reviewer}"
 REVIEWER_GITEA_TEA_TOKEN_NAME="${REVIEWER_GITEA_TEA_TOKEN_NAME:-openclaw-reviewer}"
+GIT_CREDENTIALS_FILE="${XDG_CONFIG_HOME_DIR}/git/credentials"
 
 export HOME="${HOME_DIR}"
 export XDG_CONFIG_HOME="${XDG_CONFIG_HOME_DIR}"
 export XDG_CACHE_HOME="${XDG_CACHE_HOME_DIR}"
 export XDG_STATE_HOME="${XDG_STATE_HOME_DIR}"
+export GIT_CONFIG_GLOBAL="${GIT_CONFIG_GLOBAL_FILE}"
 
 extract_gitea_token_ids() {
   local token_name="$1"
@@ -222,16 +225,62 @@ preferences:
     remote: ""
 EOF
   chmod 0600 "${XDG_CONFIG_HOME}/tea/config.yml"
+
+  if [[ "${HOME}/.tea/config.yml" != "${XDG_CONFIG_HOME}/tea/config.yml" ]]; then
+    mkdir -p "${HOME}/.tea"
+    cp "${XDG_CONFIG_HOME}/tea/config.yml" "${HOME}/.tea/config.yml"
+    chmod 0600 "${HOME}/.tea/config.yml"
+  fi
+}
+
+configure_git_access() {
+  git config --global user.name "${REVIEWER_GITEA_USERNAME}"
+  git config --global user.email "${REVIEWER_GITEA_EMAIL}"
+  git config --global credential.helper "store --file ${GIT_CREDENTIALS_FILE}"
+  if [ -n "${REVIEWER_GITEA_BASE_URL}" ] && [ -n "${REVIEWER_GITEA_HOST}" ]; then
+    git config --global url."${REVIEWER_GITEA_BASE_URL%/}/".insteadOf "ssh://git@${REVIEWER_GITEA_HOST}/"
+    git config --global url."${REVIEWER_GITEA_BASE_URL%/}/".insteadOf "git@${REVIEWER_GITEA_HOST}:"
+  fi
+
+  if [[ "${HOME}/.gitconfig" != "${GIT_CONFIG_GLOBAL}" ]]; then
+    ln -sfn "${GIT_CONFIG_GLOBAL}" "${HOME}/.gitconfig"
+  fi
 }
 
 mkdir -p \
   "${HOME}/.tea" \
   "${XDG_CONFIG_HOME}/tea" \
+  "$(dirname "${GIT_CONFIG_GLOBAL}")" \
   "${XDG_CACHE_HOME}" \
   "${XDG_STATE_HOME}"
 
-git config --global user.name "${REVIEWER_GITEA_USERNAME}"
-git config --global user.email "${REVIEWER_GITEA_EMAIL}"
+touch "${GIT_CREDENTIALS_FILE}"
+
+if [ -n "${REVIEWER_GITEA_HOST}" ] && [ -n "${REVIEWER_GITEA_PASSWORD}" ]; then
+  if [ -z "${REVIEWER_GITEA_BASE_URL}" ]; then
+    case "${REVIEWER_GITEA_HOST}" in
+      *.localtest.me) REVIEWER_GITEA_BASE_URL="http://${REVIEWER_GITEA_HOST}" ;;
+      *) REVIEWER_GITEA_BASE_URL="https://${REVIEWER_GITEA_HOST}" ;;
+    esac
+  fi
+  printf '%s\n' "${REVIEWER_GITEA_BASE_URL%/}" \
+    | awk -v user="${REVIEWER_GITEA_USERNAME}" -v password="${REVIEWER_GITEA_PASSWORD}" '
+        NF {
+          sub(/^[^:]+:\/\//, "&" user ":" password "@")
+          print
+        }
+      ' > "${GIT_CREDENTIALS_FILE}"
+  chmod 0600 "${GIT_CREDENTIALS_FILE}"
+fi
+
+if [ -z "${REVIEWER_GITEA_BASE_URL}" ] && [ -n "${REVIEWER_GITEA_HOST}" ]; then
+  case "${REVIEWER_GITEA_HOST}" in
+    *.localtest.me) REVIEWER_GITEA_BASE_URL="http://${REVIEWER_GITEA_HOST}" ;;
+    *) REVIEWER_GITEA_BASE_URL="https://${REVIEWER_GITEA_HOST}" ;;
+  esac
+fi
+
+configure_git_access
 
 if [ -n "${REVIEWER_GITEA_HOST}" ] && [ -n "${REVIEWER_GITEA_PASSWORD}" ]; then
   cat > "${HOME}/.netrc" <<EOF
@@ -240,13 +289,6 @@ machine ${REVIEWER_GITEA_HOST}
   password ${REVIEWER_GITEA_PASSWORD}
 EOF
   chmod 0600 "${HOME}/.netrc"
-fi
-
-if [ -z "${REVIEWER_GITEA_BASE_URL}" ] && [ -n "${REVIEWER_GITEA_HOST}" ]; then
-  case "${REVIEWER_GITEA_HOST}" in
-    *.localtest.me) REVIEWER_GITEA_BASE_URL="http://${REVIEWER_GITEA_HOST}" ;;
-    *) REVIEWER_GITEA_BASE_URL="https://${REVIEWER_GITEA_HOST}" ;;
-  esac
 fi
 
 if [ -z "${REVIEWER_GITEA_TEA_URL}" ]; then

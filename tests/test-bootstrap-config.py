@@ -254,6 +254,7 @@ assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["workspace"]
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["model"]["primary"] == "openai/gpt-5.4"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["model"]["fallbacks"] == ["anthropic/claude-sonnet-4-6", "google/gemini-3.1-pro-preview"]
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["sandbox"]["mode"] == "non-main"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["sandbox"]["docker"]["env"]["GIT_CONFIG_GLOBAL"] == "/workspace/.home/.config/git/config"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["skills"] == [
     "plan-projects",
     "package-worker-definitions",
@@ -372,6 +373,10 @@ architect_tools = (REPO_ROOT / "charts" / "openclaw" / "files" / "workspaces" / 
 assert "/Projects/<slug>/..." in architect_tools
 assert "/Projects/ai-homebase/project-documentation-model.md" in architect_tools
 assert "/Desk/index.md" in architect_tools
+architect_gitea_skill = (REPO_ROOT / "charts" / "openclaw" / "files" / "workspaces" / "architect" / "skills" / "gitea-browse" / "SKILL.md").read_text()
+assert "mktemp -d" in architect_gitea_skill
+assert '${REVIEWER_GITEA_BASE_URL%/}/<owner>/<repo>.git' in architect_gitea_skill
+assert "/workspace/<repo>" not in architect_gitea_skill
 
 archivist_tools = (REPO_ROOT / "charts" / "openclaw" / "files" / "workspaces" / "archivist" / "TOOLS.md").read_text()
 assert "MEMGRAPH_BOLT_URI" in archivist_tools
@@ -391,6 +396,10 @@ auditor_tools = (REPO_ROOT / "charts" / "openclaw" / "files" / "workspaces" / "a
 assert "/Projects/ai-homebase/audit-log.md" in auditor_tools
 assert "Files in this workspace are local workspace files." in auditor_tools
 assert "/Desk/index.md" in auditor_tools
+auditor_gitea_skill = (REPO_ROOT / "charts" / "openclaw" / "files" / "workspaces" / "auditor" / "skills" / "gitea-browse" / "SKILL.md").read_text()
+assert "mktemp -d" in auditor_gitea_skill
+assert '${REVIEWER_GITEA_BASE_URL%/}/<owner>/<repo>.git' in auditor_gitea_skill
+assert "/workspace/<repo>" not in auditor_gitea_skill
 
 worker_tools = (REPO_ROOT / "charts" / "openclaw" / "files" / "workspaces" / "worker-template" / "TOOLS.md").read_text()
 assert "Record concrete setup facts here" in worker_tools
@@ -464,8 +473,30 @@ assert rendered_values["openclaw"]["env"] == [
         "name": "MEMGRAPH_BOLT_URI",
         "value": 'bolt://{{ printf "%s-memgraph" .Release.Name | trunc 63 | trimSuffix "-" }}:7687',
     },
+    {"name": "CODER_GITEA_BASE_URL", "value": "https://gitea.test.internal"},
+    {
+        "name": "CODER_GITEA_BOOTSTRAP_URL",
+        "value": "http://{{ printf \"%s-gitea-http.%s.svc.cluster.local\" .Release.Name .Release.Namespace }}:3000",
+    },
+    {"name": "CODER_GITEA_TEA_URL", "value": "https://gitea.test.internal"},
+    {"name": "CODER_GITEA_HOST", "value": "gitea.test.internal"},
+    {"name": "CODER_GITEA_USERNAME", "value": "coder-bot"},
+    {"name": "CODER_GITEA_EMAIL", "value": "coder-bot@example.invalid"},
+    {"name": "CODER_GITEA_TEA_LOGIN_NAME", "value": "coder"},
+    {"name": "CODER_GITEA_TEA_TOKEN_NAME", "value": "openclaw-coder-sandbox"},
+    {"name": "CODER_REGISTRY_HOST", "value": "registry.test.internal"},
+    {"name": "CODER_REGISTRY_USERNAME", "value": "coder"},
+    {"name": "CODER_REGISTRY_BASE_URL", "value": "https://registry.test.internal"},
     {
         "name": "REVIEWER_GITEA_BASE_URL",
+        "value": "http://{{ printf \"%s-gitea-http.%s.svc.cluster.local\" .Release.Name .Release.Namespace }}:3000",
+    },
+    {
+        "name": "REVIEWER_GITEA_BOOTSTRAP_URL",
+        "value": "http://{{ printf \"%s-gitea-http.%s.svc.cluster.local\" .Release.Name .Release.Namespace }}:3000",
+    },
+    {
+        "name": "REVIEWER_GITEA_TEA_URL",
         "value": "http://{{ printf \"%s-gitea-http.%s.svc.cluster.local\" .Release.Name .Release.Namespace }}:3000",
     },
     {

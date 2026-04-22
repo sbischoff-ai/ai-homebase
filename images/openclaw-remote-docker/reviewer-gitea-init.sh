@@ -229,6 +229,13 @@ preferences:
     remote: ""
 EOF
   chmod 0600 "${XDG_CONFIG_HOME}/tea/config.yml"
+
+  if [[ "${HOME}/.tea/config.yml" != "${XDG_CONFIG_HOME}/tea/config.yml" ]]; then
+    if [[ -d "${HOME}/.tea" || -L "${HOME}/.tea" ]] || mkdir -p "${HOME}/.tea" 2>/dev/null; then
+      cp "${XDG_CONFIG_HOME}/tea/config.yml" "${HOME}/.tea/config.yml"
+      chmod 0600 "${HOME}/.tea/config.yml"
+    fi
+  fi
 }
 
 mkdir -p \
@@ -242,6 +249,10 @@ touch "${GIT_CREDENTIALS_FILE}"
 git config --global user.name "${REVIEWER_GITEA_USERNAME}"
 git config --global user.email "${REVIEWER_GITEA_EMAIL}"
 git config --global credential.helper "store --file ${GIT_CREDENTIALS_FILE}"
+if [ -n "${REVIEWER_GITEA_BASE_URL}" ] && [ -n "${REVIEWER_GITEA_HOST}" ]; then
+  git config --global url."${REVIEWER_GITEA_BASE_URL%/}/".insteadOf "ssh://git@${REVIEWER_GITEA_HOST}/"
+  git config --global url."${REVIEWER_GITEA_BASE_URL%/}/".insteadOf "git@${REVIEWER_GITEA_HOST}:"
+fi
 
 if [ -n "${REVIEWER_GITEA_HOST}" ] && [ -n "${REVIEWER_GITEA_PASSWORD}" ]; then
   if [ -z "${REVIEWER_GITEA_BASE_URL}" ]; then
@@ -265,6 +276,11 @@ if [ -z "${REVIEWER_GITEA_BASE_URL}" ] && [ -n "${REVIEWER_GITEA_HOST}" ]; then
     *.localtest.me) REVIEWER_GITEA_BASE_URL="http://${REVIEWER_GITEA_HOST}" ;;
     *) REVIEWER_GITEA_BASE_URL="https://${REVIEWER_GITEA_HOST}" ;;
   esac
+fi
+
+if [ -n "${REVIEWER_GITEA_BASE_URL}" ] && [ -n "${REVIEWER_GITEA_HOST}" ]; then
+  git config --global url."${REVIEWER_GITEA_BASE_URL%/}/".insteadOf "ssh://git@${REVIEWER_GITEA_HOST}/"
+  git config --global url."${REVIEWER_GITEA_BASE_URL%/}/".insteadOf "git@${REVIEWER_GITEA_HOST}:"
 fi
 
 if [ -z "${REVIEWER_GITEA_TEA_URL}" ]; then

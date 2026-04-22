@@ -656,12 +656,16 @@ verify_openclaw_gateway_tooling() {
     [ \"\${XDG_CACHE_HOME:-}\" = \"${expected_xdg_cache_home}\" ]
     [ \"\${XDG_STATE_HOME:-}\" = \"${expected_xdg_state_home}\" ]
     [ \"\${GIT_CONFIG_GLOBAL:-}\" = \"${expected_git_config_global}\" ]
+    test -L /home/node/.tea
+    test -L /home/node/.gitconfig
     test -f \"${expected_git_config_global}\"
     test -d \"${expected_xdg_config_home}/tea\"
     tea login list | grep -F \"reviewer\" >/dev/null
     tea login list | grep -F 'true' >/dev/null
-    tea repo list --login reviewer | grep -F \"cluster-gitops\" >/dev/null
+    tea repo list 2>&1 | grep -F \"cluster-gitops\" >/dev/null
+    ! tea repo list 2>&1 | grep -F \"falling back to login\" >/dev/null
     git ls-remote \"${expected_repo_url}\" >/dev/null
+    git ls-remote \"git@${GITEA_INGRESS_HOST}:${CODER_GITEA_USERNAME}/${GITOPS_REPO_NAME}.git\" >/dev/null
     test -f \"${coder_workspace_home}/.codex/auth.json\"
     grep -F '\"auth_mode\": \"apikey\"' \"${coder_workspace_home}/.codex/auth.json\" >/dev/null
     test -f \"${coder_workspace_home}/.config/tea/config.yml\"
@@ -686,7 +690,10 @@ verify_openclaw_gateway_tooling() {
         XDG_CACHE_HOME=\"\${reviewer_workspace_home}/.cache\" \
         XDG_STATE_HOME=\"\${reviewer_workspace_home}/.local/state\" \
         GIT_CONFIG_GLOBAL=\"\${reviewer_workspace_home}/.config/git/config\" \
-        tea repo list --login reviewer | grep -F \"cluster-gitops\" >/dev/null
+        sh -ceu '
+          tea repo list 2>&1 | grep -F "cluster-gitops" >/dev/null
+          ! tea repo list 2>&1 | grep -F "falling back to login" >/dev/null
+        '
     done
     python3 - <<'PY'
 import json
@@ -788,6 +795,11 @@ verify_openclaw_mcp_bootstrap_config() {
     exit 1
   fi
 
+  if [[ "$openclaw_json" != *'"name":"CODER_GITEA_TEA_URL","value":"'"${architect_reviewer_base_url}"'"'* ]]; then
+    fail "OpenClaw gateway env in ConfigMap/${configmap_name} is not seeding coder workspace tea login against the ingress hostname path"
+    exit 1
+  fi
+
   if [[ "$openclaw_json" != *'"REVIEWER_GITEA_TOKEN":"${REVIEWER_GITEA_TOKEN}"'* ]]; then
     fail "OpenClaw bootstrap config in ConfigMap/${configmap_name} is not wiring reviewer tea token interpolation from gateway env"
     exit 1
@@ -805,6 +817,11 @@ verify_openclaw_mcp_bootstrap_config() {
 
   if [[ "$openclaw_json" != *"\"REVIEWER_GITEA_TEA_URL\":\"${architect_reviewer_base_url}\""* ]]; then
     fail "OpenClaw bootstrap config in ConfigMap/${configmap_name} is not keeping architect tea access on the ingress hostname path"
+    exit 1
+  fi
+
+  if [[ "$openclaw_json" != *'"GIT_CONFIG_GLOBAL":"/workspace/.home/.config/git/config"'* ]]; then
+    fail "OpenClaw bootstrap config in ConfigMap/${configmap_name} is not wiring architect sandbox git config into the shared workspace home"
     exit 1
   fi
 
@@ -936,6 +953,8 @@ verify_openclaw_workspace_bootstrap() {
     grep -F "verdicts -> auditor" /home/node/.openclaw/workspace-architect/AGENTS.md >/dev/null
     test -f /home/node/.openclaw/workspace-architect/.openclaw-runtime/ai-homebase-ca-bundle.crt
     grep -F "Do not push branches, open pull requests, create commits, merge, or modify repo state." /home/node/.openclaw/workspace-architect/skills/gitea-browse/SKILL.md >/dev/null
+    grep -F "mktemp -d" /home/node/.openclaw/workspace-architect/skills/gitea-browse/SKILL.md >/dev/null
+    grep -F "\${REVIEWER_GITEA_BASE_URL%/}/<owner>/<repo>.git" /home/node/.openclaw/workspace-architect/skills/gitea-browse/SKILL.md >/dev/null
 
     test -f /home/node/.openclaw/workspace-watchdog/AGENTS.md
     grep -F "systemic review -> auditor" /home/node/.openclaw/workspace-watchdog/AGENTS.md >/dev/null
@@ -951,6 +970,8 @@ verify_openclaw_workspace_bootstrap() {
     grep -F "\"agent\":\"auditor\"" /home/node/.openclaw/workspace-auditor/MEMORY.md >/dev/null
     test -f /home/node/.openclaw/workspace-auditor/.openclaw-runtime/ai-homebase-ca-bundle.crt
     grep -F "Merge only when main or the user explicitly instructs you to merge." /home/node/.openclaw/workspace-auditor/skills/gitea-browse/SKILL.md >/dev/null
+    grep -F "mktemp -d" /home/node/.openclaw/workspace-auditor/skills/gitea-browse/SKILL.md >/dev/null
+    grep -F "\${REVIEWER_GITEA_BASE_URL%/}/<owner>/<repo>.git" /home/node/.openclaw/workspace-auditor/skills/gitea-browse/SKILL.md >/dev/null
   '
 }
 
@@ -1108,6 +1129,7 @@ verify_reviewer_sandbox_runtime() {
       -e XDG_CONFIG_HOME=/workspace/.home/.config \
       -e XDG_CACHE_HOME=/workspace/.home/.cache \
       -e XDG_STATE_HOME=/workspace/.home/.local/state \
+      -e GIT_CONFIG_GLOBAL=/workspace/.home/.config/git/config \
       -e SSL_CERT_FILE=/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt \
       -e REQUESTS_CA_BUNDLE=/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt \
       -e NODE_EXTRA_CA_CERTS=/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt \
@@ -1128,7 +1150,10 @@ verify_reviewer_sandbox_runtime() {
         test -d /workspace/.home/.tea
         test -d /workspace/.home/.config/tea
         tea login list | grep -F reviewer >/dev/null
-        tea repo list --login reviewer | grep -F cluster-gitops >/dev/null
+        tea repo list 2>&1 | grep -F cluster-gitops >/dev/null
+        ! tea repo list 2>&1 | grep -F "falling back to login" >/dev/null
+        test -f /workspace/.home/.config/git/config
+        git ls-remote "git@'"${GITEA_INGRESS_HOST}"':'"${CODER_GITEA_USERNAME}"'/'"${GITOPS_REPO_NAME}"'.git" >/dev/null
       '
   "
 }

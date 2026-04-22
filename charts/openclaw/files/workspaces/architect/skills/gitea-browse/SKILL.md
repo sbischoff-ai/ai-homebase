@@ -25,17 +25,19 @@ tea pr list --repo <owner>/<repo> --state open
 tea pr view <number> --repo <owner>/<repo>
 ```
 
-Clone only for inspection, keep the clone under `/workspace`, then discard it.
+Clone only for inspection, keep the clone in a temporary directory, then discard it.
 
 ```bash
-git clone <gitea-url>/<owner>/<repo> /workspace/<repo>
-cd /workspace/<repo>
+clone_root="$(mktemp -d "${TMPDIR:-/tmp}/gitea-browse.XXXXXX")"
+git clone "${REVIEWER_GITEA_BASE_URL%/}/<owner>/<repo>.git" "${clone_root}/<repo>"
+cd "${clone_root}/<repo>"
 git ls-tree -r HEAD --name-only
 git show HEAD:path/to/file.yaml
 git show <sha>:path/to/file.yaml
 git log --oneline -20
 git log --oneline -- path/to/file.yaml
 git show <sha> --stat
+rm -rf "${clone_root}"
 ```
 
 ## Rules

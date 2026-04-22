@@ -26,16 +26,18 @@ tea issue view <number> --repo <owner>/<repo>
 tea pr reviews <number> --repo <owner>/<repo>
 ```
 
-Clone only for review inspection, keep the clone under `/workspace`, then discard it.
+Clone only for review inspection, keep the clone in a temporary directory, then discard it.
 
 ```bash
-git clone <gitea-url>/<owner>/<repo> /workspace/<repo>
-cd /workspace/<repo>
+clone_root="$(mktemp -d "${TMPDIR:-/tmp}/gitea-review.XXXXXX")"
+git clone "${REVIEWER_GITEA_BASE_URL%/}/<owner>/<repo>.git" "${clone_root}/<repo>"
+cd "${clone_root}/<repo>"
 git show <sha>:path/to/file.yaml
 git show <sha>
 git diff <expected-sha>..<actual-sha> -- path/to/file
 git fetch origin pull/<number>/head:pr-<number>
 git diff main..pr-<number>
+rm -rf "${clone_root}"
 ```
 
 ## PR Actions
