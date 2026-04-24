@@ -9,6 +9,7 @@ CODER_IMAGE="${CODER_IMAGE:-openclaw-sandbox-coder:trixie-slim}"
 CODER_DOCKERFILE="${CODER_DOCKERFILE:-images/openclaw-sandbox-coder/Dockerfile}"
 GITEA_ACTIONS_JOB_IMAGE="${GITEA_ACTIONS_JOB_IMAGE:-gitea-actions-job:trixie-slim}"
 GITEA_ACTIONS_JOB_DOCKERFILE="${GITEA_ACTIONS_JOB_DOCKERFILE:-images/gitea-actions-job/Dockerfile}"
+VERBOSE=0
 
 usage() {
   cat <<USAGE
@@ -27,6 +28,7 @@ Options:
                                 Override the Gitea Actions job image tag (default: ${GITEA_ACTIONS_JOB_IMAGE})
   --gitea-actions-job-dockerfile <path>
                                 Override the Gitea Actions job Dockerfile path (default: ${GITEA_ACTIONS_JOB_DOCKERFILE})
+  --verbose                     Stream full docker build output
   -h, --help                    Show this help message
 USAGE
 }
@@ -41,6 +43,7 @@ while [[ $# -gt 0 ]]; do
     --coder-dockerfile) CODER_DOCKERFILE="$2"; shift 2 ;;
     --gitea-actions-job-image) GITEA_ACTIONS_JOB_IMAGE="$2"; shift 2 ;;
     --gitea-actions-job-dockerfile) GITEA_ACTIONS_JOB_DOCKERFILE="$2"; shift 2 ;;
+    --verbose) VERBOSE=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
   esac
@@ -55,6 +58,7 @@ build_image() {
   local image="$1"
   local dockerfile="$2"
   local context_dir
+  local build_log=""
 
   if [[ ! -f "$dockerfile" ]]; then
     echo "Dockerfile not found: ${dockerfile}" >&2
@@ -63,7 +67,22 @@ build_image() {
 
   context_dir="$(dirname "$dockerfile")"
   echo "Building ${image} from ${dockerfile} (context: ${context_dir})"
-  docker build -f "$dockerfile" -t "$image" "$context_dir"
+  if [[ "$VERBOSE" -eq 1 ]]; then
+    docker build -f "$dockerfile" -t "$image" "$context_dir"
+    return 0
+  fi
+
+  build_log="$(mktemp /tmp/ai-homebase-docker-build.XXXXXX.log)"
+  if docker build -f "$dockerfile" -t "$image" "$context_dir" >"$build_log" 2>&1; then
+    rm -f "$build_log"
+    echo "Built ${image}"
+    return 0
+  fi
+
+  echo "Docker build failed for ${image}. Last 100 log lines:" >&2
+  tail -n 100 "$build_log" >&2 || true
+  echo "Full build log: ${build_log}" >&2
+  exit 1
 }
 
 build_image "${GATEWAY_IMAGE}" "${GATEWAY_DOCKERFILE}"

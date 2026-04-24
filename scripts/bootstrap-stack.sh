@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+source "$(dirname "$0")/lib/logging.sh"
+
 PROFILE="${PROFILE:-}"
 BOOTSTRAP_CONFIG_PATH="${BOOTSTRAP_CONFIG_PATH:-bootstrap.local.toml}"
 RELEASE_NAME="${RELEASE_NAME:-platform-stack}"
@@ -104,6 +106,11 @@ esac
 if [[ "$PROFILE" == "k3d" ]] && [[ -z "$KUBECONFIG_PATH" || "$KUBECONFIG_PATH" == "${HOME}/.kube/config" ]]; then
   KUBECONFIG_PATH="$(default_k3d_kubeconfig_path)"
 fi
+
+if [[ "$VERBOSE" -eq 1 ]]; then
+  BOOTSTRAP_VERBOSE=1
+fi
+bootstrap_init_logging
 
 COMMON_ARGS=(
   --profile "$PROFILE"

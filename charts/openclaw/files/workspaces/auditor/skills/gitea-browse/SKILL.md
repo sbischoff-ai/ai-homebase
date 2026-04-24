@@ -17,13 +17,13 @@ Use this skill to inspect in-cluster source control and conduct PR-level audit r
 Use the preconfigured `git` and `tea` access for the `__REVIEWER_GITEA_USERNAME__` Gitea user. Architect uses this same Gitea user for read-only design browsing. Coder uses the separate `__CODER_GITEA_USERNAME__` Gitea user for implementation and repo management.
 
 ```bash
-tea repo list
-tea repo view <owner>/<repo>
-tea pr list --repo <owner>/<repo> --state open
-tea pr view <number> --repo <owner>/<repo>
-tea issue list --repo <owner>/<repo> --state open
-tea issue view <number> --repo <owner>/<repo>
-tea pr reviews <number> --repo <owner>/<repo>
+tea repo view __CODER_GITEA_USERNAME__/cluster-gitops --login "$REVIEWER_GITEA_TEA_LOGIN_NAME"
+tea repo view __CODER_GITEA_USERNAME__/openclaw-sandbox-images --login "$REVIEWER_GITEA_TEA_LOGIN_NAME"
+tea pr list --repo <owner>/<repo> --state open --login "$REVIEWER_GITEA_TEA_LOGIN_NAME"
+tea pr view <number> --repo <owner>/<repo> --login "$REVIEWER_GITEA_TEA_LOGIN_NAME"
+tea issue list --repo <owner>/<repo> --state open --login "$REVIEWER_GITEA_TEA_LOGIN_NAME"
+tea issue view <number> --repo <owner>/<repo> --login "$REVIEWER_GITEA_TEA_LOGIN_NAME"
+tea pr reviews <number> --repo <owner>/<repo> --login "$REVIEWER_GITEA_TEA_LOGIN_NAME"
 ```
 
 Clone only for review inspection, keep the clone in a temporary directory, then discard it.
@@ -43,9 +43,9 @@ rm -rf "${clone_root}"
 ## PR Actions
 
 ```bash
-tea pr review <number> --repo <owner>/<repo> --comment "Your review observation"
-tea pr review <number> --repo <owner>/<repo> --approve
-tea pr merge <number> --repo <owner>/<repo>
+tea pr review <number> --repo <owner>/<repo> --comment "Your review observation" --login "$REVIEWER_GITEA_TEA_LOGIN_NAME"
+tea pr review <number> --repo <owner>/<repo> --approve --login "$REVIEWER_GITEA_TEA_LOGIN_NAME"
+tea pr merge <number> --repo <owner>/<repo> --login "$REVIEWER_GITEA_TEA_LOGIN_NAME"
 ```
 
 ## Rules
@@ -56,5 +56,5 @@ tea pr merge <number> --repo <owner>/<repo>
 - Do not push branches, create commits, or modify repo file content directly.
 - Ground audit reports in specific commits, file paths, diff hunks, issues, or PR comments.
 - Flag discrepancies between Gitea state and approved designs to main.
-- If plain `tea` fails, one retry with `--login "$REVIEWER_GITEA_TEA_LOGIN_NAME"` is acceptable to confirm a login-selection problem before you report the blocker.
+- Use `--login "$REVIEWER_GITEA_TEA_LOGIN_NAME"` for `tea` commands so the shared reviewer account is selected consistently.
 - If `tea` auth fails, a PR is out of scope, or a merge conflicts, stop and tell main exactly what failed.

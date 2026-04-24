@@ -22,6 +22,7 @@ GITEA_ACTIONS_ENABLED="${GITEA_ACTIONS_ENABLED:-false}"
 GITEA_ACTIONS_RUNNER_VM_NAME="${GITEA_ACTIONS_RUNNER_VM_NAME:-gitea-actions-runner}"
 GITEA_ACTIONS_RUNNER_CONNECTION_INFO_PATH="${GITEA_ACTIONS_RUNNER_CONNECTION_INFO_PATH:-${HOME}/.local/state/ai-homebase/incus/${GITEA_ACTIONS_RUNNER_VM_NAME}.env}"
 GITEA_ACTIONS_RUNNER_KEY_PATH="${GITEA_ACTIONS_RUNNER_KEY_PATH:-${HOME}/.local/state/ai-homebase/incus/${GITEA_ACTIONS_RUNNER_VM_NAME}-id_ed25519}"
+OPENCLAW_CONTAINER_NAME="${OPENCLAW_CONTAINER_NAME:-openclaw}"
 EXPECTED_DEFAULT_SANDBOX_IMAGE="${EXPECTED_DEFAULT_SANDBOX_IMAGE:-}"
 EXPECTED_CODER_SANDBOX_IMAGE="${EXPECTED_CODER_SANDBOX_IMAGE:-}"
 OPENCLAW_WAIT_TIMEOUT="${OPENCLAW_WAIT_TIMEOUT:-600s}"
@@ -73,6 +74,7 @@ Options:
   --remote-docker-key <path>  Override OpenClaw remote Docker SSH private key during bootstrap
   --incus-vm-name <name>      Incus VM name for sandbox-side checks (default: ${INCUS_VM_NAME})
   --incus-connection-info <p> Incus VM env file for sandbox-side checks (default: ${INCUS_CONNECTION_INFO_PATH})
+  --openclaw-container <name> OpenClaw container name for kubectl exec (default: ${OPENCLAW_CONTAINER_NAME})
   Env timeouts                OPENCLAW_WAIT_TIMEOUT=${OPENCLAW_WAIT_TIMEOUT}, NEXTCLOUD_WAIT_TIMEOUT=${NEXTCLOUD_WAIT_TIMEOUT}, GITEA_WAIT_TIMEOUT=${GITEA_WAIT_TIMEOUT}, VAULTWARDEN_WAIT_TIMEOUT=${VAULTWARDEN_WAIT_TIMEOUT}, POSTFIX_RELAY_WAIT_TIMEOUT=${POSTFIX_RELAY_WAIT_TIMEOUT}, PAPERLESS_WAIT_TIMEOUT=${PAPERLESS_WAIT_TIMEOUT}
   Ingress retry tuning        INGRESS_ENDPOINT_RETRIES=${INGRESS_ENDPOINT_RETRIES}, INGRESS_ENDPOINT_RETRY_DELAY_SECONDS=${INGRESS_ENDPOINT_RETRY_DELAY_SECONDS}
   --verbose                   Stream full command output
@@ -96,6 +98,7 @@ while [[ $# -gt 0 ]]; do
     --remote-docker-key) REMOTE_DOCKER_KEY_PATH="$2"; shift 2 ;;
     --incus-vm-name) INCUS_VM_NAME="$2"; INCUS_CONNECTION_INFO_PATH="${HOME}/.local/state/ai-homebase/incus/${INCUS_VM_NAME}.env"; shift 2 ;;
     --incus-connection-info) INCUS_CONNECTION_INFO_PATH="$2"; shift 2 ;;
+    --openclaw-container) OPENCLAW_CONTAINER_NAME="$2"; shift 2 ;;
     --verbose) BOOTSTRAP_VERBOSE=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
@@ -334,6 +337,68 @@ wait_for_workload() {
     pod \
     -l "app.kubernetes.io/instance=${RELEASE_NAME},app.kubernetes.io/name=${app_name}" \
     --timeout="$wait_timeout"
+}
+
+exec_in_openclaw_deployment() {
+  local deployment_name="$1"
+  shift
+  kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" exec -c "$OPENCLAW_CONTAINER_NAME" "deployment/${deployment_name}" -- "$@"
+}
+
+openclaw_cli_scope_upgrade_request_ids() {
+  local deployment_name="$1"
+  exec_in_openclaw_deployment "$deployment_name" sh -ceu '
+state_dir="${OPENCLAW_STATE_DIR:-${OPENCLAW_HOME:-/home/node/.openclaw}}"
+pending_file="${state_dir}/devices/pending.json"
+[ -s "$pending_file" ] || exit 0
+PENDING_FILE="$pending_file" python3 - <<'"'"'PY'"'"'
+import json
+import os
+from pathlib import Path
+
+pending_path = Path(os.environ["PENDING_FILE"])
+try:
+    payload = json.loads(pending_path.read_text())
+except FileNotFoundError:
+    raise SystemExit(0)
+
+if not isinstance(payload, dict):
+    raise SystemExit(0)
+
+for request_id, request in payload.items():
+    if not isinstance(request, dict):
+        continue
+    if request.get("clientId") != "cli":
+        continue
+    if request.get("clientMode") != "cli":
+        continue
+    if request.get("role") != "operator":
+        continue
+    print(request.get("requestId") or request_id)
+PY
+'
+}
+
+ensure_openclaw_cli_write_scopes() {
+  local deployment_name="$1"
+  local request_ids=""
+  local request_id=""
+  local remaining_request_ids=""
+
+  request_ids="$(openclaw_cli_scope_upgrade_request_ids "$deployment_name")"
+  [[ -n "$request_ids" ]] || return 0
+
+  step "Approving pending OpenClaw bootstrap CLI device request"
+  while IFS= read -r request_id; do
+    [[ -n "$request_id" ]] || continue
+    run_checked kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" exec -c "$OPENCLAW_CONTAINER_NAME" "deployment/${deployment_name}" -- openclaw devices approve "$request_id"
+  done <<<"$request_ids"
+
+  remaining_request_ids="$(openclaw_cli_scope_upgrade_request_ids "$deployment_name")"
+  if [[ -n "$remaining_request_ids" ]]; then
+    fail "OpenClaw bootstrap CLI approval is still pending after approval attempt."
+    exit 1
+  fi
 }
 
 effective_value() {
@@ -617,8 +682,8 @@ verify_openclaw_remote_docker() {
   effective_docker_host="$(effective_value "openclaw.remoteDocker.dockerHost")"
 
   step "Checking OpenClaw remote Docker connectivity"
-  CURRENT_COMMAND="kubectl exec deployment/${deployment_name} -- sh -ceu 'command -v docker && command -v ssh && docker info'"
-  run_checked kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" exec "deployment/${deployment_name}" -- sh -ceu "
+  CURRENT_COMMAND="kubectl exec -c ${OPENCLAW_CONTAINER_NAME} deployment/${deployment_name} -- sh -ceu 'command -v docker && command -v ssh && docker info'"
+  run_checked kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" exec -c "$OPENCLAW_CONTAINER_NAME" "deployment/${deployment_name}" -- sh -ceu "
     command -v docker >/dev/null
     command -v ssh >/dev/null
     [ \"\${DOCKER_HOST:-}\" = \"$effective_docker_host\" ]
@@ -632,19 +697,26 @@ verify_openclaw_remote_docker() {
 
 verify_openclaw_gateway_tooling() {
   local deployment_name="$1"
-  local expected_reviewer_host="${RELEASE_NAME}-gitea-http.${NAMESPACE}.svc.cluster.local"
-  local expected_reviewer_base_url="http://${expected_reviewer_host}:3000"
+  local expected_reviewer_host="${GITEA_INGRESS_HOST}"
+  local expected_reviewer_scheme="https"
+  local expected_reviewer_base_url=""
   local expected_xdg_config_home="/home/node/.openclaw/.config"
   local expected_xdg_cache_home="/home/node/.openclaw/.cache"
   local expected_xdg_state_home="/home/node/.openclaw/.local/state"
   local expected_git_config_global="/home/node/.openclaw/.config/git/config"
-  local expected_repo_url="${expected_reviewer_base_url}/${CODER_GITEA_USERNAME}/${GITOPS_REPO_NAME}.git"
+  local expected_repo_url=""
   local coder_workspace_home="/home/node/.openclaw/workspace-coder/.home"
   local reviewer_workspace_homes="/home/node/.openclaw/workspace-architect/.home /home/node/.openclaw/workspace-auditor/.home"
 
+  if [[ "${GITEA_INGRESS_HOST:-}" == *.localtest.me ]]; then
+    expected_reviewer_scheme="http"
+  fi
+  expected_reviewer_base_url="${expected_reviewer_scheme}://${expected_reviewer_host}"
+  expected_repo_url="${expected_reviewer_base_url}/${CODER_GITEA_USERNAME}/${GITOPS_REPO_NAME}.git"
+
   step "Checking OpenClaw gateway tooling and seeded coder/reviewer auth state"
-  CURRENT_COMMAND="kubectl exec deployment/${deployment_name} -- sh -ceu 'check gateway tooling plus seeded coder and reviewer auth state'"
-  run_checked kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" exec "deployment/${deployment_name}" -- sh -ceu "
+  CURRENT_COMMAND="kubectl exec -c ${OPENCLAW_CONTAINER_NAME} deployment/${deployment_name} -- sh -ceu 'check gateway tooling plus seeded coder and reviewer auth state'"
+  run_checked kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" exec -c "$OPENCLAW_CONTAINER_NAME" "deployment/${deployment_name}" -- sh -ceu "
     command -v jq >/dev/null
     command -v rg >/dev/null
     command -v python3 >/dev/null
@@ -662,8 +734,7 @@ verify_openclaw_gateway_tooling() {
     test -d \"${expected_xdg_config_home}/tea\"
     tea login list | grep -F \"reviewer\" >/dev/null
     tea login list | grep -F 'true' >/dev/null
-    tea repo list 2>&1 | grep -F \"cluster-gitops\" >/dev/null
-    ! tea repo list 2>&1 | grep -F \"falling back to login\" >/dev/null
+    tea repo view \"${CODER_GITEA_USERNAME}/${GITOPS_REPO_NAME}\" --login reviewer >/dev/null
     git ls-remote \"${expected_repo_url}\" >/dev/null
     git ls-remote \"git@${GITEA_INGRESS_HOST}:${CODER_GITEA_USERNAME}/${GITOPS_REPO_NAME}.git\" >/dev/null
     test -f \"${coder_workspace_home}/.codex/auth.json\"
@@ -677,7 +748,7 @@ verify_openclaw_gateway_tooling() {
       XDG_CONFIG_HOME=\"${coder_workspace_home}/.config\" \
       XDG_CACHE_HOME=\"${coder_workspace_home}/.cache\" \
       XDG_STATE_HOME=\"${coder_workspace_home}/.local/state\" \
-      tea repo list --login coder | grep -F \"cluster-gitops\" >/dev/null
+      tea repo view \"${CODER_GITEA_USERNAME}/${GITOPS_REPO_NAME}\" --login coder >/dev/null
     test -f \"${coder_workspace_home}/.docker/config.json\"
     for reviewer_workspace_home in ${reviewer_workspace_homes}; do
       test -f \"\${reviewer_workspace_home}/.config/tea/config.yml\"
@@ -691,8 +762,7 @@ verify_openclaw_gateway_tooling() {
         XDG_STATE_HOME=\"\${reviewer_workspace_home}/.local/state\" \
         GIT_CONFIG_GLOBAL=\"\${reviewer_workspace_home}/.config/git/config\" \
         sh -ceu '
-          tea repo list 2>&1 | grep -F "cluster-gitops" >/dev/null
-          ! tea repo list 2>&1 | grep -F "falling back to login" >/dev/null
+          tea repo view "'"${CODER_GITEA_USERNAME}/${GITOPS_REPO_NAME}"'" --login reviewer >/dev/null
         '
     done
     python3 - <<'PY'
@@ -836,20 +906,19 @@ verify_openclaw_mcp_bootstrap_config() {
   fi
 
   if ! kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" \
-    exec "deployment/${deployment_name}" -- sh -lc '[ -n "${CODER_GITEA_TOKEN:-}" ]'; then
+    exec -c "$OPENCLAW_CONTAINER_NAME" "deployment/${deployment_name}" -- sh -lc '[ -n "${CODER_GITEA_TOKEN:-}" ]'; then
     fail "OpenClaw deployment/${deployment_name} is still missing a live CODER_GITEA_TOKEN env value after bootstrap"
     exit 1
   fi
 
   if ! kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" \
-    exec "deployment/${deployment_name}" -- sh -lc '[ -n "${REVIEWER_GITEA_TOKEN:-}" ]'; then
+    exec -c "$OPENCLAW_CONTAINER_NAME" "deployment/${deployment_name}" -- sh -lc '[ -n "${REVIEWER_GITEA_TOKEN:-}" ]'; then
     fail "OpenClaw deployment/${deployment_name} is still missing a live REVIEWER_GITEA_TOKEN env value after bootstrap"
     exit 1
   fi
 
-  cron_jobs_json="$(
-    kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" exec "deployment/${deployment_name}" -- openclaw cron list --json
-  )"
+  ensure_openclaw_cli_write_scopes "$deployment_name"
+  cron_jobs_json="$(exec_in_openclaw_deployment "$deployment_name" openclaw cron list --json)"
 
   if ! OPENCLAW_CRON_JOBS_JSON="$cron_jobs_json" python3 - <<'PY'
 import json
@@ -857,14 +926,25 @@ import os
 import sys
 
 raw = os.environ["OPENCLAW_CRON_JOBS_JSON"]
-start = None
+decoder = json.JSONDecoder()
+payload = None
 for index, char in enumerate(raw):
-    if char in "[{":
-        start = index
+    if char not in "[{":
+        continue
+    try:
+        candidate, _ = decoder.raw_decode(raw[index:].lstrip())
+    except json.JSONDecodeError:
+        continue
+    if isinstance(candidate, list) and all(isinstance(item, dict) for item in candidate):
+        payload = candidate
         break
-if start is None:
-    raise SystemExit("missing JSON payload from openclaw cron list --json")
-payload = json.loads(raw[start:])
+    if isinstance(candidate, dict):
+        jobs = candidate.get("jobs")
+        if isinstance(jobs, list) and all(isinstance(item, dict) for item in jobs):
+            payload = candidate
+            break
+if payload is None:
+    raise SystemExit("missing cron JSON payload from openclaw cron list --json")
 jobs = payload if isinstance(payload, list) else payload.get("jobs", [])
 names = {job.get("name") for job in jobs}
 expected = {
@@ -897,8 +977,8 @@ verify_openclaw_workspace_bootstrap() {
   local deployment_name="$1"
 
   step "Checking bootstrapped OpenClaw workspace files"
-  CURRENT_COMMAND="kubectl exec deployment/${deployment_name} -- sh -ceu 'test workspace bootstrap files'"
-  run_checked kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" exec "deployment/${deployment_name}" -- sh -ceu '
+  CURRENT_COMMAND="kubectl exec -c ${OPENCLAW_CONTAINER_NAME} deployment/${deployment_name} -- sh -ceu 'test workspace bootstrap files'"
+  run_checked kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" exec -c "$OPENCLAW_CONTAINER_NAME" "deployment/${deployment_name}" -- sh -ceu '
     jq -e '"'"'.agents.defaults.heartbeat.every == "0m"'"'"' /home/node/.openclaw/openclaw.json >/dev/null
     jq -e '"'"'.agents.list[] | select(.id=="main") | .heartbeat.every == "0m" and .heartbeat.includeSystemPromptSection == false'"'"' /home/node/.openclaw/openclaw.json >/dev/null
     jq -e '"'"'[.agents.list[] | select(.id != "watchdog") | select(.heartbeat.every? != null and .heartbeat.every != "0m")] | length == 0'"'"' /home/node/.openclaw/openclaw.json >/dev/null
@@ -1152,8 +1232,7 @@ verify_reviewer_sandbox_runtime() {
         test -d /workspace/.home/.tea
         test -d /workspace/.home/.config/tea
         tea login list | grep -F reviewer >/dev/null
-        tea repo list 2>&1 | grep -F cluster-gitops >/dev/null
-        ! tea repo list 2>&1 | grep -F "falling back to login" >/dev/null
+        tea repo view "'"${CODER_GITEA_USERNAME}/${GITOPS_REPO_NAME}"'" --login reviewer >/dev/null
         test -f /workspace/.home/.config/git/config
         git ls-remote "git@'"${GITEA_INGRESS_HOST}"':'"${CODER_GITEA_USERNAME}"'/'"${GITOPS_REPO_NAME}"'.git" >/dev/null
       '

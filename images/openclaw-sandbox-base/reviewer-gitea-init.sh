@@ -228,7 +228,9 @@ EOF
 
   if [[ "${HOME}/.tea/config.yml" != "${XDG_CONFIG_HOME}/tea/config.yml" ]]; then
     mkdir -p "${HOME}/.tea"
-    cp "${XDG_CONFIG_HOME}/tea/config.yml" "${HOME}/.tea/config.yml"
+    if [[ ! -e "${HOME}/.tea/config.yml" ]] || [[ ! "${XDG_CONFIG_HOME}/tea/config.yml" -ef "${HOME}/.tea/config.yml" ]]; then
+      cp "${XDG_CONFIG_HOME}/tea/config.yml" "${HOME}/.tea/config.yml"
+    fi
     chmod 0600 "${HOME}/.tea/config.yml"
   fi
 }

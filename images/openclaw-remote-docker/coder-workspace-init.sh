@@ -5,6 +5,178 @@ warn() {
   echo >&2 "WARNING: $*"
 }
 
+extract_gitea_token_ids() {
+  local token_name="$1"
+  python3 -c '
+import json
+import sys
+
+token_name = sys.argv[1]
+raw = sys.stdin.read().strip()
+if not raw:
+    raise SystemExit(0)
+payload = json.loads(raw)
+if not isinstance(payload, list):
+    raise SystemExit(0)
+for item in payload:
+    if item.get("name") == token_name and item.get("id") is not None:
+        print(item["id"])
+' "$token_name"
+}
+
+extract_gitea_token_sha1() {
+  python3 -c '
+import json
+import sys
+
+raw = sys.stdin.read().strip()
+if not raw:
+    raise SystemExit(0)
+payload = json.loads(raw)
+if not isinstance(payload, dict):
+    raise SystemExit(0)
+token = payload.get("sha1")
+if token:
+    print(token)
+'
+}
+
+build_token_payload() {
+  local token_name="$1"
+  python3 - "$token_name" <<'PY'
+import json
+import sys
+
+print(json.dumps({"name": sys.argv[1], "scopes": ["all"]}))
+PY
+}
+
+wait_for_gitea_user_auth() {
+  local ready_url="${CODER_GITEA_BOOTSTRAP_URL}/api/v1/users/${CODER_GITEA_USERNAME}/tokens"
+  local response_file=""
+  local status=""
+  local attempt=0
+
+  response_file="$(mktemp /tmp/openclaw-coder-gitea-auth-ready.XXXXXX.json)"
+  while (( attempt < 30 )); do
+    status="$(
+      curl -sS -o "$response_file" -w '%{http_code}' \
+        --user "${CODER_GITEA_USERNAME}:${CODER_GITEA_PASSWORD}" \
+        "${ready_url}"
+    )"
+    if [[ "$status" == "200" ]]; then
+      rm -f "$response_file"
+      return 0
+    fi
+    if [[ "$status" != "401" && "$status" != "404" && "$status" != "000" ]]; then
+      warn "Gitea user auth for ${CODER_GITEA_USERNAME} failed unexpectedly with HTTP ${status}."
+      cat "$response_file" >&2 || true
+      rm -f "$response_file"
+      return 1
+    fi
+    attempt=$((attempt + 1))
+    sleep 1
+  done
+
+  warn "Timed out waiting for Gitea user ${CODER_GITEA_USERNAME} authentication to become ready."
+  cat "$response_file" >&2 || true
+  rm -f "$response_file"
+  return 1
+}
+
+ensure_coder_gitea_token() {
+  local tokens_url="${CODER_GITEA_BOOTSTRAP_URL}/api/v1/users/${CODER_GITEA_USERNAME}/tokens"
+  local existing_token_ids=""
+  local duplicate_token_ids=""
+  local list_body_file=""
+  local token_payload=""
+  local token=""
+  local create_body_file=""
+  local create_status=""
+  local create_attempt=0
+
+  if ! wait_for_gitea_user_auth; then
+    return 1
+  fi
+
+  list_body_file="$(mktemp /tmp/openclaw-coder-gitea-token-list.XXXXXX.json)"
+  if ! curl -fsS -u "${CODER_GITEA_USERNAME}:${CODER_GITEA_PASSWORD}" -o "$list_body_file" "${tokens_url}"; then
+    warn "Failed to list existing coder Gitea tokens."
+    rm -f "$list_body_file"
+    return 1
+  fi
+  existing_token_ids="$(extract_gitea_token_ids "${CODER_GITEA_TEA_TOKEN_NAME}" <"$list_body_file" || true)"
+  rm -f "$list_body_file"
+  if [[ -n "${existing_token_ids}" ]]; then
+    while IFS= read -r token_id; do
+      [[ -n "${token_id}" ]] || continue
+      curl -fsS -X DELETE -u "${CODER_GITEA_USERNAME}:${CODER_GITEA_PASSWORD}" "${tokens_url}/${token_id}" >/dev/null || true
+    done <<<"${existing_token_ids}"
+  fi
+
+  token_payload="$(build_token_payload "${CODER_GITEA_TEA_TOKEN_NAME}")"
+  create_body_file="$(mktemp /tmp/openclaw-coder-gitea-token-create.XXXXXX.json)"
+  while (( create_attempt < 5 )); do
+    token=""
+    create_status="$(
+      curl -sS -o "$create_body_file" -w '%{http_code}' \
+        -u "${CODER_GITEA_USERNAME}:${CODER_GITEA_PASSWORD}" \
+        -H 'Content-Type: application/json' \
+        -d "${token_payload}" \
+        "${tokens_url}"
+    )"
+    if [[ "$create_status" == "201" || "$create_status" == "200" ]]; then
+      token="$(extract_gitea_token_sha1 <"$create_body_file" || true)"
+      if [[ -n "${token}" ]]; then
+        rm -f "$create_body_file"
+        printf '%s\n' "$token"
+        return 0
+      fi
+      list_body_file="$(mktemp /tmp/openclaw-coder-gitea-token-list.XXXXXX.json)"
+      curl -fsS -u "${CODER_GITEA_USERNAME}:${CODER_GITEA_PASSWORD}" -o "$list_body_file" "${tokens_url}"
+      duplicate_token_ids="$(extract_gitea_token_ids "${CODER_GITEA_TEA_TOKEN_NAME}" <"$list_body_file" || true)"
+      rm -f "$list_body_file"
+      if [[ -n "${duplicate_token_ids}" ]]; then
+        while IFS= read -r token_id; do
+          [[ -n "${token_id}" ]] || continue
+          curl -fsS -X DELETE -u "${CODER_GITEA_USERNAME}:${CODER_GITEA_PASSWORD}" "${tokens_url}/${token_id}" >/dev/null || true
+        done <<<"${duplicate_token_ids}"
+      fi
+      create_attempt=$((create_attempt + 1))
+      sleep 1
+      continue
+    fi
+    if [[ "$create_status" == "400" ]] && grep -q 'access token name has been used already' "$create_body_file"; then
+      list_body_file="$(mktemp /tmp/openclaw-coder-gitea-token-list.XXXXXX.json)"
+      curl -fsS -u "${CODER_GITEA_USERNAME}:${CODER_GITEA_PASSWORD}" -o "$list_body_file" "${tokens_url}"
+      duplicate_token_ids="$(extract_gitea_token_ids "${CODER_GITEA_TEA_TOKEN_NAME}" <"$list_body_file" || true)"
+      rm -f "$list_body_file"
+      if [[ -n "${duplicate_token_ids}" ]]; then
+        while IFS= read -r token_id; do
+          [[ -n "${token_id}" ]] || continue
+          curl -fsS -X DELETE -u "${CODER_GITEA_USERNAME}:${CODER_GITEA_PASSWORD}" "${tokens_url}/${token_id}" >/dev/null || true
+        done <<<"${duplicate_token_ids}"
+      fi
+      create_attempt=$((create_attempt + 1))
+      sleep 1
+      continue
+    fi
+    break
+  done
+
+  if [[ "$create_status" != "201" && "$create_status" != "200" ]]; then
+    warn "Failed to create Gitea token ${CODER_GITEA_TEA_TOKEN_NAME} for ${CODER_GITEA_USERNAME} (HTTP ${create_status})."
+    cat "$create_body_file" >&2 || true
+    rm -f "$create_body_file"
+    return 1
+  fi
+
+  warn "Created Gitea token payload for ${CODER_GITEA_USERNAME} did not include a sha1 value."
+  cat "$create_body_file" >&2 || true
+  rm -f "$create_body_file"
+  return 1
+}
+
 HOME_DIR="${HOME:-/home/node/.openclaw/workspace-coder/.home}"
 CODEX_HOME_DIR="${CODEX_HOME:-${HOME_DIR}/.codex}"
 XDG_CONFIG_HOME_DIR="${XDG_CONFIG_HOME:-${HOME_DIR}/.config}"
@@ -151,28 +323,7 @@ if [ -z "${CODER_GITEA_TEA_URL}" ]; then
 fi
 
 if [ -z "${CODER_GITEA_TOKEN}" ] && [ -n "${CODER_GITEA_BOOTSTRAP_URL}" ] && [ -n "${CODER_GITEA_USERNAME}" ] && [ -n "${CODER_GITEA_PASSWORD}" ]; then
-  tokens_url="${CODER_GITEA_BOOTSTRAP_URL}/api/v1/users/${CODER_GITEA_USERNAME}/tokens"
-  auth="${CODER_GITEA_USERNAME}:${CODER_GITEA_PASSWORD}"
-
-  existing_token_ids="$(
-    curl -fsS -u "${auth}" "${tokens_url}" \
-      | jq -r --arg name "${CODER_GITEA_TEA_TOKEN_NAME}" '.[] | select(.name == $name) | .id' \
-      || true
-  )"
-  if [ -n "${existing_token_ids}" ]; then
-    for token_id in ${existing_token_ids}; do
-      curl -fsS -X DELETE -u "${auth}" "${tokens_url}/${token_id}" >/dev/null || true
-    done
-  fi
-
-  CODER_GITEA_TOKEN="$(
-    curl -fsS -u "${auth}" \
-      -H 'Content-Type: application/json' \
-      -d "{\"name\":\"${CODER_GITEA_TEA_TOKEN_NAME}\",\"scopes\":[\"all\"]}" \
-      "${tokens_url}" 2>/dev/null \
-      | jq -r '.sha1 // empty' \
-      || true
-  )"
+  CODER_GITEA_TOKEN="$(ensure_coder_gitea_token || true)"
 fi
 
 if [ -n "${CODER_GITEA_TEA_URL}" ] && [ -n "${CODER_GITEA_TOKEN}" ]; then

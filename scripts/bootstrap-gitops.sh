@@ -27,6 +27,7 @@ CODER_GITEA_TEA_TOKEN_NAME="${CODER_GITEA_TEA_TOKEN_NAME:-openclaw-coder-sandbox
 REVIEWER_GITEA_TEA_TOKEN_NAME="${REVIEWER_GITEA_TEA_TOKEN_NAME:-openclaw-reviewer}"
 OPENCLAW_DEPLOYMENT_NAME="${OPENCLAW_DEPLOYMENT_NAME:-${RELEASE_NAME}-openclaw}"
 OPENCLAW_ROLLOUT_TIMEOUT="${OPENCLAW_ROLLOUT_TIMEOUT:-600s}"
+VERBOSE=0
 SKIP_INSTALL=0
 GITEA_PORT_FORWARD_PID=""
 GITEA_PORT_FORWARD_LOG=""
@@ -57,6 +58,7 @@ Options:
   --shared-openclaw-state-source <p>
                               Host path shared with OpenClaw and the sandbox VM for first-run CA export
   --skip-install             Skip the internal Argo CD enable/install step and run only the GitOps handoff
+  --verbose                  Stream full Argo CD sync/wait output
   -h, --help                 Show this help message
 USAGE
 }
@@ -91,6 +93,7 @@ while [[ $# -gt 0 ]]; do
     --incus-connection-info) INCUS_CONNECTION_INFO_PATH="$2"; shift 2 ;;
     --shared-openclaw-state-source) SHARED_OPENCLAW_STATE_SOURCE="$2"; shift 2 ;;
     --skip-install) SKIP_INSTALL=1; shift ;;
+    --verbose) VERBOSE=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
   esac
@@ -154,11 +157,12 @@ step() {
   printf '==> %s\n' "$*"
 }
 
-restart_openclaw_for_runtime_secret_refresh() {
+seed_openclaw_runtime_setup() {
   local skills_cmd=()
+  local cron_cmd=()
 
   if ! kubectl "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" get deployment "$OPENCLAW_DEPLOYMENT_NAME" >/dev/null 2>&1; then
-    step "Skipping OpenClaw restart because deployment/${OPENCLAW_DEPLOYMENT_NAME} is not present"
+    step "Skipping OpenClaw runtime seeding because deployment/${OPENCLAW_DEPLOYMENT_NAME} is not present"
     return 0
   fi
 
@@ -166,12 +170,13 @@ restart_openclaw_for_runtime_secret_refresh() {
   kubectl "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" rollout restart "deployment/${OPENCLAW_DEPLOYMENT_NAME}"
   kubectl "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" rollout status "deployment/${OPENCLAW_DEPLOYMENT_NAME}" --timeout "$OPENCLAW_ROLLOUT_TIMEOUT"
 
-  step "Re-seeding OpenClaw gateway skill setup after restart"
+  step "Seeding OpenClaw gateway skill setup"
   skills_cmd=(
     ./scripts/bootstrap-openclaw-skills.sh
     --release-name "$RELEASE_NAME"
     --namespace "$NAMESPACE"
     --deployment "$OPENCLAW_DEPLOYMENT_NAME"
+    --phase post-gitops
   )
   if [[ -n "$KUBECONFIG_PATH" ]]; then
     skills_cmd+=(--kubeconfig "$KUBECONFIG_PATH")
@@ -180,6 +185,24 @@ restart_openclaw_for_runtime_secret_refresh() {
     skills_cmd+=(--kube-context "$KUBE_CONTEXT")
   fi
   "${skills_cmd[@]}"
+
+  step "Seeding OpenClaw cron jobs"
+  cron_cmd=(
+    ./scripts/bootstrap-openclaw-cron.sh
+    --release-name "$RELEASE_NAME"
+    --namespace "$NAMESPACE"
+    --deployment "$OPENCLAW_DEPLOYMENT_NAME"
+  )
+  if [[ -n "$KUBECONFIG_PATH" ]]; then
+    cron_cmd+=(--kubeconfig "$KUBECONFIG_PATH")
+  fi
+  if [[ -n "$KUBE_CONTEXT" ]]; then
+    cron_cmd+=(--kube-context "$KUBE_CONTEXT")
+  fi
+  if [[ "$VERBOSE" -eq 1 ]]; then
+    cron_cmd+=(--verbose)
+  fi
+  "${cron_cmd[@]}"
 }
 
 cleanup() {
@@ -314,17 +337,38 @@ argocd_exec() {
   kubectl "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" exec "deployment/${ARGOCD_SERVER_DEPLOYMENT}" -- "$@"
 }
 
+run_argocd_exec_quiet() {
+  local output=""
+  if output="$(argocd_exec "$@" 2>&1)"; then
+    if [[ "$VERBOSE" -eq 1 && -n "$output" ]]; then
+      printf '%s\n' "$output"
+    fi
+    return 0
+  fi
+  printf '%s\n' "$output" >&2
+  return 1
+}
+
 argocd_login_succeeds() {
   local username="$1"
   local password="$2"
-  argocd_exec env ARGOCD_USERNAME="$username" ARGOCD_PASSWORD="$password" sh -ceu '
+  local output=""
+  if output="$(
+    argocd_exec env ARGOCD_USERNAME="$username" ARGOCD_PASSWORD="$password" sh -ceu '
     cfg="$(mktemp)"
     trap "rm -f \"$cfg\"" EXIT
     argocd --config "$cfg" login 127.0.0.1:8080 \
       --username "$ARGOCD_USERNAME" \
       --password "$ARGOCD_PASSWORD" \
       --plaintext >/dev/null 2>&1
-  '
+  ' 2>&1
+  )"; then
+    return 0
+  fi
+  if [[ "$VERBOSE" -eq 1 && -n "$output" ]]; then
+    printf '%s\n' "$output" >&2
+  fi
+  return 1
 }
 
 set_argocd_admin_password() {
@@ -417,7 +461,7 @@ sync_and_validate_argocd_apps() {
   wait_for_argocd_application "$platform_app"
 
   step "Triggering the initial Argo CD sync"
-  argocd_exec env \
+  run_argocd_exec_quiet env \
     ARGOCD_USERNAME="$username" \
     ARGOCD_PASSWORD="$password" \
     ROOT_APP="$root_app" \
@@ -437,7 +481,7 @@ sync_and_validate_argocd_apps() {
     '
 
   step "Waiting for Argo CD applications to become Synced and Healthy"
-  argocd_exec env \
+  run_argocd_exec_quiet env \
     ARGOCD_USERNAME="$username" \
     ARGOCD_PASSWORD="$password" \
     ROOT_APP="$root_app" \
@@ -998,7 +1042,7 @@ if [[ "$SKIP_INSTALL" -eq 0 ]]; then
   if [[ -n "$SHARED_OPENCLAW_STATE_SOURCE" ]]; then
     INSTALL_CMD+=(--shared-openclaw-state-source "$SHARED_OPENCLAW_STATE_SOURCE")
   fi
-  "${INSTALL_CMD[@]}"
+  env BOOTSTRAP_APPLY_INSTALL_ONLY=1 "${INSTALL_CMD[@]}"
 fi
 
 step "Waiting for Gitea and Argo CD"
@@ -1137,7 +1181,7 @@ kubectl "${KUBECTL_CONTEXT_ARGS[@]}" apply -f "${REPO_WORK_DIR}/gitops/clusters/
 
 sync_and_validate_argocd_apps "${ARGOCD_ADMIN_USER:-admin}" "${ARGOCD_ADMIN_PASSWORD:-}"
 seed_memgraph
-restart_openclaw_for_runtime_secret_refresh
+seed_openclaw_runtime_setup
 
 printf 'GitOps bootstrap complete.\n'
 printf '  Argo CD URL: http://%s\n' "$ARGOCD_HOST"

@@ -1173,12 +1173,12 @@ data:
     Use the preconfigured `git` and `tea` access for the `reviewer` Gitea user. Auditor uses this same Gitea user for review work. Coder uses the separate `coder` Gitea user for implementation and repo management.
 
     ```bash
-    tea repo list
-    tea repo view <owner>/<repo>
-    tea issue list --repo <owner>/<repo> --state open
-    tea issue view <number> --repo <owner>/<repo>
-    tea pr list --repo <owner>/<repo> --state open
-    tea pr view <number> --repo <owner>/<repo>
+    tea repo view coder/cluster-gitops --login "$REVIEWER_GITEA_TEA_LOGIN_NAME"
+    tea repo view coder/openclaw-sandbox-images --login "$REVIEWER_GITEA_TEA_LOGIN_NAME"
+    tea issue list --repo <owner>/<repo> --state open --login "$REVIEWER_GITEA_TEA_LOGIN_NAME"
+    tea issue view <number> --repo <owner>/<repo> --login "$REVIEWER_GITEA_TEA_LOGIN_NAME"
+    tea pr list --repo <owner>/<repo> --state open --login "$REVIEWER_GITEA_TEA_LOGIN_NAME"
+    tea pr view <number> --repo <owner>/<repo> --login "$REVIEWER_GITEA_TEA_LOGIN_NAME"
     ```
 
     Clone only for inspection, keep the clone in a temporary directory, then discard it.
@@ -1203,7 +1203,7 @@ data:
     - The Gitea admin account `git-admin` remains the final authority for approvals and merges on protected `main`.
     - Cite concrete repo paths, commits, issues, or PRs when they shape a design.
     - Tell main when a design depends on absent, ambiguous, or inconsistent Gitea state.
-    - If plain `tea` fails, one retry with `--login "$REVIEWER_GITEA_TEA_LOGIN_NAME"` is acceptable to confirm a login-selection problem before you report the blocker.
+    - Use `--login "$REVIEWER_GITEA_TEA_LOGIN_NAME"` for `tea` commands so the shared reviewer account is selected consistently.
     - If `tea` auth fails or a critical repo is missing, stop and tell main exactly what failed.
   workspace-architect-skills__package-worker-definitions__SKILL.md: |
     ---
@@ -2991,13 +2991,13 @@ data:
     Use the preconfigured `git` and `tea` access for the `reviewer` Gitea user. Architect uses this same Gitea user for read-only design browsing. Coder uses the separate `coder` Gitea user for implementation and repo management.
 
     ```bash
-    tea repo list
-    tea repo view <owner>/<repo>
-    tea pr list --repo <owner>/<repo> --state open
-    tea pr view <number> --repo <owner>/<repo>
-    tea issue list --repo <owner>/<repo> --state open
-    tea issue view <number> --repo <owner>/<repo>
-    tea pr reviews <number> --repo <owner>/<repo>
+    tea repo view coder/cluster-gitops --login "$REVIEWER_GITEA_TEA_LOGIN_NAME"
+    tea repo view coder/openclaw-sandbox-images --login "$REVIEWER_GITEA_TEA_LOGIN_NAME"
+    tea pr list --repo <owner>/<repo> --state open --login "$REVIEWER_GITEA_TEA_LOGIN_NAME"
+    tea pr view <number> --repo <owner>/<repo> --login "$REVIEWER_GITEA_TEA_LOGIN_NAME"
+    tea issue list --repo <owner>/<repo> --state open --login "$REVIEWER_GITEA_TEA_LOGIN_NAME"
+    tea issue view <number> --repo <owner>/<repo> --login "$REVIEWER_GITEA_TEA_LOGIN_NAME"
+    tea pr reviews <number> --repo <owner>/<repo> --login "$REVIEWER_GITEA_TEA_LOGIN_NAME"
     ```
 
     Clone only for review inspection, keep the clone in a temporary directory, then discard it.
@@ -3017,9 +3017,9 @@ data:
     ## PR Actions
 
     ```bash
-    tea pr review <number> --repo <owner>/<repo> --comment "Your review observation"
-    tea pr review <number> --repo <owner>/<repo> --approve
-    tea pr merge <number> --repo <owner>/<repo>
+    tea pr review <number> --repo <owner>/<repo> --comment "Your review observation" --login "$REVIEWER_GITEA_TEA_LOGIN_NAME"
+    tea pr review <number> --repo <owner>/<repo> --approve --login "$REVIEWER_GITEA_TEA_LOGIN_NAME"
+    tea pr merge <number> --repo <owner>/<repo> --login "$REVIEWER_GITEA_TEA_LOGIN_NAME"
     ```
 
     ## Rules
@@ -3030,7 +3030,7 @@ data:
     - Do not push branches, create commits, or modify repo file content directly.
     - Ground audit reports in specific commits, file paths, diff hunks, issues, or PR comments.
     - Flag discrepancies between Gitea state and approved designs to main.
-    - If plain `tea` fails, one retry with `--login "$REVIEWER_GITEA_TEA_LOGIN_NAME"` is acceptable to confirm a login-selection problem before you report the blocker.
+    - Use `--login "$REVIEWER_GITEA_TEA_LOGIN_NAME"` for `tea` commands so the shared reviewer account is selected consistently.
     - If `tea` auth fails, a PR is out of scope, or a merge conflicts, stop and tell main exactly what failed.
   workspace-auditor-skills__manage-review-packets__SKILL.md: |
     ---
@@ -5163,7 +5163,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: 27a4b46beb4b598c0ad6627261609df133a4a1dd5b37e7d80d8783863bb39017
+        checksum/config: 7d89b68eafea215de6d78d3f1e1ea81f324759f8ef4db9ff130883424d5d5574
       labels:
         app.kubernetes.io/instance: platform-stack
         app.kubernetes.io/name: openclaw

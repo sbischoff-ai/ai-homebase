@@ -58,7 +58,7 @@ After a successful bootstrap, the script prints:
 - default OpenClaw model, when a model-provider key is configured
 - service URLs from `bootstrap.local.toml`
 
-Open the printed OpenClaw URL first. If OpenClaw asks for pairing approval, keep the browser tab open and use the `kubectl exec ... openclaw devices ...` flow below.
+Open the printed OpenClaw URL first. The bootstrap now auto-approves its own in-pod CLI device so cron seeding and smoke checks can finish unattended. If the browser session itself asks for pairing approval, keep the tab open and use the `kubectl exec ... openclaw devices ...` flow below.
 
 ## 4. Approve the First OpenClaw Device
 

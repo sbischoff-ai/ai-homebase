@@ -18,28 +18,31 @@ sandbox_dir="$(mktemp -d)"
 trap 'rm -rf "${sandbox_dir}"' EXIT
 
 repo_dir="${sandbox_dir}/repo"
-mkdir -p "${repo_dir}/scripts" "${repo_dir}/charts/platform-stack"
+mkdir -p "${repo_dir}/scripts/lib"
 cp "${REPO_ROOT}/scripts/bootstrap-stack.sh" "${repo_dir}/scripts/bootstrap-stack.sh"
-cp "${REPO_ROOT}/scripts/bootstrap-config.py" "${repo_dir}/scripts/bootstrap-config.py"
-chmod +x "${repo_dir}/scripts/bootstrap-stack.sh" "${repo_dir}/scripts/bootstrap-config.py"
+cp "${REPO_ROOT}/scripts/lib/logging.sh" "${repo_dir}/scripts/lib/logging.sh"
+chmod +x "${repo_dir}/scripts/bootstrap-stack.sh"
 
-cat >"${repo_dir}/charts/platform-stack/values.yaml" <<'EOF'
-openclaw:
-  remoteDocker:
-    dockerHost: ssh://docker-remote@openclaw-sandbox.homebase.internal:2222
-  openclaw:
-    agents:
-      list:
-        - id: archivist
-          sandbox:
-            mode: non-main
-EOF
+cat >"${repo_dir}/scripts/bootstrap-runtime-k3s.sh" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'bootstrap-runtime-k3s.sh %s | log=%s\n' "$*" "${BOOTSTRAP_LOG_FILE:-}" >>"${FAKE_COMMAND_LOG:?}"
+SH
+chmod +x "${repo_dir}/scripts/bootstrap-runtime-k3s.sh"
 
-cat >"${repo_dir}/charts/platform-stack/values-k3s.yaml" <<'EOF'
-openclaw:
-  remoteDocker:
-    dockerHost: ssh://docker-remote@openclaw-sandbox.homebase.internal:2222
-EOF
+cat >"${repo_dir}/scripts/bootstrap-apply.sh" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'bootstrap-apply.sh %s | log=%s\n' "$*" "${BOOTSTRAP_LOG_FILE:-}" >>"${FAKE_COMMAND_LOG:?}"
+SH
+chmod +x "${repo_dir}/scripts/bootstrap-apply.sh"
+
+cat >"${repo_dir}/scripts/bootstrap-smoke.sh" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'bootstrap-smoke.sh %s | log=%s\n' "$*" "${BOOTSTRAP_LOG_FILE:-}" >>"${FAKE_COMMAND_LOG:?}"
+SH
+chmod +x "${repo_dir}/scripts/bootstrap-smoke.sh"
 
 cat >"${sandbox_dir}/bootstrap.local.toml" <<'EOF'
 [providers]
@@ -67,116 +70,15 @@ domain = "example.com"
 smtp_host = "smtp.example.com"
 EOF
 
-mkdir -p "${sandbox_dir}/bin" "${sandbox_dir}/incus"
+mkdir -p "${sandbox_dir}/incus"
 cat >"${sandbox_dir}/incus/openclaw-sandbox.env" <<'EOF'
 HOST_LISTEN_ADDRESS=10.10.10.1
 SSH_HOST_PORT=2222
 EOF
 
-cat >"${repo_dir}/scripts/bootstrap-secrets.sh" <<'SH'
-#!/usr/bin/env bash
-set -euo pipefail
-printf 'bootstrap-secrets.sh %s\n' "$*" >>"${FAKE_COMMAND_LOG:?}"
-SH
-chmod +x "${repo_dir}/scripts/bootstrap-secrets.sh"
-
-cat >"${repo_dir}/scripts/build-openclaw-sandbox-images.sh" <<'SH'
-#!/usr/bin/env bash
-set -euo pipefail
-printf 'build-openclaw-sandbox-images.sh %s\n' "$*" >>"${FAKE_COMMAND_LOG:?}"
-SH
-chmod +x "${repo_dir}/scripts/build-openclaw-sandbox-images.sh"
-
-cat >"${repo_dir}/scripts/openclaw-remote-docker-load-images.sh" <<'SH'
-#!/usr/bin/env bash
-set -euo pipefail
-printf 'openclaw-remote-docker-load-images.sh %s\n' "$*" >>"${FAKE_COMMAND_LOG:?}"
-SH
-chmod +x "${repo_dir}/scripts/openclaw-remote-docker-load-images.sh"
-
-cat >"${repo_dir}/scripts/openclaw-remote-docker-publish-images.sh" <<'SH'
-#!/usr/bin/env bash
-set -euo pipefail
-printf 'openclaw-remote-docker-publish-images.sh %s\n' "$*" >>"${FAKE_COMMAND_LOG:?}"
-SH
-chmod +x "${repo_dir}/scripts/openclaw-remote-docker-publish-images.sh"
-
-cat >"${repo_dir}/scripts/bootstrap-coder-gitea.sh" <<'SH'
-#!/usr/bin/env bash
-set -euo pipefail
-printf 'bootstrap-coder-gitea.sh %s\n' "$*" >>"${FAKE_COMMAND_LOG:?}"
-SH
-chmod +x "${repo_dir}/scripts/bootstrap-coder-gitea.sh"
-
-cat >"${repo_dir}/scripts/bootstrap-gitops.sh" <<'SH'
-#!/usr/bin/env bash
-set -euo pipefail
-printf 'bootstrap-gitops.sh %s\n' "$*" >>"${FAKE_COMMAND_LOG:?}"
-SH
-chmod +x "${repo_dir}/scripts/bootstrap-gitops.sh"
-
-cat >"${repo_dir}/scripts/bootstrap-openclaw-cron.sh" <<'SH'
-#!/usr/bin/env bash
-set -euo pipefail
-printf 'bootstrap-openclaw-cron.sh %s\n' "$*" >>"${FAKE_COMMAND_LOG:?}"
-SH
-chmod +x "${repo_dir}/scripts/bootstrap-openclaw-cron.sh"
-
-cat >"${repo_dir}/scripts/bootstrap-openclaw-skills.sh" <<'SH'
-#!/usr/bin/env bash
-set -euo pipefail
-printf 'bootstrap-openclaw-skills.sh %s\n' "$*" >>"${FAKE_COMMAND_LOG:?}"
-SH
-chmod +x "${repo_dir}/scripts/bootstrap-openclaw-skills.sh"
-
-cat >"${repo_dir}/scripts/bootstrap-memgraph.sh" <<'SH'
-#!/usr/bin/env bash
-set -euo pipefail
-printf 'bootstrap-memgraph.sh %s\n' "$*" >>"${FAKE_COMMAND_LOG:?}"
-SH
-chmod +x "${repo_dir}/scripts/bootstrap-memgraph.sh"
-
-cat >"${sandbox_dir}/bin/helm" <<'SH'
-#!/usr/bin/env bash
-set -euo pipefail
-printf 'helm %s\n' "$*" >>"${FAKE_HELM_LOG:?}"
-if [[ "$1" == "upgrade" ]]; then
-  prev=""
-  for arg in "$@"; do
-    if [[ "$prev" == "--values" && -f "$arg" ]]; then
-      printf -- '--- values file: %s ---\n' "$arg" >>"${FAKE_HELM_LOG:?}"
-      cat "$arg" >>"${FAKE_HELM_LOG:?}"
-      printf '\n' >>"${FAKE_HELM_LOG:?}"
-    fi
-    prev="$arg"
-  done
-fi
-if [[ "$1" == "dependency" ]]; then
-  exit 0
-fi
-if [[ "$1" == "template" ]]; then
-  printf 'kind: ConfigMap\nmetadata:\n  labels:\n    helm.sh/chart: openclaw-0.1.0\n'
-  exit 0
-fi
-exit 0
-SH
-
-cat >"${sandbox_dir}/bin/kubectl" <<'SH'
-#!/usr/bin/env bash
-set -euo pipefail
-printf 'kubectl %s\n' "$*" >>"${FAKE_KUBECTL_LOG:?}"
-exit 0
-SH
-
-chmod +x "${sandbox_dir}/bin/helm" "${sandbox_dir}/bin/kubectl"
-
 (
   cd "${repo_dir}"
-  export PATH="${sandbox_dir}/bin:${PATH}"
-  export HOME="${sandbox_dir}"
   export FAKE_COMMAND_LOG="${sandbox_dir}/commands.log"
-  export FAKE_HELM_LOG="${sandbox_dir}/helm.log"
-  export FAKE_KUBECTL_LOG="${sandbox_dir}/kubectl.log"
   ./scripts/bootstrap-stack.sh \
     --profile k3s \
     --bootstrap-config "${sandbox_dir}/bootstrap.local.toml" \
@@ -184,15 +86,26 @@ chmod +x "${sandbox_dir}/bin/helm" "${sandbox_dir}/bin/kubectl"
 )
 
 commands="$(cat "${sandbox_dir}/commands.log")"
-helm_log="$(cat "${sandbox_dir}/helm.log")"
+shared_log="$(printf '%s\n' "${commands}" | sed -n 's/.*| log=\(.*\)$/\1/p' | head -n 1)"
 
-assert_contains "${commands}" "--remote-docker-host 10.10.10.1"
-assert_contains "${commands}" "--remote-docker-port 2222"
-assert_contains "${commands}" "build-openclaw-sandbox-images.sh --base-image openclaw-sandbox:trixie-slim --coder-image openclaw-sandbox-coder:trixie-slim"
-assert_contains "${commands}" "openclaw-remote-docker-load-images.sh --docker-host ssh://docker-remote@10.10.10.1:2222"
-assert_contains "${commands}" "--image openclaw-sandbox-coder:trixie-slim"
-assert_contains "${commands}" "bootstrap-coder-gitea.sh --bootstrap-config ${sandbox_dir}/bootstrap.local.toml --release-name platform-stack --namespace ai-homebase"
-assert_contains "${commands}" "bootstrap-gitops.sh --profile k3s --bootstrap-config ${sandbox_dir}/bootstrap.local.toml --release-name platform-stack --namespace ai-homebase --kubeconfig /home/sbischoff/.kube/config --remote-docker-host 10.10.10.1 --remote-docker-port 2222 --remote-docker-key ${sandbox_dir}/.local/state/ai-homebase/incus/openclaw-sandbox-id_ed25519 --incus-connection-info ${sandbox_dir}/incus/openclaw-sandbox.env"
-assert_contains "${helm_log}" "dockerHost: ssh://docker-remote@10.10.10.1:2222"
+assert_contains "${commands}" "bootstrap-runtime-k3s.sh --bootstrap-config ${sandbox_dir}/bootstrap.local.toml"
+assert_contains "${commands}" "bootstrap-apply.sh --profile k3s --bootstrap-config ${sandbox_dir}/bootstrap.local.toml --release-name platform-stack --namespace ai-homebase --kubeconfig ${HOME}/.kube/config --incus-vm-name openclaw-sandbox --incus-connection-info ${sandbox_dir}/incus/openclaw-sandbox.env"
+assert_contains "${commands}" "bootstrap-smoke.sh --profile k3s --bootstrap-config ${sandbox_dir}/bootstrap.local.toml --release-name platform-stack --namespace ai-homebase --kubeconfig ${HOME}/.kube/config --incus-vm-name openclaw-sandbox --incus-connection-info ${sandbox_dir}/incus/openclaw-sandbox.env"
+
+if [[ -z "${shared_log}" ]]; then
+  printf 'expected bootstrap-stack to export a shared BOOTSTRAP_LOG_FILE\n' >&2
+  printf 'command log:\n%s\n' "${commands}" >&2
+  exit 1
+fi
+
+runtime_log="$(printf '%s\n' "${commands}" | sed -n '1s/.*| log=\(.*\)$/\1/p')"
+apply_log="$(printf '%s\n' "${commands}" | sed -n '2s/.*| log=\(.*\)$/\1/p')"
+smoke_log="$(printf '%s\n' "${commands}" | sed -n '3s/.*| log=\(.*\)$/\1/p')"
+
+if [[ "${runtime_log}" != "${apply_log}" || "${apply_log}" != "${smoke_log}" ]]; then
+  printf 'expected all bootstrap phases to share one log file\n' >&2
+  printf 'command log:\n%s\n' "${commands}" >&2
+  exit 1
+fi
 
 echo "bootstrap stack remote docker autodiscovery tests passed"

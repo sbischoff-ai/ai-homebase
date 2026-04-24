@@ -232,7 +232,9 @@ EOF
 
   if [[ "${HOME}/.tea/config.yml" != "${XDG_CONFIG_HOME}/tea/config.yml" ]]; then
     if [[ -d "${HOME}/.tea" || -L "${HOME}/.tea" ]] || mkdir -p "${HOME}/.tea" 2>/dev/null; then
-      cp "${XDG_CONFIG_HOME}/tea/config.yml" "${HOME}/.tea/config.yml"
+      if [[ ! -e "${HOME}/.tea/config.yml" ]] || [[ ! "${XDG_CONFIG_HOME}/tea/config.yml" -ef "${HOME}/.tea/config.yml" ]]; then
+        cp "${XDG_CONFIG_HOME}/tea/config.yml" "${HOME}/.tea/config.yml"
+      fi
       chmod 0600 "${HOME}/.tea/config.yml"
     fi
   fi

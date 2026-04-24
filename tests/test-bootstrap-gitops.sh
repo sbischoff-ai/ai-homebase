@@ -13,15 +13,24 @@ assert_contains() {
   fi
 }
 
+assert_not_contains() {
+  local haystack="$1"
+  local needle="$2"
+  if [[ "${haystack}" == *"${needle}"* ]]; then
+    printf 'expected output to omit: %s\n' "${needle}" >&2
+    printf 'actual output:\n%s\n' "${haystack}" >&2
+    exit 1
+  fi
+}
+
 sandbox_dir="$(mktemp -d)"
 trap 'rm -rf "${sandbox_dir}"' EXIT
 
 repo_dir="${sandbox_dir}/repo"
 mkdir -p "${repo_dir}/scripts"
 cp "${REPO_ROOT}/scripts/bootstrap-gitops.sh" "${repo_dir}/scripts/bootstrap-gitops.sh"
-cp "${REPO_ROOT}/scripts/bootstrap-stack.sh" "${repo_dir}/scripts/bootstrap-stack.sh"
 cp "${REPO_ROOT}/scripts/bootstrap-config.py" "${repo_dir}/scripts/bootstrap-config.py"
-chmod +x "${repo_dir}/scripts/bootstrap-gitops.sh" "${repo_dir}/scripts/bootstrap-stack.sh" "${repo_dir}/scripts/bootstrap-config.py"
+chmod +x "${repo_dir}/scripts/bootstrap-gitops.sh" "${repo_dir}/scripts/bootstrap-config.py"
 
 bootstrap_config_path="${sandbox_dir}/bootstrap.local.toml"
 command_log="${sandbox_dir}/commands.log"
@@ -86,12 +95,12 @@ printf 'bootstrap-secrets.sh %s\n' "$*" >>"${FAKE_COMMAND_LOG:?}"
 SH
 chmod +x "${repo_dir}/scripts/bootstrap-secrets.sh"
 
-cat >"${repo_dir}/scripts/bootstrap-stack.sh" <<'SH'
+cat >"${repo_dir}/scripts/bootstrap-apply.sh" <<'SH'
 #!/usr/bin/env bash
 set -euo pipefail
-printf 'bootstrap-stack.sh %s\n' "$*" >>"${FAKE_COMMAND_LOG:?}"
+printf 'bootstrap-apply.sh %s\n' "$*" >>"${FAKE_COMMAND_LOG:?}"
 SH
-chmod +x "${repo_dir}/scripts/bootstrap-stack.sh"
+chmod +x "${repo_dir}/scripts/bootstrap-apply.sh"
 
 cat >"${repo_dir}/scripts/bootstrap-memgraph.sh" <<'SH'
 #!/usr/bin/env bash
@@ -99,6 +108,20 @@ set -euo pipefail
 printf 'bootstrap-memgraph.sh %s\n' "$*" >>"${FAKE_COMMAND_LOG:?}"
 SH
 chmod +x "${repo_dir}/scripts/bootstrap-memgraph.sh"
+
+cat >"${repo_dir}/scripts/bootstrap-openclaw-skills.sh" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'bootstrap-openclaw-skills.sh %s\n' "$*" >>"${FAKE_COMMAND_LOG:?}"
+SH
+chmod +x "${repo_dir}/scripts/bootstrap-openclaw-skills.sh"
+
+cat >"${repo_dir}/scripts/bootstrap-openclaw-cron.sh" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'bootstrap-openclaw-cron.sh %s\n' "$*" >>"${FAKE_COMMAND_LOG:?}"
+SH
+chmod +x "${repo_dir}/scripts/bootstrap-openclaw-cron.sh"
 
 cat >"${repo_dir}/scripts/render-gitops-repo.py" <<'PY'
 #!/usr/bin/env python3
@@ -145,6 +168,19 @@ cat >"${sandbox_dir}/bin/kubectl" <<'SH'
 set -euo pipefail
 printf 'kubectl %s\n' "$*" >>"${FAKE_KUBECTL_LOG:?}"
 case "$*" in
+  *"port-forward --address 127.0.0.1 service/platform-stack-gitea-http 13000:3000"*)
+    printf 'Forwarding from 127.0.0.1:13000 -> 3000\n'
+    sleep 30
+    exit 0
+    ;;
+  *"app sync"*)
+    printf 'rbac.authorization.k8s.io     ClusterRoleBinding                           platform-stack-cert-manager-controller-issuers                     Synced\n'
+    exit 0
+    ;;
+  *"app wait"*)
+    printf 'rbac.authorization.k8s.io     ClusterRoleBinding                           platform-stack-cert-manager-controller-issuers                     Healthy  Synced\n'
+    exit 0
+    ;;
   *"get secret gitea-admin-secret -o jsonpath={.data.username}"*) printf 'aG9tZWJhc2UtYWRtaW4=' ;;
   *"get secret gitea-admin-secret -o jsonpath={.data.password}"*) printf 'YWRtaW4tcGFzcw==' ;;
   *"get secret gitops-config-secrets -o jsonpath={.data.CODER_GITEA_PASSWORD}"*) exit 1 ;;
@@ -158,8 +194,36 @@ cat >"${sandbox_dir}/bin/curl" <<'SH'
 #!/usr/bin/env bash
 set -euo pipefail
 printf 'curl %s\n' "$*" >>"${FAKE_CURL_LOG:?}"
+output_path=""
+previous=""
+for arg in "$@"; do
+  if [[ "$previous" == "-o" ]]; then
+    output_path="$arg"
+    break
+  fi
+  previous="$arg"
+done
+write_body() {
+  local body="$1"
+  if [[ -n "$output_path" ]]; then
+    printf '%s' "$body" >"$output_path"
+  else
+    printf '%s' "$body"
+  fi
+}
+if [[ "$*" == *"/tokens"* && "$*" == *" -d "* ]]; then
+  write_body '{"sha1":"test-token"}'
+  [[ "$*" == *" -w "* ]] && printf '201'
+  exit 0
+fi
+if [[ "$*" == *"/tokens"* ]]; then
+  write_body '[]'
+  [[ "$*" == *" -w "* ]] && printf '200'
+  exit 0
+fi
 case "$*" in
   *"/users/coder-bot"*) printf '404' ;;
+  *"/users/reviewer"*) printf '404' ;;
   *"/repos/coder-bot/cluster-gitops"*) printf '404' ;;
   *"/repos/coder-bot/openclaw-sandbox-images"*) printf '404' ;;
   *"/api/v1/version"*) printf '{"version":"1.0"}' ;;
@@ -172,6 +236,9 @@ cat >"${sandbox_dir}/bin/git" <<'SH'
 #!/usr/bin/env bash
 set -euo pipefail
 printf 'git %s\n' "$*" >>"${FAKE_GIT_LOG:?}"
+if [[ "$*" == *"diff --cached --quiet"* ]]; then
+  exit 1
+fi
 exit 0
 SH
 
@@ -213,9 +280,11 @@ kubectl_output="$(cat "${kubectl_log}")"
 curl_output="$(cat "${curl_log}")"
 git_output="$(cat "${git_log}")"
 
-assert_contains "${commands}" "bootstrap-stack.sh --profile k3d --bootstrap-config ${bootstrap_config_path} --release-name platform-stack --namespace ai-homebase --skip-gitops --enable-service argo-cd"
+assert_contains "${commands}" "bootstrap-apply.sh --profile k3d --bootstrap-config ${bootstrap_config_path} --release-name platform-stack --namespace ai-homebase --internal-skip-gitops --enable-service argo-cd"
 assert_contains "${commands}" "bootstrap-secrets.sh --profile k3d --bootstrap-config ${bootstrap_config_path} --release-name platform-stack --namespace ai-homebase"
 assert_contains "${commands}" "bootstrap-memgraph.sh --release-name platform-stack --namespace ai-homebase"
+assert_contains "${commands}" "bootstrap-openclaw-skills.sh --release-name platform-stack --namespace ai-homebase --deployment platform-stack-openclaw --phase post-gitops"
+assert_contains "${commands}" "bootstrap-openclaw-cron.sh --release-name platform-stack --namespace ai-homebase --deployment platform-stack-openclaw"
 assert_contains "${commands}" "--remote-docker-key ${remote_docker_key_path}"
 assert_contains "${commands}" "--remote-docker-host 10.10.0.1"
 assert_contains "${commands}" "--remote-docker-port 2222"
@@ -226,7 +295,7 @@ assert_contains "${kubectl_output}" "root-application.yaml"
 assert_contains "${kubectl_output}" "get application platform-stack-gitops-root"
 assert_contains "${kubectl_output}" "get application platform-stack-platform-stack"
 assert_contains "${kubectl_output}" "exec deployment/platform-stack-argocd-server -- env ARGOCD_USERNAME="
-assert_contains "${git_output}" "push --force origin HEAD:main"
+assert_contains "${git_output}" "push origin HEAD:main"
 assert_contains "${output}" "GitOps bootstrap complete."
 assert_contains "${output}" "Argo CD URL: http://argocd.test.internal"
 assert_contains "${output}" "render-gitops-repo.py"
@@ -235,5 +304,6 @@ assert_contains "${output}" "--remote-docker-host 10.10.0.1"
 assert_contains "${output}" "--remote-docker-port 2222"
 assert_contains "${output}" "Triggering the initial Argo CD sync"
 assert_contains "${output}" "Waiting for Argo CD applications to become Synced and Healthy"
+assert_not_contains "${output}" "ClusterRoleBinding                           platform-stack-cert-manager-controller-issuers"
 
 echo "bootstrap gitops tests passed"

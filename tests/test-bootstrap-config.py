@@ -482,27 +482,20 @@ assert rendered_values["openclaw"]["env"] == [
     {"name": "CODER_GITEA_HOST", "value": "gitea.test.internal"},
     {"name": "CODER_GITEA_USERNAME", "value": "coder-bot"},
     {"name": "CODER_GITEA_EMAIL", "value": "coder-bot@example.invalid"},
+    {"name": "CODER_GITOPS_REPO_NAME", "value": "cluster-gitops"},
+    {"name": "CODER_SANDBOX_IMAGES_REPO_NAME", "value": "openclaw-sandbox-images"},
     {"name": "CODER_GITEA_TEA_LOGIN_NAME", "value": "coder"},
     {"name": "CODER_GITEA_TEA_TOKEN_NAME", "value": "openclaw-coder-sandbox"},
     {"name": "CODER_REGISTRY_HOST", "value": "registry.test.internal"},
     {"name": "CODER_REGISTRY_USERNAME", "value": "coder"},
     {"name": "CODER_REGISTRY_BASE_URL", "value": "https://registry.test.internal"},
-    {
-        "name": "REVIEWER_GITEA_BASE_URL",
-        "value": "http://{{ printf \"%s-gitea-http.%s.svc.cluster.local\" .Release.Name .Release.Namespace }}:3000",
-    },
+    {"name": "REVIEWER_GITEA_BASE_URL", "value": "https://gitea.test.internal"},
     {
         "name": "REVIEWER_GITEA_BOOTSTRAP_URL",
         "value": "http://{{ printf \"%s-gitea-http.%s.svc.cluster.local\" .Release.Name .Release.Namespace }}:3000",
     },
-    {
-        "name": "REVIEWER_GITEA_TEA_URL",
-        "value": "http://{{ printf \"%s-gitea-http.%s.svc.cluster.local\" .Release.Name .Release.Namespace }}:3000",
-    },
-    {
-        "name": "REVIEWER_GITEA_HOST",
-        "value": '{{ printf "%s-gitea-http.%s.svc.cluster.local" .Release.Name .Release.Namespace }}',
-    },
+    {"name": "REVIEWER_GITEA_TEA_URL", "value": "https://gitea.test.internal"},
+    {"name": "REVIEWER_GITEA_HOST", "value": "gitea.test.internal"},
     {"name": "REVIEWER_GITEA_USERNAME", "value": "reviewer"},
     {"name": "REVIEWER_GITEA_EMAIL", "value": "reviewer@example.invalid"},
     {"name": "REVIEWER_GITEA_TEA_LOGIN_NAME", "value": "reviewer"},
@@ -540,10 +533,16 @@ assert 'approval_policy = "never"' in coder_init_script
 assert 'sandbox_mode = "danger-full-access"' in coder_init_script
 assert 'approval_policy = "never"' in coder_workspace_init_script
 assert 'sandbox_mode = "danger-full-access"' in coder_workspace_init_script
+assert "wait_for_gitea_user_auth" in coder_init_script
+assert "ensure_coder_gitea_token" in coder_init_script
+assert "access token name has been used already" in coder_init_script
+assert "wait_for_gitea_user_auth" in coder_workspace_init_script
+assert "ensure_coder_gitea_token" in coder_workspace_init_script
+assert "access token name has been used already" in coder_workspace_init_script
 assert "debian:trixie-slim" in base_dockerfile
 assert "COPY --from=memgraph-tools /usr/bin/mgconsole /usr/local/bin/mgconsole" in base_dockerfile
 assert "https://deb.nodesource.com/node_22.x" in base_dockerfile
-assert 'go install code.gitea.io/tea@"${TEA_VERSION}"' in base_dockerfile
+assert "gitea.com/gitea/tea/releases/download/v${TEA_VERSION}" in base_dockerfile
 assert "npm install -g @steipete/summarize" in base_dockerfile
 assert "gh --version" in base_dockerfile
 assert "debian:trixie-slim" in gateway_dockerfile
@@ -551,7 +550,7 @@ assert "COPY --from=openclaw-runtime /app /app" in gateway_dockerfile
 assert "COPY --from=memgraph-tools /usr/bin/mgconsole /usr/local/bin/mgconsole" in gateway_dockerfile
 assert "COPY openclaw-gateway-start.sh /usr/local/bin/openclaw-gateway-start.sh" in gateway_dockerfile
 assert "https://deb.nodesource.com/node_22.x" in gateway_dockerfile
-assert 'go install code.gitea.io/tea@"${TEA_VERSION}"' in gateway_dockerfile
+assert "gitea.com/gitea/tea/releases/download/v${TEA_VERSION}" in gateway_dockerfile
 assert "npm install -g @steipete/summarize" in gateway_dockerfile
 assert "tmux -V" in gateway_dockerfile
 assert "reviewer-gitea-init.sh" in gateway_start_script

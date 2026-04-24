@@ -11,7 +11,14 @@ bootstrap_init_logging() {
 
   BOOTSTRAP_LOG_FILE="${BOOTSTRAP_LOG_FILE:-/tmp/ai-homebase-bootstrap-${timestamp}.log}"
   mkdir -p "$(dirname "$BOOTSTRAP_LOG_FILE")"
-  : > "$BOOTSTRAP_LOG_FILE"
+  if [[ ! -e "$BOOTSTRAP_LOG_FILE" ]]; then
+    : > "$BOOTSTRAP_LOG_FILE"
+  else
+    touch "$BOOTSTRAP_LOG_FILE"
+  fi
+
+  export BOOTSTRAP_LOG_FILE
+  export BOOTSTRAP_VERBOSE
 }
 
 step() {

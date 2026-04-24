@@ -17,12 +17,12 @@ Use this skill to inspect in-cluster source control before design work.
 Use the preconfigured `git` and `tea` access for the `__REVIEWER_GITEA_USERNAME__` Gitea user. Auditor uses this same Gitea user for review work. Coder uses the separate `__CODER_GITEA_USERNAME__` Gitea user for implementation and repo management.
 
 ```bash
-tea repo list
-tea repo view <owner>/<repo>
-tea issue list --repo <owner>/<repo> --state open
-tea issue view <number> --repo <owner>/<repo>
-tea pr list --repo <owner>/<repo> --state open
-tea pr view <number> --repo <owner>/<repo>
+tea repo view __CODER_GITEA_USERNAME__/cluster-gitops --login "$REVIEWER_GITEA_TEA_LOGIN_NAME"
+tea repo view __CODER_GITEA_USERNAME__/openclaw-sandbox-images --login "$REVIEWER_GITEA_TEA_LOGIN_NAME"
+tea issue list --repo <owner>/<repo> --state open --login "$REVIEWER_GITEA_TEA_LOGIN_NAME"
+tea issue view <number> --repo <owner>/<repo> --login "$REVIEWER_GITEA_TEA_LOGIN_NAME"
+tea pr list --repo <owner>/<repo> --state open --login "$REVIEWER_GITEA_TEA_LOGIN_NAME"
+tea pr view <number> --repo <owner>/<repo> --login "$REVIEWER_GITEA_TEA_LOGIN_NAME"
 ```
 
 Clone only for inspection, keep the clone in a temporary directory, then discard it.
@@ -47,5 +47,5 @@ rm -rf "${clone_root}"
 - The Gitea admin account `__GITEA_ADMIN_USERNAME__` remains the final authority for approvals and merges on protected `main`.
 - Cite concrete repo paths, commits, issues, or PRs when they shape a design.
 - Tell main when a design depends on absent, ambiguous, or inconsistent Gitea state.
-- If plain `tea` fails, one retry with `--login "$REVIEWER_GITEA_TEA_LOGIN_NAME"` is acceptable to confirm a login-selection problem before you report the blocker.
+- Use `--login "$REVIEWER_GITEA_TEA_LOGIN_NAME"` for `tea` commands so the shared reviewer account is selected consistently.
 - If `tea` auth fails or a critical repo is missing, stop and tell main exactly what failed.

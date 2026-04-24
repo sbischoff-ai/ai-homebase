@@ -25,6 +25,7 @@ BOOTSTRAP_VALUES_FILE=""
 REMOTE_DOCKER_OVERRIDE_VALUES_FILE=""
 SKIP_GITOPS=0
 VERBOSE=0
+INSTALL_ONLY="${BOOTSTRAP_APPLY_INSTALL_ONLY:-0}"
 CERT_MANAGER_CRD_WAIT_TIMEOUT="${CERT_MANAGER_CRD_WAIT_TIMEOUT:-180s}"
 CERT_MANAGER_DEPLOYMENT_WAIT_TIMEOUT="${CERT_MANAGER_DEPLOYMENT_WAIT_TIMEOUT:-600s}"
 HELM_RELEASE_TIMEOUT="${HELM_RELEASE_TIMEOUT:-45m}"
@@ -97,14 +98,34 @@ default_values_files_for_profile() {
 }
 
 helm_upgrade_install() {
-  helm upgrade --install "$RELEASE_NAME" charts/platform-stack \
+  local output=""
+  if output="$(helm upgrade --install "$RELEASE_NAME" charts/platform-stack \
     "${HELM_CONTEXT_ARGS[@]}" \
     --namespace "$NAMESPACE" \
     --create-namespace \
     --timeout "$HELM_RELEASE_TIMEOUT" \
     "${VALUES_ARGS[@]}" \
     "$@" \
-    "${SET_ARGS[@]}"
+    "${SET_ARGS[@]}" 2>&1)"; then
+    if [[ "$VERBOSE" -eq 1 && -n "$output" ]]; then
+      printf '%s\n' "$output"
+    fi
+    return 0
+  fi
+  printf '%s\n' "$output" >&2
+  return 1
+}
+
+run_helm_dependency_update() {
+  local output=""
+  if output="$(helm dependency update charts/platform-stack 2>&1)"; then
+    if [[ "$VERBOSE" -eq 1 && -n "$output" ]]; then
+      printf '%s\n' "$output"
+    fi
+    return 0
+  fi
+  printf '%s\n' "$output" >&2
+  return 1
 }
 
 current_kube_context() {
@@ -265,6 +286,10 @@ prepare_openclaw_runtime_images() {
 
   if [[ ${#build_args[@]} -eq 0 ]]; then
     return 0
+  fi
+
+  if [[ "$VERBOSE" -eq 1 ]]; then
+    build_args+=(--verbose)
   fi
 
   ./scripts/build-openclaw-sandbox-images.sh "${build_args[@]}"
@@ -543,51 +568,6 @@ publish_runtime_images_to_registry() {
   trap 'rm -f "$BOOTSTRAP_VALUES_FILE" "$REMOTE_DOCKER_OVERRIDE_VALUES_FILE"' EXIT
 }
 
-seed_openclaw_cron_jobs() {
-  local seed_cmd=(
-    ./scripts/bootstrap-openclaw-cron.sh
-    --release-name "$RELEASE_NAME"
-    --namespace "$NAMESPACE"
-  )
-  if [[ -n "$KUBECONFIG_PATH" ]]; then
-    seed_cmd+=(--kubeconfig "$KUBECONFIG_PATH")
-  fi
-  if [[ -n "$KUBE_CONTEXT" ]]; then
-    seed_cmd+=(--kube-context "$KUBE_CONTEXT")
-  fi
-  "${seed_cmd[@]}"
-}
-
-seed_openclaw_skills() {
-  local seed_cmd=(
-    ./scripts/bootstrap-openclaw-skills.sh
-    --release-name "$RELEASE_NAME"
-    --namespace "$NAMESPACE"
-  )
-  if [[ -n "$KUBECONFIG_PATH" ]]; then
-    seed_cmd+=(--kubeconfig "$KUBECONFIG_PATH")
-  fi
-  if [[ -n "$KUBE_CONTEXT" ]]; then
-    seed_cmd+=(--kube-context "$KUBE_CONTEXT")
-  fi
-  "${seed_cmd[@]}"
-}
-
-seed_memgraph() {
-  local seed_cmd=(
-    ./scripts/bootstrap-memgraph.sh
-    --release-name "$RELEASE_NAME"
-    --namespace "$NAMESPACE"
-  )
-  if [[ -n "$KUBECONFIG_PATH" ]]; then
-    seed_cmd+=(--kubeconfig "$KUBECONFIG_PATH")
-  fi
-  if [[ -n "$KUBE_CONTEXT" ]]; then
-    seed_cmd+=(--kube-context "$KUBE_CONTEXT")
-  fi
-  "${seed_cmd[@]}"
-}
-
 cert_manager_install_enabled() {
   local rendered=""
   rendered="$(helm template "$RELEASE_NAME" charts/platform-stack \
@@ -596,6 +576,11 @@ cert_manager_install_enabled() {
     "${VALUES_ARGS[@]}" \
     "${SET_ARGS[@]}")"
   grep -q 'helm.sh/chart: cert-manager' <<<"$rendered"
+}
+
+cert_manager_resources_ready() {
+  kubectl "${KUBECTL_CONTEXT_ARGS[@]}" get crd clusterissuers.cert-manager.io >/dev/null 2>&1 &&
+    kubectl "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" get secret platform-stack-root-ca >/dev/null 2>&1
 }
 
 wait_for_cert_manager_crds() {
@@ -689,6 +674,10 @@ done
 
 if [[ -z "$KUBECONFIG_PATH" ]]; then
   KUBECONFIG_PATH="$(normalize_kubeconfig_path "$RAW_KUBECONFIG")"
+fi
+
+if [[ "$INSTALL_ONLY" == "true" ]]; then
+  INSTALL_ONLY=1
 fi
 
 case "$PROFILE" in
@@ -807,45 +796,38 @@ if [[ "$VERBOSE" -eq 1 ]]; then
   BOOTSTRAP_SECRETS_CMD+=(--verbose)
 fi
 
-"${BOOTSTRAP_SECRETS_CMD[@]}"
+if [[ "$INSTALL_ONLY" -ne 1 ]]; then
+  "${BOOTSTRAP_SECRETS_CMD[@]}"
+  prepare_openclaw_runtime_images
+fi
 
-prepare_openclaw_runtime_images
-
-helm dependency update charts/platform-stack
+run_helm_dependency_update
 
 if cert_manager_install_enabled; then
-  echo "Installing cert-manager controller stack before enabling cert-manager custom resources"
-  helm_upgrade_install --set certManager.resourcesEnabled=false
-  wait_for_cert_manager_crds
-  wait_for_cert_manager_deployments
-  echo "Re-running install with cert-manager custom resources enabled"
-  helm_upgrade_install --set certManager.resourcesEnabled=true
-  wait_for_internal_ca_secret
+  if cert_manager_resources_ready; then
+    echo "Cert-manager resources are already ready; upgrading platform stack with cert-manager custom resources enabled"
+    helm_upgrade_install --set certManager.resourcesEnabled=true
+    wait_for_internal_ca_secret
+  else
+    echo "Installing cert-manager controller stack before enabling cert-manager custom resources"
+    helm_upgrade_install --set certManager.resourcesEnabled=false
+    wait_for_cert_manager_crds
+    wait_for_cert_manager_deployments
+    echo "Re-running install with cert-manager custom resources enabled"
+    helm_upgrade_install --set certManager.resourcesEnabled=true
+    wait_for_internal_ca_secret
+  fi
 else
   helm_upgrade_install
 fi
 
 export_internal_ca_to_shared_state
-configure_incus_internal_ca_trust
-publish_runtime_images_to_registry
-seed_openclaw_skills
-seed_openclaw_cron_jobs
-seed_memgraph
-
-if [[ -n "$BOOTSTRAP_CONFIG_PATH" ]]; then
-  CODER_GITEA_CMD=(
-    ./scripts/bootstrap-coder-gitea.sh
-    --bootstrap-config "$BOOTSTRAP_CONFIG_PATH"
-    --release-name "$RELEASE_NAME"
-    --namespace "$NAMESPACE"
-  )
-  if [[ -n "$KUBECONFIG_PATH" ]]; then
-    CODER_GITEA_CMD+=(--kubeconfig "$KUBECONFIG_PATH")
-  fi
-  "${CODER_GITEA_CMD[@]}"
+if [[ "$INSTALL_ONLY" -ne 1 ]]; then
+  configure_incus_internal_ca_trust
+  publish_runtime_images_to_registry
 fi
 
-if [[ -n "$BOOTSTRAP_CONFIG_PATH" && "$GITEA_ACTIONS_ENABLED" == "true" ]]; then
+if [[ -n "$BOOTSTRAP_CONFIG_PATH" && "$GITEA_ACTIONS_ENABLED" == "true" && "$INSTALL_ONLY" -ne 1 ]]; then
   GITEA_ACTIONS_RUNNER_CMD=(
     ./scripts/bootstrap-gitea-actions-runner.sh
     --bootstrap-config "$BOOTSTRAP_CONFIG_PATH"
@@ -889,6 +871,9 @@ if [[ -n "$BOOTSTRAP_CONFIG_PATH" && "$SKIP_GITOPS" -eq 0 ]]; then
   fi
   if [[ -n "$SHARED_OPENCLAW_STATE_SOURCE" ]]; then
     GITOPS_CMD+=(--shared-openclaw-state-source "$SHARED_OPENCLAW_STATE_SOURCE")
+  fi
+  if [[ "$VERBOSE" -eq 1 ]]; then
+    GITOPS_CMD+=(--verbose)
   fi
   "${GITOPS_CMD[@]}"
 fi
