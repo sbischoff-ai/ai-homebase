@@ -349,6 +349,41 @@ run_argocd_exec_quiet() {
   return 1
 }
 
+run_argocd_exec_silent() {
+  local output=""
+  if output="$(argocd_exec "$@" 2>&1)"; then
+    if [[ "$VERBOSE" -eq 1 && -n "$output" ]]; then
+      printf '%s\n' "$output"
+    fi
+    return 0
+  fi
+  if [[ "$VERBOSE" -eq 1 && -n "$output" ]]; then
+    printf '%s\n' "$output" >&2
+  fi
+  return 1
+}
+
+print_argocd_app_summary() {
+  local app_name="$1"
+
+  echo "Argo CD application ${app_name} summary:" >&2
+  kubectl "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" get application "$app_name" \
+    -o jsonpath='  sync={.status.sync.status} health={.status.health.status} operation={.status.operationState.phase} message={.status.operationState.message}{"\n"}' >&2 || true
+  kubectl "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" get application "$app_name" \
+    -o jsonpath='{range .status.conditions[*]}  condition={.type} message={.message}{"\n"}{end}' >&2 || true
+  kubectl "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" get application "$app_name" \
+    -o jsonpath='{range .status.resources[*]}{.kind}/{.name} sync={.status} health={.health.status} message={.health.message}{"\n"}{end}' 2>/dev/null \
+    | awk '$0 ~ /sync=(OutOfSync|Unknown)|health=(Degraded|Missing|Progressing|Suspended|Unknown)|message=./ { print "  " $0 }' >&2 || true
+}
+
+print_argocd_failure_summary() {
+  local app_name
+
+  for app_name in "$@"; do
+    print_argocd_app_summary "$app_name"
+  done
+}
+
 argocd_login_succeeds() {
   local username="$1"
   local password="$2"
@@ -461,7 +496,7 @@ sync_and_validate_argocd_apps() {
   wait_for_argocd_application "$platform_app"
 
   step "Triggering the initial Argo CD sync"
-  run_argocd_exec_quiet env \
+  if ! run_argocd_exec_silent env \
     ARGOCD_USERNAME="$username" \
     ARGOCD_PASSWORD="$password" \
     ROOT_APP="$root_app" \
@@ -477,11 +512,15 @@ sync_and_validate_argocd_apps() {
       argocd --config "$cfg" app sync \
         "$ROOT_APP" \
         "$PLATFORM_APP" \
-        --timeout "$ARGOCD_APP_SYNC_TIMEOUT"
-    '
+        --timeout "$ARGOCD_APP_SYNC_TIMEOUT" >/dev/null
+    '; then
+    echo "Argo CD initial sync failed." >&2
+    print_argocd_failure_summary "$root_app" "$platform_app"
+    exit 1
+  fi
 
   step "Waiting for Argo CD applications to become Synced and Healthy"
-  run_argocd_exec_quiet env \
+  if ! run_argocd_exec_silent env \
     ARGOCD_USERNAME="$username" \
     ARGOCD_PASSWORD="$password" \
     ROOT_APP="$root_app" \
@@ -499,8 +538,12 @@ sync_and_validate_argocd_apps() {
         "$PLATFORM_APP" \
         --sync \
         --health \
-        --timeout "$ARGOCD_APP_WAIT_TIMEOUT"
-    '
+        --timeout "$ARGOCD_APP_WAIT_TIMEOUT" >/dev/null
+    '; then
+    echo "Timed out waiting for Argo CD applications to become Synced and Healthy." >&2
+    print_argocd_failure_summary "$root_app" "$platform_app"
+    exit 1
+  fi
 }
 
 seed_memgraph() {

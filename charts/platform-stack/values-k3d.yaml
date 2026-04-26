@@ -140,6 +140,9 @@ nextcloud:
       enabled: false
   trustedDomains:
     - nextcloud.localtest.me
+    - platform-stack-nextcloud
+    - platform-stack-nextcloud.ai-homebase.svc
+    - platform-stack-nextcloud.ai-homebase.svc.cluster.local
   trustedProxies:
     - 10.42.0.0/16
   persistence:

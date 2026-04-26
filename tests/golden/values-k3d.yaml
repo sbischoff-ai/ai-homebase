@@ -9792,7 +9792,7 @@ spec:
               key: NEXTCLOUD_ADMIN_PASSWORD
               name: nextcloud-config-secrets
         - name: NEXTCLOUD_TRUSTED_DOMAINS
-          value: nextcloud.localtest.me
+          value: nextcloud.localtest.me platform-stack-nextcloud platform-stack-nextcloud.ai-homebase.svc platform-stack-nextcloud.ai-homebase.svc.cluster.local
         - name: TRUSTED_PROXIES
           value: 10.42.0.0/16
         - name: APACHE_DISABLE_REWRITE_IP
@@ -9920,7 +9920,7 @@ spec:
           done
         env:
         - name: NEXTCLOUD_TRUSTED_DOMAINS
-          value: nextcloud.localtest.me
+          value: nextcloud.localtest.me platform-stack-nextcloud platform-stack-nextcloud.ai-homebase.svc platform-stack-nextcloud.ai-homebase.svc.cluster.local
         image: nextcloud:33.0.2-apache
         imagePullPolicy: IfNotPresent
         name: reconcile-trusted-domains

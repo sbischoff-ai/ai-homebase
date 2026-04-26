@@ -156,14 +156,69 @@ run_gateway_setup "reviewer-gitea" '
 set -eu
 warn() { echo "Warning: reviewer Gitea setup skipped: $*" >&2; }
 setup_phase="${OPENCLAW_SETUP_PHASE:-post-gitops}"
+url_host() {
+  local url="$1"
+  url="${url#*://}"
+  url="${url%%/*}"
+  url="${url%%:*}"
+  printf "%s\n" "${url}"
+}
+tea_config_url() {
+  local config_file="${XDG_CONFIG_HOME:-${HOME:-/home/node}/.config}/tea/config.yml"
+  awk -v login="${1}" "
+    /^- name:[[:space:]]*/ {
+      current=\$0
+      sub(/^- name:[[:space:]]*/, \"\", current)
+    }
+    /^[[:space:]]*url:[[:space:]]*/ && current == login {
+      url=\$0
+      sub(/^[[:space:]]*url:[[:space:]]*/, \"\", url)
+      print url
+      exit
+    }
+  " "${config_file}" 2>/dev/null || true
+}
 check_tea_repo_access() {
   local label="$1"
   local login_name="$2"
   local repo_owner="${CODER_GITEA_USERNAME:-coder}"
   local repo_name="${CODER_GITOPS_REPO_NAME:-${GITOPS_REPO_NAME:-cluster-gitops}}"
+  local login_url=""
 
   if ! tea repo view "${repo_owner}/${repo_name}" --login "${login_name}" >/dev/null 2>&1; then
-    warn "tea repo view ${repo_owner}/${repo_name} failed for ${label} via login ${login_name}."
+    login_url="$(tea_config_url "${login_name}")"
+    warn "tea repo view ${repo_owner}/${repo_name} failed for ${label} via login ${login_name} during ${setup_phase} (url: ${login_url:-unknown})."
+    return 1
+  fi
+}
+seed_gateway_reviewer_home() {
+  local login_name="$1"
+  local gateway_url="${REVIEWER_GITEA_BOOTSTRAP_URL:-${REVIEWER_GITEA_BASE_URL:-}}"
+  local gateway_host="${REVIEWER_GITEA_BOOTSTRAP_HOST:-}"
+
+  if [ -z "${gateway_url}" ]; then
+    warn "reviewer Gitea gateway URL is not present."
+    return 1
+  fi
+  if [ -z "${gateway_host}" ]; then
+    gateway_host="$(url_host "${gateway_url}")"
+  fi
+
+  if ! env \
+    REVIEWER_GITEA_BASE_URL="${gateway_url}" \
+    REVIEWER_GITEA_TEA_URL="${gateway_url}" \
+    REVIEWER_GITEA_HOST="${gateway_host}" \
+    reviewer-gitea-init.sh; then
+    warn "gateway reviewer-gitea-init.sh failed for internal URL ${gateway_url}."
+    return 1
+  fi
+
+  if ! (
+    export REVIEWER_GITEA_BASE_URL="${gateway_url}"
+    export REVIEWER_GITEA_TEA_URL="${gateway_url}"
+    export REVIEWER_GITEA_HOST="${gateway_host}"
+    check_tea_repo_access "gateway reviewer home" "${login_name}"
+  ); then
     return 1
   fi
 }
@@ -189,7 +244,11 @@ seed_reviewer_home() {
     export XDG_CACHE_HOME="${workspace_home}/.cache"
     export XDG_STATE_HOME="${workspace_home}/.local/state"
     export GIT_CONFIG_GLOBAL="${workspace_home}/.config/git/config"
-    check_tea_repo_access "${label}" "${login_name}"
+    login_url="$(tea_config_url "${login_name}")"
+    if [ -z "${login_url}" ]; then
+      warn "${label} reviewer tea login ${login_name} is missing after init."
+      exit 1
+    fi
   ); then
     return 1
   fi
@@ -216,16 +275,12 @@ if [ "$setup_phase" = "pre-gitops" ]; then
   fi
   exit 0
 fi
-if ! reviewer-gitea-init.sh; then
-  warn "reviewer-gitea-init.sh failed."
+login_name="${REVIEWER_GITEA_TEA_LOGIN_NAME:-reviewer}"
+if ! seed_gateway_reviewer_home "${login_name}"; then
   exit 1
 fi
-login_name="${REVIEWER_GITEA_TEA_LOGIN_NAME:-reviewer}"
 if ! tea login list 2>/dev/null | grep -F "${login_name}" >/dev/null; then
   warn "reviewer tea login ${login_name} is still missing after init."
-  exit 1
-fi
-if ! check_tea_repo_access "gateway reviewer home" "${login_name}"; then
   exit 1
 fi
 seed_reviewer_home "/home/node/.openclaw/workspace-architect/.home" "architect workspace" "${login_name}"

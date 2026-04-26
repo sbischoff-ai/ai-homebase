@@ -700,11 +700,13 @@ verify_openclaw_gateway_tooling() {
   local expected_reviewer_host="${GITEA_INGRESS_HOST}"
   local expected_reviewer_scheme="https"
   local expected_reviewer_base_url=""
+  local expected_gateway_reviewer_host=""
+  local expected_gateway_reviewer_base_url=""
+  local expected_gateway_repo_url=""
   local expected_xdg_config_home="/home/node/.openclaw/.config"
   local expected_xdg_cache_home="/home/node/.openclaw/.cache"
   local expected_xdg_state_home="/home/node/.openclaw/.local/state"
   local expected_git_config_global="/home/node/.openclaw/.config/git/config"
-  local expected_repo_url=""
   local coder_workspace_home="/home/node/.openclaw/workspace-coder/.home"
   local reviewer_workspace_homes="/home/node/.openclaw/workspace-architect/.home /home/node/.openclaw/workspace-auditor/.home"
 
@@ -712,7 +714,9 @@ verify_openclaw_gateway_tooling() {
     expected_reviewer_scheme="http"
   fi
   expected_reviewer_base_url="${expected_reviewer_scheme}://${expected_reviewer_host}"
-  expected_repo_url="${expected_reviewer_base_url}/${CODER_GITEA_USERNAME}/${GITOPS_REPO_NAME}.git"
+  expected_gateway_reviewer_host="${RELEASE_NAME}-gitea-http.${NAMESPACE}.svc.cluster.local"
+  expected_gateway_reviewer_base_url="http://${expected_gateway_reviewer_host}:3000"
+  expected_gateway_repo_url="${expected_gateway_reviewer_base_url}/${CODER_GITEA_USERNAME}/${GITOPS_REPO_NAME}.git"
 
   step "Checking OpenClaw gateway tooling and seeded coder/reviewer auth state"
   CURRENT_COMMAND="kubectl exec -c ${OPENCLAW_CONTAINER_NAME} deployment/${deployment_name} -- sh -ceu 'check gateway tooling plus seeded coder and reviewer auth state'"
@@ -735,35 +739,22 @@ verify_openclaw_gateway_tooling() {
     tea login list | grep -F \"reviewer\" >/dev/null
     tea login list | grep -F 'true' >/dev/null
     tea repo view \"${CODER_GITEA_USERNAME}/${GITOPS_REPO_NAME}\" --login reviewer >/dev/null
-    git ls-remote \"${expected_repo_url}\" >/dev/null
-    git ls-remote \"git@${GITEA_INGRESS_HOST}:${CODER_GITEA_USERNAME}/${GITOPS_REPO_NAME}.git\" >/dev/null
+    grep -F 'url: ${expected_gateway_reviewer_base_url}' \"${expected_xdg_config_home}/tea/config.yml\" >/dev/null
+    grep -F '[url \"${expected_gateway_reviewer_base_url}/\"]' \"${expected_git_config_global}\" >/dev/null
+    git ls-remote \"${expected_gateway_repo_url}\" >/dev/null
+    git ls-remote \"git@${expected_gateway_reviewer_host}:${CODER_GITEA_USERNAME}/${GITOPS_REPO_NAME}.git\" >/dev/null
     test -f \"${coder_workspace_home}/.codex/auth.json\"
     grep -F '\"auth_mode\": \"apikey\"' \"${coder_workspace_home}/.codex/auth.json\" >/dev/null
     test -f \"${coder_workspace_home}/.config/tea/config.yml\"
     grep -F 'name: coder' \"${coder_workspace_home}/.config/tea/config.yml\" >/dev/null
     grep -F 'url: ${expected_reviewer_base_url}' \"${coder_workspace_home}/.config/tea/config.yml\" >/dev/null
     grep -F 'default: true' \"${coder_workspace_home}/.config/tea/config.yml\" >/dev/null
-    env \
-      HOME=\"${coder_workspace_home}\" \
-      XDG_CONFIG_HOME=\"${coder_workspace_home}/.config\" \
-      XDG_CACHE_HOME=\"${coder_workspace_home}/.cache\" \
-      XDG_STATE_HOME=\"${coder_workspace_home}/.local/state\" \
-      tea repo view \"${CODER_GITEA_USERNAME}/${GITOPS_REPO_NAME}\" --login coder >/dev/null
     test -f \"${coder_workspace_home}/.docker/config.json\"
     for reviewer_workspace_home in ${reviewer_workspace_homes}; do
       test -f \"\${reviewer_workspace_home}/.config/tea/config.yml\"
       grep -F 'name: reviewer' \"\${reviewer_workspace_home}/.config/tea/config.yml\" >/dev/null
       grep -F 'url: ${expected_reviewer_base_url}' \"\${reviewer_workspace_home}/.config/tea/config.yml\" >/dev/null
       grep -F 'default: true' \"\${reviewer_workspace_home}/.config/tea/config.yml\" >/dev/null
-      env \
-        HOME=\"\${reviewer_workspace_home}\" \
-        XDG_CONFIG_HOME=\"\${reviewer_workspace_home}/.config\" \
-        XDG_CACHE_HOME=\"\${reviewer_workspace_home}/.cache\" \
-        XDG_STATE_HOME=\"\${reviewer_workspace_home}/.local/state\" \
-        GIT_CONFIG_GLOBAL=\"\${reviewer_workspace_home}/.config/git/config\" \
-        sh -ceu '
-          tea repo view "'"${CODER_GITEA_USERNAME}/${GITOPS_REPO_NAME}"'" --login reviewer >/dev/null
-        '
     done
     python3 - <<'PY'
 import json
@@ -781,6 +772,7 @@ verify_openclaw_mcp_bootstrap_config() {
   local configmap_name="$1"
   local deployment_name="$2"
   local openclaw_json=""
+  local coder_gitea_tea_url=""
   local cron_jobs_json=""
   local architect_reviewer_scheme="https"
   local architect_reviewer_base_url=""
@@ -865,8 +857,12 @@ verify_openclaw_mcp_bootstrap_config() {
     exit 1
   fi
 
-  if [[ "$openclaw_json" != *'"name":"CODER_GITEA_TEA_URL","value":"'"${architect_reviewer_base_url}"'"'* ]]; then
-    fail "OpenClaw gateway env in ConfigMap/${configmap_name} is not seeding coder workspace tea login against the ingress hostname path"
+  coder_gitea_tea_url="$(
+    kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" get deployment "$deployment_name" \
+      -o jsonpath="{.spec.template.spec.containers[?(@.name==\"${OPENCLAW_CONTAINER_NAME}\")].env[?(@.name==\"CODER_GITEA_TEA_URL\")].value}"
+  )"
+  if [[ "$coder_gitea_tea_url" != "${architect_reviewer_base_url}" ]]; then
+    fail "OpenClaw gateway env in Deployment/${deployment_name} is not seeding coder workspace tea login against the ingress hostname path"
     exit 1
   fi
 
@@ -1220,9 +1216,13 @@ verify_reviewer_sandbox_runtime() {
       -e REVIEWER_GITEA_BASE_URL=${reviewer_base_url} \
       -e REVIEWER_GITEA_HOST=${GITEA_INGRESS_HOST} \
       -e REVIEWER_GITEA_TOKEN=${reviewer_token} \
+      -e REVIEWER_GITEA_PASSWORD=${reviewer_token} \
       -e REVIEWER_GITEA_USERNAME=${REVIEWER_GITEA_USERNAME} \
       -e REVIEWER_GITEA_EMAIL=${REVIEWER_GITEA_EMAIL} \
       -e REVIEWER_GITEA_TEA_LOGIN_NAME=reviewer \
+      -e CODER_GITEA_USERNAME=${CODER_GITEA_USERNAME} \
+      -e GITOPS_REPO_NAME=${GITOPS_REPO_NAME} \
+      -e GITEA_INGRESS_HOST=${GITEA_INGRESS_HOST} \
       openclaw-sandbox:trixie-slim -ceu '
         getent passwd sandbox | cut -d: -f6 | grep -Fx /workspace/.home >/dev/null
         test -w /workspace/.home
@@ -1232,9 +1232,9 @@ verify_reviewer_sandbox_runtime() {
         test -d /workspace/.home/.tea
         test -d /workspace/.home/.config/tea
         tea login list | grep -F reviewer >/dev/null
-        tea repo view "'"${CODER_GITEA_USERNAME}/${GITOPS_REPO_NAME}"'" --login reviewer >/dev/null
+        tea repo view "${CODER_GITEA_USERNAME}/${GITOPS_REPO_NAME}" --login reviewer >/dev/null
         test -f /workspace/.home/.config/git/config
-        git ls-remote "git@'"${GITEA_INGRESS_HOST}"':'"${CODER_GITEA_USERNAME}"'/'"${GITOPS_REPO_NAME}"'.git" >/dev/null
+        git ls-remote "git@${GITEA_INGRESS_HOST}:${CODER_GITEA_USERNAME}/${GITOPS_REPO_NAME}.git" >/dev/null
       '
   "
 }

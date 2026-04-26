@@ -72,8 +72,8 @@ Bootstrap seeds explicit agents:
 
 Reviewer Gitea routing is runtime-specific:
 
-- gateway reviewer token/bootstrap API calls use the in-cluster Gitea HTTP Service URL
-- gateway and Docker sandbox reviewer `tea` and git sessions use the configured ingress hostname resolved through the Incus VM host overrides
+- gateway reviewer token/bootstrap API calls and gateway-home `tea` checks use the in-cluster Gitea HTTP Service URL
+- Docker sandbox reviewer `tea` and git sessions use the configured ingress hostname resolved through the Incus VM host overrides
 - coder's durable sandbox `tea` login uses that same ingress hostname path, while gateway-side coder bootstrap calls still use the in-cluster Gitea HTTP Service URL
 
 Do not expect cluster-internal DNS names to resolve inside Docker sandbox containers.
