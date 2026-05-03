@@ -168,6 +168,25 @@ run_root_install_k3s() {
   fi
 }
 
+wait_for_k3s_node_ready() {
+  local deadline nodes
+  local -a node_names
+
+  deadline=$((SECONDS + 180))
+  while [[ "${SECONDS}" -lt "${deadline}" ]]; do
+    nodes="$(kubectl "${KUBECTL_ARGS[@]}" get nodes -o name 2>>"${BOOTSTRAP_LOG_FILE}" || true)"
+    if [[ -n "${nodes}" ]]; then
+      mapfile -t node_names <<<"${nodes}"
+      run_quiet kubectl "${KUBECTL_ARGS[@]}" wait --for=condition=Ready "${node_names[@]}" --timeout=180s
+      return 0
+    fi
+    sleep 2
+  done
+
+  fail "Timed out waiting for k3s node registration. Check k3s service logs with: sudo journalctl -u k3s -n 100 --no-pager"
+  return 1
+}
+
 run_as_target_user() {
   if [[ "${EUID}" -eq 0 ]]; then
     run_quiet sudo -u "${TARGET_USER}" -H env HOME="${TARGET_HOME}" PATH="${PATH}" "$@"
@@ -200,7 +219,7 @@ run_root systemctl enable --now k3s
 run_root systemctl restart k3s
 
 step "Waiting for the k3s node to become Ready"
-run_quiet kubectl "${KUBECTL_ARGS[@]}" wait --for=condition=Ready node --all --timeout=180s
+wait_for_k3s_node_ready
 
 if kubectl "${KUBECTL_ARGS[@]}" -n kube-system get deployment traefik >/dev/null 2>&1; then
   fail "This bootstrap expects k3s without the bundled Traefik add-on. Remove Traefik before continuing."
