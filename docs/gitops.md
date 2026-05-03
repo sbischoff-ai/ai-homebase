@@ -61,6 +61,7 @@ After the GitOps bootstrap succeeds:
 - coder and reviewer tea logins are backed by bootstrap-managed API tokens stored in the runtime credential Secrets
 - Argo CD keeps sync in manual mode because agents may be allowed to push changes to the GitOps repo; sync should therefore be triggered explicitly through the UI or API
 - sandbox image tags referenced from OpenClaw config should be published to the in-cluster registry before GitOps changes point at them
+- sandbox images should be rebuilt and republished when the upstream OpenClaw image changes bundled skills, because sandboxed agents read `/app/skills` from the image rather than from a gateway pod mount
 - direct `helm upgrade` should be treated as break-glass only
 
 The Argo CD repository Secret is not committed to git. It is created directly in the cluster and points at the in-cluster Gitea service URL.

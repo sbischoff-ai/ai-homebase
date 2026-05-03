@@ -1185,6 +1185,9 @@ verify_coder_sandbox_runtime() {
         test -w /workspace/.home
         command -v node >/dev/null
         test -s /opt/openclaw-runtime/mcp/mcp-http-bridge.mjs
+        for skill in weather healthcheck node-connect skill-creator session-logs tmux summarize github; do
+          test -s "/app/skills/\${skill}/SKILL.md"
+        done
         command -v codex >/dev/null
         codex --version | grep -F codex-cli >/dev/null
         command -v docker >/dev/null
@@ -1270,6 +1273,9 @@ verify_reviewer_sandbox_runtime() {
         test -w /workspace/.home
         command -v node >/dev/null
         test -s /opt/openclaw-runtime/mcp/mcp-http-bridge.mjs
+        for skill in weather healthcheck node-connect skill-creator session-logs tmux summarize github; do
+          test -s "/app/skills/\${skill}/SKILL.md"
+        done
         command -v tea >/dev/null
         ! tea --version | grep -F -- -dev >/dev/null
         /usr/local/bin/reviewer-gitea-init.sh >/tmp/reviewer-gitea-init.log
@@ -1306,6 +1312,9 @@ verify_reviewer_sandbox_runtime() {
         test -w /workspace/.home
         test -f /workspace/.home/.config/tea/config.yml
         test -f /workspace/.home/.config/git/config
+        for skill in weather healthcheck node-connect skill-creator session-logs tmux summarize github; do
+          test -s "/app/skills/\${skill}/SKILL.md"
+        done
         command -v tea >/dev/null
         tea login list | grep -F reviewer >/dev/null
         tea repo view "${CODER_GITEA_USERNAME}/${GITOPS_REPO_NAME}" --login reviewer >/dev/null
@@ -1368,6 +1377,9 @@ verify_archivist_sandbox_runtime() {
       command -v mgconsole >/dev/null
       command -v node >/dev/null
       test -s /opt/openclaw-runtime/mcp/mcp-http-bridge.mjs
+      for skill in weather healthcheck node-connect skill-creator session-logs tmux summarize github; do
+        test -s "/app/skills/\${skill}/SKILL.md"
+      done
       test -s /workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt
       [ \"\$MEMGRAPH_HOST\" = \"${memgraph_host}\" ]
       [ \"\$MEMGRAPH_PORT\" = \"7687\" ]

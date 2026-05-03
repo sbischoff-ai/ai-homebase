@@ -41,6 +41,18 @@ COPY --from=openclaw-runtime /app/skills /app/skills
 COPY charts/openclaw/files/mcp-http-bridge.mjs /opt/openclaw-runtime/mcp/mcp-http-bridge.mjs
 COPY images/openclaw-sandbox-base/reviewer-gitea-init.sh /usr/local/bin/reviewer-gitea-init.sh
 
+RUN for skill in \
+    weather \
+    healthcheck \
+    node-connect \
+    skill-creator \
+    session-logs \
+    tmux \
+    summarize \
+    github; do \
+      test -s "/app/skills/${skill}/SKILL.md"; \
+    done
+
 RUN mkdir -p /usr/local/lib/openclaw-tools \
   && curl -fsSL "https://gitea.com/gitea/tea/releases/download/v${TEA_VERSION}/tea-${TEA_VERSION}-linux-amd64" \
     -o /usr/local/lib/openclaw-tools/tea.real \

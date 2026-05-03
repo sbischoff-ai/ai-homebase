@@ -163,6 +163,7 @@ def assert_sandbox_connectivity_contracts() -> None:
             "python3-yaml",
             "python-is-python3",
             "COPY --from=openclaw-runtime /app/skills /app/skills",
+            'test -s "/app/skills/${skill}/SKILL.md"',
         ],
         "images/openclaw-remote-docker/openclaw-gateway-start.sh": [
             "prewarm_mcp_server",
@@ -176,6 +177,7 @@ def assert_sandbox_connectivity_contracts() -> None:
             "docker --version",
             "mgconsole --host",
             "https://${QDRANT_INGRESS_HOST}",
+            'test -s "/app/skills/\\${skill}/SKILL.md"',
         ],
     }
     for relative_path, snippets in required_snippets.items():
