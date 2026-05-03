@@ -39,8 +39,13 @@ run_case() {
   local helm_log="${sandbox_dir}/helm.log"
   local kubectl_log="${sandbox_dir}/kubectl.log"
   local curl_log="${sandbox_dir}/curl.log"
+  local incus_log="${sandbox_dir}/incus.log"
+  local incus_connection_info="${sandbox_dir}/openclaw-sandbox.env"
   local output_file="${sandbox_dir}/output.log"
   mkdir -p "${repo_dir}/scripts/lib" "${fake_bin}"
+  cat >"${incus_connection_info}" <<'EOF'
+HOST_LISTEN_ADDRESS=10.10.0.1
+EOF
 
   cp "${SCRIPT_PATH}" "${repo_dir}/scripts/bootstrap-smoke.sh"
   cp "${REPO_ROOT}/scripts/lib/logging.sh" "${repo_dir}/scripts/lib/logging.sh"
@@ -102,6 +107,10 @@ for ((i=0; i<${#args[@]}; i++)); do
   if [[ "${args[$i]}" == "get" && $((i+1)) -lt ${#args[@]} ]]; then
     resource="${args[$((i+1))]}"
     if [[ "${resource}" == "deployment" ]]; then
+      if [[ "$*" == *"CODER_GITEA_TEA_URL"* ]]; then
+        printf 'https://gitea.test.internal'
+        exit 0
+      fi
       printf 'platform-stack-openclaw'
       exit 0
     fi
@@ -124,7 +133,7 @@ for ((i=0; i<${#args[@]}; i++)); do
     fi
     if [[ "${resource}" == "configmap" ]]; then
       cat <<'JSON'
-{"commands":{"mcp":true},"cron":{"enabled":true,"store":"~/.openclaw/cron/jobs.json"},"env":[{"name":"CODER_GITEA_TEA_URL","value":"https://gitea.test.internal"}],"agents":{"defaults":{"sandbox":{"backend":"docker","docker":{"image":"registry.localtest.me/openclaw/openclaw-sandbox:trixie-slim","env":{"HOME":"/workspace/.home","SSL_CERT_FILE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","REQUESTS_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","NODE_EXTRA_CA_CERTS":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","GIT_SSL_CAINFO":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","CURL_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt"}}},"list":[{"id":"coder","sandbox":{"docker":{"image":"registry.localtest.me/openclaw/openclaw-sandbox-coder:trixie-slim","env":{"DOCKER_HOST":"${DOCKER_HOST}","CODER_GITEA_TOKEN":"${CODER_GITEA_TOKEN}","CODER_GITEA_TEA_URL":"https://gitea.test.internal"}}}},{"id":"architect","sandbox":{"mode":"non-main","docker":{"env":{"GIT_CONFIG_GLOBAL":"/workspace/.home/.config/git/config","REVIEWER_GITEA_BASE_URL":"https://gitea.test.internal","REVIEWER_GITEA_TEA_URL":"https://gitea.test.internal","REVIEWER_GITEA_HOST":"gitea.test.internal","REVIEWER_GITEA_TOKEN":"${REVIEWER_GITEA_TOKEN}"}}}},{"id":"auditor","sandbox":{"mode":"off"}}]},"mcp":{"servers":{"nextcloud":{"args":["${OPENCLAW_NEXTCLOUD_MCP_INTERNAL_URL}","${OPENCLAW_NEXTCLOUD_MCP_EXTERNAL_URL}"]}}}}
+{"commands":{"mcp":true},"cron":{"enabled":true,"store":"~/.openclaw/cron/jobs.json"},"env":[{"name":"CODER_GITEA_TEA_URL","value":"https://gitea.test.internal"}],"agents":{"defaults":{"sandbox":{"backend":"docker","docker":{"image":"registry.localtest.me/openclaw/openclaw-sandbox:trixie-slim","env":{"HOME":"/workspace/.home","SSL_CERT_FILE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","REQUESTS_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","NODE_EXTRA_CA_CERTS":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","GIT_SSL_CAINFO":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","CURL_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt"}}},"list":[{"id":"coder","sandbox":{"docker":{"image":"registry.localtest.me/openclaw/openclaw-sandbox-coder:trixie-slim","env":{"DOCKER_HOST":"${DOCKER_HOST}","CODER_GITEA_TOKEN":"${CODER_GITEA_TOKEN}","CODER_GITEA_TEA_URL":"https://gitea.test.internal"}}}},{"id":"architect","sandbox":{"mode":"non-main","docker":{"env":{"GIT_CONFIG_GLOBAL":"/workspace/.home/.config/git/config","REVIEWER_GITEA_BASE_URL":"https://gitea.test.internal","REVIEWER_GITEA_TEA_URL":"https://gitea.test.internal","REVIEWER_GITEA_HOST":"gitea.test.internal","REVIEWER_GITEA_TOKEN":"${REVIEWER_GITEA_TOKEN}"}}}},{"id":"auditor","sandbox":{"mode":"off"}}]},"mcp":{"servers":{"nextcloud":{"args":["http://platform-stack-nextcloud-mcp.ai-homebase.svc.cluster.local:8000/mcp","https://nextcloud-mcp.test.internal/mcp"]},"qdrant":{"args":["http://platform-stack-qdrant-mcp.ai-homebase.svc.cluster.local:8000/mcp","https://qdrant-mcp.test.internal/mcp"]}}}}
 JSON
       exit 0
     fi
@@ -188,6 +197,33 @@ FAKECURL
   cat >"${fake_bin}/incus" <<'FAKEINCUS'
 #!/usr/bin/env bash
 set -euo pipefail
+printf '%s\n' "$*" >>"${FAKE_INCUS_LOG:?}"
+
+if [[ "${1:-}" == "exec" ]]; then
+  shift
+  vm_name="${1:-}"
+  shift || true
+  if [[ "${1:-}" != "--" ]]; then
+    printf 'expected incus exec %s to use -- before command: %s\n' "${vm_name}" "$*" >&2
+    exit 1
+  fi
+  shift
+  if [[ "${1:-}" == "sh" && "${2:-}" == "-ceu" ]]; then
+    if [[ "$#" -ne 3 ]]; then
+      printf 'expected sh -ceu payload to remain one argv entry, got %s entries: %s\n' "$#" "$*" >&2
+      exit 1
+    fi
+    case "${3:-}" in
+      *'docker --version | grep -F "Docker version" >/dev/null'*) ;;
+      *'docker run coder sandbox validation'*)
+        printf 'coder sandbox validation lost Docker version quoting: %s\n' "${3:-}" >&2
+        exit 1
+        ;;
+    esac
+    exit 0
+  fi
+fi
+
 exit 0
 FAKEINCUS
   chmod +x "${fake_bin}/incus"
@@ -260,6 +296,7 @@ FAKEPYTHON
     export FAKE_HELM_LOG="${helm_log}"
     export FAKE_KUBECTL_LOG="${kubectl_log}"
     export FAKE_CURL_LOG="${curl_log}"
+    export FAKE_INCUS_LOG="${incus_log}"
     export FAKE_CURL_COUNTER_FILE="${sandbox_dir}/curl-counter"
     export FAKE_GITEA_ENABLED="${gitea_enabled}"
     export FAKE_FAIL_FIRST_PAPERLESS_CURL="1"
@@ -274,21 +311,25 @@ FAKEPYTHON
       --profile k3d \
       --release-name platform-stack \
       --namespace ai-homebase \
-      --kubeconfig "${sandbox_dir}/kubeconfig.yaml"
+      --kubeconfig "${sandbox_dir}/kubeconfig.yaml" \
+      --incus-connection-info "${incus_connection_info}"
   ) >"${output_file}" 2>&1; then
     cat "${output_file}" >&2
     exit 1
   fi
 
-  local output helm_output kubectl_output curl_output
+  local output helm_output kubectl_output curl_output incus_output
   output="$(cat "${output_file}")"
   helm_output="$(cat "${helm_log}")"
   kubectl_output="$(cat "${kubectl_log}")"
   curl_output="$(cat "${curl_log}")"
+  incus_output="$(cat "${incus_log}")"
 
   assert_contains "${output}" "Bootstrap smoke checks passed for profile=k3d"
   assert_contains "${curl_output}" "-H Host: openclaw.test.internal http://127.0.0.1/"
   assert_contains "${kubectl_output}" "exec deployment/platform-stack-openclaw -- sh -ceu"
+  assert_contains "${incus_output}" "exec openclaw-sandbox -- sh -ceu"
+  assert_contains "${incus_output}" "docker --version | grep -F \"Docker version\" >/dev/null"
 
   case "${case_name}" in
     gitea-enabled)

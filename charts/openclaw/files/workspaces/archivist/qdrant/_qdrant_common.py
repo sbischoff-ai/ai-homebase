@@ -49,6 +49,7 @@ def qdrant_request(
     path: str,
     body: dict[str, Any] | None,
     api_key: str = "",
+    missing_collection_ok: bool = False,
 ) -> dict[str, Any]:
     data = None if body is None else json.dumps(body, sort_keys=True).encode("utf-8")
     headers = {"Content-Type": "application/json"}
@@ -65,6 +66,8 @@ def qdrant_request(
             raw = response.read().decode("utf-8")
     except urllib.error.HTTPError as exc:
         details = exc.read().decode("utf-8", errors="replace")
+        if missing_collection_ok and exc.code == 404 and "Collection `" in details and "doesn't exist" in details:
+            return {}
         raise SystemExit(f"Qdrant HTTP {exc.code} for {path}: {details}") from exc
     except urllib.error.URLError as exc:
         raise SystemExit(f"Unable to reach Qdrant at {qdrant_url}: {exc}") from exc

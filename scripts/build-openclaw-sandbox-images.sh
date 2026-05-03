@@ -57,7 +57,6 @@ fi
 build_image() {
   local image="$1"
   local dockerfile="$2"
-  local context_dir
   local build_log=""
 
   if [[ ! -f "$dockerfile" ]]; then
@@ -65,15 +64,14 @@ build_image() {
     exit 1
   fi
 
-  context_dir="$(dirname "$dockerfile")"
-  echo "Building ${image} from ${dockerfile} (context: ${context_dir})"
+  echo "Building ${image} from ${dockerfile} (context: .)"
   if [[ "$VERBOSE" -eq 1 ]]; then
-    docker build -f "$dockerfile" -t "$image" "$context_dir"
+    docker build -f "$dockerfile" -t "$image" .
     return 0
   fi
 
   build_log="$(mktemp /tmp/ai-homebase-docker-build.XXXXXX.log)"
-  if docker build -f "$dockerfile" -t "$image" "$context_dir" >"$build_log" 2>&1; then
+  if docker build -f "$dockerfile" -t "$image" . >"$build_log" 2>&1; then
     rm -f "$build_log"
     echo "Built ${image}"
     return 0

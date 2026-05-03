@@ -8,6 +8,8 @@ source "$(dirname "$0")/lib/ingress-nginx.sh"
 TARGET_USER="${TARGET_USER:-${SUDO_USER:-${USER}}}"
 TARGET_HOME=""
 BOOTSTRAP_CONFIG_PATH="${BOOTSTRAP_CONFIG_PATH:-bootstrap.local.toml}"
+RELEASE_NAME="${RELEASE_NAME:-platform-stack}"
+NAMESPACE="${NAMESPACE:-ai-homebase}"
 K3S_CHANNEL="${K3S_CHANNEL:-stable}"
 K3S_INSTALL_ARGS="${K3S_INSTALL_ARGS:---write-kubeconfig-mode 644 --disable=traefik}"
 K3S_KUBECONFIG="${K3S_KUBECONFIG:-/etc/rancher/k3s/k3s.yaml}"
@@ -38,6 +40,8 @@ Create or reconcile the ai-homebase k3s runtime and companion Incus VMs.
 
 Options:
   --bootstrap-config <path>      Bootstrap config file used for hostnames and Gitea Actions settings (default: ${BOOTSTRAP_CONFIG_PATH})
+  --release-name <name>          Helm release name used by Memgraph TCP forwarding (default: ${RELEASE_NAME})
+  --namespace <name>             Kubernetes namespace used by Memgraph TCP forwarding (default: ${NAMESPACE})
   --target-user <name>           Operator user that owns Incus VM state and SSH keys (default: ${TARGET_USER})
   --k3s-channel <name>           k3s install channel used when k3s is missing (default: ${K3S_CHANNEL})
   --k3s-install-args <args>      Extra INSTALL_K3S_EXEC args used when k3s is installed (default: ${K3S_INSTALL_ARGS})
@@ -59,6 +63,8 @@ USAGE
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --bootstrap-config) BOOTSTRAP_CONFIG_PATH="$2"; shift 2 ;;
+    --release-name) RELEASE_NAME="$2"; shift 2 ;;
+    --namespace) NAMESPACE="$2"; shift 2 ;;
     --target-user) TARGET_USER="$2"; shift 2 ;;
     --k3s-channel) K3S_CHANNEL="$2"; shift 2 ;;
     --k3s-install-args) K3S_INSTALL_ARGS="$2"; shift 2 ;;
@@ -202,7 +208,7 @@ if kubectl "${KUBECTL_ARGS[@]}" -n kube-system get deployment traefik >/dev/null
 fi
 ok "Traefik is absent"
 
-ensure_ingress_nginx
+MEMGRAPH_TCP_NAMESPACE="$NAMESPACE" MEMGRAPH_TCP_RELEASE_NAME="$RELEASE_NAME" ensure_ingress_nginx
 
 step "Ensuring Incus service is running"
 run_root systemctl enable --now incus

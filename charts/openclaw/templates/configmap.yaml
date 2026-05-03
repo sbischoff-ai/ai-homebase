@@ -4,6 +4,15 @@
 {{- $coderGiteaUsername := "coder" }}
 {{- $reviewerGiteaUsername := "reviewer" }}
 {{- $giteaAdminUsername := .Values.workspaceBootstrap.giteaAdminUsername | default "git-admin" }}
+{{- $nextcloudMcpHost := .Values.global.hosts.nextcloudMcp | default "" }}
+{{- $qdrantMcpHost := .Values.global.hosts.qdrantMcp | default "" }}
+{{- $nextcloudMcpExternalScheme := "https" }}
+{{- $nextcloudMcpExternalUrl := ternary (printf "%s://%s/mcp" $nextcloudMcpExternalScheme $nextcloudMcpHost) "" (ne $nextcloudMcpHost "") }}
+{{- $nextcloudMcpInternalUrl := printf "http://%s-nextcloud-mcp.%s.svc.cluster.local:8000/mcp" .Release.Name .Release.Namespace }}
+{{- $qdrantMcpExternalScheme := "https" }}
+{{- $qdrantMcpExternalUrl := ternary (printf "%s://%s/mcp" $qdrantMcpExternalScheme $qdrantMcpHost) "" (ne $qdrantMcpHost "") }}
+{{- $qdrantMcpInternalUrl := printf "http://%s-qdrant-mcp.%s.svc.cluster.local:8000/mcp" .Release.Name .Release.Namespace }}
+{{- $openclawMcp := deepCopy (.Values.openclaw.mcp | default (dict)) }}
 {{- range $agent := $agentList }}
   {{- if eq (get $agent "id") "coder" }}
     {{- $coderGiteaUsername = dig "sandbox" "docker" "env" "CODER_GITEA_USERNAME" $coderGiteaUsername $agent }}
@@ -34,6 +43,7 @@ data:
       "commands": {{ toJson (.Values.openclaw.commands | default (dict)) }},
       "tools": {{ toJson (.Values.openclaw.tools | default (dict)) }},
       "cron": {{ toJson (.Values.openclaw.cron | default (dict)) }},
+      "env": {{ toJson (.Values.openclaw.env | default (dict)) }},
       "gateway": {
         "mode": {{ .Values.openclaw.gateway.mode | quote }},
         "bind": {{ .Values.openclaw.gateway.bind | quote }},
@@ -53,7 +63,7 @@ data:
         "list": {{ toJson $agentList }}
       },
       "skills": {{ toJson (.Values.openclaw.skills | default (dict)) }},
-      "mcp": {{ toJson (.Values.openclaw.mcp | default (dict)) }},
+      "mcp": {{ toJson $openclawMcp | replace "${OPENCLAW_NEXTCLOUD_MCP_INTERNAL_URL}" $nextcloudMcpInternalUrl | replace "${OPENCLAW_NEXTCLOUD_MCP_EXTERNAL_URL}" $nextcloudMcpExternalUrl | replace "${OPENCLAW_QDRANT_MCP_INTERNAL_URL}" $qdrantMcpInternalUrl | replace "${OPENCLAW_QDRANT_MCP_EXTERNAL_URL}" $qdrantMcpExternalUrl }},
       "plugins": {{ toJson .Values.openclaw.plugins }}
     }
   mcp-http-bridge.mjs: |

@@ -23,6 +23,8 @@ fallback_models = ["openai/gpt-5.4", "google/gemini-3.1-pro-preview"]
 [openclaw.agents.coder]
 model = "openai/gpt-5.4"
 fallback_models = ["anthropic/claude-sonnet-4-6", "google/gemini-3.1-pro-preview"]
+codex_model = "openai/gpt-5.3-codex"
+codex_elevated_model = "openai/gpt-5.5"
 
 [openclaw.agents.coder.gitea]
 username = "coder-bot"
@@ -159,6 +161,11 @@ project = "platform-stack"
         assert '/usr/local/bin/coder-init.sh' in bootstrap_values
         assert 'CODEX_HOME' in bootstrap_values
         assert '/.codex' in bootstrap_values
+        assert 'CODEX_DEFAULT_MODEL' in bootstrap_values
+        assert 'gpt-5.3-codex' in bootstrap_values
+        assert 'CODEX_ELEVATED_MODEL' in bootstrap_values
+        assert 'gpt-5.5' in bootstrap_values
+        assert 'CODEX_MODEL' not in bootstrap_values
         assert "toolDescriptions:" in (REPO_ROOT / "charts" / "platform-stack" / "values.yaml").read_text()
         assert "Store a memory for cross-agent recall." in (REPO_ROOT / "charts" / "platform-stack" / "values.yaml").read_text()
         assert "argoCd:" in gitops_values

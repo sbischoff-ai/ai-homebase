@@ -39,6 +39,7 @@ def scroll_memories(
             f"/collections/{collection}/points/scroll",
             body,
             api_key,
+            missing_collection_ok=True,
         )
         result = response.get("result") or {}
         points = result.get("points") or []

@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 import importlib.util
+import io
 import json
 import pathlib
 import sys
 import unittest
+import urllib.error
 
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -21,6 +23,7 @@ def load_module(name):
 
 
 common = load_module("_qdrant_common")
+scroll_memories = load_module("scroll_memories")
 set_graph_link = load_module("set_graph_link")
 
 
@@ -85,6 +88,86 @@ class ArchivistQdrantScriptTests(unittest.TestCase):
         self.assertEqual(graph["confidence"], "high")
         self.assertNotIn("document", graph)
         self.assertNotIn("metadata", graph)
+
+    def test_scroll_treats_missing_collection_as_empty(self):
+        def missing_collection_request(*args, **kwargs):
+            self.assertTrue(kwargs["missing_collection_ok"])
+            return {}
+
+        original_request = scroll_memories.qdrant_request
+        scroll_memories.qdrant_request = missing_collection_request
+        try:
+            rows = scroll_memories.scroll_memories(
+                qdrant_url="https://qdrant.example.invalid",
+                collection="openclaw-memory",
+                api_key="",
+                query_filter=None,
+                limit=1,
+                page_size=1,
+            )
+        finally:
+            scroll_memories.qdrant_request = original_request
+
+        self.assertEqual(rows, [])
+
+    def test_qdrant_request_missing_collection_ok_is_narrow(self):
+        original_urlopen = common.urllib.request.urlopen
+
+        def raise_missing_collection(*args, **kwargs):
+            raise urllib.error.HTTPError(
+                url="https://qdrant.example.invalid/collections/openclaw-memory/points/scroll",
+                code=404,
+                msg="Not Found",
+                hdrs=None,
+                fp=io.BytesIO(b"{\"status\":{\"error\":\"Not found: Collection `openclaw-memory` doesn't exist!\"}}"),
+            )
+
+        common.urllib.request.urlopen = raise_missing_collection
+        try:
+            self.assertEqual(
+                common.qdrant_request(
+                    "https://qdrant.example.invalid",
+                    "POST",
+                    "/collections/openclaw-memory/points/scroll",
+                    {},
+                    missing_collection_ok=True,
+                ),
+                {},
+            )
+            with self.assertRaises(SystemExit):
+                common.qdrant_request(
+                    "https://qdrant.example.invalid",
+                    "POST",
+                    "/collections/openclaw-memory/points/scroll",
+                    {},
+                )
+        finally:
+            common.urllib.request.urlopen = original_urlopen
+
+    def test_qdrant_request_other_404_remains_fatal(self):
+        original_urlopen = common.urllib.request.urlopen
+
+        def raise_other_404(*args, **kwargs):
+            raise urllib.error.HTTPError(
+                url="https://qdrant.example.invalid/collections/openclaw-memory/points/scroll",
+                code=404,
+                msg="Not Found",
+                hdrs=None,
+                fp=io.BytesIO(b'{"status":{"error":"different not found"}}'),
+            )
+
+        common.urllib.request.urlopen = raise_other_404
+        try:
+            with self.assertRaises(SystemExit):
+                common.qdrant_request(
+                    "https://qdrant.example.invalid",
+                    "POST",
+                    "/collections/openclaw-memory/points/scroll",
+                    {},
+                    missing_collection_ok=True,
+                )
+        finally:
+            common.urllib.request.urlopen = original_urlopen
 
 
 if __name__ == "__main__":

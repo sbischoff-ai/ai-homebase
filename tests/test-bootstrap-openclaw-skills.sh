@@ -92,7 +92,15 @@ chmod +x "${sandbox_dir}/bin/tmux"
 cat >"${sandbox_dir}/bin/reviewer-gitea-init.sh" <<'SH'
 #!/usr/bin/env bash
 set -euo pipefail
-printf 'reviewer-gitea-init.sh %s\n' "$*" >>"${FAKE_COMMAND_LOG:?}"
+printf 'reviewer-gitea-init.sh %s url=%s host=%s xdg=%s\n' "$*" "${REVIEWER_GITEA_TEA_URL:-${REVIEWER_GITEA_BASE_URL:-}}" "${REVIEWER_GITEA_HOST:-}" "${XDG_CONFIG_HOME:-}" >>"${FAKE_COMMAND_LOG:?}"
+mkdir -p "${XDG_CONFIG_HOME:?}/tea"
+cat > "${XDG_CONFIG_HOME}/tea/config.yml" <<EOF
+logins:
+- name: ${REVIEWER_GITEA_TEA_LOGIN_NAME:-reviewer}
+  url: ${REVIEWER_GITEA_TEA_URL:-${REVIEWER_GITEA_BASE_URL:-}}
+  token: ${REVIEWER_GITEA_TOKEN:-reviewer-token}
+  default: true
+EOF
 exit 0
 SH
 chmod +x "${sandbox_dir}/bin/reviewer-gitea-init.sh"
@@ -140,6 +148,9 @@ run_case() {
     export GITHUB_TOKEN="github-token"
     export OPENAI_API_KEY="openai-token"
     export REVIEWER_GITEA_BASE_URL="https://gitea.test.internal"
+    export REVIEWER_GITEA_BOOTSTRAP_URL="http://platform-stack-gitea-http.ai-homebase.svc.cluster.local:3000"
+    export REVIEWER_GITEA_EXTERNAL_BASE_URL="https://gitea.test.internal"
+    export REVIEWER_GITEA_EXTERNAL_HOST="gitea.test.internal"
     export REVIEWER_GITEA_USERNAME="reviewer"
     export REVIEWER_GITEA_PASSWORD="reviewer-password"
     export REVIEWER_GITEA_TEA_LOGIN_NAME="reviewer"
@@ -176,6 +187,11 @@ assert_not_contains "${pre_command_log}" "tea repo list"
 assert_not_contains "${pre_command_log}" "tea repo view"
 assert_not_contains "${pre_command_log}" "coder-workspace-init.sh"
 assert_contains "${post_command_log}" "reviewer-gitea-init.sh"
+assert_contains "${post_command_log}" "reviewer-gitea-init.sh  url=http://platform-stack-gitea-http.ai-homebase.svc.cluster.local:3000"
+assert_contains "${post_command_log}" "reviewer-gitea-init.sh  url=https://gitea.test.internal host=gitea.test.internal"
+assert_contains "${post_command_log}" "workspace-architect/.home/.config"
+assert_contains "${post_command_log}" "reviewer-gitea-init.sh  url=http://platform-stack-gitea-http.ai-homebase.svc.cluster.local:3000 host=platform-stack-gitea-http.ai-homebase.svc.cluster.local"
+assert_contains "${post_command_log}" "workspace-auditor/.home/.config"
 assert_contains "${post_command_log}" "tea login list"
 assert_contains "${post_command_log}" "tea repo view coder/cluster-gitops --login reviewer"
 assert_contains "${post_command_log}" "coder-workspace-init.sh"

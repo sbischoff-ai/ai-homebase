@@ -125,6 +125,9 @@ MEMGRAPH_LAB_HOST_VALUE="${MEMGRAPH_LAB_HOST:-${MEMGRAPH_LAB_HOST_VALUE}}"
 
 step "Bootstrapping k3d cluster and ingress"
 K3D_UP_CMD=(
+  env
+  "MEMGRAPH_TCP_NAMESPACE=${NAMESPACE}"
+  "MEMGRAPH_TCP_RELEASE_NAME=${RELEASE_NAME}"
   ./scripts/k3d-up.sh
   --cluster-name "$CLUSTER_NAME"
   --kubeconfig "$KUBECONFIG_PATH"

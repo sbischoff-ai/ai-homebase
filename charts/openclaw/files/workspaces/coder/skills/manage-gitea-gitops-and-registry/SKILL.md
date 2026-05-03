@@ -21,7 +21,7 @@ Use for repo and deployment-definition workflow.
 - Keep the default internal posture review-first: protected `main`, pull requests, and reviewer approval before merge unless main explicitly says a repo should differ.
 - Tell main when the user needs to review and merge.
 - Tell main when manual Argo CD sync is required after GitOps changes.
-- If `tea` fails, diagnose it explicitly. One temporary `tea --login "$CODER_GITEA_TEA_LOGIN_NAME" ...` retry is acceptable to confirm login-selection trouble. Do not silently switch to raw `curl` with embedded credentials for normal repo workflow.
+- If `tea` fails, diagnose it explicitly. One temporary `tea <subcommand> ... --login "$CODER_GITEA_TEA_LOGIN_NAME"` retry is acceptable to confirm login-selection trouble. Do not silently switch to raw `curl` with embedded credentials for normal repo workflow.
 - Before applying design or audit feedback that changes deployable structure, verify the destination path is actually wired into the repo's deployment flow. If the spec conflicts with the live repo architecture, stop and report the mismatch.
 
 ## Registry Rules

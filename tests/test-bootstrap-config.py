@@ -32,6 +32,8 @@ fallback_models = ["openai/gpt-5.4", "google/gemini-3.1-pro-preview"]
 [openclaw.agents.coder]
 model = "openai/gpt-5.4"
 fallback_models = ["anthropic/claude-sonnet-4-6", "google/gemini-3.1-pro-preview"]
+codex_model = "openai/gpt-5.3-codex"
+codex_elevated_model = "openai/gpt-5.5"
 
 [openclaw.agents.coder.gitea]
 username = "coder-bot"
@@ -125,6 +127,9 @@ assert "GEMINI_API_KEY=test-gemini-key" in shell_vars
 assert "BRAVE_API_KEY=test-brave-key" in shell_vars
 assert "OPENCLAW_MAIN_MODEL=anthropic/claude-sonnet-4-6" in shell_vars
 assert "OPENCLAW_CODER_MODEL=openai/gpt-5.4" in shell_vars
+assert "CODEX_DEFAULT_MODEL=gpt-5.3-codex" in shell_vars
+assert "CODEX_ELEVATED_MODEL=gpt-5.5" in shell_vars
+assert "CODEX_MODEL=" not in shell_vars
 assert "GITHUB_TOKEN=github-token" in shell_vars
 assert "OPENCLAW_ARCHITECT_MODEL=openai/gpt-5.4" in shell_vars
 assert "OPENCLAW_ARCHIVIST_MODEL=openai/gpt-5.4-mini" in shell_vars
@@ -221,6 +226,7 @@ assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["model"]["pr
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["model"]["fallbacks"] == ["anthropic/claude-sonnet-4-6", "google/gemini-3.1-pro-preview"]
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["mode"] == "all"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["workspaceAccess"] == "rw"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["tools"]["profile"] == "full"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["image"] == "registry.test.internal/coder-bot/openclaw-sandbox-coder:trixie-slim"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["HOME"] == "/workspace/.home"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["CODEX_HOME"] == "/workspace/.home/.codex"
@@ -236,6 +242,10 @@ assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["CODER_REGISTRY_BASE_URL"] == "https://registry.test.internal"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["CODER_REGISTRY_USERNAME"] == "coder"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["CODER_REGISTRY_NAMESPACE"] == "coder-bot"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER"] == "${OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER}"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["CODEX_DEFAULT_MODEL"] == "gpt-5.3-codex"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["CODEX_ELEVATED_MODEL"] == "gpt-5.5"
+assert "CODEX_MODEL" not in rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["OPENAI_API_KEY"] == "${OPENAI_API_KEY}"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["GITHUB_TOKEN"] == "${GITHUB_TOKEN}"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["setupCommand"] == "/usr/local/bin/coder-init.sh"
@@ -254,7 +264,14 @@ assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["workspace"]
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["model"]["primary"] == "openai/gpt-5.4"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["model"]["fallbacks"] == ["anthropic/claude-sonnet-4-6", "google/gemini-3.1-pro-preview"]
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["sandbox"]["mode"] == "non-main"
-assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["sandbox"]["docker"]["env"]["GIT_CONFIG_GLOBAL"] == "/workspace/.home/.config/git/config"
+architect_env = rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["sandbox"]["docker"]["env"]
+assert architect_env["HOME"] == "/workspace/.home"
+assert architect_env["XDG_CONFIG_HOME"] == "/workspace/.home/.config"
+assert architect_env["XDG_CACHE_HOME"] == "/workspace/.home/.cache"
+assert architect_env["XDG_STATE_HOME"] == "/workspace/.home/.local/state"
+assert architect_env["GIT_CONFIG_GLOBAL"] == "/workspace/.home/.config/git/config"
+assert architect_env["OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER"] == "${OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER}"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["sandbox"]["docker"]["setupCommand"] == "/usr/local/bin/reviewer-gitea-init.sh"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][2]["skills"] == [
     "plan-projects",
     "package-worker-definitions",
@@ -320,6 +337,12 @@ assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][0]["subagents"]
 assert rendered_values["openclaw"]["openclaw"]["tools"]["agentToAgent"]["enabled"] is True
 assert rendered_values["openclaw"]["openclaw"]["tools"]["agentToAgent"]["allow"] == ["main", "coder", "architect", "archivist", "watchdog", "auditor"]
 assert rendered_values["openclaw"]["openclaw"]["tools"]["sessions"]["visibility"] == "all"
+assert rendered_values["openclaw"]["openclaw"]["tools"]["sandbox"]["tools"]["alsoAllow"] == [
+    "nextcloud__*",
+    "qdrant__*",
+    "nc_*",
+    "qdrant-*",
+]
 assert rendered_values["openclaw"]["openclaw"]["plugins"]["slots"]["memory"] == "none"
 assert rendered_values["openclaw"]["workspaceBootstrap"]["enabled"] is True
 assert rendered_values["openclaw"]["workspaceBootstrap"]["giteaAdminUsername"] == "test-admin"
@@ -458,15 +481,23 @@ assert rendered_values["openclaw"]["openclaw"]["commands"]["mcp"] is True
 assert rendered_values["openclaw"]["openclaw"]["mcp"]["servers"]["nextcloud"]["args"][0] == "/opt/openclaw-runtime/mcp/mcp-http-bridge.mjs"
 assert rendered_values["openclaw"]["openclaw"]["mcp"]["servers"]["nextcloud"]["args"][2] == "${OPENCLAW_NEXTCLOUD_MCP_INTERNAL_URL}"
 assert rendered_values["openclaw"]["openclaw"]["mcp"]["servers"]["nextcloud"]["args"][4] == "${OPENCLAW_NEXTCLOUD_MCP_EXTERNAL_URL}"
+assert rendered_values["openclaw"]["openclaw"]["env"]["vars"]["OPENCLAW_STATE_DIR"] == "/home/node/.openclaw"
+assert rendered_values["openclaw"]["openclaw"]["env"]["vars"]["GIT_CONFIG_GLOBAL"] == "/home/node/.openclaw/.config/git/config"
 assert rendered_values["paperlessNgx"]["admin"]["mail"] == "admin@example.invalid"
 assert rendered_values["paperlessNgx"]["ingress"]["hosts"][0]["host"] == "paperless.test.internal"
 assert rendered_values["global"]["mail"]["smtpHost"] == "smtp.example.com"
 assert rendered_values["global"]["hosts"]["registry"] == "registry.test.internal"
 assert rendered_values["openclaw"]["env"] == [
+    {"name": "NODE_OPTIONS", "value": "--max-old-space-size=2048"},
     {"name": "XDG_CONFIG_HOME", "value": "/home/node/.openclaw/.config"},
     {"name": "XDG_CACHE_HOME", "value": "/home/node/.openclaw/.cache"},
     {"name": "XDG_STATE_HOME", "value": "/home/node/.openclaw/.local/state"},
     {"name": "GIT_CONFIG_GLOBAL", "value": "/home/node/.openclaw/.config/git/config"},
+    {"name": "SSL_CERT_FILE", "value": "/home/node/.openclaw/certs/ai-homebase-ca-bundle.crt"},
+    {"name": "REQUESTS_CA_BUNDLE", "value": "/home/node/.openclaw/certs/ai-homebase-ca-bundle.crt"},
+    {"name": "NODE_EXTRA_CA_CERTS", "value": "/home/node/.openclaw/certs/ai-homebase-ca-bundle.crt"},
+    {"name": "GIT_SSL_CAINFO", "value": "/home/node/.openclaw/certs/ai-homebase-ca-bundle.crt"},
+    {"name": "CURL_CA_BUNDLE", "value": "/home/node/.openclaw/certs/ai-homebase-ca-bundle.crt"},
     {"name": "MEMGRAPH_HOST", "value": '{{ printf "%s-memgraph" .Release.Name | trunc 63 | trimSuffix "-" }}'},
     {"name": "MEMGRAPH_PORT", "value": "7687"},
     {
@@ -489,13 +520,24 @@ assert rendered_values["openclaw"]["env"] == [
     {"name": "CODER_REGISTRY_HOST", "value": "registry.test.internal"},
     {"name": "CODER_REGISTRY_USERNAME", "value": "coder"},
     {"name": "CODER_REGISTRY_BASE_URL", "value": "https://registry.test.internal"},
-    {"name": "REVIEWER_GITEA_BASE_URL", "value": "https://gitea.test.internal"},
+    {
+        "name": "REVIEWER_GITEA_BASE_URL",
+        "value": "http://{{ printf \"%s-gitea-http.%s.svc.cluster.local\" .Release.Name .Release.Namespace }}:3000",
+    },
     {
         "name": "REVIEWER_GITEA_BOOTSTRAP_URL",
         "value": "http://{{ printf \"%s-gitea-http.%s.svc.cluster.local\" .Release.Name .Release.Namespace }}:3000",
     },
-    {"name": "REVIEWER_GITEA_TEA_URL", "value": "https://gitea.test.internal"},
-    {"name": "REVIEWER_GITEA_HOST", "value": "gitea.test.internal"},
+    {
+        "name": "REVIEWER_GITEA_TEA_URL",
+        "value": "http://{{ printf \"%s-gitea-http.%s.svc.cluster.local\" .Release.Name .Release.Namespace }}:3000",
+    },
+    {
+        "name": "REVIEWER_GITEA_HOST",
+        "value": '{{ printf "%s-gitea-http.%s.svc.cluster.local" .Release.Name .Release.Namespace }}',
+    },
+    {"name": "REVIEWER_GITEA_EXTERNAL_BASE_URL", "value": "https://gitea.test.internal"},
+    {"name": "REVIEWER_GITEA_EXTERNAL_HOST", "value": "gitea.test.internal"},
     {"name": "REVIEWER_GITEA_USERNAME", "value": "reviewer"},
     {"name": "REVIEWER_GITEA_EMAIL", "value": "reviewer@example.invalid"},
     {"name": "REVIEWER_GITEA_TEA_LOGIN_NAME", "value": "reviewer"},
@@ -508,10 +550,18 @@ assert sandbox_env["MEMGRAPH_BOLT_URI"] == "bolt://memgraph.test.internal:7687"
 assert sandbox_env["QDRANT_URL"] == "https://qdrant.test.internal"
 assert sandbox_env["QDRANT_COLLECTION"] == "openclaw-memory"
 assert sandbox_env["QDRANT_API_KEY"] == "${QDRANT_API_KEY}"
+assert sandbox_env["OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER"] == "${OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER}"
 assert sandbox_env["GITHUB_TOKEN"] == "${GITHUB_TOKEN}"
 assert sandbox_env["OPENAI_API_KEY"] == "${OPENAI_API_KEY}"
 assert sandbox_env["ANTHROPIC_API_KEY"] == "${ANTHROPIC_API_KEY}"
 assert sandbox_env["GEMINI_API_KEY"] == "${GEMINI_API_KEY}"
+
+agents_by_id = {agent["id"]: agent for agent in rendered_values["openclaw"]["openclaw"]["agents"]["list"]}
+assert agents_by_id["coder"]["tools"]["profile"] == "full"
+assert agents_by_id["architect"]["tools"]["profile"] == "full"
+assert agents_by_id["architect"]["tools"]["deny"] == ["tts", "image_generate", "canvas"]
+assert agents_by_id["archivist"]["tools"]["profile"] == "full"
+assert agents_by_id["archivist"]["tools"]["deny"] == ["tts", "image_generate", "canvas", "browser"]
 
 coder_dockerfile = (REPO_ROOT / "images" / "openclaw-sandbox-coder" / "Dockerfile").read_text(encoding="utf-8")
 base_dockerfile = (REPO_ROOT / "images" / "openclaw-sandbox-base" / "Dockerfile").read_text(encoding="utf-8")
@@ -520,6 +570,8 @@ gateway_start_script = (REPO_ROOT / "images" / "openclaw-remote-docker" / "openc
 coder_init_script = (REPO_ROOT / "images" / "openclaw-sandbox-coder" / "coder-init.sh").read_text(encoding="utf-8")
 coder_workspace_init_script = (REPO_ROOT / "images" / "openclaw-remote-docker" / "coder-workspace-init.sh").read_text(encoding="utf-8")
 qdrant_mcp_values = (REPO_ROOT / "charts" / "qdrant-mcp" / "values.yaml").read_text(encoding="utf-8")
+nextcloud_mcp_runtime_config = (REPO_ROOT / "charts" / "nextcloud-mcp" / "templates" / "runtime-configmap.yaml").read_text(encoding="utf-8")
+dockerignore = (REPO_ROOT / ".dockerignore").read_text(encoding="utf-8")
 assert "usermod --home /workspace/.home sandbox" in coder_dockerfile
 assert "mkdir -p /workspace/.home" in coder_dockerfile
 assert "ln -sfn /workspace/.home /home/sandbox" in coder_dockerfile
@@ -527,6 +579,16 @@ assert "ENV HOME=/workspace" not in coder_dockerfile
 assert "WORKDIR /workspace" in coder_dockerfile
 assert "tmux" in coder_dockerfile
 assert "@openai/codex@0.122.0" in coder_dockerfile
+assert "FROM docker:28.0.4-cli AS docker-cli" in coder_dockerfile
+assert "COPY --from=docker-cli /usr/local/bin/docker /usr/local/bin/docker" in coder_dockerfile
+assert "docker --version" in coder_dockerfile
+assert "pip3 install --break-system-packages --no-cache-dir neo4j" in base_dockerfile
+assert "python3-requests" in base_dockerfile
+assert "python3-yaml" in base_dockerfile
+assert "python-is-python3" in base_dockerfile
+assert "COPY --from=openclaw-runtime /app/skills /app/skills" in base_dockerfile
+assert "/usr/local/lib/openclaw-tools/tea.real" in base_dockerfile
+assert 'summarize_real_path="$(readlink -f ' in base_dockerfile
 assert "bwrap" not in coder_dockerfile
 assert "bubblewrap" not in coder_dockerfile
 assert 'approval_policy = "never"' in coder_init_script
@@ -541,23 +603,39 @@ assert "ensure_coder_gitea_token" in coder_workspace_init_script
 assert "access token name has been used already" in coder_workspace_init_script
 assert "debian:trixie-slim" in base_dockerfile
 assert "COPY --from=memgraph-tools /usr/bin/mgconsole /usr/local/bin/mgconsole" in base_dockerfile
+assert "COPY charts/openclaw/files/mcp-http-bridge.mjs /opt/openclaw-runtime/mcp/mcp-http-bridge.mjs" in base_dockerfile
 assert "https://deb.nodesource.com/node_22.x" in base_dockerfile
 assert "gitea.com/gitea/tea/releases/download/v${TEA_VERSION}" in base_dockerfile
+assert "-o /usr/local/lib/openclaw-tools/tea.real" in base_dockerfile
 assert "npm install -g @steipete/summarize" in base_dockerfile
 assert "gh --version" in base_dockerfile
 assert "debian:trixie-slim" in gateway_dockerfile
 assert "COPY --from=openclaw-runtime /app /app" in gateway_dockerfile
 assert "COPY --from=memgraph-tools /usr/bin/mgconsole /usr/local/bin/mgconsole" in gateway_dockerfile
-assert "COPY openclaw-gateway-start.sh /usr/local/bin/openclaw-gateway-start.sh" in gateway_dockerfile
+assert "COPY images/openclaw-remote-docker/openclaw-gateway-start.sh /usr/local/bin/openclaw-gateway-start.sh" in gateway_dockerfile
 assert "https://deb.nodesource.com/node_22.x" in gateway_dockerfile
 assert "gitea.com/gitea/tea/releases/download/v${TEA_VERSION}" in gateway_dockerfile
+assert "-o /usr/local/lib/openclaw-tools/tea.real" in gateway_dockerfile
+assert "python3-requests" in gateway_dockerfile
+assert "python3-yaml" in gateway_dockerfile
+assert "python-is-python3" in gateway_dockerfile
+assert 'summarize_real_path="$(readlink -f ' in gateway_dockerfile
 assert "npm install -g @steipete/summarize" in gateway_dockerfile
 assert "tmux -V" in gateway_dockerfile
 assert "reviewer-gitea-init.sh" in gateway_start_script
+assert "AUDITOR_WORKSPACE_HOME" in gateway_start_script
+assert 'seed_reviewer_workspace_login "${AUDITOR_WORKSPACE_HOME}" "auditor workspace"' in gateway_start_script
+assert "${OPENCLAW_WRITABLE_STATE}/.summarize" in gateway_start_script
 assert "exec \"$@\"" in gateway_start_script
+assert dockerignore.startswith("*\n")
+assert "!images/**" in dockerignore
+assert "!charts/openclaw/files/mcp-http-bridge.mjs" in dockerignore
+assert "bootstrap.local.toml" not in dockerignore
 assert "toolDescriptions:" in qdrant_mcp_values
 assert "Store a memory for cross-agent recall." in qdrant_mcp_values
 assert "Search shared semantic memory across all agents." in qdrant_mcp_values
+assert "patch_nextcloud_tables_model" in nextcloud_mcp_runtime_config
+assert 'Table.__annotations__["owner_display_name"] = Optional[str]' in nextcloud_mcp_runtime_config
 
 invalid_config = write_config(
     """

@@ -9,6 +9,8 @@ The runtime provides:
 - `QDRANT_COLLECTION` (defaults to `openclaw-memory`)
 - optional `QDRANT_API_KEY`
 
+On a pristine install, the shared Qdrant collection may not exist until the first semantic memory is stored. `scroll_memories.py` treats that state as an empty result set; exact point reads and graph annotations still fail until the collection and target point exist.
+
 ## Common Flows
 
 Read the grooming checkpoint before choosing a delta:

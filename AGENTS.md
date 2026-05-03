@@ -10,6 +10,11 @@
 - Every script, chart default, seeded file, and helper exists to initialize a fresh installation exactly once before GitOps and the running services take over their own durable state.
 - Do not keep backward-compatibility shims, deprecated paths, rerun-preservation behavior, or stale bootstrap code. If a repo-managed bootstrap path is no longer the canonical first-run path, remove it instead of leaving it behind.
 
+## Runtime requirements
+- Use the repository's regular `shell.nix` for project runtime requirements. Run project validation and helper commands through `nix-shell --run "<command>"` when required tools such as Helm or Python packages are not already available in the current shell.
+- Do not create one-off Nix environments with `nix-shell -p ...` for normal repo tasks. If a regular validation, rendering, test, or bootstrap helper needs an additional runtime dependency, add that dependency to `shell.nix` so every maintainer and future agent gets the same environment.
+- Keep command examples in this file and project docs based on `nix-shell --run` against `shell.nix`, not ad hoc package lists.
+
 ## Canonical validation commands
 - Update nested wrapper + umbrella dependencies when chart metadata changes or a render must include wrapper-managed resources:
   - `helm dependency update charts/argo-cd`
@@ -30,9 +35,9 @@
 - Render with explicit toggle checks:
   - `./scripts/template.sh --release-name platform-stack --namespace ai-homebase --values-file charts/platform-stack/values.yaml --disable-service nextcloud --disable-service gitea > /tmp/platform-stack-core-only.yaml`
 - Update golden snapshots whenever your change modifies rendered manifests for any golden-covered profile (`values`, `values-k3d`, or `values-k3s`):
-  - `nix-shell -p kubernetes-helm python3Packages.pyyaml --run "./scripts/ci/update_golden.sh"`
+  - `nix-shell --run "./scripts/ci/update_golden.sh"`
 - Verify golden snapshots are current:
-  - `nix-shell -p kubernetes-helm python3Packages.pyyaml --run "./scripts/ci/check_golden.sh"`
+  - `nix-shell --run "./scripts/ci/check_golden.sh"`
 
 ## Change-target rules (charts vs overlays vs docs)
 - Change `charts/<service>/` when you need template, chart metadata, image, probes, resources, secret wiring, or service defaults updated for that service.

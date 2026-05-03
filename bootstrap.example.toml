@@ -35,7 +35,8 @@ fallback_models = ["openai/gpt-5.4", "google/gemini-3.1-pro-preview"]
 [openclaw.agents.coder]
 model = "openai/gpt-5.4"
 fallback_models = ["anthropic/claude-sonnet-4-6", "google/gemini-3.1-pro-preview"]
-codex_model = "openai/gpt-5.4-mini"
+codex_model = "openai/gpt-5.3-codex"
+codex_elevated_model = "openai/gpt-5.5"
 
 [openclaw.agents.coder.gitea]
 username = "coder"

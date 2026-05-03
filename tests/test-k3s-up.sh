@@ -233,7 +233,7 @@ config_contents="$(cat "${sandbox_dir}/etc/rancher/k3s/config.yaml.d/10-ai-homeb
 assert_contains "${commands}" "systemctl enable --now k3s"
 assert_contains "${commands}" "systemctl restart k3s"
 assert_contains "${commands}" "kubectl --kubeconfig ${sandbox_dir}/etc/rancher/k3s/k3s.yaml wait --for=condition=Ready node --all --timeout=180s"
-assert_contains "${commands}" "helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx --kubeconfig ${sandbox_dir}/etc/rancher/k3s/k3s.yaml --namespace ingress-nginx --create-namespace --hide-notes --set controller.ingressClassResource.name=nginx --set controller.ingressClass=nginx --set controller.watchIngressWithoutClass=false"
+assert_contains "${commands}" "helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx --kubeconfig ${sandbox_dir}/etc/rancher/k3s/k3s.yaml --namespace ingress-nginx --create-namespace --hide-notes --set controller.ingressClassResource.name=nginx --set controller.ingressClass=nginx --set controller.watchIngressWithoutClass=false --set tcp.7687=ai-homebase/platform-stack-memgraph:7687"
 assert_contains "${commands}" "incus admin init --auto"
 assert_contains "${commands}" "incus network create incusbr0 ipv4.address=10.10.10.1/24 ipv4.nat=true ipv6.address=none"
 assert_contains "${commands}" "incus storage create default dir"

@@ -7,8 +7,24 @@ metadata:
 data:
   run-nextcloud-mcp.py: |
     import os
+    from typing import Optional
 
     import uvicorn
+
+    from nextcloud_mcp_server.models.tables import Table
+
+
+    def patch_nextcloud_tables_model():
+        field = Table.model_fields.get("owner_display_name")
+        if field is None or not field.is_required():
+            return
+        Table.__annotations__["owner_display_name"] = Optional[str]
+        field.annotation = Optional[str]
+        field.default = None
+        Table.model_rebuild(force=True)
+
+
+    patch_nextcloud_tables_model()
 
     from nextcloud_mcp_server.app import get_app
     from nextcloud_mcp_server.config import get_settings

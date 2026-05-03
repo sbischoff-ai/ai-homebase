@@ -7,6 +7,7 @@ source "$(dirname "$0")/lib/ingress-nginx.sh"
 CLUSTER_NAME="${CLUSTER_NAME:-ai-homebase-dev}"
 HTTP_PORT="${HTTP_PORT:-80}"
 HTTPS_PORT="${HTTPS_PORT:-443}"
+MEMGRAPH_BOLT_PORT="${MEMGRAPH_BOLT_PORT:-7687}"
 ENABLE_HTTPS="${ENABLE_HTTPS:-true}"
 KUBECONFIG_PATH="${KUBECONFIG_PATH:-${HOME}/.kube/k3d-${CLUSTER_NAME}.yaml}"
 K3S_IMAGE="${K3S_IMAGE:-rancher/k3s:v1.32.11-k3s1}"
@@ -22,6 +23,7 @@ Options:
   --cluster-name <name>         k3d cluster name (default: ${CLUSTER_NAME})
   --http-port <port>            Host HTTP port mapped to LB 80 (default: ${HTTP_PORT})
   --https-port <port>           Host HTTPS port mapped to LB 443 (default: ${HTTPS_PORT})
+  --memgraph-bolt-port <port>   Host Memgraph Bolt port mapped to LB 7687 (default: ${MEMGRAPH_BOLT_PORT})
   --without-https               Do not map host HTTPS port 443 to the k3s load balancer
   --kubeconfig <path>           Write/use dedicated kubeconfig path (default: ${KUBECONFIG_PATH})
   --k3s-image <image>           k3s image to use for the cluster (default: ${K3S_IMAGE})
@@ -39,6 +41,7 @@ while [[ $# -gt 0 ]]; do
     --cluster-name) CLUSTER_NAME="$2"; shift 2 ;;
     --http-port) HTTP_PORT="$2"; shift 2 ;;
     --https-port) HTTPS_PORT="$2"; shift 2 ;;
+    --memgraph-bolt-port) MEMGRAPH_BOLT_PORT="$2"; shift 2 ;;
     --without-https) ENABLE_HTTPS="false"; shift ;;
     --kubeconfig) KUBECONFIG_PATH="$2"; shift 2 ;;
     --k3s-image) K3S_IMAGE="$2"; shift 2 ;;
@@ -126,6 +129,23 @@ cluster_has_shared_openclaw_state_mount() {
   return 0
 }
 
+cluster_has_memgraph_bolt_port_mapping() {
+  local lb_name port_summary
+
+  lb_name="k3d-${CLUSTER_NAME}-serverlb"
+  if ! port_summary="$(docker inspect "$lb_name" --format '{{json .NetworkSettings.Ports}}' 2>/dev/null)"; then
+    warn "Unable to inspect ${lb_name}; recreating the cluster so the Memgraph Bolt port mapping is present."
+    return 1
+  fi
+
+  if ! printf '%s' "$port_summary" | grep -F "\"7687/tcp\"" >/dev/null; then
+    warn "Existing k3d cluster ${CLUSTER_NAME} is missing the Memgraph Bolt load balancer mapping at ${MEMGRAPH_BOLT_PORT}:7687; recreating it."
+    return 1
+  fi
+
+  return 0
+}
+
 probe_k3d_cluster() {
   local cmd_output
   local status
@@ -157,8 +177,8 @@ probe_k3d_cluster() {
 
 if probe_k3d_cluster; then
   step "Reusing existing k3d cluster ${CLUSTER_NAME}"
-  if cluster_has_shared_openclaw_state_mount; then
-    ok "Existing cluster has the shared OpenClaw state mount"
+  if cluster_has_shared_openclaw_state_mount && cluster_has_memgraph_bolt_port_mapping; then
+    ok "Existing cluster has the shared OpenClaw state mount and Memgraph Bolt mapping"
   else
     step "Recreating incompatible k3d cluster ${CLUSTER_NAME}"
     run_k3d_concise k3d cluster delete "$CLUSTER_NAME"
@@ -167,6 +187,7 @@ if probe_k3d_cluster; then
       --wait
       --image "$K3S_IMAGE"
       -p "${HTTP_PORT}:80@loadbalancer"
+      -p "${MEMGRAPH_BOLT_PORT}:7687@loadbalancer"
       --volume "/lib/modules:/lib/modules@all"
       --volume "${SHARED_OPENCLAW_STATE_SOURCE}:${SHARED_OPENCLAW_STATE_TARGET}@all"
       --k3s-arg "--disable=traefik@server:*"
@@ -188,6 +209,7 @@ else
       --wait
       --image "$K3S_IMAGE"
       -p "${HTTP_PORT}:80@loadbalancer"
+      -p "${MEMGRAPH_BOLT_PORT}:7687@loadbalancer"
       --volume "/lib/modules:/lib/modules@all"
       --volume "${SHARED_OPENCLAW_STATE_SOURCE}:${SHARED_OPENCLAW_STATE_TARGET}@all"
       --k3s-arg "--disable=traefik@server:*"

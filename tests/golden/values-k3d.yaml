@@ -604,8 +604,24 @@ apiVersion: v1
 data:
   run-nextcloud-mcp.py: |
     import os
+    from typing import Optional
 
     import uvicorn
+
+    from nextcloud_mcp_server.models.tables import Table
+
+
+    def patch_nextcloud_tables_model():
+        field = Table.model_fields.get("owner_display_name")
+        if field is None or not field.is_required():
+            return
+        Table.__annotations__["owner_display_name"] = Optional[str]
+        field.annotation = Optional[str]
+        field.default = None
+        Table.model_rebuild(force=True)
+
+
+    patch_nextcloud_tables_model()
 
     from nextcloud_mcp_server.app import get_app
     from nextcloud_mcp_server.config import get_settings
@@ -868,8 +884,9 @@ data:
   openclaw.json: |
     {
       "commands": {"mcp":true},
-      "tools": {"agentToAgent":{"allow":["main","coder","architect","archivist","watchdog","auditor"],"enabled":true},"sessions":{"visibility":"all"}},
+      "tools": {"agentToAgent":{"allow":["main","coder","architect","archivist","watchdog","auditor"],"enabled":true},"sandbox":{"tools":{"alsoAllow":["nextcloud__*","qdrant__*","nc_*","qdrant-*"]}},"sessions":{"visibility":"all"}},
       "cron": {"enabled":true,"maxConcurrentRuns":1,"runLog":{"keepLines":2000,"maxBytes":"2mb"},"sessionRetention":"24h","store":"~/.openclaw/cron/jobs.json"},
+      "env": {"vars":{"CURL_CA_BUNDLE":"/home/node/.openclaw/certs/ai-homebase-ca-bundle.crt","GIT_CONFIG_GLOBAL":"/home/node/.openclaw/.config/git/config","GIT_SSL_CAINFO":"/home/node/.openclaw/certs/ai-homebase-ca-bundle.crt","NODE_EXTRA_CA_CERTS":"/home/node/.openclaw/certs/ai-homebase-ca-bundle.crt","OPENCLAW_HOME":"/home/node/.openclaw","OPENCLAW_STATE_DIR":"/home/node/.openclaw","REQUESTS_CA_BUNDLE":"/home/node/.openclaw/certs/ai-homebase-ca-bundle.crt","SSL_CERT_FILE":"/home/node/.openclaw/certs/ai-homebase-ca-bundle.crt"}},
       "gateway": {
         "mode": "local",
         "bind": "lan",
@@ -885,11 +902,11 @@ data:
         "trustedProxies": ["10.42.0.0/16"]
       },
       "agents": {
-        "defaults": {"heartbeat":{"every":"0m"},"models":{"anthropic/claude-haiku-4-5":{"alias":"claude-haiku-4-5"},"anthropic/claude-opus-4-6":{"alias":"Auditor"},"anthropic/claude-opus-4-7":{"alias":"claude-opus-4-7"},"anthropic/claude-sonnet-4-6":{"alias":"Main / Architect"},"google/gemini-3.1-flash-lite-preview":{"alias":"gemini-3.1-flash-lite-preview"},"google/gemini-3.1-pro-preview":{"alias":"gemini-3.1-pro-preview"},"openai/gpt-5.4":{"alias":"Main / Coder / Architect / Archivist / Auditor"},"openai/gpt-5.4-mini":{"alias":"gpt-5.4-mini"},"openai/gpt-5.4-nano":{"alias":"Watchdog"}},"sandbox":{"backend":"docker","browser":{"cdpPort":9222,"cdpSourceRange":"","enableNoVnc":true,"enabled":true,"headless":false,"image":"openclaw-sandbox-browser:bookworm-slim","network":"bridge","noVncPort":6080,"vncPort":5900},"docker":{"capDrop":["ALL"],"cpus":1,"env":{"ANTHROPIC_API_KEY":"${ANTHROPIC_API_KEY}","CURL_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","GEMINI_API_KEY":"${GEMINI_API_KEY}","GITHUB_TOKEN":"${GITHUB_TOKEN}","GIT_SSL_CAINFO":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","HOME":"/workspace/.home","MEMGRAPH_BOLT_URI":"bolt://memgraph.localtest.me:7687","MEMGRAPH_HOST":"memgraph.localtest.me","MEMGRAPH_PORT":"7687","NODE_EXTRA_CA_CERTS":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","OPENAI_API_KEY":"${OPENAI_API_KEY}","QDRANT_COLLECTION":"openclaw-memory","QDRANT_URL":"http://qdrant.localtest.me","REQUESTS_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","SSL_CERT_FILE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","XDG_CACHE_HOME":"/workspace/.home/.cache","XDG_CONFIG_HOME":"/workspace/.home/.config","XDG_STATE_HOME":"/workspace/.home/.local/state"},"image":"registry.homebase.local/coder/openclaw-sandbox:trixie-slim","memory":"1g","memorySwap":"2g","network":"bridge","pidsLimit":256,"readOnlyRoot":true,"tmpfs":["/tmp","/var/tmp","/run"],"user":"1000:1000","workdir":"/workspace"},"mode":"non-main","scope":"agent","sessionToolsVisibility":"all","workspaceAccess":"rw"},"workspace":"/home/node/.openclaw/workspace"},
-        "list": [{"default":true,"heartbeat":{"every":"0m","includeSystemPromptSection":false},"id":"main","model":{"fallbacks":["anthropic/claude-sonnet-4-6"],"primary":"openai/gpt-5.4"},"name":"OpenClaw Assistant","skills":["handoff-specialist-work","manage-worker-lifecycle","bind-channels","coordinate-in-nextcloud","record-memory-and-coordination-status","track-budget","healthcheck","node-connect","skill-creator","session-logs","weather","summarize"],"subagents":{"allowAgents":["coder","architect","archivist","auditor"]},"workspace":"/home/node/.openclaw/workspace"},{"id":"coder","model":{"fallbacks":["openai/gpt-5.4"],"primary":"anthropic/claude-sonnet-4-6"},"name":"Coder","sandbox":{"docker":{"env":{"CODER_GITEA_BASE_URL":"https://gitea.homebase.local","CODER_GITEA_EMAIL":"coder@example.invalid","CODER_GITEA_HOST":"gitea.homebase.local","CODER_GITEA_PASSWORD":"${CODER_GITEA_PASSWORD}","CODER_GITEA_TEA_LOGIN_NAME":"coder","CODER_GITEA_TEA_TOKEN_NAME":"openclaw-coder-sandbox","CODER_GITEA_TEA_URL":"https://gitea.homebase.local","CODER_GITEA_TOKEN":"${CODER_GITEA_TOKEN}","CODER_GITEA_USERNAME":"coder","CODER_GITOPS_PROJECT":"platform-stack","CODER_GITOPS_REPO_BRANCH":"main","CODER_GITOPS_REPO_NAME":"cluster-gitops","CODER_REGISTRY_BASE_URL":"https://registry.homebase.local","CODER_REGISTRY_HOST":"registry.homebase.local","CODER_REGISTRY_NAMESPACE":"coder","CODER_REGISTRY_PASSWORD":"${CODER_REGISTRY_PASSWORD}","CODER_REGISTRY_USERNAME":"coder","CODER_SANDBOX_IMAGES_REPO_NAME":"openclaw-sandbox-images","CODEX_DEFAULT_MODEL":"gpt-5.4-mini","CODEX_HOME":"/workspace/.home/.codex","CODEX_MODEL":"openai/gpt-5.3-codex","CURL_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","DOCKER_HOST":"${DOCKER_HOST}","GITHUB_TOKEN":"${GITHUB_TOKEN}","GIT_SSL_CAINFO":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","HOME":"/workspace/.home","NODE_EXTRA_CA_CERTS":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","OPENAI_API_KEY":"${OPENAI_API_KEY}","REQUESTS_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","SSL_CERT_FILE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","XDG_CACHE_HOME":"/workspace/.home/.cache","XDG_CONFIG_HOME":"/workspace/.home/.config","XDG_STATE_HOME":"/workspace/.home/.local/state"},"image":"registry.homebase.local/coder/openclaw-sandbox-coder:trixie-slim","setupCommand":"/usr/local/bin/coder-init.sh","tmpfs":["/tmp","/var/tmp","/run"]},"mode":"all","workspaceAccess":"rw"},"skills":["manage-gitea-gitops-and-registry","run-codex-and-log-usage","update-implementation-notes","github","tmux"],"workspace":"/home/node/.openclaw/workspace-coder"},{"id":"architect","model":{"fallbacks":["openai/gpt-5.4"],"primary":"anthropic/claude-sonnet-4-6"},"name":"Architect","sandbox":{"docker":{"capDrop":["ALL"],"cpus":1,"env":{"ANTHROPIC_API_KEY":"${ANTHROPIC_API_KEY}","CURL_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","GEMINI_API_KEY":"${GEMINI_API_KEY}","GITHUB_TOKEN":"${GITHUB_TOKEN}","GIT_CONFIG_GLOBAL":"/workspace/.home/.config/git/config","GIT_SSL_CAINFO":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","HOME":"/workspace/.home","MEMGRAPH_BOLT_URI":"bolt://memgraph.homebase.local:7687","MEMGRAPH_HOST":"memgraph.homebase.local","MEMGRAPH_PORT":"7687","NODE_EXTRA_CA_CERTS":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","OPENAI_API_KEY":"${OPENAI_API_KEY}","QDRANT_COLLECTION":"openclaw-memory","QDRANT_URL":"https://qdrant.homebase.local","REQUESTS_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","REVIEWER_GITEA_BASE_URL":"https://gitea.homebase.local","REVIEWER_GITEA_EMAIL":"reviewer@example.invalid","REVIEWER_GITEA_HOST":"gitea.homebase.local","REVIEWER_GITEA_PASSWORD":"${REVIEWER_GITEA_PASSWORD}","REVIEWER_GITEA_TEA_LOGIN_NAME":"reviewer","REVIEWER_GITEA_TEA_TOKEN_NAME":"openclaw-reviewer","REVIEWER_GITEA_TEA_URL":"https://gitea.homebase.local","REVIEWER_GITEA_TOKEN":"${REVIEWER_GITEA_TOKEN}","REVIEWER_GITEA_USERNAME":"reviewer","SSL_CERT_FILE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","XDG_CACHE_HOME":"/workspace/.home/.cache","XDG_CONFIG_HOME":"/workspace/.home/.config","XDG_STATE_HOME":"/workspace/.home/.local/state"},"image":"registry.homebase.local/coder/openclaw-sandbox:trixie-slim","memory":"1g","memorySwap":"2g","network":"bridge","pidsLimit":256,"readOnlyRoot":true,"setupCommand":"/usr/local/bin/reviewer-gitea-init.sh","tmpfs":["/tmp","/var/tmp","/run"],"user":"1000:1000","workdir":"/workspace"},"mode":"non-main","workspaceAccess":"rw"},"skills":["plan-projects","package-worker-definitions","deliver-design","gitea-browse","skill-creator","session-logs","summarize","github"],"tools":{"deny":["tts","image_generate","canvas"]},"workspace":"/home/node/.openclaw/workspace-architect"},{"id":"archivist","model":{"fallbacks":["anthropic/claude-sonnet-4-6"],"primary":"openai/gpt-5.4-mini"},"name":"Archivist","sandbox":{"mode":"non-main"},"skills":["curate-memgraph","groom-knowledge-graph","map-context-and-link-evidence","use-nextcloud-docs-for-graph-work","session-logs","summarize"],"tools":{"deny":["tts","image_generate","canvas","browser"]},"workspace":"/home/node/.openclaw/workspace-archivist"},{"heartbeat":{"every":"30m"},"id":"watchdog","model":{"fallbacks":["anthropic/claude-haiku-4-5"],"primary":"openai/gpt-5.4-nano"},"name":"Watchdog","sandbox":{"mode":"off"},"skills":["classify-severity-and-escalate","manage-nextcloud-incidents","check-heartbeat-and-budget","healthcheck","node-connect","session-logs"],"tools":{"deny":["image_generate","canvas","tts","image","browser","sessions_spawn","agents_list","subagents"]},"workspace":"/home/node/.openclaw/workspace-watchdog"},{"id":"auditor","model":{"fallbacks":["openai/gpt-5.4"],"primary":"anthropic/claude-opus-4-6"},"name":"Auditor","sandbox":{"mode":"off"},"skills":["classify-review-mode","manage-review-packets","format-verdict","gitea-browse","session-logs","summarize","github"],"tools":{"deny":["tts","image_generate","canvas"]},"workspace":"/home/node/.openclaw/workspace-auditor"}]
+        "defaults": {"heartbeat":{"every":"0m"},"models":{"anthropic/claude-haiku-4-5":{"alias":"claude-haiku-4-5"},"anthropic/claude-opus-4-6":{"alias":"Auditor"},"anthropic/claude-opus-4-7":{"alias":"claude-opus-4-7"},"anthropic/claude-sonnet-4-6":{"alias":"Main / Architect"},"google/gemini-3.1-flash-lite-preview":{"alias":"gemini-3.1-flash-lite-preview"},"google/gemini-3.1-pro-preview":{"alias":"gemini-3.1-pro-preview"},"openai/gpt-5.4":{"alias":"Main / Coder / Architect / Archivist / Auditor"},"openai/gpt-5.4-mini":{"alias":"gpt-5.4-mini"},"openai/gpt-5.4-nano":{"alias":"Watchdog"}},"sandbox":{"backend":"docker","browser":{"cdpPort":9222,"cdpSourceRange":"","enableNoVnc":true,"enabled":true,"headless":false,"image":"openclaw-sandbox-browser:bookworm-slim","network":"bridge","noVncPort":6080,"vncPort":5900},"docker":{"capDrop":["ALL"],"cpus":1,"env":{"ANTHROPIC_API_KEY":"${ANTHROPIC_API_KEY}","CURL_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","GEMINI_API_KEY":"${GEMINI_API_KEY}","GITHUB_TOKEN":"${GITHUB_TOKEN}","GIT_SSL_CAINFO":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","HOME":"/workspace/.home","MEMGRAPH_BOLT_URI":"bolt://memgraph.localtest.me:7687","MEMGRAPH_HOST":"memgraph.localtest.me","MEMGRAPH_PORT":"7687","NODE_EXTRA_CA_CERTS":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","OPENAI_API_KEY":"${OPENAI_API_KEY}","OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER":"${OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER}","QDRANT_COLLECTION":"openclaw-memory","QDRANT_URL":"https://qdrant.localtest.me","REQUESTS_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","SSL_CERT_FILE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","XDG_CACHE_HOME":"/workspace/.home/.cache","XDG_CONFIG_HOME":"/workspace/.home/.config","XDG_STATE_HOME":"/workspace/.home/.local/state"},"image":"registry.homebase.local/coder/openclaw-sandbox:trixie-slim","memory":"1g","memorySwap":"2g","network":"bridge","pidsLimit":256,"readOnlyRoot":true,"tmpfs":["/tmp","/var/tmp","/run"],"user":"1000:1000","workdir":"/workspace"},"mode":"non-main","scope":"agent","sessionToolsVisibility":"all","workspaceAccess":"rw"},"workspace":"/home/node/.openclaw/workspace"},
+        "list": [{"default":true,"heartbeat":{"every":"0m","includeSystemPromptSection":false},"id":"main","model":{"fallbacks":["anthropic/claude-sonnet-4-6"],"primary":"openai/gpt-5.4"},"name":"OpenClaw Assistant","skills":["handoff-specialist-work","manage-worker-lifecycle","bind-channels","coordinate-in-nextcloud","record-memory-and-coordination-status","track-budget","healthcheck","node-connect","skill-creator","session-logs","weather","summarize"],"subagents":{"allowAgents":["coder","architect","archivist","auditor"]},"workspace":"/home/node/.openclaw/workspace"},{"id":"coder","model":{"fallbacks":["openai/gpt-5.4"],"primary":"anthropic/claude-sonnet-4-6"},"name":"Coder","sandbox":{"docker":{"env":{"CODER_GITEA_BASE_URL":"https://gitea.homebase.local","CODER_GITEA_EMAIL":"coder@example.invalid","CODER_GITEA_HOST":"gitea.homebase.local","CODER_GITEA_PASSWORD":"${CODER_GITEA_PASSWORD}","CODER_GITEA_TEA_LOGIN_NAME":"coder","CODER_GITEA_TEA_TOKEN_NAME":"openclaw-coder-sandbox","CODER_GITEA_TEA_URL":"https://gitea.homebase.local","CODER_GITEA_TOKEN":"${CODER_GITEA_TOKEN}","CODER_GITEA_USERNAME":"coder","CODER_GITOPS_PROJECT":"platform-stack","CODER_GITOPS_REPO_BRANCH":"main","CODER_GITOPS_REPO_NAME":"cluster-gitops","CODER_REGISTRY_BASE_URL":"https://registry.homebase.local","CODER_REGISTRY_HOST":"registry.homebase.local","CODER_REGISTRY_NAMESPACE":"coder","CODER_REGISTRY_PASSWORD":"${CODER_REGISTRY_PASSWORD}","CODER_REGISTRY_USERNAME":"coder","CODER_SANDBOX_IMAGES_REPO_NAME":"openclaw-sandbox-images","CODEX_DEFAULT_MODEL":"gpt-5.3-codex","CODEX_ELEVATED_MODEL":"gpt-5.5","CODEX_HOME":"/workspace/.home/.codex","CURL_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","DOCKER_HOST":"${DOCKER_HOST}","GITHUB_TOKEN":"${GITHUB_TOKEN}","GIT_SSL_CAINFO":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","HOME":"/workspace/.home","NODE_EXTRA_CA_CERTS":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","OPENAI_API_KEY":"${OPENAI_API_KEY}","OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER":"${OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER}","REQUESTS_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","SSL_CERT_FILE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","XDG_CACHE_HOME":"/workspace/.home/.cache","XDG_CONFIG_HOME":"/workspace/.home/.config","XDG_STATE_HOME":"/workspace/.home/.local/state"},"image":"registry.homebase.local/coder/openclaw-sandbox-coder:trixie-slim","setupCommand":"/usr/local/bin/coder-init.sh","tmpfs":["/tmp","/var/tmp","/run"]},"mode":"all","workspaceAccess":"rw"},"skills":["manage-gitea-gitops-and-registry","run-codex-and-log-usage","update-implementation-notes","github","tmux"],"tools":{"profile":"full"},"workspace":"/home/node/.openclaw/workspace-coder"},{"id":"architect","model":{"fallbacks":["openai/gpt-5.4"],"primary":"anthropic/claude-sonnet-4-6"},"name":"Architect","sandbox":{"docker":{"capDrop":["ALL"],"cpus":1,"env":{"ANTHROPIC_API_KEY":"${ANTHROPIC_API_KEY}","CURL_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","GEMINI_API_KEY":"${GEMINI_API_KEY}","GITHUB_TOKEN":"${GITHUB_TOKEN}","GIT_CONFIG_GLOBAL":"/workspace/.home/.config/git/config","GIT_SSL_CAINFO":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","HOME":"/workspace/.home","MEMGRAPH_BOLT_URI":"bolt://memgraph.homebase.local:7687","MEMGRAPH_HOST":"memgraph.homebase.local","MEMGRAPH_PORT":"7687","NODE_EXTRA_CA_CERTS":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","OPENAI_API_KEY":"${OPENAI_API_KEY}","OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER":"${OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER}","QDRANT_COLLECTION":"openclaw-memory","QDRANT_URL":"https://qdrant.homebase.local","REQUESTS_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","REVIEWER_GITEA_BASE_URL":"https://gitea.homebase.local","REVIEWER_GITEA_EMAIL":"reviewer@example.invalid","REVIEWER_GITEA_HOST":"gitea.homebase.local","REVIEWER_GITEA_PASSWORD":"${REVIEWER_GITEA_PASSWORD}","REVIEWER_GITEA_TEA_LOGIN_NAME":"reviewer","REVIEWER_GITEA_TEA_TOKEN_NAME":"openclaw-reviewer","REVIEWER_GITEA_TEA_URL":"https://gitea.homebase.local","REVIEWER_GITEA_TOKEN":"${REVIEWER_GITEA_TOKEN}","REVIEWER_GITEA_USERNAME":"reviewer","SSL_CERT_FILE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","XDG_CACHE_HOME":"/workspace/.home/.cache","XDG_CONFIG_HOME":"/workspace/.home/.config","XDG_STATE_HOME":"/workspace/.home/.local/state"},"image":"registry.homebase.local/coder/openclaw-sandbox:trixie-slim","memory":"1g","memorySwap":"2g","network":"bridge","pidsLimit":256,"readOnlyRoot":true,"setupCommand":"/usr/local/bin/reviewer-gitea-init.sh","tmpfs":["/tmp","/var/tmp","/run"],"user":"1000:1000","workdir":"/workspace"},"mode":"non-main","workspaceAccess":"rw"},"skills":["plan-projects","package-worker-definitions","deliver-design","gitea-browse","skill-creator","session-logs","summarize","github"],"tools":{"deny":["tts","image_generate","canvas"],"profile":"full"},"workspace":"/home/node/.openclaw/workspace-architect"},{"id":"archivist","model":{"fallbacks":["anthropic/claude-sonnet-4-6"],"primary":"openai/gpt-5.4-mini"},"name":"Archivist","sandbox":{"mode":"non-main"},"skills":["curate-memgraph","groom-knowledge-graph","map-context-and-link-evidence","use-nextcloud-docs-for-graph-work","session-logs","summarize"],"tools":{"deny":["tts","image_generate","canvas","browser"],"profile":"full"},"workspace":"/home/node/.openclaw/workspace-archivist"},{"heartbeat":{"every":"30m"},"id":"watchdog","model":{"fallbacks":["anthropic/claude-haiku-4-5"],"primary":"openai/gpt-5.4-nano"},"name":"Watchdog","sandbox":{"mode":"off"},"skills":["classify-severity-and-escalate","manage-nextcloud-incidents","check-heartbeat-and-budget","healthcheck","node-connect","session-logs"],"tools":{"deny":["image_generate","canvas","tts","image","browser","sessions_spawn","agents_list","subagents"]},"workspace":"/home/node/.openclaw/workspace-watchdog"},{"id":"auditor","model":{"fallbacks":["openai/gpt-5.4"],"primary":"anthropic/claude-opus-4-6"},"name":"Auditor","sandbox":{"mode":"off"},"skills":["classify-review-mode","manage-review-packets","format-verdict","gitea-browse","session-logs","summarize","github"],"tools":{"deny":["tts","image_generate","canvas"]},"workspace":"/home/node/.openclaw/workspace-auditor"}]
       },
       "skills": {"allowBundled":["weather","healthcheck","node-connect","skill-creator","session-logs","tmux","summarize","github"]},
-      "mcp": {"servers":{"nextcloud":{"args":["/opt/openclaw-runtime/mcp/mcp-http-bridge.mjs","--url","${OPENCLAW_NEXTCLOUD_MCP_INTERNAL_URL}","--url","${OPENCLAW_NEXTCLOUD_MCP_EXTERNAL_URL}","--header","Authorization=${OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER}"],"command":"node"},"qdrant":{"args":["/opt/openclaw-runtime/mcp/mcp-http-bridge.mjs","--url","${OPENCLAW_QDRANT_MCP_INTERNAL_URL}","--url","${OPENCLAW_QDRANT_MCP_EXTERNAL_URL}"],"command":"node"}}},
+      "mcp": {"servers":{"nextcloud":{"args":["/opt/openclaw-runtime/mcp/mcp-http-bridge.mjs","--url","http://platform-stack-nextcloud-mcp.ai-homebase.svc.cluster.local:8000/mcp","--url","https://nextcloud-mcp.localtest.me/mcp","--header","Authorization=${OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER}"],"command":"node"},"qdrant":{"args":["/opt/openclaw-runtime/mcp/mcp-http-bridge.mjs","--url","http://platform-stack-qdrant-mcp.ai-homebase.svc.cluster.local:8000/mcp","--url","https://qdrant-mcp.localtest.me/mcp"],"command":"node"}}},
       "plugins": {"entries":{},"slots":{"memory":"none"}}
     }
   workspace-architect-AGENTS.md: |
@@ -1657,6 +1674,8 @@ data:
     - `QDRANT_COLLECTION` (defaults to `openclaw-memory`)
     - optional `QDRANT_API_KEY`
 
+    On a pristine install, the shared Qdrant collection may not exist until the first semantic memory is stored. `scroll_memories.py` treats that state as an empty result set; exact point reads and graph annotations still fail until the collection and target point exist.
+
     ## Common Flows
 
     Read the grooming checkpoint before choosing a delta:
@@ -1774,6 +1793,7 @@ data:
         path: str,
         body: dict[str, Any] | None,
         api_key: str = "",
+        missing_collection_ok: bool = False,
     ) -> dict[str, Any]:
         data = None if body is None else json.dumps(body, sort_keys=True).encode("utf-8")
         headers = {"Content-Type": "application/json"}
@@ -1790,6 +1810,8 @@ data:
                 raw = response.read().decode("utf-8")
         except urllib.error.HTTPError as exc:
             details = exc.read().decode("utf-8", errors="replace")
+            if missing_collection_ok and exc.code == 404 and "Collection `" in details and "doesn't exist" in details:
+                return {}
             raise SystemExit(f"Qdrant HTTP {exc.code} for {path}: {details}") from exc
         except urllib.error.URLError as exc:
             raise SystemExit(f"Unable to reach Qdrant at {qdrant_url}: {exc}") from exc
@@ -1970,6 +1992,7 @@ data:
                 f"/collections/{collection}/points/scroll",
                 body,
                 api_key,
+                missing_collection_ok=True,
             )
             result = response.get("result") or {}
             points = result.get("points") or []
@@ -3189,7 +3212,7 @@ data:
     - Persistent tool state lives under `/workspace/.home`.
     - `HOME`, `CODEX_HOME`, and XDG directories are already pointed into `/workspace/.home`.
     - Remote Docker access is prewired through `DOCKER_HOST`; the SSH key material lives under `/workspace/.home/.ssh`.
-    - Use `CODER_GITEA_BASE_URL` / `CODER_GITEA_HOST` for the in-cluster Gitea service.
+    - Use `CODER_GITEA_BASE_URL` / `CODER_GITEA_HOST` for the configured sandbox-reachable Gitea endpoint.
     - `CODER_GITEA_TOKEN` and `CODER_GITEA_TEA_LOGIN_NAME` are the preferred tea login inputs. `CODER_GITEA_PASSWORD` remains available for git/basic-auth and bootstrap fallback only.
     - Use `CODER_REGISTRY_BASE_URL` / `CODER_REGISTRY_HOST` for the in-cluster registry.
     - Canonical repo names in this stack:
@@ -3219,7 +3242,7 @@ data:
 
     - Keep Codex runs inside the target repo under `/workspace`.
     - Start Codex from the target repo root.
-    - If `tea` fails, diagnose the configured login before falling back to any lower-level API access. A temporary `tea --login "$CODER_GITEA_TEA_LOGIN_NAME" ...` check is acceptable for diagnosis.
+    - If `tea` fails, diagnose the configured login before falling back to any lower-level API access. A temporary `tea <subcommand> ... --login "$CODER_GITEA_TEA_LOGIN_NAME"` check is acceptable for diagnosis.
     - Use repo-local worktrees when you need parallel isolation.
     - Do not create a persistent local OpenClaw `CURRENT.md` or `SURFACES.md` in this sandbox. Keep short-term continuity repo-local and mirror outward only when another agent or the user needs it.
     - Keep this file current when sandbox paths, runtime env vars, or canonical repo names change.
@@ -3259,7 +3282,7 @@ data:
     - Keep the default internal posture review-first: protected `main`, pull requests, and reviewer approval before merge unless main explicitly says a repo should differ.
     - Tell main when the user needs to review and merge.
     - Tell main when manual Argo CD sync is required after GitOps changes.
-    - If `tea` fails, diagnose it explicitly. One temporary `tea --login "$CODER_GITEA_TEA_LOGIN_NAME" ...` retry is acceptable to confirm login-selection trouble. Do not silently switch to raw `curl` with embedded credentials for normal repo workflow.
+    - If `tea` fails, diagnose it explicitly. One temporary `tea <subcommand> ... --login "$CODER_GITEA_TEA_LOGIN_NAME"` retry is acceptable to confirm login-selection trouble. Do not silently switch to raw `curl` with embedded credentials for normal repo workflow.
     - Before applying design or audit feedback that changes deployable structure, verify the destination path is actually wired into the repo's deployment flow. If the spec conflicts with the live repo architecture, stop and report the mismatch.
 
     ## Registry Rules
@@ -3295,31 +3318,33 @@ data:
 
     ## Invocation Rules
 
-    - prefer `tokscale headless codex exec ...` when available
-    - otherwise use `codex exec ...`
-    - PTY mode is required
-    - background mode is preferred for long-running tasks
+    - prefer `openclaw-codex-run -- "..."` for non-trivial Codex work
+    - use `openclaw-codex-run --elevated -- "..."` only for extra complex tasks or unusually large codebases
+    - the helper starts Codex in a durable `tmux` session by default and records run state under `/workspace/.home/.local/state/openclaw-codex-runs/`
+    - use `openclaw-codex-run --status <run-id>`, `--tail <run-id>`, and `--wait <run-id>` to monitor the run instead of assuming the surrounding OpenClaw exec session is the lifecycle boundary
+    - use `openclaw-codex-run --foreground -- "..."` only for short diagnostic runs where an outer timeout cannot kill useful work
     - never run Codex in `~/.openclaw/`
     - always keep the workdir inside the target repo
     - use repo-local worktrees when parallel isolation is needed
     - keep direct manual edits for tiny fixes, integration glue, or post-Codex cleanup
-    - if Codex is unavailable or auth fails, stop and report the blocker instead of coding around it inline
+    - if the helper, Codex, Tokscale, or auth fails, stop and report the concrete blocker instead of coding around it inline
 
     ## Model Heuristic
 
-    - default `gpt-5.4-mini` for routine work
-    - override to `gpt-5.3-codex` for especially hard multi-file refactors or debugging loops
+    - default `gpt-5.3-codex` for implementation work
+    - elevated `gpt-5.5` for extra complex debugging loops, broad refactors, or unfamiliar large codebases
+    - prefer the default model unless the task clearly needs the higher-cost elevated model
 
     ## Usage Logging
 
     - if Codex was used and the session is not explicitly off-budget, log usage before returning to main
     - `tokscale` is the source of truth for usage metrics in this stack
-    - prefer `tokscale headless codex exec ...` because it wraps the Codex run and gives you the token and cost numbers needed for logging
-    - when `tokscale` produced the run, copy the reported `input_tokens`, `output_tokens`, `cache_read_tokens` when present, and `estimated_cost_usd` directly from its output instead of estimating them yourself
-    - if you had to use bare `codex exec`, do not guess usage from memory or rough pricing math; fetch the exact numbers from `tokscale` before writing the log entry, or report that accurate logging is blocked
+    - `openclaw-codex-run` captures Codex `--json` output under `/workspace/.home/.config/tokscale/headless/codex/` and writes a per-run Tokscale report path in its status JSON
+    - copy usage fields from the helper's Tokscale report; do not expect `estimated_cost_usd` to be present in raw Codex JSONL
+    - if the Tokscale report is missing or incomplete, do not guess usage from memory or rough pricing math; report that accurate logging is blocked
     - append a JSON entry to Nextcloud `/Projects/ai-homebase/codex-usage/YYYY-MM-DD.json`
     - create the file as a JSON array if it does not exist
-    - each entry should include `timestamp`, `model`, `input_tokens`, `output_tokens`, `cache_read_tokens` when available, `estimated_cost_usd`, `task_summary`, and `codex_flags`
+    - each entry should include `timestamp`, `model`, `input_tokens`, `output_tokens`, `cache_read_tokens` when available, `estimated_cost_usd`, `task_summary`, `run_id`, `jsonl_path`, `usage_report_path`, and `codex_flags`
 
     ## Ownership
 
@@ -5070,7 +5095,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/runtime-config: bcdf15d22ecda905fac3aedf766e861e85ceaff3e459df08f6185aff5b0a069b
+        checksum/runtime-config: 6008ac894215ece6db56d5556f0512e6f2e0ff6ecf29374766f3f11ea0f6ae6b
       labels:
         app.kubernetes.io/instance: platform-stack
         app.kubernetes.io/name: nextcloud-mcp
@@ -5163,7 +5188,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: 7d89b68eafea215de6d78d3f1e1ea81f324759f8ef4db9ff130883424d5d5574
+        checksum/config: 7ae7acf222b26e723c659e0461d4dae02b664117accbfd13568811aa97513275
       labels:
         app.kubernetes.io/instance: platform-stack
         app.kubernetes.io/name: openclaw
@@ -5194,15 +5219,15 @@ spec:
         - name: OPENCLAW_NEXTCLOUD_MCP_INTERNAL_URL
           value: http://platform-stack-nextcloud-mcp.ai-homebase.svc.cluster.local:8000/mcp
         - name: OPENCLAW_NEXTCLOUD_MCP_EXTERNAL_URL
-          value: http://nextcloud-mcp.localtest.me/mcp
+          value: https://nextcloud-mcp.localtest.me/mcp
         - name: OPENCLAW_QDRANT_MCP_INTERNAL_URL
           value: http://platform-stack-qdrant-mcp.ai-homebase.svc.cluster.local:8000/mcp
         - name: OPENCLAW_QDRANT_MCP_EXTERNAL_URL
-          value: http://qdrant-mcp.localtest.me/mcp
+          value: https://qdrant-mcp.localtest.me/mcp
         - name: OPENCLAW_QDRANT_INTERNAL_URL
           value: http://platform-stack-qdrant.ai-homebase.svc.cluster.local:6333
         - name: OPENCLAW_QDRANT_EXTERNAL_URL
-          value: http://qdrant.localtest.me
+          value: https://qdrant.localtest.me
         - name: QDRANT_URL
           value: http://platform-stack-qdrant.ai-homebase.svc.cluster.local:6333
         - name: QDRANT_COLLECTION
@@ -5215,6 +5240,14 @@ spec:
           value: /home/node
         - name: NODE_OPTIONS
           value: --max-old-space-size=2048
+        - name: XDG_CONFIG_HOME
+          value: /home/node/.openclaw/.config
+        - name: XDG_CACHE_HOME
+          value: /home/node/.openclaw/.cache
+        - name: XDG_STATE_HOME
+          value: /home/node/.openclaw/.local/state
+        - name: GIT_CONFIG_GLOBAL
+          value: /home/node/.openclaw/.config/git/config
         - name: SSL_CERT_FILE
           value: /home/node/.openclaw/certs/ai-homebase-ca-bundle.crt
         - name: REQUESTS_CA_BUNDLE

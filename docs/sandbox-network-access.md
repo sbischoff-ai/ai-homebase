@@ -13,7 +13,7 @@ This matrix documents which OpenClaw agents can reach which services from their 
 
 Notes:
 
-- `via MCP` means access flows through the MCP bridge on the gateway, not directly from the sandbox container.
+- `via MCP` means access flows through the configured OpenClaw MCP bridge. Gateway sessions use in-cluster Service URLs; Docker sandbox sessions run outside Kubernetes and must be able to reach the external ingress URLs from the Incus VM and sandbox containers.
 - `direct` means the sandbox container or gateway runtime can reach the service directly.
 - `no sandbox` means the agent runs unsandboxed on the gateway.
 - `architect` direct Gitea access uses the ingress hostname path because its reviewer sessions run in Docker sandboxes on the Incus VM outside Kubernetes.

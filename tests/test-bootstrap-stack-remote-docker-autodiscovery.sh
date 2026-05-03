@@ -76,36 +76,57 @@ HOST_LISTEN_ADDRESS=10.10.10.1
 SSH_HOST_PORT=2222
 EOF
 
-(
-  cd "${repo_dir}"
-  export FAKE_COMMAND_LOG="${sandbox_dir}/commands.log"
+run_stack_case() {
+  local case_name="$1"
+  local expected_kubeconfig="$2"
+  shift 2
+
+  : >"${sandbox_dir}/commands-${case_name}.log"
+  (
+    cd "${repo_dir}"
+    export FAKE_COMMAND_LOG="${sandbox_dir}/commands-${case_name}.log"
+    "$@"
+  )
+
+  local commands
+  commands="$(cat "${sandbox_dir}/commands-${case_name}.log")"
+  local shared_log
+  shared_log="$(printf '%s\n' "${commands}" | sed -n 's/.*| log=\(.*\)$/\1/p' | head -n 1)"
+
+  assert_contains "${commands}" "bootstrap-runtime-k3s.sh --bootstrap-config ${sandbox_dir}/bootstrap.local.toml --release-name platform-stack --namespace ai-homebase --kubeconfig ${expected_kubeconfig} --sandbox-vm-name openclaw-sandbox"
+  assert_contains "${commands}" "bootstrap-apply.sh --profile k3s --bootstrap-config ${sandbox_dir}/bootstrap.local.toml --release-name platform-stack --namespace ai-homebase --kubeconfig ${expected_kubeconfig} --incus-vm-name openclaw-sandbox --incus-connection-info ${sandbox_dir}/incus/openclaw-sandbox.env"
+  assert_contains "${commands}" "bootstrap-smoke.sh --profile k3s --bootstrap-config ${sandbox_dir}/bootstrap.local.toml --release-name platform-stack --namespace ai-homebase --kubeconfig ${expected_kubeconfig} --incus-vm-name openclaw-sandbox --incus-connection-info ${sandbox_dir}/incus/openclaw-sandbox.env"
+
+  if [[ -z "${shared_log}" ]]; then
+    printf 'expected bootstrap-stack to export a shared BOOTSTRAP_LOG_FILE\n' >&2
+    printf 'command log:\n%s\n' "${commands}" >&2
+    exit 1
+  fi
+
+  local runtime_log apply_log smoke_log
+  runtime_log="$(printf '%s\n' "${commands}" | sed -n '1s/.*| log=\(.*\)$/\1/p')"
+  apply_log="$(printf '%s\n' "${commands}" | sed -n '2s/.*| log=\(.*\)$/\1/p')"
+  smoke_log="$(printf '%s\n' "${commands}" | sed -n '3s/.*| log=\(.*\)$/\1/p')"
+
+  if [[ "${runtime_log}" != "${apply_log}" || "${apply_log}" != "${smoke_log}" ]]; then
+    printf 'expected all bootstrap phases to share one log file\n' >&2
+    printf 'command log:\n%s\n' "${commands}" >&2
+    exit 1
+  fi
+}
+
+run_stack_case default-kubeconfig /etc/rancher/k3s/k3s.yaml \
+  env KUBECONFIG="${HOME}/.kube/config" \
   ./scripts/bootstrap-stack.sh \
     --profile k3s \
     --bootstrap-config "${sandbox_dir}/bootstrap.local.toml" \
     --incus-connection-info "${sandbox_dir}/incus/openclaw-sandbox.env"
-)
 
-commands="$(cat "${sandbox_dir}/commands.log")"
-shared_log="$(printf '%s\n' "${commands}" | sed -n 's/.*| log=\(.*\)$/\1/p' | head -n 1)"
-
-assert_contains "${commands}" "bootstrap-runtime-k3s.sh --bootstrap-config ${sandbox_dir}/bootstrap.local.toml"
-assert_contains "${commands}" "bootstrap-apply.sh --profile k3s --bootstrap-config ${sandbox_dir}/bootstrap.local.toml --release-name platform-stack --namespace ai-homebase --kubeconfig ${HOME}/.kube/config --incus-vm-name openclaw-sandbox --incus-connection-info ${sandbox_dir}/incus/openclaw-sandbox.env"
-assert_contains "${commands}" "bootstrap-smoke.sh --profile k3s --bootstrap-config ${sandbox_dir}/bootstrap.local.toml --release-name platform-stack --namespace ai-homebase --kubeconfig ${HOME}/.kube/config --incus-vm-name openclaw-sandbox --incus-connection-info ${sandbox_dir}/incus/openclaw-sandbox.env"
-
-if [[ -z "${shared_log}" ]]; then
-  printf 'expected bootstrap-stack to export a shared BOOTSTRAP_LOG_FILE\n' >&2
-  printf 'command log:\n%s\n' "${commands}" >&2
-  exit 1
-fi
-
-runtime_log="$(printf '%s\n' "${commands}" | sed -n '1s/.*| log=\(.*\)$/\1/p')"
-apply_log="$(printf '%s\n' "${commands}" | sed -n '2s/.*| log=\(.*\)$/\1/p')"
-smoke_log="$(printf '%s\n' "${commands}" | sed -n '3s/.*| log=\(.*\)$/\1/p')"
-
-if [[ "${runtime_log}" != "${apply_log}" || "${apply_log}" != "${smoke_log}" ]]; then
-  printf 'expected all bootstrap phases to share one log file\n' >&2
-  printf 'command log:\n%s\n' "${commands}" >&2
-  exit 1
-fi
+run_stack_case explicit-kubeconfig "${sandbox_dir}/custom-k3s.yaml" \
+  ./scripts/bootstrap-stack.sh \
+    --profile k3s \
+    --bootstrap-config "${sandbox_dir}/bootstrap.local.toml" \
+    --kubeconfig "${sandbox_dir}/custom-k3s.yaml" \
+    --incus-connection-info "${sandbox_dir}/incus/openclaw-sandbox.env"
 
 echo "bootstrap stack remote docker autodiscovery tests passed"

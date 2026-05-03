@@ -1,3 +1,5 @@
+FROM docker:28.0.4-cli AS docker-cli
+
 FROM openclaw-sandbox:trixie-slim
 
 USER root
@@ -47,13 +49,17 @@ RUN npm install -g tokscale && \
 RUN curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash && \
     helm version --short
 
-COPY coder-init.sh /usr/local/bin/coder-init.sh
+COPY --from=docker-cli /usr/local/bin/docker /usr/local/bin/docker
+
+COPY images/openclaw-sandbox-coder/coder-init.sh /usr/local/bin/coder-init.sh
+COPY images/openclaw-sandbox-coder/openclaw-codex-run.sh /usr/local/bin/openclaw-codex-run
 
 RUN usermod --home /workspace/.home sandbox && \
     mkdir -p /workspace/.home && \
     ln -sfn /workspace/.home /home/sandbox && \
     chown -R sandbox:sandbox /workspace && \
-    chmod 0755 /usr/local/bin/coder-init.sh
+    docker --version && \
+    chmod 0755 /usr/local/bin/coder-init.sh /usr/local/bin/openclaw-codex-run
 
 USER sandbox
 WORKDIR /workspace

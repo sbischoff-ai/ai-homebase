@@ -52,6 +52,14 @@ openclaw:
   env:
     - name: NODE_OPTIONS
       value: --max-old-space-size=2048
+    - name: XDG_CONFIG_HOME
+      value: /home/node/.openclaw/.config
+    - name: XDG_CACHE_HOME
+      value: /home/node/.openclaw/.cache
+    - name: XDG_STATE_HOME
+      value: /home/node/.openclaw/.local/state
+    - name: GIT_CONFIG_GLOBAL
+      value: /home/node/.openclaw/.config/git/config
     - name: SSL_CERT_FILE
       value: /home/node/.openclaw/certs/ai-homebase-ca-bundle.crt
     - name: REQUESTS_CA_BUNDLE
@@ -124,7 +132,7 @@ openclaw:
               MEMGRAPH_HOST: memgraph.localtest.me
               MEMGRAPH_PORT: "7687"
               MEMGRAPH_BOLT_URI: bolt://memgraph.localtest.me:7687
-              QDRANT_URL: http://qdrant.localtest.me
+              QDRANT_URL: https://qdrant.localtest.me
               QDRANT_COLLECTION: openclaw-memory
               QDRANT_API_KEY: ${QDRANT_API_KEY}
 

@@ -21,8 +21,13 @@ INCUS_CONNECTION_INFO_PATH="${INCUS_CONNECTION_INFO_PATH:-}"
 SHARED_OPENCLAW_STATE_SOURCE="${SHARED_OPENCLAW_STATE_SOURCE:-}"
 CLUSTER_NAME="${CLUSTER_NAME:-ai-homebase-dev}"
 VERBOSE=0
+KUBECONFIG_EXPLICIT=0
 default_k3d_kubeconfig_path() {
   printf '%s/.kube/k3d-%s.yaml' "$HOME" "$CLUSTER_NAME"
+}
+
+default_k3s_kubeconfig_path() {
+  printf '%s\n' "/etc/rancher/k3s/k3s.yaml"
 }
 
 normalize_kubeconfig_path() {
@@ -75,7 +80,7 @@ while [[ $# -gt 0 ]]; do
     --bootstrap-config) BOOTSTRAP_CONFIG_PATH="$2"; shift 2 ;;
     --release-name) RELEASE_NAME="$2"; shift 2 ;;
     --namespace) NAMESPACE="$2"; shift 2 ;;
-    --kubeconfig) KUBECONFIG_PATH="$2"; shift 2 ;;
+    --kubeconfig) KUBECONFIG_PATH="$2"; KUBECONFIG_EXPLICIT=1; shift 2 ;;
     --kube-context) KUBE_CONTEXT="$2"; shift 2 ;;
     --cluster-name) CLUSTER_NAME="$2"; shift 2 ;;
     --values-file) VALUES_FILES+=("$2"); shift 2 ;;
@@ -105,6 +110,9 @@ esac
 
 if [[ "$PROFILE" == "k3d" ]] && [[ -z "$KUBECONFIG_PATH" || "$KUBECONFIG_PATH" == "${HOME}/.kube/config" ]]; then
   KUBECONFIG_PATH="$(default_k3d_kubeconfig_path)"
+fi
+if [[ "$PROFILE" == "k3s" && "$KUBECONFIG_EXPLICIT" -eq 0 && ( -z "$KUBECONFIG_PATH" || "$KUBECONFIG_PATH" == "${HOME}/.kube/config" ) ]]; then
+  KUBECONFIG_PATH="$(default_k3s_kubeconfig_path)"
 fi
 
 if [[ "$VERBOSE" -eq 1 ]]; then
@@ -189,6 +197,8 @@ case "$PROFILE" in
     RUNTIME_CMD=(
       ./scripts/bootstrap-runtime-k3s.sh
       --bootstrap-config "$BOOTSTRAP_CONFIG_PATH"
+      --release-name "$RELEASE_NAME"
+      --namespace "$NAMESPACE"
     )
     if [[ -n "$KUBECONFIG_PATH" ]]; then
       RUNTIME_CMD+=(--kubeconfig "$KUBECONFIG_PATH")

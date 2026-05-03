@@ -68,7 +68,7 @@ cp bootstrap.example.toml bootstrap.local.toml
 ./scripts/bootstrap-stack.sh --profile k3s --bootstrap-config bootstrap.local.toml
 ```
 
-Fill `bootstrap.local.toml` with hostnames, mail settings, provider keys, admin credentials, and any first-run Gitea overrides before either path. The shipped OpenClaw defaults now assume `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, and `GEMINI_API_KEY` are all present unless you override the default agent model routing. Gitea Actions are enabled by default, so the standard bootstrap path also prepares the dedicated runner VM unless you explicitly set `services.gitea.actions.enabled=false`.
+Fill `bootstrap.local.toml` with hostnames, mail settings, provider keys, admin credentials, and any first-run Gitea overrides before either path. The shipped OpenClaw defaults now assume `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, and `GEMINI_API_KEY` are all present unless you override the default agent model routing. Coder's delegated Codex CLI workflow uses GPT-5.3-Codex by default and GPT-5.5 for elevated runs. Gitea Actions are enabled by default, so the standard bootstrap path also prepares the dedicated runner VM unless you explicitly set `services.gitea.actions.enabled=false`.
 If you install `k3s` with a non-default `--openclaw-shared-state-dir`, pass that same path to `bootstrap-stack.sh --shared-openclaw-state-source ...` so the gateway, sandbox VM, and CA export stay aligned.
 
 ## 📚 Docs Start Here

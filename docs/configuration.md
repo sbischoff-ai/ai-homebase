@@ -20,7 +20,7 @@ The repository supports two deployment profiles:
 - `k3d`: local full-stack validation and smoke testing.
 - `k3s`: the long-running single-node homelab target.
 
-Both profiles use `ingress-nginx` and the `nginx` ingress class. The `k3s` host-prep script disables the bundled Traefik add-on on fresh installs so rendered ingress classes and cluster ingress behavior stay aligned.
+Both profiles use `ingress-nginx` and the `nginx` ingress class. Bootstrap also configures ingress-nginx TCP forwarding for Memgraph Bolt on port `7687`; `k3d` maps the same host port to the load balancer so Docker sandboxes can reach Memgraph through their ingress hostname. The `k3s` host-prep script disables the bundled Traefik add-on on fresh installs so rendered ingress classes and cluster ingress behavior stay aligned.
 
 The `k3s` overlay is sized for the current Hetzner A42U-class target: Ryzen 7 Pro 8700GE, 64 GB RAM, and roughly 3 TB storage. See [storage.md](./storage.md) for the current rendered storage and request summary.
 
@@ -42,7 +42,7 @@ python3 scripts/bootstrap-config.py validate --config bootstrap.local.toml
 - provider/search API keys
 - shared admin identity and service-specific admin overrides
 - Gitea Actions runner bootstrap settings under `[services.gitea.actions]` with Actions enabled by default
-- OpenClaw gateway token and agent model selections
+- OpenClaw gateway token and agent model selections, including coder Codex CLI default and elevated models
 - registry credentials, coder Gitea defaults, and the shared reviewer Gitea identity for architect and auditor
 - first-run application secrets when the operator wants explicit values
 
@@ -55,6 +55,8 @@ The shipped OpenClaw defaults use OpenAI, Anthropic, and Google model IDs across
 - `gemini_api_key`
 
 If you do not want a three-provider bootstrap posture, override the affected agent `model` and `fallback_models` selections in `bootstrap.local.toml`.
+
+`openclaw.agents.coder.codex_model` controls the default Codex CLI model used inside the coder sandbox. `openclaw.agents.coder.codex_elevated_model` controls the higher-cost model selected by the seeded `openclaw-codex-run --elevated` workflow. The shipped defaults are `openai/gpt-5.3-codex` and `openai/gpt-5.5`.
 
 ## What Belongs Where
 

@@ -267,6 +267,7 @@ openclaw:
               QDRANT_URL: https://qdrant.homebase.local
               QDRANT_COLLECTION: openclaw-memory
               QDRANT_API_KEY: ${QDRANT_API_KEY}
+              OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER: ${OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER}
               GITHUB_TOKEN: ${GITHUB_TOKEN}
               OPENAI_API_KEY: ${OPENAI_API_KEY}
               ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
@@ -371,12 +372,15 @@ openclaw:
                 CODER_REGISTRY_USERNAME: coder
                 CODER_REGISTRY_PASSWORD: ${CODER_REGISTRY_PASSWORD}
                 CODER_REGISTRY_NAMESPACE: coder
-                CODEX_DEFAULT_MODEL: gpt-5.4-mini
-                CODEX_MODEL: openai/gpt-5.3-codex
+                CODEX_DEFAULT_MODEL: gpt-5.3-codex
+                CODEX_ELEVATED_MODEL: gpt-5.5
                 DOCKER_HOST: ${DOCKER_HOST}
+                OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER: ${OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER}
                 OPENAI_API_KEY: ${OPENAI_API_KEY}
                 GITHUB_TOKEN: ${GITHUB_TOKEN}
               setupCommand: /usr/local/bin/coder-init.sh
+          tools:
+            profile: full
         - id: architect
           name: Architect
           workspace: /home/node/.openclaw/workspace-architect
@@ -412,6 +416,7 @@ openclaw:
                 QDRANT_URL: https://qdrant.homebase.local
                 QDRANT_COLLECTION: openclaw-memory
                 QDRANT_API_KEY: ${QDRANT_API_KEY}
+                OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER: ${OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER}
                 GITHUB_TOKEN: ${GITHUB_TOKEN}
                 OPENAI_API_KEY: ${OPENAI_API_KEY}
                 ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
@@ -444,6 +449,7 @@ openclaw:
             - summarize
             - github
           tools:
+            profile: full
             deny:
               - tts
               - image_generate
@@ -465,6 +471,7 @@ openclaw:
           sandbox:
             mode: non-main
           tools:
+            profile: full
             deny:
               - tts
               - image_generate
@@ -532,6 +539,13 @@ openclaw:
           - archivist
           - watchdog
           - auditor
+      sandbox:
+        tools:
+          alsoAllow:
+            - nextcloud__*
+            - qdrant__*
+            - nc_*
+            - qdrant-*
     skills:
       allowBundled:
         - weather

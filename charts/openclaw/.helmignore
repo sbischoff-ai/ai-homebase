@@ -1,0 +1,22 @@
+# Generated Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+
+# Test and tool caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Editor and OS files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# Temporary artifacts
+tmp/
+temp/
+*.tmp
+*.bak

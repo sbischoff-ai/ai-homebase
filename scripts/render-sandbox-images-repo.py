@@ -9,10 +9,12 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 INCLUDED_PATHS = (
+    Path(".dockerignore"),
     Path("images/openclaw-sandbox-base/Dockerfile"),
     Path("images/openclaw-sandbox-base/reviewer-gitea-init.sh"),
     Path("images/openclaw-sandbox-coder/Dockerfile"),
     Path("images/openclaw-sandbox-coder/coder-init.sh"),
+    Path("charts/openclaw/files/mcp-http-bridge.mjs"),
     Path("images/gitea-actions-job/Dockerfile"),
     Path("images/openclaw-remote-docker/Dockerfile"),
     Path("images/openclaw-remote-docker/openclaw-gateway-start.sh"),

@@ -3,6 +3,10 @@
 INGRESS_NAMESPACE="${INGRESS_NAMESPACE:-ingress-nginx}"
 INGRESS_RELEASE_NAME="${INGRESS_RELEASE_NAME:-ingress-nginx}"
 INGRESS_CHART_REF="${INGRESS_CHART_REF:-ingress-nginx/ingress-nginx}"
+MEMGRAPH_TCP_ENABLED="${MEMGRAPH_TCP_ENABLED:-true}"
+MEMGRAPH_TCP_PORT="${MEMGRAPH_TCP_PORT:-7687}"
+MEMGRAPH_TCP_NAMESPACE="${MEMGRAPH_TCP_NAMESPACE:-ai-homebase}"
+MEMGRAPH_TCP_RELEASE_NAME="${MEMGRAPH_TCP_RELEASE_NAME:-platform-stack}"
 
 ensure_ingress_nginx() {
   step "Ensuring ingress-nginx Helm repo"
@@ -14,14 +18,22 @@ ensure_ingress_nginx() {
   fi
 
   step "Installing/upgrading ingress-nginx controller"
+  HELM_SET_ARGS=(
+    --set controller.ingressClassResource.name=nginx
+    --set controller.ingressClass=nginx
+    --set controller.watchIngressWithoutClass=false
+  )
+  if [[ "$MEMGRAPH_TCP_ENABLED" == "true" ]]; then
+    HELM_SET_ARGS+=(
+      --set "tcp.${MEMGRAPH_TCP_PORT}=${MEMGRAPH_TCP_NAMESPACE}/${MEMGRAPH_TCP_RELEASE_NAME}-memgraph:${MEMGRAPH_TCP_PORT}"
+    )
+  fi
   run_quiet helm upgrade --install "$INGRESS_RELEASE_NAME" "$INGRESS_CHART_REF" \
     "${HELM_ARGS[@]}" \
     --namespace "$INGRESS_NAMESPACE" \
     --create-namespace \
     --hide-notes \
-    --set controller.ingressClassResource.name=nginx \
-    --set controller.ingressClass=nginx \
-    --set controller.watchIngressWithoutClass=false
+    "${HELM_SET_ARGS[@]}"
 
   step "Waiting for ingress-nginx controller readiness"
   run_quiet kubectl "${KUBECTL_ARGS[@]}" wait --namespace "$INGRESS_NAMESPACE" \

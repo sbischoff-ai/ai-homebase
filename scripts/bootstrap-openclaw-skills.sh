@@ -226,6 +226,16 @@ seed_reviewer_home() {
   local workspace_home="$1"
   local label="$2"
   local login_name="$3"
+  local reviewer_url="$4"
+  local reviewer_host="$5"
+
+  if [ -z "${reviewer_url}" ]; then
+    warn "${label} reviewer Gitea URL is not present."
+    return 1
+  fi
+  if [ -z "${reviewer_host}" ]; then
+    reviewer_host="$(url_host "${reviewer_url}")"
+  fi
 
   if ! env \
     HOME="${workspace_home}" \
@@ -233,6 +243,9 @@ seed_reviewer_home() {
     XDG_CACHE_HOME="${workspace_home}/.cache" \
     XDG_STATE_HOME="${workspace_home}/.local/state" \
     GIT_CONFIG_GLOBAL="${workspace_home}/.config/git/config" \
+    REVIEWER_GITEA_BASE_URL="${reviewer_url}" \
+    REVIEWER_GITEA_TEA_URL="${reviewer_url}" \
+    REVIEWER_GITEA_HOST="${reviewer_host}" \
     reviewer-gitea-init.sh; then
     warn "${label} reviewer-gitea-init.sh failed."
     return 1
@@ -283,8 +296,12 @@ if ! tea login list 2>/dev/null | grep -F "${login_name}" >/dev/null; then
   warn "reviewer tea login ${login_name} is still missing after init."
   exit 1
 fi
-seed_reviewer_home "/home/node/.openclaw/workspace-architect/.home" "architect workspace" "${login_name}"
-seed_reviewer_home "/home/node/.openclaw/workspace-auditor/.home" "auditor workspace" "${login_name}"
+gateway_reviewer_url="${REVIEWER_GITEA_BOOTSTRAP_URL:-${REVIEWER_GITEA_BASE_URL:-}}"
+gateway_reviewer_host="${REVIEWER_GITEA_BOOTSTRAP_HOST:-${REVIEWER_GITEA_HOST:-}}"
+architect_reviewer_url="${REVIEWER_GITEA_EXTERNAL_BASE_URL:-${CODER_GITEA_BASE_URL:-}}"
+architect_reviewer_host="${REVIEWER_GITEA_EXTERNAL_HOST:-${CODER_GITEA_HOST:-}}"
+seed_reviewer_home "/home/node/.openclaw/workspace-architect/.home" "architect workspace" "${login_name}" "${architect_reviewer_url}" "${architect_reviewer_host}"
+seed_reviewer_home "/home/node/.openclaw/workspace-auditor/.home" "auditor workspace" "${login_name}" "${gateway_reviewer_url}" "${gateway_reviewer_host}"
 '
 
 run_gateway_setup "coder-workspace" '

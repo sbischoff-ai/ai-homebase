@@ -1,0 +1,8 @@
+*
+
+!images/
+!images/**
+!charts/
+!charts/openclaw/
+!charts/openclaw/files/
+!charts/openclaw/files/mcp-http-bridge.mjs

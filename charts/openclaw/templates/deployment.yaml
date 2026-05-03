@@ -16,13 +16,13 @@
 {{- $nextcloudMcpHost := .Values.global.hosts.nextcloudMcp | default "" }}
 {{- $qdrantHost := .Values.global.hosts.qdrant | default "" }}
 {{- $qdrantMcpHost := .Values.global.hosts.qdrantMcp | default "" }}
-{{- $nextcloudMcpExternalScheme := ternary "http" "https" (hasSuffix ".localtest.me" $nextcloudMcpHost) }}
+{{- $nextcloudMcpExternalScheme := "https" }}
 {{- $nextcloudMcpExternalUrl := ternary (printf "%s://%s/mcp" $nextcloudMcpExternalScheme $nextcloudMcpHost) "" (ne $nextcloudMcpHost "") }}
 {{- $nextcloudMcpInternalUrl := printf "http://%s-nextcloud-mcp.%s.svc.cluster.local:8000/mcp" .Release.Name .Release.Namespace }}
-{{- $qdrantExternalScheme := ternary "http" "https" (hasSuffix ".localtest.me" $qdrantHost) }}
+{{- $qdrantExternalScheme := "https" }}
 {{- $qdrantExternalUrl := ternary (printf "%s://%s" $qdrantExternalScheme $qdrantHost) "" (ne $qdrantHost "") }}
 {{- $qdrantInternalUrl := printf "http://%s-qdrant.%s.svc.cluster.local:6333" .Release.Name .Release.Namespace }}
-{{- $qdrantMcpExternalScheme := ternary "http" "https" (hasSuffix ".localtest.me" $qdrantMcpHost) }}
+{{- $qdrantMcpExternalScheme := "https" }}
 {{- $qdrantMcpExternalUrl := ternary (printf "%s://%s/mcp" $qdrantMcpExternalScheme $qdrantMcpHost) "" (ne $qdrantMcpHost "") }}
 {{- $qdrantMcpInternalUrl := printf "http://%s-qdrant-mcp.%s.svc.cluster.local:8000/mcp" .Release.Name .Release.Namespace }}
 {{- if and (eq $gatewayAuthMode "token") (not .Values.existingSecret) }}

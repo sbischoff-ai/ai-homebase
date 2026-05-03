@@ -591,7 +591,7 @@ wait_for_http_endpoint() {
   local attempt=1
 
   while (( attempt <= INGRESS_ENDPOINT_RETRIES )); do
-    if curl --silent --show-error --fail -H "Host: ${host}" "$url" >>"$BOOTSTRAP_LOG_FILE" 2>&1; then
+    if curl --silent --show-error --fail --output /dev/null -H "Host: ${host}" "$url" >>"$BOOTSTRAP_LOG_FILE" 2>&1; then
       return 0
     fi
     if (( attempt == INGRESS_ENDPOINT_RETRIES )); then
@@ -708,7 +708,8 @@ verify_openclaw_gateway_tooling() {
   local expected_xdg_state_home="/home/node/.openclaw/.local/state"
   local expected_git_config_global="/home/node/.openclaw/.config/git/config"
   local coder_workspace_home="/home/node/.openclaw/workspace-coder/.home"
-  local reviewer_workspace_homes="/home/node/.openclaw/workspace-architect/.home /home/node/.openclaw/workspace-auditor/.home"
+  local architect_workspace_home="/home/node/.openclaw/workspace-architect/.home"
+  local auditor_workspace_home="/home/node/.openclaw/workspace-auditor/.home"
 
   if [[ "${GITEA_INGRESS_HOST:-}" == *.localtest.me ]]; then
     expected_reviewer_scheme="http"
@@ -726,8 +727,8 @@ verify_openclaw_gateway_tooling() {
     command -v python3 >/dev/null
     command -v tokscale >/dev/null
     command -v tea >/dev/null
-    [ \"\${REVIEWER_GITEA_HOST:-}\" = \"${expected_reviewer_host}\" ]
-    [ \"\${REVIEWER_GITEA_BASE_URL:-}\" = \"${expected_reviewer_base_url}\" ]
+    [ \"\${REVIEWER_GITEA_HOST:-}\" = \"${expected_gateway_reviewer_host}\" ]
+    [ \"\${REVIEWER_GITEA_BASE_URL:-}\" = \"${expected_gateway_reviewer_base_url}\" ]
     [ \"\${XDG_CONFIG_HOME:-}\" = \"${expected_xdg_config_home}\" ]
     [ \"\${XDG_CACHE_HOME:-}\" = \"${expected_xdg_cache_home}\" ]
     [ \"\${XDG_STATE_HOME:-}\" = \"${expected_xdg_state_home}\" ]
@@ -750,12 +751,14 @@ verify_openclaw_gateway_tooling() {
     grep -F 'url: ${expected_reviewer_base_url}' \"${coder_workspace_home}/.config/tea/config.yml\" >/dev/null
     grep -F 'default: true' \"${coder_workspace_home}/.config/tea/config.yml\" >/dev/null
     test -f \"${coder_workspace_home}/.docker/config.json\"
-    for reviewer_workspace_home in ${reviewer_workspace_homes}; do
-      test -f \"\${reviewer_workspace_home}/.config/tea/config.yml\"
-      grep -F 'name: reviewer' \"\${reviewer_workspace_home}/.config/tea/config.yml\" >/dev/null
-      grep -F 'url: ${expected_reviewer_base_url}' \"\${reviewer_workspace_home}/.config/tea/config.yml\" >/dev/null
-      grep -F 'default: true' \"\${reviewer_workspace_home}/.config/tea/config.yml\" >/dev/null
-    done
+    test -f \"${architect_workspace_home}/.config/tea/config.yml\"
+    grep -F 'name: reviewer' \"${architect_workspace_home}/.config/tea/config.yml\" >/dev/null
+    grep -F 'url: ${expected_reviewer_base_url}' \"${architect_workspace_home}/.config/tea/config.yml\" >/dev/null
+    grep -F 'default: true' \"${architect_workspace_home}/.config/tea/config.yml\" >/dev/null
+    test -f \"${auditor_workspace_home}/.config/tea/config.yml\"
+    grep -F 'name: reviewer' \"${auditor_workspace_home}/.config/tea/config.yml\" >/dev/null
+    grep -F 'url: ${expected_gateway_reviewer_base_url}' \"${auditor_workspace_home}/.config/tea/config.yml\" >/dev/null
+    grep -F 'default: true' \"${auditor_workspace_home}/.config/tea/config.yml\" >/dev/null
     python3 - <<'PY'
 import json
 from pathlib import Path
@@ -776,23 +779,41 @@ verify_openclaw_mcp_bootstrap_config() {
   local cron_jobs_json=""
   local architect_reviewer_scheme="https"
   local architect_reviewer_base_url=""
+  local nextcloud_mcp_scheme="https"
+  local nextcloud_mcp_internal_url="http://${RELEASE_NAME}-nextcloud-mcp.${NAMESPACE}.svc.cluster.local:8000/mcp"
+  local nextcloud_mcp_external_url=""
+  local qdrant_mcp_scheme="https"
+  local qdrant_mcp_internal_url="http://${RELEASE_NAME}-qdrant-mcp.${NAMESPACE}.svc.cluster.local:8000/mcp"
+  local qdrant_mcp_external_url=""
 
   if [[ "${GITEA_INGRESS_HOST:-}" == *.localtest.me ]]; then
     architect_reviewer_scheme="http"
   fi
   architect_reviewer_base_url="${architect_reviewer_scheme}://${GITEA_INGRESS_HOST}"
+  nextcloud_mcp_external_url="${nextcloud_mcp_scheme}://${NEXTCLOUD_MCP_INGRESS_HOST}/mcp"
+  qdrant_mcp_external_url="${qdrant_mcp_scheme}://${QDRANT_MCP_INGRESS_HOST}/mcp"
 
   openclaw_json="$(
     kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" get configmap "$configmap_name" -o jsonpath='{.data.openclaw\.json}'
   )"
 
-  if [[ "$openclaw_json" != *'${OPENCLAW_NEXTCLOUD_MCP_INTERNAL_URL}'* ]]; then
-    fail "OpenClaw bootstrap config in ConfigMap/${configmap_name} is missing the internal Nextcloud MCP URL placeholder"
+  if [[ "$openclaw_json" != *"${nextcloud_mcp_internal_url}"* ]]; then
+    fail "OpenClaw bootstrap config in ConfigMap/${configmap_name} is missing the concrete internal Nextcloud MCP URL"
     exit 1
   fi
 
-  if [[ "$openclaw_json" != *'${OPENCLAW_NEXTCLOUD_MCP_EXTERNAL_URL}'* ]]; then
-    fail "OpenClaw bootstrap config in ConfigMap/${configmap_name} is missing the external Nextcloud MCP URL placeholder"
+  if [[ "$openclaw_json" != *"${nextcloud_mcp_external_url}"* ]]; then
+    fail "OpenClaw bootstrap config in ConfigMap/${configmap_name} is missing the concrete external Nextcloud MCP URL"
+    exit 1
+  fi
+
+  if [[ "$openclaw_json" != *"${qdrant_mcp_internal_url}"* ]]; then
+    fail "OpenClaw bootstrap config in ConfigMap/${configmap_name} is missing the concrete internal Qdrant MCP URL"
+    exit 1
+  fi
+
+  if [[ "$openclaw_json" != *"${qdrant_mcp_external_url}"* ]]; then
+    fail "OpenClaw bootstrap config in ConfigMap/${configmap_name} is missing the concrete external Qdrant MCP URL"
     exit 1
   fi
 
@@ -844,6 +865,22 @@ verify_openclaw_mcp_bootstrap_config() {
 
   if [[ "$openclaw_json" != *'"DOCKER_HOST":"${DOCKER_HOST}"'* ]]; then
     fail "OpenClaw bootstrap config in ConfigMap/${configmap_name} is not wiring coder to inherit the remote Docker endpoint from gateway env"
+    exit 1
+  fi
+
+  if ! OPENCLAW_JSON="$openclaw_json" python3 - <<'PY'
+import json
+import os
+
+config = json.loads(os.environ["OPENCLAW_JSON"])
+agents = {agent.get("id"): agent for agent in config.get("agents", {}).get("list", [])}
+for agent_id in ("coder", "architect", "archivist"):
+    tools = agents.get(agent_id, {}).get("tools", {})
+    if tools.get("profile") != "full":
+        raise SystemExit(f"{agent_id} sandbox agent must keep tools.profile=full so MCP tools remain visible")
+PY
+  then
+    fail "OpenClaw bootstrap config in ConfigMap/${configmap_name} is not keeping MCP-capable full tool profiles on sandbox agents"
     exit 1
   fi
 
@@ -995,7 +1032,8 @@ verify_openclaw_workspace_bootstrap() {
     ! grep -F "AGENTS.md" /home/node/.openclaw/workspace-coder/skills/manage-gitea-gitops-and-registry/SKILL.md >/dev/null
     ! grep -F "./scripts/lint.sh" /home/node/.openclaw/workspace-coder/skills/manage-gitea-gitops-and-registry/SKILL.md >/dev/null
     test -f /home/node/.openclaw/workspace-coder/skills/run-codex-and-log-usage/SKILL.md
-    grep -F "default \`gpt-5.4-mini\` for routine work" /home/node/.openclaw/workspace-coder/skills/run-codex-and-log-usage/SKILL.md >/dev/null
+    grep -F "default \`gpt-5.3-codex\` for implementation work" /home/node/.openclaw/workspace-coder/skills/run-codex-and-log-usage/SKILL.md >/dev/null
+    grep -F "openclaw-codex-run --elevated" /home/node/.openclaw/workspace-coder/skills/run-codex-and-log-usage/SKILL.md >/dev/null
     test -f /home/node/.openclaw/workspace/skills/handoff-specialist-work/SKILL.md
     grep -F "Do not request an architect spec and coder implementation in parallel for the same change." /home/node/.openclaw/workspace/skills/handoff-specialist-work/SKILL.md >/dev/null
     test -f /home/node/.openclaw/workspace-coder/.openclaw-runtime/ai-homebase-ca-bundle.crt
@@ -1140,13 +1178,17 @@ verify_coder_sandbox_runtime() {
       -e XDG_STATE_HOME=/workspace/.home/.local/state \
       -e CODER_GITEA_BASE_URL=https://gitea.example.invalid \
       -e CODER_GITEA_TOKEN=test-coder-token \
-      -e CODEX_DEFAULT_MODEL=gpt-5.4-mini \
+      -e CODEX_DEFAULT_MODEL=gpt-5.3-codex \
       -e OPENAI_API_KEY=test-openai-key \
       openclaw-sandbox-coder:trixie-slim -ceu '
         getent passwd sandbox | cut -d: -f6 | grep -Fx /workspace/.home >/dev/null
         test -w /workspace/.home
+        command -v node >/dev/null
+        test -s /opt/openclaw-runtime/mcp/mcp-http-bridge.mjs
         command -v codex >/dev/null
         codex --version | grep -F codex-cli >/dev/null
+        command -v docker >/dev/null
+        docker --version | grep -F \"Docker version\" >/dev/null
         command -v tea >/dev/null
         ! tea --version | grep -F -- -dev >/dev/null
         command -v tokscale >/dev/null
@@ -1154,7 +1196,7 @@ verify_coder_sandbox_runtime() {
         test -f /workspace/.home/.codex/config.toml
         grep -F \"approval_policy = \\\"never\\\"\" /workspace/.home/.codex/config.toml >/dev/null
         grep -F \"sandbox_mode = \\\"danger-full-access\\\"\" /workspace/.home/.codex/config.toml >/dev/null
-        grep -F \"model = \\\"gpt-5.4-mini\\\"\" /workspace/.home/.codex/config.toml >/dev/null
+        grep -F \"model = \\\"gpt-5.3-codex\\\"\" /workspace/.home/.codex/config.toml >/dev/null
         grep -F \"forced_login_method = \\\"api\\\"\" /workspace/.home/.codex/config.toml >/dev/null
         test -f /workspace/.home/.codex/auth.json
         test -d /workspace/.home/.config/tea
@@ -1226,6 +1268,8 @@ verify_reviewer_sandbox_runtime() {
       openclaw-sandbox:trixie-slim -ceu '
         getent passwd sandbox | cut -d: -f6 | grep -Fx /workspace/.home >/dev/null
         test -w /workspace/.home
+        command -v node >/dev/null
+        test -s /opt/openclaw-runtime/mcp/mcp-http-bridge.mjs
         command -v tea >/dev/null
         ! tea --version | grep -F -- -dev >/dev/null
         /usr/local/bin/reviewer-gitea-init.sh >/tmp/reviewer-gitea-init.log
@@ -1235,6 +1279,36 @@ verify_reviewer_sandbox_runtime() {
         tea repo view "${CODER_GITEA_USERNAME}/${GITOPS_REPO_NAME}" --login reviewer >/dev/null
         test -f /workspace/.home/.config/git/config
         git ls-remote "git@${GITEA_INGRESS_HOST}:${CODER_GITEA_USERNAME}/${GITOPS_REPO_NAME}.git" >/dev/null
+      '
+  "
+
+  step "Checking architect sandbox tea access through the seeded workspace"
+  CURRENT_COMMAND="incus exec ${INCUS_VM_NAME} -- sh -ceu 'docker run architect seeded workspace tea validation'"
+  run_checked incus exec "$INCUS_VM_NAME" -- sh -ceu "
+    docker run --rm --entrypoint sh \
+      --read-only \
+      --tmpfs /tmp \
+      --tmpfs /var/tmp \
+      --tmpfs /run \
+      -v /home/node/.openclaw/workspace-architect:/workspace \
+      -e HOME=/workspace/.home \
+      -e XDG_CONFIG_HOME=/workspace/.home/.config \
+      -e XDG_CACHE_HOME=/workspace/.home/.cache \
+      -e XDG_STATE_HOME=/workspace/.home/.local/state \
+      -e GIT_CONFIG_GLOBAL=/workspace/.home/.config/git/config \
+      -e SSL_CERT_FILE=/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt \
+      -e REQUESTS_CA_BUNDLE=/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt \
+      -e NODE_EXTRA_CA_CERTS=/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt \
+      -e GIT_SSL_CAINFO=/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt \
+      -e CURL_CA_BUNDLE=/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt \
+      openclaw-sandbox:trixie-slim -ceu '
+        getent passwd sandbox | cut -d: -f6 | grep -Fx /workspace/.home >/dev/null
+        test -w /workspace/.home
+        test -f /workspace/.home/.config/tea/config.yml
+        test -f /workspace/.home/.config/git/config
+        command -v tea >/dev/null
+        tea login list | grep -F reviewer >/dev/null
+        tea repo view "${CODER_GITEA_USERNAME}/${GITOPS_REPO_NAME}" --login reviewer >/dev/null
       '
   "
 }
@@ -1265,10 +1339,14 @@ verify_gateway_qdrant_runtime() {
 verify_archivist_sandbox_runtime() {
   local memgraph_host="$1"
   local qdrant_url="$2"
+  local qdrant_add_host_arg=""
 
   if ! command -v incus >/dev/null 2>&1; then
     warn "Skipping archivist sandbox runtime checks because incus is not installed in the current shell"
     return 0
+  fi
+  if [[ -n "$qdrant_url" ]]; then
+    qdrant_add_host_arg="--add-host '${QDRANT_INGRESS_HOST}:${HOST_LISTEN_ADDRESS_VALUE}'"
   fi
 
   step "Checking archivist sandbox runtime image on the Incus Docker host"
@@ -1276,20 +1354,30 @@ verify_archivist_sandbox_runtime() {
   run_checked incus exec "$INCUS_VM_NAME" -- sh -ceu "
     docker image inspect openclaw-sandbox:trixie-slim >/dev/null
     docker run --rm --entrypoint sh \
+      --add-host '${memgraph_host}:${HOST_LISTEN_ADDRESS_VALUE}' \
+      ${qdrant_add_host_arg} \
+      -v /home/node/.openclaw/workspace-archivist:/workspace \
       -e MEMGRAPH_HOST='${memgraph_host}' \
       -e MEMGRAPH_PORT='7687' \
       -e MEMGRAPH_BOLT_URI='bolt://${memgraph_host}:7687' \
       -e QDRANT_URL='${qdrant_url}' \
       -e QDRANT_COLLECTION='openclaw-memory' \
-      -e QDRANT_API_KEY='test-qdrant-key' \
+      -e SSL_CERT_FILE='/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt' \
+      -e REQUESTS_CA_BUNDLE='/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt' \
       openclaw-sandbox:trixie-slim -ceu '
       command -v mgconsole >/dev/null
+      command -v node >/dev/null
+      test -s /opt/openclaw-runtime/mcp/mcp-http-bridge.mjs
+      test -s /workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt
       [ \"\$MEMGRAPH_HOST\" = \"${memgraph_host}\" ]
       [ \"\$MEMGRAPH_PORT\" = \"7687\" ]
       [ \"\$MEMGRAPH_BOLT_URI\" = \"bolt://${memgraph_host}:7687\" ]
       [ \"\$QDRANT_URL\" = \"${qdrant_url}\" ]
       [ \"\$QDRANT_COLLECTION\" = \"openclaw-memory\" ]
-      [ \"\$QDRANT_API_KEY\" = \"test-qdrant-key\" ]
+      printf \"RETURN 1;\\n\" | mgconsole --host \"\$MEMGRAPH_HOST\" --port \"\$MEMGRAPH_PORT\" --output-format csv >/dev/null
+      if [ -n \"\$QDRANT_URL\" ]; then
+        python3 /workspace/qdrant/scroll_memories.py --limit 1 >/tmp/qdrant-scroll.jsonl
+      fi
     '
   "
 }
@@ -1816,7 +1904,7 @@ if [[ "$(is_qdrant_enabled)" == "true" ]]; then
 fi
 if [[ -n "$HOST_LISTEN_ADDRESS_VALUE" ]]; then
   if [[ "$(is_qdrant_enabled)" == "true" ]]; then
-    verify_archivist_sandbox_runtime "$MEMGRAPH_INGRESS_HOST" "http://${QDRANT_INGRESS_HOST}"
+    verify_archivist_sandbox_runtime "$MEMGRAPH_INGRESS_HOST" "https://${QDRANT_INGRESS_HOST}"
   else
     verify_archivist_sandbox_runtime "$MEMGRAPH_INGRESS_HOST" ""
   fi

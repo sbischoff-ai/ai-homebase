@@ -25,9 +25,8 @@ DEFAULT_MAIN_MODEL = "anthropic/claude-sonnet-4-6"
 DEFAULT_MAIN_FALLBACK_MODELS = ["openai/gpt-5.4", "google/gemini-3.1-pro-preview"]
 DEFAULT_CODER_MODEL = "openai/gpt-5.4"
 DEFAULT_CODER_FALLBACK_MODELS = ["anthropic/claude-sonnet-4-6", "google/gemini-3.1-pro-preview"]
-# `openai/gpt-5.3-codex` remains a valid override for higher code quality
-# at roughly 3x the cost ($2.275 / $18.20 per 1M tokens).
-DEFAULT_CODEX_MODEL = "openai/gpt-5.4-mini"
+DEFAULT_CODEX_MODEL = "openai/gpt-5.3-codex"
+DEFAULT_CODEX_ELEVATED_MODEL = "openai/gpt-5.5"
 DEFAULT_ARCHITECT_MODEL = "openai/gpt-5.4"
 DEFAULT_ARCHITECT_FALLBACK_MODELS = ["anthropic/claude-sonnet-4-6", "google/gemini-3.1-pro-preview"]
 DEFAULT_ARCHIVIST_MODEL = "openai/gpt-5.4-mini"
@@ -418,6 +417,11 @@ def resolved_values(data: dict[str, object]) -> dict[str, str]:
     watchdog_model = require_string(agent_models["watchdog"]["primary"], "openclaw.agents.watchdog.model")
     auditor_model = require_string(agent_models["auditor"]["primary"], "openclaw.agents.auditor.model")
     codex_model = nested_nonempty_string(data, ("openclaw", "agents", "coder", "codex_model"), DEFAULT_CODEX_MODEL)
+    codex_elevated_model = nested_nonempty_string(
+        data,
+        ("openclaw", "agents", "coder", "codex_elevated_model"),
+        DEFAULT_CODEX_ELEVATED_MODEL,
+    )
 
     admin_name = nested_string(data, ("admin", "name"), "Homebase Admin")
     admin_username = nested_string(data, ("admin", "username"), "homebase-admin")
@@ -504,8 +508,19 @@ def resolved_values(data: dict[str, object]) -> dict[str, str]:
         raise SystemExit("services.gitea.actions.labels must contain plain label names without ':' or ','.")
     if "/" not in codex_model:
         raise SystemExit(
-            "openclaw.agents.coder.codex_model must use the OpenClaw provider/model form, for example openai/gpt-5.4-mini."
+            "openclaw.agents.coder.codex_model must use the OpenClaw provider/model form, for example openai/gpt-5.3-codex."
         )
+    if "/" not in codex_elevated_model:
+        raise SystemExit(
+            "openclaw.agents.coder.codex_elevated_model must use the OpenClaw provider/model form, for example openai/gpt-5.5."
+        )
+    for model_key, model_value in (
+        ("openclaw.agents.coder.codex_model", codex_model),
+        ("openclaw.agents.coder.codex_elevated_model", codex_elevated_model),
+    ):
+        provider_env_var = provider_env_var_for_model(model_value)
+        if not providers.get(provider_env_var, ""):
+            raise SystemExit(f"{model_key}={model_value!r} requires {provider_env_var} in [providers].")
     values = {
         **providers,
         "OPENCLAW_GATEWAY_TOKEN": nested_string(data, ("secrets", "openclaw_gateway_token")),
@@ -572,8 +587,8 @@ def resolved_values(data: dict[str, object]) -> dict[str, str]:
         "GITEA_ACTIONS_RUNNER_HOST_ALIAS": gitea_actions_runner_host_alias,
         "GITEA_ACTIONS_RUNNER_SSH_PORT": gitea_actions_runner_ssh_port,
         "GITEA_ACTIONS_RUNNER_LABEL_NAMES": ",".join(gitea_actions_runner_labels),
-        "CODEX_MODEL": codex_model,
         "CODEX_DEFAULT_MODEL": codex_model.split("/", 1)[1],
+        "CODEX_ELEVATED_MODEL": codex_elevated_model.split("/", 1)[1],
         "OPENCLAW_MAIN_MODEL": main_model,
         "OPENCLAW_CODER_MODEL": coder_model,
         "OPENCLAW_ARCHITECT_MODEL": architect_model,
@@ -659,8 +674,7 @@ def command_render_values(args: argparse.Namespace) -> int:
     gitea_base_url = f"{gitea_scheme}://{values['GITEA_HOST']}"
     internal_gitea_service_host = '{{ printf "%s-gitea-http.%s.svc.cluster.local" .Release.Name .Release.Namespace }}'
     internal_gitea_service_base_url = f"http://{internal_gitea_service_host}:3000"
-    qdrant_scheme = "http" if values["QDRANT_HOST"].endswith(".localtest.me") else "https"
-    qdrant_sandbox_url = f"{qdrant_scheme}://{values['QDRANT_HOST']}" if values["QDRANT_HOST"] else ""
+    qdrant_sandbox_url = f"https://{values['QDRANT_HOST']}" if values["QDRANT_HOST"] else ""
     openclaw["openclaw"] = {
         "skills": {
             "allowBundled": BUNDLED_SKILLS,
@@ -699,6 +713,7 @@ def command_render_values(args: argparse.Namespace) -> int:
                             "QDRANT_URL": qdrant_sandbox_url,
                             "QDRANT_COLLECTION": "openclaw-memory",
                             "QDRANT_API_KEY": "${QDRANT_API_KEY}",
+                            "OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER": "${OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER}",
                             "GITHUB_TOKEN": "${GITHUB_TOKEN}",
                             "OPENAI_API_KEY": "${OPENAI_API_KEY}",
                             "ANTHROPIC_API_KEY": "${ANTHROPIC_API_KEY}",
@@ -779,8 +794,9 @@ def command_render_values(args: argparse.Namespace) -> int:
                                 "CODER_REGISTRY_PASSWORD": "${CODER_REGISTRY_PASSWORD}",
                                 "CODER_REGISTRY_NAMESPACE": values["CODER_GITEA_USERNAME"],
                                 "CODEX_DEFAULT_MODEL": values["CODEX_DEFAULT_MODEL"],
-                                "CODEX_MODEL": values["CODEX_MODEL"],
+                                "CODEX_ELEVATED_MODEL": values["CODEX_ELEVATED_MODEL"],
                                 "DOCKER_HOST": "${DOCKER_HOST}",
+                                "OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER": "${OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER}",
                                 "OPENAI_API_KEY": "${OPENAI_API_KEY}",
                                 "GITHUB_TOKEN": "${GITHUB_TOKEN}",
                             },
@@ -788,6 +804,7 @@ def command_render_values(args: argparse.Namespace) -> int:
                         },
                     },
                     "skills": AGENT_SKILLS["coder"],
+                    "tools": {"profile": "full"},
                 },
                 {
                     "id": "architect",
@@ -828,6 +845,7 @@ def command_render_values(args: argparse.Namespace) -> int:
                                 "QDRANT_URL": f"https://{values['QDRANT_HOST']}" if values["QDRANT_HOST"] else "",
                                 "QDRANT_COLLECTION": "openclaw-memory",
                                 "QDRANT_API_KEY": "${QDRANT_API_KEY}",
+                                "OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER": "${OPENCLAW_NEXTCLOUD_MCP_AUTH_HEADER}",
                                 "GITHUB_TOKEN": "${GITHUB_TOKEN}",
                                 "OPENAI_API_KEY": "${OPENAI_API_KEY}",
                                 "ANTHROPIC_API_KEY": "${ANTHROPIC_API_KEY}",
@@ -853,7 +871,7 @@ def command_render_values(args: argparse.Namespace) -> int:
                         },
                     },
                     "skills": AGENT_SKILLS["architect"],
-                    "tools": {"deny": AGENT_TOOL_DENY["architect"]},
+                    "tools": {"profile": "full", "deny": AGENT_TOOL_DENY["architect"]},
                 },
                 {
                     "id": "archivist",
@@ -869,7 +887,7 @@ def command_render_values(args: argparse.Namespace) -> int:
                     },
                     "sandbox": {"mode": "non-main"},
                     "skills": AGENT_SKILLS["archivist"],
-                    "tools": {"deny": AGENT_TOOL_DENY["archivist"]},
+                    "tools": {"profile": "full", "deny": AGENT_TOOL_DENY["archivist"]},
                 },
                 {
                     "id": "watchdog",
@@ -919,7 +937,12 @@ def command_render_values(args: argparse.Namespace) -> int:
             "agentToAgent": {
                 "enabled": True,
                 "allow": ["main", "coder", "architect", "archivist", "watchdog", "auditor"],
-            }
+            },
+            "sandbox": {
+                "tools": {
+                    "alsoAllow": ["nextcloud__*", "qdrant__*", "nc_*", "qdrant-*"],
+                },
+            },
         },
     }
     openclaw["openclaw"]["cron"] = {
@@ -932,11 +955,29 @@ def command_render_values(args: argparse.Namespace) -> int:
             "keepLines": 2000,
         },
     }
+    openclaw["openclaw"]["env"] = {
+        "vars": {
+            "OPENCLAW_HOME": "/home/node/.openclaw",
+            "OPENCLAW_STATE_DIR": "/home/node/.openclaw",
+            "GIT_CONFIG_GLOBAL": "/home/node/.openclaw/.config/git/config",
+            "SSL_CERT_FILE": "/home/node/.openclaw/certs/ai-homebase-ca-bundle.crt",
+            "REQUESTS_CA_BUNDLE": "/home/node/.openclaw/certs/ai-homebase-ca-bundle.crt",
+            "NODE_EXTRA_CA_CERTS": "/home/node/.openclaw/certs/ai-homebase-ca-bundle.crt",
+            "GIT_SSL_CAINFO": "/home/node/.openclaw/certs/ai-homebase-ca-bundle.crt",
+            "CURL_CA_BUNDLE": "/home/node/.openclaw/certs/ai-homebase-ca-bundle.crt",
+        },
+    }
     openclaw["env"] = [
+        {"name": "NODE_OPTIONS", "value": "--max-old-space-size=2048"},
         {"name": "XDG_CONFIG_HOME", "value": "/home/node/.openclaw/.config"},
         {"name": "XDG_CACHE_HOME", "value": "/home/node/.openclaw/.cache"},
         {"name": "XDG_STATE_HOME", "value": "/home/node/.openclaw/.local/state"},
         {"name": "GIT_CONFIG_GLOBAL", "value": "/home/node/.openclaw/.config/git/config"},
+        {"name": "SSL_CERT_FILE", "value": "/home/node/.openclaw/certs/ai-homebase-ca-bundle.crt"},
+        {"name": "REQUESTS_CA_BUNDLE", "value": "/home/node/.openclaw/certs/ai-homebase-ca-bundle.crt"},
+        {"name": "NODE_EXTRA_CA_CERTS", "value": "/home/node/.openclaw/certs/ai-homebase-ca-bundle.crt"},
+        {"name": "GIT_SSL_CAINFO", "value": "/home/node/.openclaw/certs/ai-homebase-ca-bundle.crt"},
+        {"name": "CURL_CA_BUNDLE", "value": "/home/node/.openclaw/certs/ai-homebase-ca-bundle.crt"},
         {"name": "MEMGRAPH_HOST", "value": '{{ printf "%s-memgraph" .Release.Name | trunc 63 | trimSuffix "-" }}'},
         {"name": "MEMGRAPH_PORT", "value": "7687"},
         {
@@ -959,10 +1000,12 @@ def command_render_values(args: argparse.Namespace) -> int:
             "name": "CODER_REGISTRY_BASE_URL",
             "value": (f"https://{values['REGISTRY_HOST']}" if values["REGISTRY_HOST"] else ""),
         },
-        {"name": "REVIEWER_GITEA_BASE_URL", "value": gitea_base_url},
+        {"name": "REVIEWER_GITEA_BASE_URL", "value": internal_gitea_service_base_url},
         {"name": "REVIEWER_GITEA_BOOTSTRAP_URL", "value": internal_gitea_service_base_url},
-        {"name": "REVIEWER_GITEA_TEA_URL", "value": gitea_base_url},
-        {"name": "REVIEWER_GITEA_HOST", "value": values["GITEA_HOST"]},
+        {"name": "REVIEWER_GITEA_TEA_URL", "value": internal_gitea_service_base_url},
+        {"name": "REVIEWER_GITEA_HOST", "value": internal_gitea_service_host},
+        {"name": "REVIEWER_GITEA_EXTERNAL_BASE_URL", "value": gitea_base_url},
+        {"name": "REVIEWER_GITEA_EXTERNAL_HOST", "value": values["GITEA_HOST"]},
         {"name": "REVIEWER_GITEA_USERNAME", "value": values["REVIEWER_GITEA_USERNAME"]},
         {"name": "REVIEWER_GITEA_EMAIL", "value": values["REVIEWER_GITEA_EMAIL"]},
         {"name": "REVIEWER_GITEA_TEA_LOGIN_NAME", "value": "reviewer"},
