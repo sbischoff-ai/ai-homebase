@@ -26,6 +26,7 @@ assert_not_contains() {
 }
 
 assert_contains "${script_contents}" "apt-transport-https"
+assert_contains "${script_contents}" "qemu-system-modules-spice"
 assert_contains "${script_contents}" "helm kubectl incus"
 assert_contains "${script_contents}" "usermod -aG incus-admin"
 assert_contains "${script_contents}" "OPENCLAW_SHARED_STATE_DIR"

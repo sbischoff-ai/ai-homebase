@@ -113,6 +113,7 @@ apt-get install -y --no-install-recommends \
   python3 \
   python3-venv \
   ovmf \
+  qemu-system-modules-spice \
   qemu-system-x86 \
   qemu-utils \
   software-properties-common
