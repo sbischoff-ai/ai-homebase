@@ -598,6 +598,7 @@ def render_apt_config():
     text = host_apt_source_text()
     if mirror_override == "hetzner" or "mirror.hetzner.com/ubuntu" in text:
         return """apt:
+  preserve_sources_list: false
   conf: |
     Acquire::Retries "5";
     Acquire::http::Timeout "30";
@@ -608,6 +609,7 @@ def render_apt_config():
     deb https://mirror.hetzner.com/debian/security bookworm-security main contrib non-free non-free-firmware
 """
     return """apt:
+  preserve_sources_list: false
   conf: |
     Acquire::Retries "5";
     Acquire::http::Timeout "30";
