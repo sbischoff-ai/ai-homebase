@@ -70,6 +70,7 @@ Options:
 
 Environment:
   SSH_READY_TIMEOUT_SECONDS  Same as --ssh-ready-timeout-seconds; first boot may need several minutes
+  INCUS_DEBIAN_APT_MIRROR   Set to "hetzner" to force the Debian guest onto Hetzner's Debian mirror.
 USAGE
 }
 
@@ -335,12 +336,12 @@ PY
     warn "Incus network ${INCUS_NETWORK} has an empty dns.nameservers setting; falling back to bridge gateway ${INCUS_NETWORK_BRIDGE_IPV4} for guest DNS. Ensure this bridge provides DNS service to guests or cloud-init package installation may fail."
 
     if [[ "${INCUS_NETWORK_DNS_MODE}" == "none" ]]; then
-      fail "Incus network ${INCUS_NETWORK} is incompatible with guest DNS fallback: dns.nameservers is empty and dns.mode=none, so guests cannot rely on bridge gateway ${INCUS_NETWORK_BRIDGE_IPV4} for DNS. Configure ${INCUS_NETWORK} to provide bridge DNS or set dns.nameservers explicitly before rerunning ${0##*/}."
+      fail "Incus network ${INCUS_NETWORK} is incompatible with guest DNS fallback: dns.nameservers is empty and dns.mode=none, so guests cannot rely on bridge gateway ${INCUS_NETWORK_BRIDGE_IPV4} for DNS. Configure ${INCUS_NETWORK} to provide bridge DNS or rerun ${0##*/} with INCUS_NETWORK_DNS_NAMESERVERS set to guest-reachable resolvers."
       exit 1
     fi
 
     if [[ -n "${INCUS_NETWORK_MANAGED}" && "${INCUS_NETWORK_MANAGED}" != "true" ]]; then
-      fail "Incus network ${INCUS_NETWORK} is incompatible with guest DNS fallback: dns.nameservers is empty and the network is not managed by Incus, so bridge gateway ${INCUS_NETWORK_BRIDGE_IPV4} is not a safe DNS assumption. Configure guest-reachable DNS resolvers with 'incus network set ${INCUS_NETWORK} dns.nameservers <ip[,ip...]>' or use a managed bridge that serves DNS."
+      fail "Incus network ${INCUS_NETWORK} is incompatible with guest DNS fallback: dns.nameservers is empty and the network is not managed by Incus, so bridge gateway ${INCUS_NETWORK_BRIDGE_IPV4} is not a safe DNS assumption. Configure guest-reachable DNS resolvers by rerunning ${0##*/} with INCUS_NETWORK_DNS_NAMESERVERS set to <ip[,ip...]>, or use a managed bridge that serves DNS."
       exit 1
     fi
 
@@ -516,7 +517,12 @@ collect_readiness_diagnostics() {
     append_timeout_guest_exec_diagnostic "GUEST: ip -4 addr" ip -4 addr
     append_timeout_guest_exec_diagnostic "GUEST: ip route" ip route
     append_timeout_guest_exec_diagnostic "GUEST: cat /etc/resolv.conf" cat /etc/resolv.conf
+    append_timeout_guest_exec_diagnostic "GUEST: resolvectl status" resolvectl status
     append_timeout_guest_exec_diagnostic "GUEST: journalctl -u cloud-init --no-pager" journalctl -u cloud-init --no-pager
+    append_timeout_guest_exec_diagnostic "GUEST: journalctl -u cloud-final --no-pager" journalctl -u cloud-final --no-pager
+    append_timeout_guest_exec_diagnostic "GUEST: tail /var/log/cloud-init-output.log" tail -n 200 /var/log/cloud-init-output.log
+    append_timeout_guest_exec_diagnostic "GUEST: tail /var/log/apt/term.log" tail -n 120 /var/log/apt/term.log
+    append_timeout_guest_exec_diagnostic "GUEST: ps package processes" sh -lc 'ps -eo pid,ppid,stat,etime,comm,args | grep -E "(apt|apt-get|dpkg|cloud-init|cloud-final)" | grep -v grep'
     append_timeout_guest_exec_diagnostic "GUEST: systemctl status ssh --no-pager" systemctl status ssh --no-pager
     append_timeout_guest_exec_diagnostic "GUEST: systemctl status docker --no-pager" systemctl status docker --no-pager
   else
@@ -560,6 +566,7 @@ render_cloud_init() {
 
   python3 - "$template_path" "$rendered_path" "$VM_NAME" "$REMOTE_USER" "$REMOTE_USER_GECOS" "$SSH_KEY_PATH.pub" "$HOST_LISTEN_ADDRESS" "$VM_STATIC_IPV4" <<'PY'
 import pathlib
+import os
 import sys
 
 template_path = pathlib.Path(sys.argv[1])
@@ -570,6 +577,43 @@ remote_user_gecos = sys.argv[5]
 ssh_pubkey_path = pathlib.Path(sys.argv[6])
 host_listen_address = sys.argv[7]
 vm_static_ipv4 = sys.argv[8]
+
+def host_apt_source_text():
+    apt_paths = [pathlib.Path("/etc/apt/sources.list")]
+    sources_dir = pathlib.Path("/etc/apt/sources.list.d")
+    if sources_dir.is_dir():
+        apt_paths.extend(sorted(sources_dir.glob("*.list")))
+        apt_paths.extend(sorted(sources_dir.glob("*.sources")))
+    chunks = []
+    for path in apt_paths:
+        try:
+            chunks.append(path.read_text())
+        except OSError:
+            pass
+    return "\n".join(chunks)
+
+
+def render_apt_config():
+    mirror_override = os.environ.get("INCUS_DEBIAN_APT_MIRROR", "").strip().lower()
+    text = host_apt_source_text()
+    if mirror_override == "hetzner" or "mirror.hetzner.com/ubuntu" in text:
+        return """apt:
+  conf: |
+    Acquire::Retries "5";
+    Acquire::http::Timeout "30";
+    Acquire::https::Timeout "30";
+  sources_list: |
+    deb https://mirror.hetzner.com/debian/packages bookworm main contrib non-free non-free-firmware
+    deb https://mirror.hetzner.com/debian/packages bookworm-updates main contrib non-free non-free-firmware
+    deb https://mirror.hetzner.com/debian/security bookworm-security main contrib non-free non-free-firmware
+"""
+    return """apt:
+  conf: |
+    Acquire::Retries "5";
+    Acquire::http::Timeout "30";
+    Acquire::https::Timeout "30";
+"""
+
 
 text = template_path.read_text()
 ssh_key = ssh_pubkey_path.read_text().strip()
@@ -589,6 +633,7 @@ rendered = (text
     .replace("__SSH_PUBLIC_KEY__", ssh_key)
     .replace("__HOST_LISTEN_ADDRESS__", host_listen_address)
     .replace("__VM_STATIC_IPV4__", vm_static_ipv4)
+    .replace("__APT_CONFIG__", render_apt_config().rstrip())
     .replace("__DOCKER_DAEMON_JSON__", "\n".join(f"      {line}" for line in docker_daemon_json.splitlines())))
 rendered_path.write_text(rendered)
 PY

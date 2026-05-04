@@ -27,7 +27,10 @@ assert_not_contains() {
 
 assert_contains "${script_contents}" "apt-transport-https"
 assert_contains "${script_contents}" "qemu-system-modules-spice"
-assert_contains "${script_contents}" "helm kubectl incus"
+assert_contains "${script_contents}" "helm kubectl incus incus-agent virtiofsd"
+assert_contains "${script_contents}" "/etc/systemd/system/incus.service.d/10-ai-homebase-agent-path.conf"
+assert_contains "${script_contents}" "Environment=PATH=/usr/libexec/incus:"
+assert_contains "${script_contents}" "systemctl daemon-reload"
 assert_contains "${script_contents}" "usermod -aG incus-admin"
 assert_contains "${script_contents}" "OPENCLAW_SHARED_STATE_DIR"
 assert_contains "${script_contents}" 'install -d -m 0775 -o "${TARGET_UID}" -g "${TARGET_GID}" "${OPENCLAW_SHARED_STATE_DIR}"'

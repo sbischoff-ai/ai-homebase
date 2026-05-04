@@ -125,9 +125,29 @@ YAML
     echo RUNNING >"${state_dir}/status"
     exit 0
     ;;
+  file)
+    if [[ "$1" == "push" ]]; then
+      exit 0
+    fi
+    ;;
   exec)
     if [[ "$1" == "test-vm" && "$2" == "--" && "$3" == "systemctl" && "$4" == "is-active" && "$5" == "--quiet" && "$6" == "ssh" ]]; then
       exit 0
+    fi
+    if [[ "$1" == "test-vm" && "$2" == "--" ]]; then
+      shift 2
+      if [[ "$*" == "sh -ceu "* ]]; then
+        exit 0
+      fi
+      case "$*" in
+        "chmod 0755 /usr/local/bin/ai-homebase-configure-hosts.sh"|\
+        "/usr/local/bin/ai-homebase-configure-hosts.sh"|\
+        "systemctl enable dnsmasq"|\
+        "systemctl restart dnsmasq"|\
+        "systemctl restart docker.service")
+          exit 0
+          ;;
+      esac
     fi
     ;;
   config)
@@ -284,6 +304,7 @@ SH
   REAL_PYTHON3="${real_python3}" \
   BOOTSTRAP_LOG_FILE="${bootstrap_log}" \
   SSH_READY_TIMEOUT_SECONDS="${ssh_ready_timeout_seconds}" \
+  INCUS_DEBIAN_APT_MIRROR=hetzner \
   "${command[@]}" \
     >"${output_log}" 2>&1
 
@@ -345,6 +366,10 @@ SH
 
   grep -F "HOST_LISTEN_ADDRESS=${expected_host_listen_address}" "${sandbox_dir}/statefiles/test-vm.env" >/dev/null
   grep -F 'VM_STATIC_IPV4=10.10.10.45' "${sandbox_dir}/statefiles/test-vm.env" >/dev/null
+  grep -F 'config set test-vm user.user-data=#cloud-config' "${log_file}" >/dev/null
+  grep -F '  sources_list: |' "${log_file}" >/dev/null
+  grep -F '    deb https://mirror.hetzner.com/debian/packages bookworm main contrib non-free non-free-firmware' "${log_file}" >/dev/null
+  grep -F '    deb https://mirror.hetzner.com/debian/security bookworm-security main contrib non-free non-free-firmware' "${log_file}" >/dev/null
   grep -F 'config set test-vm user.network-config=version: 2' "${log_file}" >/dev/null
   grep -F '    match:' "${log_file}" >/dev/null
   grep -F '      macaddress: 00:16:3e:aa:bb:cc' "${log_file}" >/dev/null
@@ -402,7 +427,7 @@ SH
   if [[ -n "${ssh_ready_timeout_seconds}" ]]; then
     grep -F "Waiting for Incus VM SSH readiness (timeout: ${ssh_ready_timeout_seconds}s)" "${output_log}" >/dev/null
   else
-    grep -F 'Waiting for Incus VM SSH readiness (timeout: 600s)' "${output_log}" >/dev/null
+    grep -F 'Waiting for Incus VM SSH readiness (timeout: 1800s)' "${output_log}" >/dev/null
   fi
 
   case "${dns_nameservers}" in
@@ -533,6 +558,7 @@ SH
 
   grep -F 'has an empty dns.nameservers setting; falling back to bridge gateway 10.10.10.1 for guest DNS. Ensure this bridge provides DNS service to guests or cloud-init package installation may fail.' "${log_file}" >/dev/null
   grep -F 'is incompatible with guest DNS fallback: dns.nameservers is empty and dns.mode=none, so guests cannot rely on bridge gateway 10.10.10.1 for DNS.' "${log_file}" >/dev/null
+  grep -F 'INCUS_NETWORK_DNS_NAMESERVERS' "${log_file}" >/dev/null
   if grep -F 'start test-vm' "${incus_log}" >/dev/null; then
     echo "expected invalid dns fallback case to fail before incus start" >&2
     return 1
@@ -684,6 +710,26 @@ YAML
         printf 'nameserver 10.10.10.53\nnameserver 1.1.1.1\n'
         exit 0
         ;;
+      "resolvectl status")
+        printf 'DNS Servers: 10.10.10.53 1.1.1.1\n'
+        exit 0
+        ;;
+      "journalctl -u cloud-final --no-pager")
+        printf 'cloud-final journal line\n'
+        exit 0
+        ;;
+      "tail -n 200 /var/log/cloud-init-output.log")
+        printf 'cloud-init output line\n'
+        exit 0
+        ;;
+      "tail -n 120 /var/log/apt/term.log")
+        printf 'apt term log line\n'
+        exit 0
+        ;;
+      "sh -lc ps -eo pid,ppid,stat,etime,comm,args | grep -E \"(apt|apt-get|dpkg|cloud-init|cloud-final)\" | grep -v grep")
+        printf '123 1 S 00:01 cloud-init cloud-init modules --mode=final\n'
+        exit 0
+        ;;
       "systemctl status ssh --no-pager")
         printf 'ssh.service active\n'
         exit 0
@@ -801,7 +847,12 @@ SH
       grep -F '### GUEST: ip -4 addr' "${bootstrap_log}" >/dev/null
       grep -F '### GUEST: ip route' "${bootstrap_log}" >/dev/null
       grep -F '### GUEST: cat /etc/resolv.conf' "${bootstrap_log}" >/dev/null
+      grep -F '### GUEST: resolvectl status' "${bootstrap_log}" >/dev/null
       grep -F '### GUEST: journalctl -u cloud-init --no-pager' "${bootstrap_log}" >/dev/null
+      grep -F '### GUEST: journalctl -u cloud-final --no-pager' "${bootstrap_log}" >/dev/null
+      grep -F '### GUEST: tail /var/log/cloud-init-output.log' "${bootstrap_log}" >/dev/null
+      grep -F '### GUEST: tail /var/log/apt/term.log' "${bootstrap_log}" >/dev/null
+      grep -F '### GUEST: ps package processes' "${bootstrap_log}" >/dev/null
       grep -F '### GUEST: systemctl status ssh --no-pager' "${bootstrap_log}" >/dev/null
       grep -F '### GUEST: systemctl status docker --no-pager' "${bootstrap_log}" >/dev/null
       grep -F 'Timed out waiting for test-vm: guest agent became reachable, but failed to observe cloud-init completion before the SSH proxy at 10.10.10.1:2222 became reachable.' "${log_file}" >/dev/null
@@ -816,6 +867,8 @@ SH
       grep -F '### GUEST: cloud-init status --wait || cloud-init status' "${bootstrap_log}" >/dev/null
       grep -F '### GUEST: cloud-init status --long' "${bootstrap_log}" >/dev/null
       grep -F '### GUEST: journalctl -u cloud-init --no-pager' "${bootstrap_log}" >/dev/null
+      grep -F '### GUEST: journalctl -u cloud-final --no-pager' "${bootstrap_log}" >/dev/null
+      grep -F '### GUEST: tail /var/log/cloud-init-output.log' "${bootstrap_log}" >/dev/null
       grep -F '### HOST: incus console --show-log' "${bootstrap_log}" >/dev/null
       grep -F 'Cloud-init reported a terminal failure inside test-vm; aborting readiness wait before SSH proxy timeout' "${log_file}" >/dev/null
       grep -F 'Failed waiting for test-vm: cloud-init failed inside the guest before the SSH proxy at 10.10.10.1:2222 became reachable.' "${log_file}" >/dev/null

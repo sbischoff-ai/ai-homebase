@@ -145,7 +145,14 @@ deb [signed-by=${KUBECTL_APT_REPO}] ${KUBECTL_APT_REPO_URL} /
 EOF
 
 apt-get update
-apt-get install -y --no-install-recommends helm kubectl incus
+apt-get install -y --no-install-recommends helm kubectl incus incus-agent virtiofsd
+
+install -d -m 0755 /etc/systemd/system/incus.service.d
+cat >/etc/systemd/system/incus.service.d/10-ai-homebase-agent-path.conf <<'EOF'
+[Service]
+Environment=PATH=/usr/libexec/incus:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+EOF
+systemctl daemon-reload
 
 restore_package_service_autostart
 trap - EXIT
