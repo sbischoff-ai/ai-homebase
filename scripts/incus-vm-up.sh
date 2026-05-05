@@ -70,7 +70,6 @@ Options:
 
 Environment:
   SSH_READY_TIMEOUT_SECONDS  Same as --ssh-ready-timeout-seconds; first boot may need several minutes
-  INCUS_DEBIAN_APT_MIRROR   Set to "hetzner" to force the Debian guest onto Hetzner's Debian mirror.
 USAGE
 }
 
@@ -566,7 +565,6 @@ render_cloud_init() {
 
   python3 - "$template_path" "$rendered_path" "$VM_NAME" "$REMOTE_USER" "$REMOTE_USER_GECOS" "$SSH_KEY_PATH.pub" "$HOST_LISTEN_ADDRESS" "$VM_STATIC_IPV4" <<'PY'
 import pathlib
-import os
 import sys
 
 template_path = pathlib.Path(sys.argv[1])
@@ -577,45 +575,6 @@ remote_user_gecos = sys.argv[5]
 ssh_pubkey_path = pathlib.Path(sys.argv[6])
 host_listen_address = sys.argv[7]
 vm_static_ipv4 = sys.argv[8]
-
-def host_apt_source_text():
-    apt_paths = [pathlib.Path("/etc/apt/sources.list")]
-    sources_dir = pathlib.Path("/etc/apt/sources.list.d")
-    if sources_dir.is_dir():
-        apt_paths.extend(sorted(sources_dir.glob("*.list")))
-        apt_paths.extend(sorted(sources_dir.glob("*.sources")))
-    chunks = []
-    for path in apt_paths:
-        try:
-            chunks.append(path.read_text())
-        except OSError:
-            pass
-    return "\n".join(chunks)
-
-
-def render_apt_config():
-    mirror_override = os.environ.get("INCUS_DEBIAN_APT_MIRROR", "").strip().lower()
-    text = host_apt_source_text()
-    if mirror_override == "hetzner" or "mirror.hetzner.com/ubuntu" in text:
-        return """apt:
-  preserve_sources_list: false
-  conf: |
-    Acquire::Retries "5";
-    Acquire::http::Timeout "30";
-    Acquire::https::Timeout "30";
-  sources_list: |
-    deb https://mirror.hetzner.com/debian/packages bookworm main contrib non-free non-free-firmware
-    deb https://mirror.hetzner.com/debian/packages bookworm-updates main contrib non-free non-free-firmware
-    deb https://mirror.hetzner.com/debian/security bookworm-security main contrib non-free non-free-firmware
-"""
-    return """apt:
-  preserve_sources_list: false
-  conf: |
-    Acquire::Retries "5";
-    Acquire::http::Timeout "30";
-    Acquire::https::Timeout "30";
-"""
-
 
 text = template_path.read_text()
 ssh_key = ssh_pubkey_path.read_text().strip()
@@ -635,7 +594,6 @@ rendered = (text
     .replace("__SSH_PUBLIC_KEY__", ssh_key)
     .replace("__HOST_LISTEN_ADDRESS__", host_listen_address)
     .replace("__VM_STATIC_IPV4__", vm_static_ipv4)
-    .replace("__APT_CONFIG__", render_apt_config().rstrip())
     .replace("__DOCKER_DAEMON_JSON__", "\n".join(f"      {line}" for line in docker_daemon_json.splitlines())))
 rendered_path.write_text(rendered)
 PY

@@ -1,6 +1,5 @@
 #cloud-config
 hostname: __VM_NAME__
-__APT_CONFIG__
 package_update: true
 package_upgrade: false
 packages:

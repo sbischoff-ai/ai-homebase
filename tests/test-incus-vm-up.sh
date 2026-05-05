@@ -304,7 +304,6 @@ SH
   REAL_PYTHON3="${real_python3}" \
   BOOTSTRAP_LOG_FILE="${bootstrap_log}" \
   SSH_READY_TIMEOUT_SECONDS="${ssh_ready_timeout_seconds}" \
-  INCUS_DEBIAN_APT_MIRROR=hetzner \
   "${command[@]}" \
     >"${output_log}" 2>&1
 
@@ -367,10 +366,6 @@ SH
   grep -F "HOST_LISTEN_ADDRESS=${expected_host_listen_address}" "${sandbox_dir}/statefiles/test-vm.env" >/dev/null
   grep -F 'VM_STATIC_IPV4=10.10.10.45' "${sandbox_dir}/statefiles/test-vm.env" >/dev/null
   grep -F 'config set test-vm user.user-data=#cloud-config' "${log_file}" >/dev/null
-  grep -F '  preserve_sources_list: false' "${log_file}" >/dev/null
-  grep -F '  sources_list: |' "${log_file}" >/dev/null
-  grep -F '    deb https://mirror.hetzner.com/debian/packages bookworm main contrib non-free non-free-firmware' "${log_file}" >/dev/null
-  grep -F '    deb https://mirror.hetzner.com/debian/security bookworm-security main contrib non-free non-free-firmware' "${log_file}" >/dev/null
   grep -F 'config set test-vm user.network-config=version: 2' "${log_file}" >/dev/null
   grep -F '    match:' "${log_file}" >/dev/null
   grep -F '      macaddress: 00:16:3e:aa:bb:cc' "${log_file}" >/dev/null
