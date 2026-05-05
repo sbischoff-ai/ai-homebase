@@ -117,15 +117,19 @@ helm_upgrade_install() {
 }
 
 run_helm_dependency_update() {
+  local chart_path=""
   local output=""
-  if output="$(helm dependency update charts/platform-stack 2>&1)"; then
-    if [[ "$VERBOSE" -eq 1 && -n "$output" ]]; then
-      printf '%s\n' "$output"
+
+  for chart_path in charts/argo-cd charts/gitea charts/platform-stack; do
+    if output="$(helm dependency update "$chart_path" 2>&1)"; then
+      if [[ "$VERBOSE" -eq 1 && -n "$output" ]]; then
+        printf '%s\n' "$output"
+      fi
+      continue
     fi
-    return 0
-  fi
-  printf '%s\n' "$output" >&2
-  return 1
+    printf '%s\n' "$output" >&2
+    return 1
+  done
 }
 
 current_kube_context() {
