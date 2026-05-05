@@ -248,6 +248,10 @@ memgraphLab:
 argoCd:
   enabled: false
   argocd:
+    redis:
+      enabled: true
+    redis-ha:
+      enabled: false
     server:
       ingress:
         enabled: true
