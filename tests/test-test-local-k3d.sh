@@ -108,7 +108,7 @@ for ((i=0; i<${#args[@]}; i++)); do
     resource="${args[$((i+1))]}"
     if [[ "${resource}" == "deployment" ]]; then
       if [[ "$*" == *"CODER_GITEA_TEA_URL"* ]]; then
-        printf 'https://gitea.test.internal'
+        printf 'http://gitea.test.internal'
         exit 0
       fi
       printf 'platform-stack-openclaw'
@@ -133,7 +133,7 @@ for ((i=0; i<${#args[@]}; i++)); do
     fi
     if [[ "${resource}" == "configmap" ]]; then
       cat <<'JSON'
-{"commands":{"mcp":true},"cron":{"enabled":true,"store":"~/.openclaw/cron/jobs.json"},"env":[{"name":"CODER_GITEA_TEA_URL","value":"https://gitea.test.internal"}],"agents":{"defaults":{"sandbox":{"backend":"docker","docker":{"image":"registry.localtest.me/openclaw/openclaw-sandbox:trixie-slim","env":{"HOME":"/workspace/.home","SSL_CERT_FILE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","REQUESTS_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","NODE_EXTRA_CA_CERTS":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","GIT_SSL_CAINFO":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","CURL_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt"}}},"list":[{"id":"coder","sandbox":{"docker":{"image":"registry.localtest.me/openclaw/openclaw-sandbox-coder:trixie-slim","env":{"DOCKER_HOST":"${DOCKER_HOST}","CODER_GITEA_TOKEN":"${CODER_GITEA_TOKEN}","CODER_GITEA_TEA_URL":"https://gitea.test.internal"}}}},{"id":"architect","sandbox":{"mode":"non-main","docker":{"env":{"GIT_CONFIG_GLOBAL":"/workspace/.home/.config/git/config","REVIEWER_GITEA_BASE_URL":"https://gitea.test.internal","REVIEWER_GITEA_TEA_URL":"https://gitea.test.internal","REVIEWER_GITEA_HOST":"gitea.test.internal","REVIEWER_GITEA_TOKEN":"${REVIEWER_GITEA_TOKEN}"}}}},{"id":"auditor","sandbox":{"mode":"off"}}]},"mcp":{"servers":{"nextcloud":{"args":["http://platform-stack-nextcloud-mcp.ai-homebase.svc.cluster.local:8000/mcp","https://nextcloud-mcp.test.internal/mcp"]},"qdrant":{"args":["http://platform-stack-qdrant-mcp.ai-homebase.svc.cluster.local:8000/mcp","https://qdrant-mcp.test.internal/mcp"]}}}}
+{"commands":{"mcp":true},"cron":{"enabled":true,"store":"~/.openclaw/cron/jobs.json"},"env":[{"name":"CODER_GITEA_TEA_URL","value":"http://gitea.test.internal"}],"agents":{"defaults":{"sandbox":{"backend":"docker","docker":{"image":"registry.localtest.me/openclaw/openclaw-sandbox:trixie-slim","env":{"HOME":"/workspace/.home","SSL_CERT_FILE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","REQUESTS_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","NODE_EXTRA_CA_CERTS":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","GIT_SSL_CAINFO":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt","CURL_CA_BUNDLE":"/workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt"}}},"list":[{"id":"coder","sandbox":{"docker":{"image":"registry.localtest.me/openclaw/openclaw-sandbox-coder:trixie-slim","env":{"DOCKER_HOST":"${DOCKER_HOST}","CODER_GITEA_TOKEN":"${CODER_GITEA_TOKEN}","CODER_GITEA_TEA_URL":"http://gitea.test.internal"}}}},{"id":"architect","sandbox":{"mode":"non-main","docker":{"env":{"GIT_CONFIG_GLOBAL":"/workspace/.home/.config/git/config","REVIEWER_GITEA_BASE_URL":"http://gitea.test.internal","REVIEWER_GITEA_TEA_URL":"http://gitea.test.internal","REVIEWER_GITEA_HOST":"gitea.test.internal","REVIEWER_GITEA_TOKEN":"${REVIEWER_GITEA_TOKEN}"}}}},{"id":"auditor","sandbox":{"mode":"off"}}]},"mcp":{"servers":{"nextcloud":{"args":["http://platform-stack-nextcloud-mcp.ai-homebase.svc.cluster.local:8000/mcp","https://nextcloud-mcp.test.internal/mcp"]},"qdrant":{"args":["http://platform-stack-qdrant-mcp.ai-homebase.svc.cluster.local:8000/mcp","https://qdrant-mcp.test.internal/mcp"]}}}}
 JSON
       exit 0
     fi
@@ -305,6 +305,7 @@ FAKEPYTHON
     export REVIEWER_GITEA_TOKEN="reviewer-token"
     export REVIEWER_GITEA_USERNAME="reviewer"
     export REVIEWER_GITEA_EMAIL="reviewer@example.invalid"
+    export GITEA_BASE_URL="http://gitea.test.internal"
     export GITOPS_REPO_NAME="cluster-gitops"
 
     ./scripts/bootstrap-smoke.sh \

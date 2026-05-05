@@ -698,7 +698,6 @@ verify_openclaw_remote_docker() {
 verify_openclaw_gateway_tooling() {
   local deployment_name="$1"
   local expected_reviewer_host="${GITEA_INGRESS_HOST}"
-  local expected_reviewer_scheme="https"
   local expected_reviewer_base_url=""
   local expected_gateway_reviewer_host=""
   local expected_gateway_reviewer_base_url=""
@@ -711,10 +710,7 @@ verify_openclaw_gateway_tooling() {
   local architect_workspace_home="/home/node/.openclaw/workspace-architect/.home"
   local auditor_workspace_home="/home/node/.openclaw/workspace-auditor/.home"
 
-  if [[ "${GITEA_INGRESS_HOST:-}" == *.localtest.me ]]; then
-    expected_reviewer_scheme="http"
-  fi
-  expected_reviewer_base_url="${expected_reviewer_scheme}://${expected_reviewer_host}"
+  expected_reviewer_base_url="${GITEA_BASE_URL:-http://${expected_reviewer_host}}"
   expected_gateway_reviewer_host="${RELEASE_NAME}-gitea-http.${NAMESPACE}.svc.cluster.local"
   expected_gateway_reviewer_base_url="http://${expected_gateway_reviewer_host}:3000"
   expected_gateway_repo_url="${expected_gateway_reviewer_base_url}/${CODER_GITEA_USERNAME}/${GITOPS_REPO_NAME}.git"
@@ -777,7 +773,6 @@ verify_openclaw_mcp_bootstrap_config() {
   local openclaw_json=""
   local coder_gitea_tea_url=""
   local cron_jobs_json=""
-  local architect_reviewer_scheme="https"
   local architect_reviewer_base_url=""
   local nextcloud_mcp_scheme="https"
   local nextcloud_mcp_internal_url="http://${RELEASE_NAME}-nextcloud-mcp.${NAMESPACE}.svc.cluster.local:8000/mcp"
@@ -786,10 +781,7 @@ verify_openclaw_mcp_bootstrap_config() {
   local qdrant_mcp_internal_url="http://${RELEASE_NAME}-qdrant-mcp.${NAMESPACE}.svc.cluster.local:8000/mcp"
   local qdrant_mcp_external_url=""
 
-  if [[ "${GITEA_INGRESS_HOST:-}" == *.localtest.me ]]; then
-    architect_reviewer_scheme="http"
-  fi
-  architect_reviewer_base_url="${architect_reviewer_scheme}://${GITEA_INGRESS_HOST}"
+  architect_reviewer_base_url="${GITEA_BASE_URL:-http://${GITEA_INGRESS_HOST}}"
   nextcloud_mcp_external_url="${nextcloud_mcp_scheme}://${NEXTCLOUD_MCP_INGRESS_HOST}/mcp"
   qdrant_mcp_external_url="${qdrant_mcp_scheme}://${QDRANT_MCP_INGRESS_HOST}/mcp"
 
@@ -1208,7 +1200,6 @@ verify_coder_sandbox_runtime() {
 }
 
 verify_reviewer_sandbox_runtime() {
-  local reviewer_scheme="https"
   local reviewer_base_url=""
   local reviewer_token=""
 
@@ -1217,10 +1208,7 @@ verify_reviewer_sandbox_runtime() {
     return 0
   fi
 
-  if [[ "${GITEA_INGRESS_HOST:-}" == *.localtest.me ]]; then
-    reviewer_scheme="http"
-  fi
-  reviewer_base_url="${reviewer_scheme}://${GITEA_INGRESS_HOST}"
+  reviewer_base_url="${GITEA_BASE_URL:-http://${GITEA_INGRESS_HOST}}"
   reviewer_token="$(
     kubectl "${KUBECTL_KUBECONFIG_ARGS[@]}" "${KUBECTL_CONTEXT_ARGS[@]}" -n "$NAMESPACE" \
       get secret reviewer-credentials -o jsonpath='{.data.REVIEWER_GITEA_TOKEN}' | base64 -d
