@@ -12,6 +12,12 @@ KUBECTL_APT_KEY_URL="${KUBECTL_APT_KEY_URL:-https://pkgs.k8s.io/core:/stable:/v1
 KUBECTL_APT_REPO_URL="${KUBECTL_APT_REPO_URL:-https://pkgs.k8s.io/core:/stable:/v1.34/deb/}"
 KUBECTL_APT_REPO="/etc/apt/keyrings/kubernetes-apt-keyring.gpg"
 OPENCLAW_SHARED_STATE_DIR="${OPENCLAW_SHARED_STATE_DIR:-/var/lib/ai-homebase/openclaw-state}"
+INCUS_BRIDGE_NAME="${INCUS_BRIDGE_NAME:-incusbr0}"
+INCUS_BRIDGE_IPV4="${INCUS_BRIDGE_IPV4:-10.10.10.1/24}"
+INCUS_BRIDGE_SUBNET="${INCUS_BRIDGE_SUBNET:-10.10.10.0/24}"
+INCUS_STORAGE_POOL="${INCUS_STORAGE_POOL:-default}"
+INCUS_STORAGE_DRIVER="${INCUS_STORAGE_DRIVER:-dir}"
+INCUS_PROFILE_NAME="${INCUS_PROFILE_NAME:-default}"
 POLICY_RC_D_PATH="/usr/sbin/policy-rc.d"
 POLICY_RC_D_BACKUP=""
 POLICY_RC_D_WAS_PRESENT=0
@@ -26,6 +32,11 @@ Options:
   --target-user <name>         User to add to k3s/incus groups (default: ${TARGET_USER})
   --openclaw-shared-state-dir <path>
                                Host path shared later between k3s and the sandbox VM for OpenClaw state (default: ${OPENCLAW_SHARED_STATE_DIR})
+  --incus-bridge-name <name>   Incus bridge name to create/reconcile (default: ${INCUS_BRIDGE_NAME})
+  --incus-bridge-ipv4 <cidr>   Incus bridge IPv4 CIDR (default: ${INCUS_BRIDGE_IPV4})
+  --incus-bridge-subnet <cidr> Incus bridge subnet used for host NAT rules (default: ${INCUS_BRIDGE_SUBNET})
+  --incus-storage-pool <name>  Incus storage pool name (default: ${INCUS_STORAGE_POOL})
+  --incus-storage-driver <drv> Incus storage driver for a new pool (default: ${INCUS_STORAGE_DRIVER})
   --help                       Show this help message
 USAGE
 }
@@ -74,6 +85,11 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --target-user) TARGET_USER="$2"; shift 2 ;;
     --openclaw-shared-state-dir) OPENCLAW_SHARED_STATE_DIR="$2"; shift 2 ;;
+    --incus-bridge-name) INCUS_BRIDGE_NAME="$2"; shift 2 ;;
+    --incus-bridge-ipv4) INCUS_BRIDGE_IPV4="$2"; shift 2 ;;
+    --incus-bridge-subnet) INCUS_BRIDGE_SUBNET="$2"; shift 2 ;;
+    --incus-storage-pool) INCUS_STORAGE_POOL="$2"; shift 2 ;;
+    --incus-storage-driver) INCUS_STORAGE_DRIVER="$2"; shift 2 ;;
     -h|--help|--usage) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
   esac
@@ -157,6 +173,75 @@ systemctl daemon-reload
 restore_package_service_autostart
 trap - EXIT
 
+cat >/etc/sysctl.d/99-ai-homebase-incus.conf <<'EOF'
+net.ipv4.ip_forward = 1
+EOF
+sysctl --system >/dev/null
+
+install -d -m 0755 /usr/local/sbin
+cat >/usr/local/sbin/ai-homebase-incus-network.sh <<EOF
+#!/usr/bin/env bash
+set -euo pipefail
+
+bridge_name="${INCUS_BRIDGE_NAME}"
+bridge_subnet="${INCUS_BRIDGE_SUBNET}"
+default_iface="\$(ip route show default 0.0.0.0/0 | awk '{print \$5; exit}')"
+
+if [[ -z "\${default_iface}" ]]; then
+  echo "Unable to determine default network interface for Incus NAT." >&2
+  exit 1
+fi
+
+sysctl -w net.ipv4.ip_forward=1 >/dev/null
+iptables -C FORWARD -i "\${bridge_name}" -j ACCEPT 2>/dev/null || iptables -I FORWARD -i "\${bridge_name}" -j ACCEPT
+iptables -C FORWARD -o "\${bridge_name}" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || iptables -I FORWARD -o "\${bridge_name}" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+iptables -t nat -C POSTROUTING -s "\${bridge_subnet}" -o "\${default_iface}" -j MASQUERADE 2>/dev/null || iptables -t nat -A POSTROUTING -s "\${bridge_subnet}" -o "\${default_iface}" -j MASQUERADE
+EOF
+chmod 0755 /usr/local/sbin/ai-homebase-incus-network.sh
+
+cat >/etc/systemd/system/ai-homebase-incus-network.service <<'EOF'
+[Unit]
+Description=ai-homebase Incus bridge forwarding and NAT rules
+After=network-online.target incus.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/ai-homebase-incus-network.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl daemon-reload
+systemctl enable --now incus
+
+if ! incus profile show "${INCUS_PROFILE_NAME}" >/dev/null 2>&1; then
+  incus admin init --auto
+fi
+
+if ! incus network show "${INCUS_BRIDGE_NAME}" >/dev/null 2>&1; then
+  incus network create "${INCUS_BRIDGE_NAME}" \
+    ipv4.address="${INCUS_BRIDGE_IPV4}" \
+    ipv4.nat=true \
+    ipv6.address=none
+fi
+
+if ! incus storage show "${INCUS_STORAGE_POOL}" >/dev/null 2>&1; then
+  incus storage create "${INCUS_STORAGE_POOL}" "${INCUS_STORAGE_DRIVER}"
+fi
+
+if ! incus profile device get "${INCUS_PROFILE_NAME}" root pool >/dev/null 2>&1; then
+  incus profile device add "${INCUS_PROFILE_NAME}" root disk path=/ pool="${INCUS_STORAGE_POOL}"
+fi
+
+if ! incus profile device get "${INCUS_PROFILE_NAME}" eth0 network >/dev/null 2>&1; then
+  incus profile device add "${INCUS_PROFILE_NAME}" eth0 nic network="${INCUS_BRIDGE_NAME}" name=eth0
+fi
+
+systemctl enable --now ai-homebase-incus-network.service
+
 install -d -m 0775 -o "${TARGET_UID}" -g "${TARGET_GID}" "${OPENCLAW_SHARED_STATE_DIR}"
 
 usermod -aG incus-admin "${TARGET_USER}"
@@ -170,3 +255,4 @@ echo "  3. Copy bootstrap.example.toml to bootstrap.local.toml and edit hosts, A
 echo "  4. Run python3 scripts/bootstrap-config.py validate --config bootstrap.local.toml"
 echo "  5. Run ./scripts/bootstrap-stack.sh --profile k3s --bootstrap-config bootstrap.local.toml --shared-openclaw-state-source ${OPENCLAW_SHARED_STATE_DIR}"
 echo "  Shared OpenClaw state dir: ${OPENCLAW_SHARED_STATE_DIR}"
+echo "  Incus bridge: ${INCUS_BRIDGE_NAME} (${INCUS_BRIDGE_IPV4}, NAT subnet ${INCUS_BRIDGE_SUBNET})"

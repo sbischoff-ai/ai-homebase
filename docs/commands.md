@@ -156,4 +156,4 @@ sudo ./scripts/install-k3s-ubuntu-2404.sh
 ./scripts/bootstrap-stack.sh --profile k3s --bootstrap-config bootstrap.local.toml
 ```
 
-The k3s prep path expects Docker Engine and git to already exist on the host. `install-k3s-ubuntu-2404.sh` prepares the Ubuntu-side prerequisites only, and `bootstrap-stack.sh --profile k3s` then reconciles k3s with Traefik disabled, installs `ingress-nginx` for the `nginx` ingress class used by both supported target overlays, and prepares the default-on Gitea Actions runner VM when enabled.
+The k3s prep path expects Docker Engine and git to already exist on the host. `install-k3s-ubuntu-2404.sh` prepares the Ubuntu-side prerequisites and Incus host runtime, including VM bridge egress. `bootstrap-stack.sh --profile k3s` then reconciles k3s with Traefik disabled, installs `ingress-nginx` for the `nginx` ingress class used by both supported target overlays, and prepares the default-on Gitea Actions runner VM when enabled.

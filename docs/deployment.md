@@ -31,7 +31,7 @@ cp bootstrap.example.toml bootstrap.local.toml
 ./scripts/bootstrap-stack.sh --profile k3s --bootstrap-config bootstrap.local.toml
 ```
 
-The host-prep path expects Docker Engine and git to already be working on the host. `install-k3s-ubuntu-2404.sh` installs the Ubuntu-side prerequisites only, and `bootstrap-stack.sh --profile k3s` then reconciles k3s with Traefik disabled, installs `ingress-nginx` for the `nginx` ingress class used by rendered manifests, prepares the Incus host runtime, brings up the sandbox VM plus the default-on Gitea Actions runner VM when enabled, applies the shared bootstrap resources, performs the GitOps handoff, and runs smoke checks.
+The host-prep path expects Docker Engine and git to already be working on the host. `install-k3s-ubuntu-2404.sh` installs the Ubuntu-side prerequisites and configures the Incus host runtime, including VM bridge egress. `bootstrap-stack.sh --profile k3s` then reconciles k3s with Traefik disabled, installs `ingress-nginx` for the `nginx` ingress class used by rendered manifests, brings up the sandbox VM plus the default-on Gitea Actions runner VM when enabled, applies the shared bootstrap resources, performs the GitOps handoff, and runs smoke checks.
 If you prepared the host with a custom `--openclaw-shared-state-dir`, pass that same path to `bootstrap-stack.sh --shared-openclaw-state-source ...`.
 
 Continue with [runbook-homelab.md](./runbook-homelab.md).

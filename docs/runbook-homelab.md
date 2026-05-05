@@ -33,7 +33,7 @@ The host-prep script intentionally does not install Docker or git. They are oper
 sudo ./scripts/install-k3s-ubuntu-2404.sh
 ```
 
-The script installs the Ubuntu-side prerequisites only: Helm, `kubectl`, Incus, package repos, group membership, and the shared OpenClaw state directory. It does not start k3s, initialize Incus, or deploy any cluster resources.
+The script installs the Ubuntu-side prerequisites, configures the Incus host runtime needed by the sandbox VMs, and creates the shared OpenClaw state directory. It does not start k3s or deploy any cluster resources. Incus host prep includes the default bridge, storage/profile devices, IPv4 forwarding, and host NAT rules for VM egress.
 
 ## 2. Prepare Bootstrap Config
 
@@ -50,7 +50,7 @@ Fill in hostnames, mail settings, provider keys, shared admin details, OpenClaw 
 ./scripts/bootstrap-stack.sh --profile k3s --bootstrap-config bootstrap.local.toml
 ```
 
-This single command reconciles the runtime and the stack in one ordered flow: it installs `k3s` when missing, enforces the repo's Traefik-disabled posture, installs or upgrades `ingress-nginx`, initializes Incus host state, creates or refreshes the OpenClaw sandbox VM, prepares the dedicated Gitea Actions runner VM when `services.gitea.actions.enabled=true`, creates Secrets, renders the generated bootstrap values layer, builds/imports the repo-managed OpenClaw gateway image, installs the Helm release, exports the internal CA bundle, publishes runtime images where required, hands the cluster to Gitea/Argo CD, triggers the first sync, waits for Argo applications to report `Synced` and `Healthy`, and then runs smoke checks.
+This single command reconciles the runtime and the stack in one ordered flow: it installs `k3s` when missing, enforces the repo's Traefik-disabled posture, installs or upgrades `ingress-nginx`, verifies/reuses Incus host state from prep, creates or refreshes the OpenClaw sandbox VM, prepares the dedicated Gitea Actions runner VM when `services.gitea.actions.enabled=true`, creates Secrets, renders the generated bootstrap values layer, builds/imports the repo-managed OpenClaw gateway image, installs the Helm release, exports the internal CA bundle, publishes runtime images where required, hands the cluster to Gitea/Argo CD, triggers the first sync, waits for Argo applications to report `Synced` and `Healthy`, and then runs smoke checks.
 If you changed the shared state directory during host prep, pass the same path here with `--shared-openclaw-state-source <path>` so bootstrap exports the internal CA bundle into the directory that the gateway and sandbox VM actually share.
 
 Bootstrap-side Gitea API and git operations use a local port-forward to the in-cluster Gitea service, so the first install does not depend on the host trusting the internal ingress CA.
