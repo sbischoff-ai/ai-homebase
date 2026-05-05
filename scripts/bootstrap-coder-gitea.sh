@@ -118,7 +118,7 @@ if [[ -z "${REGISTRY_PASSWORD:-}" ]]; then
   REGISTRY_PASSWORD="$(kubectl "${KUBECTL_ARGS[@]}" -n "$NAMESPACE" get secret coder-credentials -o jsonpath='{.data.CODER_REGISTRY_PASSWORD}' 2>/dev/null | base64 -d || true)"
 fi
 
-if [[ -z "${GITEA_HOST:-}" || -z "${CODER_GITEA_USERNAME:-}" || -z "${CODER_GITEA_PASSWORD:-}" || -z "${REVIEWER_GITEA_USERNAME:-}" || -z "${REVIEWER_GITEA_PASSWORD:-}" ]]; then
+if [[ -z "${GITEA_BASE_URL:-}" || -z "${CODER_GITEA_USERNAME:-}" || -z "${CODER_GITEA_PASSWORD:-}" || -z "${REVIEWER_GITEA_USERNAME:-}" || -z "${REVIEWER_GITEA_PASSWORD:-}" ]]; then
   echo "Skipping Gitea agent-user bootstrap because host or credentials are missing."
   exit 0
 fi
@@ -414,5 +414,5 @@ create_and_apply_secret reviewer-credentials \
   --from-literal=REVIEWER_GITEA_PASSWORD="${REVIEWER_GITEA_PASSWORD}" \
   --from-literal=REVIEWER_GITEA_TOKEN="${reviewer_gitea_token}"
 
-echo "Coder Gitea user ${CODER_GITEA_USERNAME} is ready at http://${GITEA_HOST}."
-echo "Reviewer Gitea user ${REVIEWER_GITEA_USERNAME} is ready at http://${GITEA_HOST}."
+echo "Coder Gitea user ${CODER_GITEA_USERNAME} is ready at ${GITEA_BASE_URL}."
+echo "Reviewer Gitea user ${REVIEWER_GITEA_USERNAME} is ready at ${GITEA_BASE_URL}."

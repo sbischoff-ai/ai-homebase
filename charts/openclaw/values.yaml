@@ -290,8 +290,8 @@ openclaw:
               NODE_EXTRA_CA_CERTS: /workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt
               GIT_SSL_CAINFO: /workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt
               CURL_CA_BUNDLE: /workspace/.openclaw-runtime/ai-homebase-ca-bundle.crt
-              CODER_GITEA_BASE_URL: https://gitea.example.com
-              CODER_GITEA_TEA_URL: https://gitea.example.com
+              CODER_GITEA_BASE_URL: http://gitea.example.com
+              CODER_GITEA_TEA_URL: http://gitea.example.com
               CODER_GITEA_HOST: gitea.example.com
               CODER_GITEA_USERNAME: coder
               CODER_GITEA_EMAIL: coder@example.invalid
@@ -358,8 +358,8 @@ openclaw:
               OPENAI_API_KEY: ${OPENAI_API_KEY}
               ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
               GEMINI_API_KEY: ${GEMINI_API_KEY}
-              REVIEWER_GITEA_BASE_URL: https://gitea.example.com
-              REVIEWER_GITEA_TEA_URL: https://gitea.example.com
+              REVIEWER_GITEA_BASE_URL: http://gitea.example.com
+              REVIEWER_GITEA_TEA_URL: http://gitea.example.com
               REVIEWER_GITEA_HOST: gitea.example.com
               REVIEWER_GITEA_USERNAME: reviewer
               REVIEWER_GITEA_EMAIL: reviewer@example.invalid
@@ -541,11 +541,11 @@ env:
   - name: MEMGRAPH_BOLT_URI
     value: ""
   - name: CODER_GITEA_BASE_URL
-    value: https://gitea.example.com
+    value: http://gitea.example.com
   - name: CODER_GITEA_BOOTSTRAP_URL
     value: 'http://{{ printf "%s-gitea-http.%s.svc.cluster.local:3000" .Release.Name .Release.Namespace }}'
   - name: CODER_GITEA_TEA_URL
-    value: https://gitea.example.com
+    value: http://gitea.example.com
   - name: CODER_GITEA_HOST
     value: gitea.example.com
   - name: CODER_GITEA_USERNAME
@@ -571,7 +571,7 @@ env:
   - name: REVIEWER_GITEA_HOST
     value: '{{ printf "%s-gitea-http.%s.svc.cluster.local" .Release.Name .Release.Namespace }}'
   - name: REVIEWER_GITEA_EXTERNAL_BASE_URL
-    value: https://gitea.example.com
+    value: http://gitea.example.com
   - name: REVIEWER_GITEA_EXTERNAL_HOST
     value: gitea.example.com
   - name: REVIEWER_GITEA_USERNAME

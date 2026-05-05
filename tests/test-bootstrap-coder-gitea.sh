@@ -39,6 +39,11 @@ username = "coder-bot"
 email = "coder@example.invalid"
 password = "coder-password"
 
+[openclaw.agents.reviewer.gitea]
+username = "reviewer"
+email = "reviewer@example.invalid"
+password = "reviewer-password"
+
 [openclaw.agents.architect]
 model = "openai/gpt-5.4"
 
@@ -61,6 +66,10 @@ cat >"${sandbox_dir}/bin/kubectl" <<'SH'
 set -euo pipefail
 printf 'kubectl %s\n' "$*" >>"${FAKE_KUBECTL_LOG:?}"
 case "$*" in
+  *"port-forward"*)
+    printf 'Forwarding from 127.0.0.1:13001 -> 3000\n'
+    sleep 300
+    ;;
   *"get secret gitea-admin-secret -o jsonpath={.data.username}"*) printf 'YWRtaW4=' ;;
   *"get secret gitea-admin-secret -o jsonpath={.data.password}"*) printf 'YWRtaW4tcGFzcw==' ;;
 esac
@@ -70,17 +79,67 @@ cat >"${sandbox_dir}/bin/curl" <<'SH'
 #!/usr/bin/env bash
 set -euo pipefail
 printf 'curl %s\n' "$*" >>"${FAKE_CURL_LOG:?}"
-case "$*" in
-  *"/api/v1/users/coder-bot"*)
-    printf '404'
+out_file=""
+status_output=false
+method="GET"
+url=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -o)
+      out_file="$2"
+      shift 2
+      ;;
+    -w)
+      status_output=true
+      shift 2
+      ;;
+    -X)
+      method="$2"
+      shift 2
+      ;;
+    -d)
+      method="POST"
+      shift 2
+      ;;
+    http://*|https://*)
+      url="$1"
+      shift
+      ;;
+    *)
+      shift
+      ;;
+  esac
+done
+
+body='{}'
+status='200'
+case "${method} ${url}" in
+  "GET "*/api/v1/version)
+    body='{}'
     ;;
-  *"/api/v1/admin/users"*)
-    printf '{}'
+  "GET "*/api/v1/users/*/tokens)
+    body='[]'
     ;;
-  *)
-    printf '{}'
+  "POST "*/api/v1/users/*/tokens)
+    body='{"sha1":"token"}'
+    status='201'
+    ;;
+  "GET "*/api/v1/users/coder-bot|"GET "*/api/v1/users/reviewer)
+    status='404'
+    ;;
+  "POST "*/api/v1/admin/users)
+    status='201'
     ;;
 esac
+
+if [[ -n "$out_file" ]]; then
+  printf '%s' "$body" >"$out_file"
+elif [[ "$status_output" != true ]]; then
+  printf '%s' "$body"
+fi
+if [[ "$status_output" == true ]]; then
+  printf '%s' "$status"
+fi
 SH
 
 chmod +x "${sandbox_dir}/bin/kubectl" "${sandbox_dir}/bin/curl"
@@ -100,6 +159,6 @@ curl_log="$(cat "${sandbox_dir}/curl.log")"
 assert_contains "${kubectl_log}" "get secret gitea-admin-secret -o jsonpath={.data.username}"
 assert_contains "${curl_log}" "/api/v1/users/coder-bot"
 assert_contains "${curl_log}" "/api/v1/admin/users"
-assert_contains "${output}" "Coder Gitea user coder-bot is ready at https://gitea.test.internal."
+assert_contains "${output}" "Coder Gitea user coder-bot is ready at http://gitea.test.internal."
 
 echo "bootstrap coder gitea tests passed"

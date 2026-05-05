@@ -83,6 +83,12 @@ github_token = ""
 paperless_db_password = ""
 paperless_secret_key = ""
 
+[services.gitea]
+# Optional absolute URL used by bootstrap-generated OpenClaw and Actions runner
+# config. Defaults to "http://<hosts.gitea>" because the shipped Gitea ingress is
+# internal HTTP unless you add explicit TLS configuration.
+base_url = ""
+
 [services.gitea.admin]
 username = ""
 email = ""

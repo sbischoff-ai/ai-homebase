@@ -124,11 +124,11 @@ if [[ -z "${REGISTRY_HOST:-}" || -z "$registry_username" || -z "$registry_passwo
   exit 1
 fi
 
-gitea_scheme="https"
-if [[ "${GITEA_HOST:-}" == *.localtest.me ]]; then
-  gitea_scheme="http"
+gitea_instance_url="${GITEA_BASE_URL:-}"
+if [[ -z "$gitea_instance_url" ]]; then
+  fail "GITEA_BASE_URL is unavailable for the Gitea Actions runner bootstrap."
+  exit 1
 fi
-gitea_instance_url="${gitea_scheme}://${GITEA_HOST}"
 runner_name="${RELEASE_NAME}-${RUNNER_VM_NAME}"
 runner_container_name="gitea-actions-runner"
 runner_root_dir="/opt/ai-homebase/gitea-actions-runner"

@@ -240,6 +240,13 @@ def registry_image_ref(registry_host: str, namespace: str, image_name: str, tag:
     return f"{registry_host}/{namespace}/{image_name}:{tag}"
 
 
+def normalize_http_base_url(value: str, context: str) -> str:
+    normalized = value.rstrip("/")
+    if normalized and not re.fullmatch(r"https?://[^/]+(?:/.*)?", normalized):
+        raise SystemExit(f"{context} must be an absolute http:// or https:// URL.")
+    return normalized
+
+
 NEXTCLOUD_PROJECT_BOOTSTRAP_FILES = [
     "overview.md",
     "multi-agent-topology.md",
@@ -617,6 +624,10 @@ def resolved_values(data: dict[str, object]) -> dict[str, str]:
     values["GITEA_ACTIONS_RUNNER_LABELS"] = ",".join(
         f"{label}:docker://{values['GITEA_ACTIONS_JOB_IMAGE']}" for label in gitea_actions_runner_labels
     )
+    gitea_base_url = nested_nonempty_string(data, ("services", "gitea", "base_url"))
+    if not gitea_base_url and values["GITEA_HOST"]:
+        gitea_base_url = f"http://{values['GITEA_HOST']}"
+    values["GITEA_BASE_URL"] = normalize_http_base_url(gitea_base_url, "services.gitea.base_url")
     return values
 
 
@@ -670,8 +681,7 @@ def command_render_values(args: argparse.Namespace) -> int:
         "paperlessNgx": values["PAPERLESS_HOST"],
     }
     full_mail_from = f"{values['MAIL_FROM_LOCALPART']}@{values['MAIL_DOMAIN']}"
-    gitea_scheme = "http" if values["GITEA_HOST"].endswith(".localtest.me") else "https"
-    gitea_base_url = f"{gitea_scheme}://{values['GITEA_HOST']}"
+    gitea_base_url = values["GITEA_BASE_URL"]
     internal_gitea_service_host = '{{ printf "%s-gitea-http.%s.svc.cluster.local" .Release.Name .Release.Namespace }}'
     internal_gitea_service_base_url = f"http://{internal_gitea_service_host}:3000"
     qdrant_sandbox_url = f"https://{values['QDRANT_HOST']}" if values["QDRANT_HOST"] else ""

@@ -41,6 +41,7 @@ python3 scripts/bootstrap-config.py validate --config bootstrap.local.toml
 - `[mail]` sender domain, SMTP hostname, sender local-part, and display name
 - provider/search API keys
 - shared admin identity and service-specific admin overrides
+- optional Gitea base URL under `[services.gitea]`; when omitted, bootstrap uses `http://<hosts.gitea>` because the shipped Gitea ingress is internal HTTP
 - Gitea Actions runner bootstrap settings under `[services.gitea.actions]` with Actions enabled by default
 - OpenClaw gateway token and agent model selections, including coder Codex CLI default and elevated models
 - registry credentials, coder Gitea defaults, and the shared reviewer Gitea identity for architect and auditor

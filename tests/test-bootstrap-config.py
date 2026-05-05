@@ -146,6 +146,7 @@ assert "MEMGRAPH_HOST=memgraph.test.internal" in shell_vars
 assert "MEMGRAPH_LAB_HOST=memgraph-lab.test.internal" in shell_vars
 assert "ARGOCD_HOST=argocd.test.internal" in shell_vars
 assert "PAPERLESS_HOST=paperless.test.internal" in shell_vars
+assert "GITEA_BASE_URL=http://gitea.test.internal" in shell_vars
 assert "MAIL_DOMAIN=example.com" in shell_vars
 assert "MAIL_SMTP_HOST=smtp.example.com" in shell_vars
 assert "MAIL_FROM_LOCALPART=noreply" in shell_vars
@@ -160,6 +161,20 @@ assert "CODER_GITEA_PASSWORD=coder-password" in shell_vars
 assert "REGISTRY_USERNAME=coder" in shell_vars
 assert "REGISTRY_PASSWORD=registry-password" in shell_vars
 assert "GITOPS_REPO_PRIVATE=true" in shell_vars
+
+custom_gitea_base_config = write_config(
+    valid_config.read_text().replace(
+        "[services.gitea.admin]",
+        '[services.gitea]\nbase_url = "https://git.example.test/root"\n\n[services.gitea.admin]',
+    )
+)
+custom_gitea_shell_vars = subprocess.run(
+    ["python3", str(SCRIPT), "shell-vars", "--config", str(custom_gitea_base_config)],
+    check=True,
+    capture_output=True,
+    text=True,
+).stdout
+assert "GITEA_BASE_URL=https://git.example.test/root" in custom_gitea_shell_vars
 
 rendered_values = json.loads(
     subprocess.run(
@@ -235,7 +250,7 @@ assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["XDG_STATE_HOME"] == "/workspace/.home/.local/state"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["CODER_GITEA_USERNAME"] == "coder-bot"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["CODER_GITEA_HOST"] == "gitea.test.internal"
-assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["CODER_GITEA_BASE_URL"] == "https://gitea.test.internal"
+assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["CODER_GITEA_BASE_URL"] == "http://gitea.test.internal"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["CODER_GITEA_TEA_LOGIN_NAME"] == "coder"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["CODER_GITEA_TEA_TOKEN_NAME"] == "openclaw-coder-sandbox"
 assert rendered_values["openclaw"]["openclaw"]["agents"]["list"][1]["sandbox"]["docker"]["env"]["CODER_REGISTRY_HOST"] == "registry.test.internal"
@@ -504,12 +519,12 @@ assert rendered_values["openclaw"]["env"] == [
         "name": "MEMGRAPH_BOLT_URI",
         "value": 'bolt://{{ printf "%s-memgraph" .Release.Name | trunc 63 | trimSuffix "-" }}:7687',
     },
-    {"name": "CODER_GITEA_BASE_URL", "value": "https://gitea.test.internal"},
+    {"name": "CODER_GITEA_BASE_URL", "value": "http://gitea.test.internal"},
     {
         "name": "CODER_GITEA_BOOTSTRAP_URL",
         "value": "http://{{ printf \"%s-gitea-http.%s.svc.cluster.local\" .Release.Name .Release.Namespace }}:3000",
     },
-    {"name": "CODER_GITEA_TEA_URL", "value": "https://gitea.test.internal"},
+    {"name": "CODER_GITEA_TEA_URL", "value": "http://gitea.test.internal"},
     {"name": "CODER_GITEA_HOST", "value": "gitea.test.internal"},
     {"name": "CODER_GITEA_USERNAME", "value": "coder-bot"},
     {"name": "CODER_GITEA_EMAIL", "value": "coder-bot@example.invalid"},
@@ -536,7 +551,7 @@ assert rendered_values["openclaw"]["env"] == [
         "name": "REVIEWER_GITEA_HOST",
         "value": '{{ printf "%s-gitea-http.%s.svc.cluster.local" .Release.Name .Release.Namespace }}',
     },
-    {"name": "REVIEWER_GITEA_EXTERNAL_BASE_URL", "value": "https://gitea.test.internal"},
+    {"name": "REVIEWER_GITEA_EXTERNAL_BASE_URL", "value": "http://gitea.test.internal"},
     {"name": "REVIEWER_GITEA_EXTERNAL_HOST", "value": "gitea.test.internal"},
     {"name": "REVIEWER_GITEA_USERNAME", "value": "reviewer"},
     {"name": "REVIEWER_GITEA_EMAIL", "value": "reviewer@example.invalid"},
