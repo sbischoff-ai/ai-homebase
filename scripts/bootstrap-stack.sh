@@ -226,6 +226,6 @@ if [[ "$PROFILE" == "k3d" ]]; then
   SMOKE_CMD+=(--cluster-name "$CLUSTER_NAME")
 fi
 
-"${RUNTIME_CMD[@]}"
-"${APPLY_CMD[@]}"
-"${SMOKE_CMD[@]}"
+run_verbose "${RUNTIME_CMD[@]}"
+run_verbose "${APPLY_CMD[@]}"
+run_verbose "${SMOKE_CMD[@]}"

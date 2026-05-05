@@ -3,6 +3,14 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SCRIPT_PATH="${REPO_ROOT}/scripts/incus-vm-up.sh"
+USER_DATA_TEMPLATE="${REPO_ROOT}/incus/openclaw-sandbox-user-data.tpl"
+
+assert_default_guest_apt_sources() {
+  if grep -Eq '^(apt:|  preserve_sources_list:|  sources_list:)|mirror\.hetzner\.com/debian|deb\.debian\.org' "${USER_DATA_TEMPLATE}"; then
+    echo "expected Incus VM cloud-init to use the image default apt sources" >&2
+    return 1
+  fi
+}
 
 run_case() {
   local case_name="$1"
@@ -882,6 +890,7 @@ SH
   rm -rf "${sandbox_dir}"
 }
 
+assert_default_guest_apt_sources
 run_case inherited-root 0 0 0 1 3
 run_case local-root 1 1 1 0 1 42
 run_case dns-fallback 0 0 0 1 1 "" ""

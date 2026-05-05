@@ -1063,6 +1063,7 @@ if [[ "$SKIP_INSTALL" -eq 0 ]]; then
     --namespace "$NAMESPACE"
     --internal-skip-gitops
     --enable-service argo-cd
+    --enable-service gitea
   )
   if [[ -n "$KUBECONFIG_PATH" ]]; then
     INSTALL_CMD+=(--kubeconfig "$KUBECONFIG_PATH")

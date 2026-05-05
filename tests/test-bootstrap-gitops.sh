@@ -280,7 +280,7 @@ kubectl_output="$(cat "${kubectl_log}")"
 curl_output="$(cat "${curl_log}")"
 git_output="$(cat "${git_log}")"
 
-assert_contains "${commands}" "bootstrap-apply.sh --profile k3d --bootstrap-config ${bootstrap_config_path} --release-name platform-stack --namespace ai-homebase --internal-skip-gitops --enable-service argo-cd"
+assert_contains "${commands}" "bootstrap-apply.sh --profile k3d --bootstrap-config ${bootstrap_config_path} --release-name platform-stack --namespace ai-homebase --internal-skip-gitops --enable-service argo-cd --enable-service gitea"
 assert_contains "${commands}" "bootstrap-secrets.sh --profile k3d --bootstrap-config ${bootstrap_config_path} --release-name platform-stack --namespace ai-homebase"
 assert_contains "${commands}" "bootstrap-memgraph.sh --release-name platform-stack --namespace ai-homebase"
 assert_contains "${commands}" "bootstrap-openclaw-skills.sh --release-name platform-stack --namespace ai-homebase --deployment platform-stack-openclaw --phase post-gitops"
