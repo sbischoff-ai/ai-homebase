@@ -55,6 +55,23 @@ If you changed the shared state directory during host prep, pass the same path h
 
 Bootstrap-side Gitea API and git operations use a local port-forward to the in-cluster Gitea service, so the first install does not depend on the host trusting the internal ingress CA.
 
+## 4. Configure kubectl
+
+The `k3s` kubeconfig lives at `/etc/rancher/k3s/k3s.yaml`. Persist it for the operator user so future SSH sessions use the cluster instead of falling back to `localhost:8080`:
+
+```bash
+grep -qxF 'export KUBECONFIG=/etc/rancher/k3s/k3s.yaml' ~/.profile || \
+  echo 'export KUBECONFIG=/etc/rancher/k3s/k3s.yaml' >> ~/.profile
+
+. ~/.profile
+```
+
+Confirm `kubectl` can reach the cluster before continuing:
+
+```bash
+kubectl get nodes
+```
+
 ## 5. Confidence Checks
 
 After bootstrap returns, run:
